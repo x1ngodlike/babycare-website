@@ -29,3 +29,13 @@ export interface AuditEntry {
   occurredAt: string;
   snapshot: CareRecord | null;
 }
+
+export interface DraftRecord {
+  type: RecordType;
+  occurredAt: string;
+  breastMilkMl?: number | null;
+  formulaMl?: number | null;
+  supplement?: Supplement | null;
+  bowelSize?: BowelSize | null;
+  note?: string | null;
+}

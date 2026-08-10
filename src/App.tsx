@@ -3,7 +3,7 @@ import { api, ApiError } from './api';
 import { addDays, calculateAge, isoDay, startOfWeek, toLocalInput } from './date';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
-import type { AuditEntry, AuditIdentity, BowelSize, CareRecord, DraftRecord, FamilyId, Profile, RecordType, SessionUser, Supplement } from './types';
+import type { AiSettingsPublic, AuditEntry, AuditIdentity, BowelSize, Capabilities, CareRecord, DraftRecord, FamilyId, Profile, RecordType, SessionUser, Supplement } from './types';
 import { parseVoiceRecords } from './voice';
 
 type Tab = 'today' | 'history' | 'trends' | 'settings';
@@ -27,6 +27,7 @@ const familyMembers: { id: FamilyId; name: string; role: string; icon: string }[
 ];
 const auditNames: Record<AuditIdentity, string> = { father: '爸爸', mother: '妈妈', grandfather: '爷爷', grandmother: '奶奶', legacy: '历史数据' };
 const auditActions: Record<AuditEntry['action'], string> = { create: '创建记录', update: '修改记录', delete: '删除记录', restore: '恢复记录', import: '从备份导入' };
+const emptyCapabilities: Capabilities = { aiTranscription: false, transcribeModel: null, aiInterpretation: false, interpretationModel: null };
 
 const blankDraft = (type: RecordType = 'feeding'): DraftRecord => ({ id: createUuid(), type, occurredAt: new Date().toISOString(), breastMilkMl: null, formulaMl: null });
 
@@ -53,12 +54,14 @@ function optimisticRecord(value: DraftRecord, user: SessionUser, previous?: Care
 }
 
 function useDialogFocus(ref: React.RefObject<HTMLElement | null>, onClose: () => void) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const focusable = () => [...(ref.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [href]') || [])];
     focusable()[0]?.focus();
     const keydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); onClose(); return; }
+      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); return; }
       if (event.key !== 'Tab') return;
       const items = focusable(); if (!items.length) return;
       const first = items[0]; const last = items[items.length - 1];
@@ -67,7 +70,7 @@ function useDialogFocus(ref: React.RefObject<HTMLElement | null>, onClose: () =>
     };
     window.addEventListener('keydown', keydown);
     return () => { window.removeEventListener('keydown', keydown); previous?.focus(); };
-  }, [onClose, ref]);
+  }, [ref]);
 }
 
 function Login({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
@@ -135,7 +138,7 @@ function ChoiceField<T extends string>({ label, values, selected, onSelect }: { 
   return <fieldset><legend>{label}</legend><div className="choice-group">{values.map(value => <button type="button" key={value} aria-pressed={selected === value} className={selected === value ? 'selected' : ''} onClick={() => onSelect(value)}>{selected === value && '✓ '}{value}</button>)}</div></fieldset>;
 }
 
-function VoiceCapture({ aiAvailable, onDrafts }: { aiAvailable: boolean; onDrafts(drafts: DraftRecord[], transcript: string): void }) {
+function VoiceCapture({ capabilities, onDrafts }: { capabilities: Capabilities; onDrafts(drafts: DraftRecord[], transcript: string): void }) {
   const [state, setState] = useState<'idle' | 'recording' | 'processing'>('idle');
   const [message, setMessage] = useState('');
   const recorder = useRef<MediaRecorder | null>(null);
@@ -143,26 +146,35 @@ function VoiceCapture({ aiAvailable, onDrafts }: { aiAvailable: boolean; onDraft
   const chunks = useRef<Blob[]>([]);
   const timer = useRef<number | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); recognition.current?.abort(); if (recorder.current?.state === 'recording') recorder.current.stop(); }, []);
+  const smartAvailable = capabilities.aiTranscription || capabilities.aiInterpretation;
+  async function createDrafts(text: string) {
+    let drafts: DraftRecord[] = [];
+    if (capabilities.aiInterpretation) {
+      try { drafts = (await api.interpret(text)).records; }
+      catch { drafts = parseVoiceRecords(text); }
+    } else drafts = parseVoiceRecords(text);
+    drafts.length ? onDrafts(drafts, text) : setMessage(`识别到“${text}”，但没有找到可保存的信息。`);
+  }
   const browserSpeech = () => {
     const source = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
     const Recognition = source.SpeechRecognition || source.webkitSpeechRecognition;
     if (!Recognition) { setMessage('当前浏览器不支持语音，请使用下方快捷记录。'); return; }
     const next = new Recognition(); recognition.current = next; next.lang = 'zh-CN'; next.interimResults = false; next.continuous = false;
-    next.onresult = event => { const text = event.results[0]?.[0]?.transcript || ''; const drafts = parseVoiceRecords(text); drafts.length ? onDrafts(drafts, text) : setMessage(`没能理解“${text}”`); };
+    next.onresult = event => { const text = event.results[0]?.[0]?.transcript || ''; void createDrafts(text); };
     next.onerror = () => setMessage('没有识别成功，请检查麦克风权限。');
     next.onend = () => { recognition.current = null; setState('idle'); };
     setState('recording'); next.start();
   };
   async function start() {
     setMessage('');
-    if (!aiAvailable || !navigator.mediaDevices || !window.MediaRecorder) return browserSpeech();
+    if (!capabilities.aiTranscription || !navigator.mediaDevices || !window.MediaRecorder) return browserSpeech();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const next = new MediaRecorder(stream); chunks.current = [];
       next.ondataavailable = event => event.data.size && chunks.current.push(event.data);
       next.onstop = async () => {
         stream.getTracks().forEach(track => track.stop()); setState('processing');
-        try { const result = await api.transcribe(new Blob(chunks.current, { type: next.mimeType || 'audio/webm' })); const drafts = parseVoiceRecords(result.transcript); drafts.length ? onDrafts(drafts, result.transcript) : setMessage(`识别到“${result.transcript}”，但没有找到可保存的信息。`); }
+        try { const result = await api.transcribe(new Blob(chunks.current, { type: next.mimeType || 'audio/webm' })); await createDrafts(result.transcript); }
         catch (err) { setMessage(err instanceof Error ? err.message : 'AI 语音识别失败'); }
         finally { setState('idle'); }
       };
@@ -174,8 +186,8 @@ function VoiceCapture({ aiAvailable, onDrafts }: { aiAvailable: boolean; onDraft
     recognition.current?.stop();
     if (recorder.current?.state === 'recording') recorder.current.stop();
   }
-  return <section className="voice-panel"><div className="voice-copy"><p className="kicker">{aiAvailable ? 'AI 语音' : '浏览器语音'}</p><h2>说一句，记完整</h2><p>“下午三点母乳九十，AD 吃了，排便中。”</p></div>
-    <button className={`voice-orb ${state}`} onClick={state === 'recording' ? stop : start} disabled={state === 'processing'} aria-label={state === 'recording' ? '停止语音记录' : `开始${aiAvailable ? 'AI' : '浏览器'}语音记录`}><span>{state === 'processing' ? '···' : state === 'recording' ? '■' : '●'}</span><b>{state === 'processing' ? '识别中' : state === 'recording' ? '点此结束' : aiAvailable ? 'AI 语音' : '语音记录'}</b></button>
+  return <section className="voice-panel"><div className="voice-copy"><p className="kicker">{smartAvailable ? '智能语音' : '浏览器语音'}</p><h2>说一句，记完整</h2><p>“下午三点母乳九十，AD 吃了，排便中。”</p></div>
+    <button className={`voice-orb ${state}`} onClick={state === 'recording' ? stop : start} disabled={state === 'processing'} aria-label={state === 'recording' ? '停止语音记录' : `开始${smartAvailable ? '智能' : '浏览器'}语音记录`}><span>{state === 'processing' ? '···' : state === 'recording' ? '■' : '●'}</span><b>{state === 'processing' ? '识别中' : state === 'recording' ? '点此结束' : smartAvailable ? '智能语音' : '语音记录'}</b></button>
     {message && <p className="voice-status" role="status">{message}</p>}
   </section>;
 }
@@ -208,14 +220,14 @@ function Timeline({ records, emptyText = '这一天还没有记录', onEdit, onD
   return <div className="timeline">{records.map(record => { const created = auditNames[record.createdBy || 'legacy']; const updated = auditNames[record.updatedBy || record.createdBy || 'legacy']; const changed = record.updatedBy && record.updatedBy !== record.createdBy; return <article className="timeline-item" key={record.id}><div className="time-col"><time>{new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}</time><i /></div><img className="record-mark" src={typeIcons[record.type]} alt="" /><div className="record-copy"><small>{typeNames[record.type]}</small><strong>{summary(record)}</strong>{record.note && record.type !== 'note' && <p>{record.note}</p>}<em>{created === '历史数据' ? '历史数据' : `${created}录入`}{changed ? ` · ${updated}修改` : ''}</em></div><details><summary aria-label={`${summary(record)}的操作菜单`}>•••</summary><div><button onClick={() => onAudit(record)}>操作记录</button><button onClick={() => onEdit(record)}>编辑</button><button className="danger" onClick={() => onDelete(record)}>删除</button></div></details></article>; })}</div>;
 }
 
-function TodayView({ profile, records, aiAvailable, onAdd, onVoice, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; aiAvailable: boolean; onAdd(type: RecordType): void; onVoice(drafts: DraftRecord[], transcript: string): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+function TodayView({ profile, records, capabilities, onAdd, onVoice, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; capabilities: Capabilities; onAdd(type: RecordType): void; onVoice(drafts: DraftRecord[], transcript: string): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [savingSupplement, setSavingSupplement] = useState<Supplement | null>(null);
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r])); const lastFeed = feed[0];
   async function addSupplement(item: Supplement) { setSavingSupplement(item); try { await onSupplement(item); } finally { setSavingSupplement(null); } }
   return <div className="today-layout"><div className="today-primary">
     <section className="baby-hero"><div><p className="kicker">今日照护 · {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</p><h1>{profile.name}</h1><p>{calculateAge(profile.birthDate)}{lastFeed ? ` · 上次喂奶 ${new Date(lastFeed.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : ' · 今天还未喂奶'}</p></div><img src="/bear-bottle.png" alt="" /></section>
     <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>毫升</small></div><div><span>奶粉</span><strong>{formula}</strong><small>毫升</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
-    <VoiceCapture aiAvailable={aiAvailable} onDrafts={onVoice} />
+    <VoiceCapture capabilities={capabilities} onDrafts={onVoice} />
     <section className="quick-section"><div className="section-title"><h2>快捷记录</h2></div><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>记录喂奶</b><small>母乳、奶粉</small></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>记录排便</b><small>大、中、小</small></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他情况</b><small>吐奶、状态</small></button></div></section>
     <section className="medicine-card"><h2>今日用药</h2><div className="medicine-actions">{supplements.map(item => { const record = done.get(item); return <button key={item} className={record ? 'done' : ''} disabled={Boolean(record) || Boolean(savingSupplement)} onClick={() => addSupplement(item)}><span>{record ? '✓' : savingSupplement === item ? '···' : '+'}</span><b>{item}</b><small>{record ? `${auditNames[record.createdBy]} ${new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : savingSupplement === item ? '记录中' : '点按记录'}</small></button>; })}</div></section>
   </div><div className="today-timeline"><div className="section-title"><h2>今天的记录</h2><span>{records.length} 条</span></div><Timeline records={records} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} /></div></div>;
@@ -248,14 +260,61 @@ function TrendsView({ records }: { records: CareRecord[] }) {
   </div>;
 }
 
-function SettingsView({ profile, setProfile, aiAvailable, user, onImported, onLogout }: { profile: Profile; setProfile(value: Profile): void; aiAvailable: boolean; user: SessionUser; onImported(): void; onLogout(): void }) {
+function AiSettingsCard({ capabilities, onChanged }: { capabilities: Capabilities; onChanged(): Promise<void> }) {
+  const [settings, setSettings] = useState<AiSettingsPublic | null>(null);
+  const [baseUrl, setBaseUrl] = useState('https://api.deepseek.com');
+  const [model, setModel] = useState('deepseek-v4-flash');
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [busy, setBusy] = useState<'save' | 'test' | 'clear' | ''>('');
+  const [status, setStatus] = useState<{ text: string; error?: boolean } | null>(null);
+  useEffect(() => {
+    api.aiSettings().then(value => { setSettings(value); setBaseUrl(value.baseUrl); setModel(value.model); })
+      .catch(err => setStatus({ text: err instanceof Error ? err.message : '无法读取模型配置', error: true }));
+  }, []);
+  const payload = () => ({ baseUrl, model, ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}) });
+  async function save(event: React.FormEvent) {
+    event.preventDefault(); setBusy('save'); setStatus(null);
+    try { const next = await api.updateAiSettings(payload()); setSettings(next); setApiKey(''); await onChanged(); setStatus({ text: '模型配置已保存' }); }
+    catch (err) { setStatus({ text: err instanceof Error ? err.message : '保存失败', error: true }); }
+    finally { setBusy(''); }
+  }
+  async function test() {
+    setBusy('test'); setStatus(null);
+    try { const result = await api.testAiSettings(payload()); setStatus({ text: result.message }); }
+    catch (err) { setStatus({ text: err instanceof Error ? err.message : '连接测试失败', error: true }); }
+    finally { setBusy(''); }
+  }
+  async function clearKey() {
+    if (!window.confirm('移除密钥后将停止使用模型理解语音内容，是否继续？')) return;
+    setBusy('clear'); setStatus(null);
+    try { const next = await api.updateAiSettings({ baseUrl, model, apiKey: '' }); setSettings(next); setApiKey(''); await onChanged(); setStatus({ text: 'API 密钥已移除' }); }
+    catch (err) { setStatus({ text: err instanceof Error ? err.message : '移除失败', error: true }); }
+    finally { setBusy(''); }
+  }
+  return <section className="settings-card model-settings"><div className="setting-status"><h2>指令理解模型</h2><span className={capabilities.aiInterpretation ? 'on' : ''}>{capabilities.aiInterpretation ? '已启用' : '未配置'}</span></div>
+    <p>语音先转成文字，再由模型理解时间、奶量、用药和排便信息。保存前仍需人工确认。</p>
+    <form onSubmit={save}>
+      <label>服务商<input value="DeepSeek" readOnly aria-readonly="true" /></label>
+      <label>接口地址<input type="url" inputMode="url" value={baseUrl} onChange={e => setBaseUrl(e.target.value)} required /></label>
+      <label>模型名称<input value={model} onChange={e => setModel(e.target.value)} required /></label>
+      <label>API 密钥<div className="secret-field"><input type={showKey ? 'text' : 'password'} value={apiKey} onChange={e => setApiKey(e.target.value)} autoComplete="off" placeholder={settings?.configured ? `已保存 ${settings.keyHint}，留空不修改` : '请输入 DeepSeek API 密钥'} /><button type="button" onClick={() => setShowKey(value => !value)}>{showKey ? '隐藏' : '显示'}</button></div></label>
+      <div className="model-actions"><button type="button" className="btn secondary" disabled={Boolean(busy)} onClick={test}>{busy === 'test' ? '正在测试…' : '测试连接'}</button><button className="btn primary" disabled={Boolean(busy)}>{busy === 'save' ? '正在保存…' : '保存配置'}</button></div>
+      {settings?.configured && <button type="button" className="text-danger" disabled={Boolean(busy)} onClick={clearKey}>{busy === 'clear' ? '正在移除…' : '移除已保存的密钥'}</button>}
+      {status && <p className={status.error ? 'error-text' : 'success-text'} role="status">{status.text}</p>}
+    </form>
+  </section>;
+}
+
+function SettingsView({ profile, setProfile, capabilities, user, onCapabilitiesChanged, onImported, onLogout }: { profile: Profile; setProfile(value: Profile): void; capabilities: Capabilities; user: SessionUser; onCapabilitiesChanged(): Promise<void>; onImported(): void; onLogout(): void }) {
   const [form, setForm] = useState(profile); const [message, setMessage] = useState(''); useEffect(() => setForm(profile), [profile]);
   async function save(event: React.FormEvent) { event.preventDefault(); try { const next = await api.updateProfile(form); setProfile(next); cacheProfile(next); setMessage('宝宝资料已保存'); } catch (err) { setMessage(err instanceof Error ? err.message : '保存失败'); } }
   async function importFile(file?: File) { if (!file || !window.confirm('导入会恢复宝宝资料并合并记录，是否继续？')) return; try { const result = await api.importData(JSON.parse(await file.text())); setMessage(`已导入 ${result.imported} 条记录${result.profileRestored ? '，宝宝资料已恢复' : ''}`); onImported(); } catch { setMessage('导入失败，请选择本应用导出的备份文件'); } }
   const member = familyMembers.find(item => item.id === user.id)!;
   return <div className="page-stack"><header className="page-head"><h1>设置</h1><p>{user.role === 'admin' ? '管理宝宝资料、语音服务和数据备份。' : '查看当前身份和应用状态。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份</span><h2>{user.name}</h2><p>{user.role === 'admin' ? '管理员' : '普通用户'}</p></div><i>{user.role === 'admin' ? '管理权限' : '记录权限'}</i></section><div className="settings-grid">
     {user.role === 'admin' && <><section className="settings-card"><h2>宝宝资料</h2><form onSubmit={save}><label>宝宝姓名<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label><label>出生日期<input type="date" max={isoDay(new Date())} value={form.birthDate} onChange={e => setForm({ ...form, birthDate: e.target.value })} /></label><button className="btn primary">保存资料</button></form></section>
-    <section className="settings-card"><div className="setting-status"><h2>智能语音识别</h2><span className={aiAvailable ? 'on' : ''}>{aiAvailable ? 'AI 已启用' : '使用浏览器语音'}</span></div><p>{aiAvailable ? '短录音由服务器转发给 AI 语音服务，生成草稿后仍需确认。' : '配置服务器语音服务密钥后可启用 AI；目前使用浏览器自带语音识别。'}</p></section>
+    <section className="settings-card"><div className="setting-status"><h2>语音转成文字</h2><span className={capabilities.aiTranscription ? 'on' : ''}>{capabilities.aiTranscription ? '服务器识别' : '浏览器识别'}</span></div><p>{capabilities.aiTranscription ? '短录音由服务器识别为文字，录音不会写入磁盘。' : '目前使用浏览器自带语音识别；部分微信浏览器可能不支持。'}</p></section>
+    <AiSettingsCard capabilities={capabilities} onChanged={onCapabilitiesChanged} />
     <section className="settings-card"><h2>数据备份</h2><p>备份包含宝宝资料、有效及已删除记录和操作历史；导入过程失败时不会写入部分数据。</p><div className="data-buttons"><a className="btn secondary" href="/api/export" download>导出完整备份</a><label className="btn secondary">导入备份<input className="sr-only" type="file" accept="application/json" onChange={e => importFile(e.target.files?.[0])} /></label></div></section></>}
     {user.role === 'member' && <section className="settings-card permission-note"><p className="kicker">普通用户权限</p><h2>可以记录，不能管理</h2><p>你可以查看、添加、修改和删除照护记录，也可以使用语音记录。宝宝资料、AI 服务和数据备份仅爸爸可以操作。</p></section>}
   </div>{message && <p className="success-text" role="status">{message}</p>}<button className="logout" onClick={onLogout}>退出当前身份</button></div>;
@@ -268,7 +327,7 @@ export default function App() {
   const [records, setRecords] = useState<CareRecord[]>([]);
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date());
   const [editor, setEditor] = useState<DraftRecord | null>(null); const [voiceReview, setVoiceReview] = useState<{ drafts: DraftRecord[]; transcript: string } | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
-  const [aiAvailable, setAiAvailable] = useState(false); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(false); const [pendingCount, setPendingCount] = useState(0); const [toast, setToast] = useState<ToastState | null>(null);
+  const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(false); const [pendingCount, setPendingCount] = useState(0); const [toast, setToast] = useState<ToastState | null>(null);
 
   const updateLocalRecords = useCallback((userId: string, updater: (items: CareRecord[]) => CareRecord[]) => {
     setRecords(items => { const next = updater(items).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)); cacheRecords(userId, next); return next; });
@@ -280,6 +339,11 @@ export default function App() {
     try { const next = await api.records(from.toISOString(), to.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setOnline(true); setOfflineSession(false); }
     catch { setRecords(getCachedRecords(currentUser.id)); setOnline(false); }
   }, [currentUser]);
+
+  const loadCapabilities = useCallback(async () => {
+    try { setCapabilities(await api.capabilities()); }
+    catch { setCapabilities(emptyCapabilities); }
+  }, []);
 
   const syncOutbox = useCallback(async () => {
     if (!currentUser) return;
@@ -308,9 +372,9 @@ export default function App() {
     if (!authenticated || !currentUser) return;
     setPendingCount(getOutbox(currentUser.id).length);
     api.profile().then(value => { setProfile(value); cacheProfile(value); }).catch(() => undefined);
-    api.capabilities().then(value => setAiAvailable(value.aiTranscription)).catch(() => setAiAvailable(false));
+    loadCapabilities();
     loadRecords().then(() => { if (navigator.onLine) syncOutbox(); });
-  }, [authenticated, currentUser, loadRecords, syncOutbox]);
+  }, [authenticated, currentUser, loadCapabilities, loadRecords, syncOutbox]);
 
   useEffect(() => {
     const onOnline = () => { setOnline(true); syncOutbox(); };
@@ -375,7 +439,7 @@ export default function App() {
   const currentMember = familyMembers.find(member => member.id === currentUser.id)!;
   return <div className="app"><div className="top-status"><div className="user-pill"><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{currentUser.role === 'admin' ? '管理员' : '普通用户'}</span></div><div className={`network-pill ${online ? '' : 'offline'}`}>{offlineSession ? '离线身份' : online ? '已同步' : '离线'}{pendingCount ? ` · 待同步 ${pendingCount}` : ''}</div></div>
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}>×</button></div>}
-    <main className="main-content">{tab === 'today' && <TodayView profile={profile} records={todayRecords} aiAvailable={aiAvailable} onAdd={type => setEditor(blankDraft(type))} onVoice={(drafts, transcript) => setVoiceReview({ drafts: drafts.map(draft => ({ ...draft, id: createUuid() })), transcript })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'history' && <HistoryView records={records} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'trends' && <TrendsView records={records} />}{tab === 'settings' && <SettingsView profile={profile} setProfile={setProfile} aiAvailable={aiAvailable} user={currentUser} onImported={loadRecords} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); }} />}</main>
+    <main className="main-content">{tab === 'today' && <TodayView profile={profile} records={todayRecords} capabilities={capabilities} onAdd={type => setEditor(blankDraft(type))} onVoice={(drafts, transcript) => setVoiceReview({ drafts: drafts.map(draft => ({ ...draft, id: createUuid() })), transcript })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'history' && <HistoryView records={records} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'trends' && <TrendsView records={records} />}{tab === 'settings' && <SettingsView profile={profile} setProfile={setProfile} capabilities={capabilities} user={currentUser} onCapabilitiesChanged={loadCapabilities} onImported={loadRecords} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); }} />}</main>
     <button className="floating-add" onClick={() => setEditor(blankDraft())} aria-label="添加记录"><span>＋</span><b>记录</b></button>
     <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录'], ['trends', '/icons/nav-trends.png', '趋势'], ['settings', '/icons/nav-settings.png', '设置']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img src={icon} alt="" /><b>{label}</b></button>)}</nav>
     {editor && <RecordEditor initial={editor} onClose={() => setEditor(null)} onSave={saveOne} />}{voiceReview && <VoiceReview initial={voiceReview.drafts} transcript={voiceReview.transcript} onClose={() => setVoiceReview(null)} onSave={saveMany} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}

@@ -23,6 +23,13 @@ beforeAll(() => expect(db.getProfile()).toMatchObject({ name: '示例宝宝' }))
 afterAll(() => { db.closeDatabaseForTests(); rmSync(directory, { recursive: true, force: true }); });
 
 describe('record reliability', () => {
+  it('stores model settings with safe defaults', () => {
+    expect(db.getAiSettings()).toMatchObject({ provider: 'DeepSeek', baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', apiKey: '' });
+    db.saveAiSettings({ baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', apiKey: 'test-key' });
+    expect(db.getAiSettings()).toMatchObject({ model: 'deepseek-v4-flash', apiKey: 'test-key' });
+    db.saveAiSettings({ baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash' });
+    expect(db.getAiSettings().apiKey).toBe('test-key');
+  });
   it('blocks duplicate supplements on the same care day', () => {
     db.saveRecord(record({ id: '11111111-1111-4111-8111-111111111111' }));
     expect(() => db.saveRecord(record({ id: '22222222-2222-4222-8222-222222222222' }))).toThrow(db.DuplicateSupplementError);

@@ -1,4 +1,4 @@
-import type { AuditEntry, CareRecord, DraftRecord, FamilyId, Profile, SessionUser } from './types';
+import type { AiSettingsPublic, AuditEntry, Capabilities, CareRecord, DraftRecord, FamilyId, Profile, SessionUser } from './types';
 
 export class ApiError extends Error {
   status: number;
@@ -27,7 +27,11 @@ export const api = {
   login: (identity: FamilyId, password: string) => request<{ authenticated: boolean; user: SessionUser }>('/api/login', { method: 'POST', body: JSON.stringify({ identity, password }) }),
   logout: () => request('/api/logout', { method: 'POST' }),
   profile: () => request<Profile>('/api/profile'),
-  capabilities: () => request<{ aiTranscription: boolean; transcribeModel: string | null }>('/api/capabilities'),
+  capabilities: () => request<Capabilities>('/api/capabilities'),
+  aiSettings: () => request<AiSettingsPublic>('/api/ai/settings'),
+  updateAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<AiSettingsPublic>('/api/ai/settings', { method: 'PUT', body: JSON.stringify(settings) }),
+  testAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<{ ok: boolean; message: string }>('/api/ai/settings/test', { method: 'POST', body: JSON.stringify(settings) }),
+  interpret: (transcript: string) => request<{ records: DraftRecord[]; model: string }>('/api/ai/interpret', { method: 'POST', body: JSON.stringify({ transcript }) }),
   updateProfile: (profile: Profile) => request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
   records: (from: string, to: string) => request<CareRecord[]>(`/api/records?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
   createRecord: (record: DraftRecord & { id?: string }) => request<CareRecord>('/api/records', { method: 'POST', body: JSON.stringify(record) }),

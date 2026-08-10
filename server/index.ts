@@ -6,9 +6,10 @@ import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import { interpretTranscript, testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth } from './auth.js';
 import type { FamilyId } from './auth.js';
-import { allAudit, allRecords, DuplicateSupplementError, getProfile, importBackup, listAudit, listRecords, RecordNotFoundError, removeRecord, restoreRecord, saveProfile, saveRecord } from './db.js';
+import { allAudit, allRecords, DuplicateSupplementError, getAiSettings, getProfile, importBackup, listAudit, listRecords, RecordNotFoundError, removeRecord, restoreRecord, saveAiSettings, saveProfile, saveRecord } from './db.js';
 import type { AuditEntry, CareRecord } from './types.js';
 
 const app = express();
@@ -73,6 +74,39 @@ const recordSchema = z.object({
   if (value.type === 'note' && !value.note) ctx.addIssue({ code: 'custom', message: '请填写备注内容' });
 });
 
+const aiSettingsSchema = z.object({
+  baseUrl: z.string().trim().url('接口地址格式不正确').refine(value => new URL(value).protocol === 'https:', '接口地址必须使用 HTTPS'),
+  model: z.string().trim().min(1, '请填写模型名称').max(100, '模型名称过长'),
+  apiKey: z.string().trim().max(500, '密钥过长').optional()
+});
+
+function publicAiSettings() {
+  const settings = getAiSettings();
+  return {
+    provider: settings.provider,
+    baseUrl: settings.baseUrl,
+    model: settings.model,
+    configured: Boolean(settings.apiKey),
+    keyHint: settings.apiKey ? `••••${settings.apiKey.slice(-4)}` : '',
+    updatedAt: settings.updatedAt
+  };
+}
+
+function modelSettings(input?: z.infer<typeof aiSettingsSchema>) {
+  const saved = getAiSettings();
+  return {
+    baseUrl: input?.baseUrl || saved.baseUrl,
+    model: input?.model || saved.model,
+    apiKey: input?.apiKey || saved.apiKey
+  };
+}
+
+function modelError(error: unknown) {
+  if (error instanceof z.ZodError) return '模型返回的数据格式不正确';
+  if (error instanceof SyntaxError) return '模型返回的内容不是有效数据';
+  return error instanceof Error ? error.message : '模型服务暂时不可用';
+}
+
 function normalizeRecord(input: z.infer<typeof recordSchema>, actor: FamilyId, preserveAudit = false): CareRecord {
   const now = new Date().toISOString();
   return {
@@ -128,8 +162,45 @@ app.use('/api', requireAuth);
 app.get('/api/profile', (_req, res) => res.json(getProfile()));
 app.get('/api/capabilities', (_req, res) => res.json({
   aiTranscription: Boolean(process.env.OPENAI_API_KEY),
-  transcribeModel: process.env.OPENAI_API_KEY ? transcribeModel : null
+  transcribeModel: process.env.OPENAI_API_KEY ? transcribeModel : null,
+  aiInterpretation: Boolean(getAiSettings().apiKey),
+  interpretationModel: getAiSettings().apiKey ? getAiSettings().model : null
 }));
+
+app.get('/api/ai/settings', requireAdmin, (_req, res) => res.json(publicAiSettings()));
+
+app.put('/api/ai/settings', requireAdmin, (req, res) => {
+  const parsed = aiSettingsSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '模型配置格式不正确' });
+  saveAiSettings(parsed.data);
+  return res.json(publicAiSettings());
+});
+
+app.post('/api/ai/settings/test', requireAdmin, async (req, res) => {
+  const parsed = aiSettingsSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '模型配置格式不正确' });
+  const settings = modelSettings(parsed.data);
+  if (!settings.apiKey) return res.status(400).json({ error: '请先填写 API 密钥' });
+  try {
+    await testModelConnection(settings);
+    return res.json({ ok: true, message: '连接成功，模型可以正常使用' });
+  } catch (error) {
+    return res.status(502).json({ error: modelError(error) });
+  }
+});
+
+app.post('/api/ai/interpret', async (req, res) => {
+  const parsed = z.object({ transcript: z.string().trim().min(1).max(500) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: '没有收到有效的语音文字' });
+  const settings = modelSettings();
+  if (!settings.apiKey) return res.status(503).json({ error: '服务器尚未配置指令理解模型' });
+  try {
+    const records = await interpretTranscript(parsed.data.transcript, settings);
+    return res.json({ records, model: settings.model });
+  } catch (error) {
+    return res.status(502).json({ error: modelError(error) });
+  }
+});
 
 app.post('/api/voice/transcribe', audioUpload.single('audio'), async (req, res) => {
   if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: '服务器尚未配置 AI 语音服务' });

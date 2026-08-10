@@ -6,6 +6,20 @@ export type UserRole = 'admin' | 'member';
 export type AuditIdentity = FamilyId | 'legacy';
 export type AuditAction = 'create' | 'update' | 'delete' | 'restore' | 'import';
 export interface SessionUser { id: FamilyId; name: string; role: UserRole }
+export interface Capabilities {
+  aiTranscription: boolean;
+  transcribeModel: string | null;
+  aiInterpretation: boolean;
+  interpretationModel: string | null;
+}
+export interface AiSettingsPublic {
+  provider: string;
+  baseUrl: string;
+  model: string;
+  configured: boolean;
+  keyHint: string;
+  updatedAt: string;
+}
 
 export interface CareRecord {
   id: string;

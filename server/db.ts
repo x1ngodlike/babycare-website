@@ -51,6 +51,17 @@ db.exec(`
     snapshot TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_record_audit_record_id ON record_audit(record_id, occurred_at DESC);
+
+  CREATE TABLE IF NOT EXISTS ai_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    provider TEXT NOT NULL,
+    base_url TEXT NOT NULL,
+    model TEXT NOT NULL,
+    api_key TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  INSERT OR IGNORE INTO ai_settings (id, provider, base_url, model, api_key, updated_at)
+  VALUES (1, 'DeepSeek', 'https://api.deepseek.com', 'deepseek-v4-flash', '', datetime('now'));
 `);
 
 const columns = `
@@ -169,6 +180,27 @@ export function saveProfile(name: string, birthDate: string) {
   const updatedAt = new Date().toISOString();
   db.prepare('UPDATE profile SET name = ?, birth_date = ?, updated_at = ? WHERE id = 1').run(name, birthDate, updatedAt);
   return { name, birthDate, updatedAt };
+}
+
+export interface AiSettings {
+  provider: string;
+  baseUrl: string;
+  model: string;
+  apiKey: string;
+  updatedAt: string;
+}
+
+export function getAiSettings(): AiSettings {
+  return db.prepare('SELECT provider, base_url AS baseUrl, model, api_key AS apiKey, updated_at AS updatedAt FROM ai_settings WHERE id = 1').get() as AiSettings;
+}
+
+export function saveAiSettings(input: Pick<AiSettings, 'baseUrl' | 'model'> & { apiKey?: string }): AiSettings {
+  const current = getAiSettings();
+  const updatedAt = new Date().toISOString();
+  const apiKey = input.apiKey === undefined ? current.apiKey : input.apiKey.trim();
+  db.prepare('UPDATE ai_settings SET provider = ?, base_url = ?, model = ?, api_key = ?, updated_at = ? WHERE id = 1')
+    .run('DeepSeek', input.baseUrl, input.model, apiKey, updatedAt);
+  return getAiSettings();
 }
 
 type ImportPayload = { profile?: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[] };
