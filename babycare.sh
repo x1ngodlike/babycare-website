@@ -18,6 +18,7 @@ HOST_PORT=""
 DATA_DIR=""
 COMPOSE_CMD=()
 STOPPED_FOR_BACKUP=()
+OLD_PROJECT_IMAGE_IDS=()
 
 info() {
   printf '\n[宝宝照护记录] %s\n' "$1"
@@ -177,6 +178,50 @@ perform_backup() {
   printf '备份内容：完整数据库目录、环境配置和 Compose 配置。\n'
 }
 
+# 记住部署前本项目正在使用的镜像，新版健康后再精确清理。
+remember_project_images() {
+  OLD_PROJECT_IMAGE_IDS=()
+  local image_id=""
+  local reference
+  for reference in "${PROJECT_NAME}:latest" "$CONTAINER_NAME" "${LEGACY_CONTAINERS[@]}"; do
+    if [[ "$reference" == *:* ]]; then
+      image_id="$(docker image inspect -f '{{.Id}}' "$reference" 2>/dev/null || true)"
+    else
+      image_id="$(docker inspect -f '{{.Image}}' "$reference" 2>/dev/null || true)"
+    fi
+    [[ -n "$image_id" ]] || continue
+    local known="false"
+    local existing
+    for existing in "${OLD_PROJECT_IMAGE_IDS[@]}"; do
+      [[ "$existing" == "$image_id" ]] && known="true"
+    done
+    [[ "$known" == "false" ]] && OLD_PROJECT_IMAGE_IDS+=("$image_id")
+  done
+}
+
+# 新版已通过健康检查时，只删除刚才记住且已不再被使用的本项目旧镜像。
+cleanup_previous_project_images() {
+  local current_image
+  current_image="$(docker inspect -f '{{.Image}}' "$CONTAINER_NAME" 2>/dev/null || true)"
+  [[ -n "$current_image" ]] || return 0
+
+  local old_image used_by
+  for old_image in "${OLD_PROJECT_IMAGE_IDS[@]}"; do
+    [[ -n "$old_image" && "$old_image" != "$current_image" ]] || continue
+    docker image inspect "$old_image" >/dev/null 2>&1 || continue
+    used_by="$(docker ps -aq --filter "ancestor=${old_image}")"
+    if [[ -n "$used_by" ]]; then
+      printf '保留仍被其他容器使用的旧镜像：%s\n' "$old_image"
+      continue
+    fi
+    if docker image rm "$old_image" >/dev/null 2>&1; then
+      printf '已删除本项目上一版旧镜像：%s\n' "$old_image"
+    else
+      printf '警告：旧镜像 %s 暂时无法删除，不影响新版运行。\n' "$old_image" >&2
+    fi
+  done
+}
+
 # 每次部署前移除本项目的新旧容器和孤立容器，不影响其他 Unraid 应用。
 remove_project_containers() {
   info "停止并移除本项目以前创建的容器。"
@@ -185,8 +230,11 @@ remove_project_containers() {
   local name
   for name in "$CONTAINER_NAME" "${LEGACY_CONTAINERS[@]}"; do
     if docker inspect "$name" >/dev/null 2>&1; then
-      docker rm -f "$name" >/dev/null
-      printf '已删除旧容器：%s\n' "$name"
+      if docker rm -f "$name" >/dev/null 2>&1; then
+        printf '已删除旧容器：%s\n' "$name"
+      elif docker inspect "$name" >/dev/null 2>&1; then
+        fail "无法删除旧容器：${name}"
+      fi
     fi
   done
 
@@ -215,6 +263,7 @@ perform_deploy() {
 
   info "校验 Compose 配置。"
   compose config --quiet
+  remember_project_images
   remove_project_containers
 
   if command -v nc >/dev/null 2>&1 && nc -z 127.0.0.1 "$HOST_PORT" >/dev/null 2>&1; then
@@ -243,6 +292,8 @@ perform_deploy() {
     compose logs --tail=120 "$SERVICE_NAME" >&2 || true
     fail "服务在 60 秒内未通过完整健康检查。"
   fi
+
+  cleanup_previous_project_images
 
   local server_ip
   server_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"

@@ -71,7 +71,7 @@ chmod +x babycare.sh
 ./babycare.sh 启动
 ```
 
-“更新”会依次备份数据库、拉取 GitHub 最新代码、删除本项目以前创建的新旧容器、构建镜像并创建唯一的 `babycare-website` 容器。脚本不会删除 `/mnt/user/appdata/baby-care/data`，也不会操作其他 Unraid 应用。
+“更新”会依次备份数据库、拉取 GitHub 最新代码、删除本项目以前创建的新旧容器、构建镜像并创建唯一的 `babycare-website` 容器。新容器通过完整健康检查后，脚本会精确删除本项目上一版且已不再被使用的镜像，不会全局清理其他 Unraid 应用的镜像或缓存。脚本不会删除 `/mnt/user/appdata/baby-care/data`。
 
 每次备份都会短暂停止正在运行的本项目容器，完整保存数据库目录、`.env` 和 Compose 配置，然后恢复原运行状态。备份固定保存在：
 
