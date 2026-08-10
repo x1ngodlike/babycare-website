@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# 宝宝照护记录 Unraid 统一管理脚本。
+# babycare Unraid 统一管理脚本。
 # 无参数运行时显示中文菜单，直接命令使用 deploy、update、backup 等英文名称。
 
 PROJECT_NAME="babycare-website"
@@ -21,7 +21,7 @@ STOPPED_FOR_BACKUP=()
 OLD_PROJECT_IMAGE_IDS=()
 
 info() {
-  printf '\n[宝宝照护记录] %s\n' "$1"
+  printf '\n[babycare] %s\n' "$1"
 }
 
 fail() {
@@ -342,7 +342,7 @@ start_service() {
 }
 
 show_menu() {
-  printf '\n宝宝照护记录管理\n\n'
+  printf '\nbabycare管理\n\n'
   printf '1. 首次部署或重新构建\n'
   printf '2. 更新到 GitHub 最新版本\n'
   printf '3. 备份数据\n'
@@ -366,7 +366,7 @@ show_menu() {
 }
 
 show_help() {
-  printf '\n宝宝照护记录管理命令\n\n'
+  printf '\nbabycare管理命令\n\n'
   printf '  ./babycare.sh deploy   首次部署或重新构建\n'
   printf '  ./babycare.sh update   备份后更新到 GitHub 最新版本\n'
   printf '  ./babycare.sh backup   备份数据和环境配置\n'
