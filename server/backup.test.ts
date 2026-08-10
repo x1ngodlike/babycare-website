@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { backupIntervalMs, serverBackupStatus, writeServerBackup } from './backup.js';
+import { backupIntervalMs, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, writeServerBackup } from './backup.js';
 
 const directories: string[] = [];
 afterEach(() => { for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true }); });
@@ -33,6 +33,13 @@ describe('服务器备份', () => {
     const first = writeServerBackup({ order: 1 }, { directory, now }); const second = writeServerBackup({ order: 2 }, { directory, now });
     expect(second.name).not.toBe(first.name);
     expect(serverBackupStatus(directory).count).toBe(2);
+  });
+
+  it('列出备份并拒绝读取目录外的文件', () => {
+    const directory = temporaryDirectory(); const result = writeServerBackup({ version: 2 }, { directory, now: new Date('2026-08-10T06:00:00.000Z') });
+    expect(listServerBackups(directory)[0]).toMatchObject({ name: result.name });
+    expect(readServerBackup(result.name, directory)).toEqual({ version: 2 });
+    expect(() => readServerBackup('../baby-care.db', directory)).toThrow(InvalidBackupNameError);
   });
 
   it('下一次备份时间是最近备份六小时后', () => {

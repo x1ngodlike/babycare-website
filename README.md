@@ -102,7 +102,7 @@ chown -R 1000:1000 /mnt/user/appdata/baby-care/data
 
 确认恢复后的记录无误，再自行处理 `data.before-restore`；它是恢复前的数据副本。
 
-SQLite 数据库存放在 `data/baby-care.db`。应用每 6 小时把完整 JSON 自动保存到 `data/backups/`，最多保留最近 28 份；Unraid 中对应 `/mnt/user/appdata/baby-care/data/backups/`，不会建立新的共享目录。设置页也可以立即保存服务器备份、导出备份文件或导入恢复。不要在容器运行时只复制单个数据库文件，以免遗漏 WAL 中尚未合并的记录。
+SQLite 数据库存放在 `data/baby-care.db`。应用每 6 小时把完整 JSON 自动保存到 `data/backups/`，最多保留最近 28 份；Unraid 中对应 `/mnt/user/appdata/baby-care/data/backups/`，不会建立新的共享目录。爸爸可在设置页立即备份、选择服务器备份进行完整恢复，或手动导出和导入备份文件；服务器恢复前会先自动保存当前数据，恢复后宝宝资料、照护记录和操作历史与所选备份完全一致。不要在容器运行时只复制单个数据库文件，以免遗漏 WAL 中尚未合并的记录。
 
 ## 智能语音与模型配置
 

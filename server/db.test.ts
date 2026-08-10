@@ -54,4 +54,14 @@ describe('record reliability', () => {
     expect(db.getProfile().name).toBe('测试宝宝');
     expect(db.allRecords().some((item: CareRecord) => item.id === feeding.id)).toBe(true);
   });
+
+  it('replaces current profile, records and audit history during an exact restore', () => {
+    const onlyRecord = record({ id: '55555555-5555-4555-8555-555555555555', type: 'feeding', supplement: null, breastMilkMl: 120 });
+    const audit: AuditEntry = { id: 88, recordId: onlyRecord.id, action: 'create', actor: 'mother', occurredAt: onlyRecord.createdAt, snapshot: onlyRecord };
+    const result = db.replaceBackup({ profile: { name: '恢复宝宝', birthDate: '2026-02-02' }, records: [onlyRecord], audits: [audit] });
+    expect(result).toEqual({ imported: 1, profileRestored: true });
+    expect(db.getProfile()).toMatchObject({ name: '恢复宝宝', birthDate: '2026-02-02' });
+    expect(db.allRecords(true).map((item: CareRecord) => item.id)).toEqual([onlyRecord.id]);
+    expect(db.allAudit()).toEqual([audit]);
+  });
 });

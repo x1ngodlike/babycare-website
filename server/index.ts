@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { interpretTranscript, testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth } from './auth.js';
 import type { FamilyId } from './auth.js';
-import { defaultBackupDirectory, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
-import { allAudit, allRecords, DuplicateSupplementError, getAiSettings, getProfile, importBackup, listAudit, listRecords, RecordNotFoundError, removeRecord, restoreRecord, saveAiSettings, saveProfile, saveRecord } from './db.js';
+import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
+import { allAudit, allRecords, DuplicateSupplementError, getAiSettings, getProfile, importBackup, listAudit, listRecords, RecordNotFoundError, removeRecord, replaceBackup, restoreRecord, saveAiSettings, saveProfile, saveRecord } from './db.js';
 import { createChangeHub } from './events.js';
 import type { AuditEntry, CareRecord } from './types.js';
 
@@ -76,6 +76,20 @@ const recordSchema = z.object({
   if (value.type === 'supplement' && !value.supplement) ctx.addIssue({ code: 'custom', message: '请选择营养补充剂' });
   if (value.type === 'bowel' && !value.bowelSize) ctx.addIssue({ code: 'custom', message: '请选择排便量' });
   if (value.type === 'note' && !value.note) ctx.addIssue({ code: 'custom', message: '请填写备注内容' });
+});
+
+const auditEntrySchema = z.object({
+  id: z.number().int().optional(), recordId: z.string().uuid(),
+  action: z.enum(['create', 'update', 'delete', 'restore', 'import']),
+  actor: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']),
+  occurredAt: z.string().datetime({ offset: true }), snapshot: z.record(z.string(), z.unknown()).nullable()
+});
+
+const backupPayloadSchema = z.object({
+  version: z.number().int().optional(),
+  profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date() }).optional(),
+  records: z.array(recordSchema).max(10000),
+  audits: z.array(auditEntrySchema).max(50000).optional()
 });
 
 const aiSettingsSchema = z.object({
@@ -294,24 +308,27 @@ app.get('/api/export', requireAdmin, (_req, res) => {
 });
 
 app.get('/api/backups/status', requireAdmin, (_req, res) => res.json(serverBackupStatus(backupDirectory)));
+app.get('/api/backups', requireAdmin, (_req, res) => res.json(listServerBackups(backupDirectory)));
 
 app.post('/api/backups', requireAdmin, (_req, res) => {
   const result = writeServerBackup(exportPayload(), { directory: backupDirectory });
   res.status(201).json(result);
 });
 
+app.post('/api/backups/:name/restore', requireAdmin, (req, res) => {
+  const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+  const parsed = backupPayloadSchema.safeParse(readServerBackup(name, backupDirectory));
+  if (!parsed.success || !parsed.data.profile) return res.status(400).json({ error: '服务器备份内容不完整，无法恢复' });
+  writeServerBackup(exportPayload(), { directory: backupDirectory });
+  const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
+  const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
+  const result = replaceBackup({ profile: parsed.data.profile, records, audits });
+  changeHub.broadcast('all');
+  res.json({ ...result, restoredFrom: name, status: serverBackupStatus(backupDirectory) });
+});
+
 app.post('/api/import', requireAdmin, (req, res) => {
-  const parsed = z.object({
-    version: z.number().int().optional(),
-    profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date() }).optional(),
-    records: z.array(recordSchema).max(10000),
-    audits: z.array(z.object({
-      id: z.number().int().optional(), recordId: z.string().uuid(),
-      action: z.enum(['create', 'update', 'delete', 'restore', 'import']),
-      actor: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']),
-      occurredAt: z.string().datetime({ offset: true }), snapshot: z.record(z.string(), z.unknown()).nullable()
-    })).max(50000).optional()
-  }).safeParse(req.body);
+  const parsed = backupPayloadSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: '导入文件格式不正确' });
   writeServerBackup(exportPayload(), { directory: backupDirectory });
   const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
@@ -331,6 +348,8 @@ if (production) {
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (error instanceof DuplicateSupplementError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_SUPPLEMENT', existing: error.existing });
   if (error instanceof RecordNotFoundError) return res.status(404).json({ error: error.message });
+  if (error instanceof InvalidBackupNameError || error instanceof SyntaxError) return res.status(400).json({ error: '服务器备份文件不正确' });
+  if (error instanceof BackupFileNotFoundError) return res.status(404).json({ error: error.message });
   console.error(error);
   res.status(500).json({ error: '服务器暂时无法处理，请稍后重试' });
 });

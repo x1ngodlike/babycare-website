@@ -229,4 +229,24 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
 
+type ReplacePayload = { profile: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[] };
+const replaceBackupTransaction = db.transaction((payload: ReplacePayload): ImportResult => {
+  db.prepare('DELETE FROM record_audit').run();
+  db.prepare('DELETE FROM care_records').run();
+  saveProfile(payload.profile.name, payload.profile.birthDate);
+  const insertRecord = db.prepare(`
+    INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+    VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
+  `);
+  for (const record of payload.records) insertRecord.run(record);
+  if (payload.audits?.length) {
+    const insertAudit = db.prepare('INSERT INTO record_audit (id, record_id, action, actor, occurred_at, snapshot) VALUES (@id, @recordId, @action, @actor, @occurredAt, @snapshot)');
+    for (const audit of payload.audits) insertAudit.run({ ...audit, snapshot: audit.snapshot ? JSON.stringify(audit.snapshot) : null });
+  } else {
+    for (const record of payload.records) addAudit(record.id, 'import', record.updatedBy || 'legacy', record);
+  }
+  return { imported: payload.records.length, profileRestored: true };
+});
+export function replaceBackup(payload: ReplacePayload): ImportResult { return replaceBackupTransaction(payload); }
+
 export function closeDatabaseForTests() { db.close(); }

@@ -1,4 +1,4 @@
-import type { AiSettingsPublic, AuditEntry, Capabilities, CareRecord, DraftRecord, FamilyId, Profile, ServerBackupStatus, SessionUser } from './types';
+import type { AiSettingsPublic, AuditEntry, Capabilities, CareRecord, DraftRecord, FamilyId, Profile, ServerBackupFile, ServerBackupStatus, SessionUser } from './types';
 
 export class ApiError extends Error {
   status: number;
@@ -40,7 +40,9 @@ export const api = {
   restoreRecord: (id: string) => request<CareRecord>(`/api/records/${id}/restore`, { method: 'POST' }),
   audit: (id: string) => request<AuditEntry[]>(`/api/records/${id}/audit`),
   backupStatus: () => request<ServerBackupStatus>('/api/backups/status'),
+  serverBackups: () => request<ServerBackupFile[]>('/api/backups'),
   createServerBackup: () => request<{ name: string; createdAt: string; status: ServerBackupStatus }>('/api/backups', { method: 'POST' }),
+  restoreServerBackup: (name: string) => request<{ imported: number; profileRestored: boolean; restoredFrom: string; status: ServerBackupStatus }>(`/api/backups/${encodeURIComponent(name)}/restore`, { method: 'POST' }),
   importData: (data: unknown) => request<{ imported: number; profileRestored: boolean }>('/api/import', { method: 'POST', body: JSON.stringify(data) }),
   transcribe: async (audio: Blob) => {
     const form = new FormData();

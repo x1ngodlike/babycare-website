@@ -1,4 +1,4 @@
-const CACHE = 'babycare-website-v6';
+const CACHE = 'babycare-website-v7';
 const SHELL = [
   '/', '/manifest.webmanifest', '/bear-bottle.png', '/icon-192.png', '/icon-512.png',
   '/icons/nav-today.png', '/icons/nav-records.png', '/icons/nav-trends.png', '/icons/nav-settings.png',

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 export const backupIntervalMs = 6 * 60 * 60 * 1000;
@@ -13,6 +13,10 @@ export interface ServerBackupStatus {
   nextBackupAt: string;
 }
 
+export interface ServerBackupFile { name: string; createdAt: string; size: number }
+export class InvalidBackupNameError extends Error {}
+export class BackupFileNotFoundError extends Error {}
+
 const backupPattern = /^babycare-backup-\d{8}-\d{6}-\d{3}\.json$/;
 
 export function defaultBackupDirectory(databasePath = process.env.DATABASE_PATH || './data/baby-care.db') {
@@ -23,8 +27,19 @@ function backupFiles(directory: string) {
   mkdirSync(directory, { recursive: true });
   return readdirSync(directory)
     .filter(name => backupPattern.test(name))
-    .map(name => ({ name, modifiedAt: statSync(join(directory, name)).mtimeMs }))
+    .map(name => { const stats = statSync(join(directory, name)); return { name, modifiedAt: stats.mtimeMs, size: stats.size }; })
     .sort((left, right) => right.modifiedAt - left.modifiedAt);
+}
+
+export function listServerBackups(directory = defaultBackupDirectory()): ServerBackupFile[] {
+  return backupFiles(directory).map(file => ({ name: file.name, createdAt: new Date(file.modifiedAt).toISOString(), size: file.size }));
+}
+
+export function readServerBackup(name: string, directory = defaultBackupDirectory()) {
+  if (!backupPattern.test(name)) throw new InvalidBackupNameError('备份文件名不正确');
+  const path = join(directory, name);
+  if (!existsSync(path)) throw new BackupFileNotFoundError('服务器备份不存在');
+  return JSON.parse(readFileSync(path, 'utf8')) as unknown;
 }
 
 function backupName(now: Date) {
