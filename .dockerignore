@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-server
+data
+.env
+.git
+backup-*
+index-排便功能前备份-2026-08-09.html
+npm-debug.log

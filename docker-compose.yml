@@ -1,0 +1,32 @@
+services:
+  babycare-website:
+    build: .
+    image: babycare-website:latest
+    container_name: babycare-website
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDRESS:-0.0.0.0}:${HOST_PORT:-5937}:3000"
+    environment:
+      FATHER_PASSWORD: ${FATHER_PASSWORD:?请在 .env 中设置爸爸密码}
+      MOTHER_PASSWORD: ${MOTHER_PASSWORD:?请在 .env 中设置妈妈密码}
+      GRANDFATHER_PASSWORD: ${GRANDFATHER_PASSWORD:?请在 .env 中设置爷爷密码}
+      GRANDMOTHER_PASSWORD: ${GRANDMOTHER_PASSWORD:?请在 .env 中设置奶奶密码}
+      SESSION_SECRET: ${SESSION_SECRET:?请在 .env 中设置至少 32 位随机密钥}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_TRANSCRIBE_MODEL: ${OPENAI_TRANSCRIBE_MODEL:-gpt-4o-mini-transcribe}
+      TZ: Asia/Shanghai
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "const fs=require('node:fs');if(!fs.existsSync('/app/dist/index.html'))process.exit(1);Promise.all([fetch('http://127.0.0.1:3000/api/health'),fetch('http://127.0.0.1:3000/')]).then(rs=>{if(rs.some(r=>!r.ok))process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
