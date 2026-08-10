@@ -21,6 +21,15 @@ describe('voice parser', () => {
   it('parses colloquial formula amount', () => {
     expect(parseVoice('十点奶粉一百二')?.formulaMl).toBe(120);
   });
+  it('parses common feeding word orders with or without units', () => {
+    expect(parseVoice('母乳量 30 毫升')?.breastMilkMl).toBe(30);
+    expect(parseVoice('喝了30毫升母乳')?.breastMilkMl).toBe(30);
+    expect(parseVoice('奶粉三十')?.formulaMl).toBe(30);
+    expect(parseVoice('120ml奶粉')?.formulaMl).toBe(120);
+  });
+  it('keeps an incomplete feeding draft so it can be corrected', () => {
+    expect(parseVoice('刚才喝了母乳')).toMatchObject({ type: 'feeding', breastMilkMl: null, formulaMl: null });
+  });
   it('creates multiple drafts from one phrase', () => {
     const records = parseVoiceRecords('下午三点母乳九十，AD吃了，排便中');
     expect(records.map(record => record.type)).toEqual(['feeding', 'supplement', 'bowel']);

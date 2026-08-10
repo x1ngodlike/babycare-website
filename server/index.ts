@@ -9,13 +9,17 @@ import { z } from 'zod';
 import { interpretTranscript, testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth } from './auth.js';
 import type { FamilyId } from './auth.js';
+import { defaultBackupDirectory, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
 import { allAudit, allRecords, DuplicateSupplementError, getAiSettings, getProfile, importBackup, listAudit, listRecords, RecordNotFoundError, removeRecord, restoreRecord, saveAiSettings, saveProfile, saveRecord } from './db.js';
+import { createChangeHub } from './events.js';
 import type { AuditEntry, CareRecord } from './types.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const production = process.env.NODE_ENV === 'production';
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const changeHub = createChangeHub();
+const backupDirectory = defaultBackupDirectory();
 const transcribeModel = process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe';
 const audioUpload = multer({
   storage: multer.memoryStorage(),
@@ -127,6 +131,10 @@ function normalizeRecord(input: z.infer<typeof recordSchema>, actor: FamilyId, p
   };
 }
 
+function exportPayload() {
+  return { version: 2, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit() };
+}
+
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.get('/api/session', (req, res) => {
   const user = getSessionUser(req);
@@ -160,6 +168,7 @@ app.post('/api/logout', (_req, res) => {
 app.use('/api', requireAuth);
 
 app.get('/api/profile', (_req, res) => res.json(getProfile()));
+app.get('/api/events', (req, res) => changeHub.connect(req, res));
 app.get('/api/capabilities', (_req, res) => res.json({
   aiTranscription: Boolean(process.env.OPENAI_API_KEY),
   transcribeModel: process.env.OPENAI_API_KEY ? transcribeModel : null,
@@ -228,7 +237,9 @@ app.put('/api/profile', requireAdmin, (req, res) => {
   const parsed = z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: '宝宝资料格式不正确' });
   if (new Date(`${parsed.data.birthDate}T00:00:00+08:00`) > new Date()) return res.status(400).json({ error: '出生日期不能晚于今天' });
-  return res.json(saveProfile(parsed.data.name, parsed.data.birthDate));
+  const profile = saveProfile(parsed.data.name, parsed.data.birthDate);
+  changeHub.broadcast('profile');
+  return res.json(profile);
 });
 
 app.get('/api/records', (req, res) => {
@@ -241,27 +252,34 @@ app.post('/api/records', (req, res) => {
   const parsed = recordSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '记录格式不正确' });
   if (new Date(parsed.data.occurredAt).getTime() > Date.now() + 10 * 60 * 1000) return res.status(400).json({ error: '记录时间不能晚于当前时间' });
-  return res.status(201).json(saveRecord(normalizeRecord(parsed.data, getSessionUser(req)!.id)));
+  const record = saveRecord(normalizeRecord(parsed.data, getSessionUser(req)!.id));
+  changeHub.broadcast('records');
+  return res.status(201).json(record);
 });
 
 app.put('/api/records/:id', (req, res) => {
   const parsed = recordSchema.safeParse({ ...req.body, id: req.params.id });
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '记录格式不正确' });
   if (new Date(parsed.data.occurredAt).getTime() > Date.now() + 10 * 60 * 1000) return res.status(400).json({ error: '记录时间不能晚于当前时间' });
-  return res.json(saveRecord(normalizeRecord(parsed.data, getSessionUser(req)!.id)));
+  const record = saveRecord(normalizeRecord(parsed.data, getSessionUser(req)!.id));
+  changeHub.broadcast('records');
+  return res.json(record);
 });
 
 app.delete('/api/records/:id', (req, res) => {
   const parsed = z.string().uuid().safeParse(req.params.id);
   if (!parsed.success) return res.status(400).json({ error: '记录编号不正确' });
   const record = removeRecord(parsed.data, getSessionUser(req)!.id);
+  if (record) changeHub.broadcast('records');
   return res.json({ deleted: Boolean(record), record });
 });
 
 app.post('/api/records/:id/restore', (req, res) => {
   const parsed = z.string().uuid().safeParse(req.params.id);
   if (!parsed.success) return res.status(400).json({ error: '记录编号不正确' });
-  return res.json(restoreRecord(parsed.data, getSessionUser(req)!.id));
+  const record = restoreRecord(parsed.data, getSessionUser(req)!.id);
+  changeHub.broadcast('records');
+  return res.json(record);
 });
 
 app.get('/api/records/:id/audit', (req, res) => {
@@ -271,8 +289,15 @@ app.get('/api/records/:id/audit', (req, res) => {
 });
 
 app.get('/api/export', requireAdmin, (_req, res) => {
-  res.setHeader('Content-Disposition', `attachment; filename="baby-care-${new Date().toISOString().slice(0, 10)}.json"`);
-  res.json({ version: 2, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit() });
+  res.setHeader('Content-Disposition', `attachment; filename="babycare-backup-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.json(exportPayload());
+});
+
+app.get('/api/backups/status', requireAdmin, (_req, res) => res.json(serverBackupStatus(backupDirectory)));
+
+app.post('/api/backups', requireAdmin, (_req, res) => {
+  const result = writeServerBackup(exportPayload(), { directory: backupDirectory });
+  res.status(201).json(result);
 });
 
 app.post('/api/import', requireAdmin, (req, res) => {
@@ -288,9 +313,12 @@ app.post('/api/import', requireAdmin, (req, res) => {
     })).max(50000).optional()
   }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: '导入文件格式不正确' });
+  writeServerBackup(exportPayload(), { directory: backupDirectory });
   const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
-  res.json(importBackup({ profile: parsed.data.profile, records, audits }));
+  const result = importBackup({ profile: parsed.data.profile, records, audits });
+  changeHub.broadcast('all');
+  res.json(result);
 });
 
 if (production) {
@@ -307,4 +335,5 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
   res.status(500).json({ error: '服务器暂时无法处理，请稍后重试' });
 });
 
+startBackupScheduler(exportPayload, backupDirectory);
 app.listen(port, '0.0.0.0', () => console.log(`Baby care server listening on ${port}`));

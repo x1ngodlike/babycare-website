@@ -35,9 +35,12 @@ function withSpokenTime(text: string, base: Date) {
   return result;
 }
 
-function amountAfter(text: string, keyword: string) {
-  const match = text.match(new RegExp(`${keyword}(?:喝了|喂了|是)?([零一二两三四五六七八九十百\\d]{1,6})`));
-  return match ? chineseNumber(match[1]) : null;
+function amountNear(text: string, keyword: string) {
+  const number = '[零一二两三四五六七八九十百\\d]{1,6}';
+  const after = text.match(new RegExp(`${keyword}(?:的)?(?:量)?(?:喝了|喂了|有|是|为)?(?:约|大概)?(${number})(?:毫升|ml)?`, 'i'));
+  if (after) return chineseNumber(after[1]);
+  const before = text.match(new RegExp(`(${number})(?:毫升|ml)?(?:的)?${keyword}`, 'i'));
+  return before ? chineseNumber(before[1]) : null;
 }
 
 export function parseVoiceRecords(text: string, now = new Date()): DraftRecord[] {
@@ -47,8 +50,8 @@ export function parseVoiceRecords(text: string, now = new Date()): DraftRecord[]
   if (clean.includes('母乳') || clean.includes('奶粉')) {
     records.push({
       type: 'feeding', occurredAt,
-      breastMilkMl: amountAfter(clean, '母乳'),
-      formulaMl: amountAfter(clean, '奶粉')
+      breastMilkMl: amountNear(clean, '母乳'),
+      formulaMl: amountNear(clean, '奶粉')
     });
   }
   (['益生菌', 'AD', 'VD'] as Supplement[])

@@ -48,6 +48,7 @@ export interface AuditEntry {
 }
 
 export interface Profile { name: string; birthDate: string; updatedAt?: string }
+export interface ServerBackupStatus { directory: string; intervalHours: number; retention: number; count: number; lastBackupAt: string | null; nextBackupAt: string }
 export interface DraftRecord {
   id?: string;
   type: RecordType;
