@@ -35,16 +35,25 @@ h1, h2, h3, p { margin-top: 0; }
 
 .daily-report { margin-top: 16px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
 .daily-report .section-title { margin-bottom: 10px; }
-.dr-metrics { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.dr-head-right { display: flex; align-items: center; gap: 8px; }
+.dr-regen, .dr-close { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-content: center; transition: background .15s, color .15s; }
+.dr-regen:hover:not(:disabled), .dr-close:hover { background: #f1f2ee; color: var(--ink); }
+.dr-regen:focus-visible, .dr-close:focus-visible { outline: 3px solid #df9a67; outline-offset: 2px; }
+.dr-regen:disabled { opacity: .4; cursor: default; }
+.dr-regen.spinning { animation: spin .8s linear infinite; }
 .dr-summary { margin: 0 0 12px; font-size: 15px; line-height: 1.55; color: var(--ink); }
 .dr-suggestions { margin: 0 0 14px; padding-left: 18px; display: grid; gap: 6px; }
 .dr-suggestions li { font-size: 14px; line-height: 1.5; color: var(--green-deep); }
 .dr-empty { margin: 2px 0 0; display: grid; gap: 12px; justify-items: start; }
 .dr-empty p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .dr-note { margin: 0; color: var(--muted); font-size: 13px; }
-.dr-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.dr-footer .btn { min-height: 40px; padding: 8px 14px; }
+.dr-footer { margin-top: 6px; }
 .dr-footer small { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.daily-report.collapsed { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 16px; border-style: dashed; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.daily-report.collapsed:hover { border-color: #c9bda8; background: #fffaf2; }
+.daily-report.collapsed:focus-visible { outline: 3px solid #df9a67; outline-offset: 2px; }
+.dr-collapsed-label { color: var(--muted); font-size: 13px; }
+.dr-collapsed-action { color: #b9683f; font-size: 13px; white-space: nowrap; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes status-pulse { 50% { opacity: .3; transform: scale(.75); } }
 
