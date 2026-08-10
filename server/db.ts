@@ -132,6 +132,16 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_growth_records_measured_on ON growth_records(measured_on DESC);
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS daily_reports (
+    report_date TEXT PRIMARY KEY,
+    summary TEXT NOT NULL,
+    suggestions TEXT NOT NULL,
+    model TEXT NOT NULL,
+    generated_at TEXT NOT NULL
+  );
+`);
+
 const columns = `
   id, type, occurred_at AS occurredAt, breast_milk_ml AS breastMilkMl,
   formula_ml AS formulaMl, supplement, bowel_size AS bowelSize, note,
@@ -421,7 +431,32 @@ export function saveAiSettings(input: Pick<AiSettings, 'baseUrl' | 'model'> & { 
   return getAiSettings();
 }
 
-type ImportPayload = { profile?: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[] };
+export interface DailyReport {
+  reportDate: string;
+  summary: string;
+  suggestions: string[];
+  model: string;
+  generatedAt: string;
+}
+
+export function getDailyReport(date: string): DailyReport | null {
+  const row = db.prepare('SELECT report_date AS reportDate, summary, suggestions, model, generated_at AS generatedAt FROM daily_reports WHERE report_date = ?').get(date) as { reportDate: string; summary: string; suggestions: string; model: string; generatedAt: string } | undefined;
+  if (!row) return null;
+  return { ...row, suggestions: JSON.parse(row.suggestions) as string[] };
+}
+
+export function saveDailyReport(report: DailyReport): DailyReport {
+  db.prepare('INSERT INTO daily_reports (report_date, summary, suggestions, model, generated_at) VALUES (@reportDate, @summary, @suggestions, @model, @generatedAt) ON CONFLICT(report_date) DO UPDATE SET summary=excluded.summary, suggestions=excluded.suggestions, model=excluded.model, generated_at=excluded.generated_at')
+    .run({ ...report, suggestions: JSON.stringify(report.suggestions) });
+  return report;
+}
+
+export function listDailyReports(): DailyReport[] {
+  const rows = db.prepare('SELECT report_date AS reportDate, summary, suggestions, model, generated_at AS generatedAt FROM daily_reports ORDER BY report_date DESC').all() as (Omit<DailyReport, 'suggestions'> & { suggestions: string })[];
+  return rows.map(row => ({ ...row, suggestions: JSON.parse(row.suggestions) as string[] }));
+}
+
+type ImportPayload = { profile?: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; dailyReports?: DailyReport[] };
 type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
   if (payload.profile) saveProfile(payload.profile.name, payload.profile.birthDate);
@@ -437,6 +472,10 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
       ON CONFLICT(id) DO UPDATE SET measured_on=excluded.measured_on, height_cm=excluded.height_cm, weight_kg=excluded.weight_kg,
         updated_at=excluded.updated_at, updated_by=excluded.updated_by, deleted_at=excluded.deleted_at, deleted_by=excluded.deleted_by`);
     for (const record of payload.growthRecords) upsertGrowth.run(record);
+  }
+  if (payload.dailyReports?.length) {
+    const upsertReport = db.prepare('INSERT INTO daily_reports (report_date, summary, suggestions, model, generated_at) VALUES (@reportDate, @summary, @suggestions, @model, @generatedAt) ON CONFLICT(report_date) DO UPDATE SET summary=excluded.summary, suggestions=excluded.suggestions, model=excluded.model, generated_at=excluded.generated_at');
+    for (const report of payload.dailyReports) upsertReport.run({ ...report, suggestions: JSON.stringify(report.suggestions) });
   }
   const upsert = db.prepare(`
     INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
@@ -460,7 +499,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
 
-type ReplacePayload = { profile: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[] };
+type ReplacePayload = { profile: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; dailyReports?: DailyReport[] };
 const replaceBackupTransaction = db.transaction((payload: ReplacePayload): ImportResult => {
   db.prepare('DELETE FROM record_audit').run();
   db.prepare('DELETE FROM care_records').run();
@@ -476,6 +515,11 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     const insertGrowth = db.prepare(`INSERT INTO growth_records (id, measured_on, height_cm, weight_kg, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
       VALUES (@id, @measuredOn, @heightCm, @weightKg, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)`);
     for (const record of payload.growthRecords) insertGrowth.run(record);
+  }
+  db.prepare('DELETE FROM daily_reports').run();
+  if (payload.dailyReports?.length) {
+    const insertReport = db.prepare('INSERT INTO daily_reports (report_date, summary, suggestions, model, generated_at) VALUES (@reportDate, @summary, @suggestions, @model, @generatedAt)');
+    for (const report of payload.dailyReports) insertReport.run({ ...report, suggestions: JSON.stringify(report.suggestions) });
   }
   const insertRecord = db.prepare(`
     INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)

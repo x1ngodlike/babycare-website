@@ -10,10 +10,8 @@ export interface FamilyMemberPermission { id: FamilyId; name: string; role: User
 export interface GrowthRecord { id: string; measuredOn: string; heightCm: number; weightKg: number; createdAt: string; updatedAt: string; createdBy: AuditIdentity; updatedBy: AuditIdentity; deletedAt: string | null; deletedBy: AuditIdentity | null }
 export interface DraftGrowthRecord { id?: string; measuredOn: string; heightCm: number; weightKg: number }
 export interface Capabilities {
-  aiTranscription: boolean;
-  transcribeModel: string | null;
-  aiInterpretation: boolean;
-  interpretationModel: string | null;
+  aiEnabled: boolean;
+  aiModel: string | null;
 }
 export interface AiSettingsPublic {
   provider: string;

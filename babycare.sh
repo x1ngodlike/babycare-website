@@ -83,8 +83,6 @@ BIND_ADDRESS=0.0.0.0
 HOST_PORT=${DEFAULT_HOST_PORT}
 DATA_DIR=${DEFAULT_DATA_DIR}
 COOKIE_SECURE=false
-OPENAI_API_KEY=
-OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
 EOF
     info "已生成环境配置 ${ENV_FILE}，文件权限仅允许当前用户访问。"
   else

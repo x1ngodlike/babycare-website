@@ -1,17 +1,17 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import multer from 'multer';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import { interpretTranscript, testModelConnection } from './ai.js';
+import { testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import type { FamilyId } from './auth.js';
 import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
-import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateGrowthWeekError, DuplicateSupplementError, FamilyPermissionError, getAiSettings, getProfile, importBackup, listAudit, listCareItems, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, reorderCareItems, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, setCareItemActive, setFamilyRole } from './db.js';
+import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DailyReport, DuplicateGrowthWeekError, DuplicateSupplementError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, reorderCareItems, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, setCareItemActive, setFamilyRole } from './db.js';
 import { createChangeHub } from './events.js';
+import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
 import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission, GrowthRecord } from './types.js';
 
 const app = express();
@@ -20,12 +20,6 @@ const production = process.env.NODE_ENV === 'production';
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 const changeHub = createChangeHub();
 const backupDirectory = defaultBackupDirectory();
-const transcribeModel = process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe';
-const audioUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
-  fileFilter: (_req, file, callback) => callback(null, file.mimetype.startsWith('audio/'))
-});
 
 if (production && (!(process.env.FATHER_PASSWORD || process.env.ADMIN_PASSWORD) || !process.env.MOTHER_PASSWORD || !process.env.GRANDFATHER_PASSWORD || !process.env.GRANDMOTHER_PASSWORD || !process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
   throw new Error('生产环境必须设置四位家人的密码和至少 32 位的 SESSION_SECRET');
@@ -38,10 +32,6 @@ app.use(helmet({
   } : false,
   crossOriginEmbedderPolicy: false
 }));
-app.use((_req, res, next) => {
-  res.setHeader('Permissions-Policy', 'microphone=(self)');
-  next();
-});
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 
@@ -117,7 +107,10 @@ const backupPayloadSchema = z.object({
   audits: z.array(auditEntrySchema).max(50000).optional(),
   careItems: z.array(careItemSchema).max(100).optional(),
   familyMembers: z.array(familyMemberSchema).max(4).optional(),
-  growthRecords: z.array(growthRecordSchema).max(1000).optional()
+  growthRecords: z.array(growthRecordSchema).max(1000).optional(),
+  dailyReports: z.array(z.object({
+    reportDate: z.string(), summary: z.string(), suggestions: z.array(z.string()), model: z.string(), generatedAt: z.string()
+  })).max(3650).optional()
 });
 
 const aiSettingsSchema = z.object({
@@ -187,7 +180,7 @@ function normalizeGrowthRecord(input: z.infer<typeof growthRecordSchema>, actor:
 }
 
 function exportPayload() {
-  return { version: 5, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true) };
+  return { version: 5, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true), dailyReports: listDailyReports() };
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -225,12 +218,10 @@ app.use('/api', requireAuth);
 
 app.get('/api/profile', (_req, res) => res.json(getProfile()));
 app.get('/api/events', (req, res) => changeHub.connect(req, res));
-app.get('/api/capabilities', (_req, res) => res.json({
-  aiTranscription: Boolean(process.env.OPENAI_API_KEY),
-  transcribeModel: process.env.OPENAI_API_KEY ? transcribeModel : null,
-  aiInterpretation: Boolean(getAiSettings().apiKey),
-  interpretationModel: getAiSettings().apiKey ? getAiSettings().model : null
-}));
+app.get('/api/capabilities', (_req, res) => {
+  const settings = getAiSettings();
+  res.json({ aiEnabled: Boolean(settings.apiKey), aiModel: settings.apiKey ? settings.model : null });
+});
 
 app.get('/api/family-members', requireSuperAdmin, (_req, res) => res.json(listFamilyMembers()));
 
@@ -266,39 +257,22 @@ app.post('/api/ai/settings/test', requireSuperAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/ai/interpret', async (req, res) => {
-  const parsed = z.object({ transcript: z.string().trim().min(1).max(500) }).safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: '没有收到有效的语音文字' });
-  const settings = modelSettings();
-  if (!settings.apiKey) return res.status(503).json({ error: '服务器尚未配置指令理解模型' });
-  try {
-    const records = await interpretTranscript(parsed.data.transcript, settings, new Date(), listCareItems().map(item => item.name));
-    return res.json({ records, model: settings.model });
-  } catch (error) {
-    return res.status(502).json({ error: modelError(error) });
-  }
+app.get('/api/daily-report', (req, res) => {
+  const date = typeof req.query.date === 'string' && req.query.date ? req.query.date : yesterdayInShanghai();
+  const report = getDailyReport(date);
+  if (!report) return res.json({ date, exists: false });
+  return res.json({ date, exists: true, summary: report.summary, suggestions: report.suggestions, model: report.model, generatedAt: report.generatedAt });
 });
 
-app.post('/api/voice/transcribe', audioUpload.single('audio'), async (req, res) => {
-  if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: '服务器尚未配置 AI 语音服务' });
-  if (!req.file) return res.status(400).json({ error: '没有收到有效的录音文件' });
-
-  const extension = req.file.mimetype.includes('mp4') ? 'm4a' : req.file.mimetype.includes('ogg') ? 'ogg' : 'webm';
-  const form = new FormData();
-  form.append('model', transcribeModel);
-  form.append('language', 'zh');
-  const audioBytes = Uint8Array.from(req.file.buffer);
-  form.append('file', new Blob([audioBytes], { type: req.file.mimetype }), `baby-recording.${extension}`);
-
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: form,
-    signal: AbortSignal.timeout(30_000)
-  });
-  const body = await response.json().catch(() => ({})) as { text?: string; error?: { message?: string } };
-  if (!response.ok || !body.text) return res.status(502).json({ error: body.error?.message || 'AI 语音识别暂时不可用' });
-  return res.json({ transcript: body.text, model: transcribeModel });
+app.post('/api/daily-report/generate', async (req, res) => {
+  const date = typeof req.query.date === 'string' && req.query.date ? req.query.date : yesterdayInShanghai();
+  try {
+    const report = await generateDailyReportForDate(date);
+    return res.json({ date: report.reportDate, summary: report.summary, suggestions: report.suggestions, model: report.model, generatedAt: report.generatedAt });
+  } catch (error) {
+    if (error instanceof Error && error.message === '服务器尚未配置 AI 模型') return res.status(503).json({ error: error.message });
+    return res.status(502).json({ error: modelError(error) });
+  }
 });
 
 app.put('/api/profile', requireSuperAdmin, (req, res) => {
@@ -522,4 +496,5 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 });
 
 startBackupScheduler(exportPayload, backupDirectory);
+startDailyReportScheduler();
 app.listen(port, '0.0.0.0', () => console.log(`Baby care server listening on ${port}`));

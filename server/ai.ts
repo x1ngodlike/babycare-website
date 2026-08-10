@@ -1,30 +1,33 @@
 import { z } from 'zod';
-import type { DraftRecord } from './types.js';
 
 export type ModelSettings = { baseUrl: string; model: string; apiKey: string };
 
-const interpretedRecordSchema = z.object({
-  type: z.enum(['feeding', 'supplement', 'bowel', 'note']),
-  occurredAt: z.string().datetime({ offset: true }),
-  breastMilkMl: z.number().int().min(1).max(500).nullable().optional(),
-  formulaMl: z.number().int().min(1).max(500).nullable().optional(),
-  supplement: z.string().trim().min(1).max(30).nullable().optional(),
-  bowelSize: z.enum(['大', '中', '小']).nullable().optional(),
-  note: z.string().trim().max(200).nullable().optional()
-}).superRefine((value, ctx) => {
-  if (value.type === 'feeding' && !value.breastMilkMl && !value.formulaMl) ctx.addIssue({ code: 'custom', message: '缺少奶量' });
-  if (value.type === 'supplement' && !value.supplement) ctx.addIssue({ code: 'custom', message: '缺少用药名称' });
-  if (value.type === 'bowel' && !value.bowelSize) ctx.addIssue({ code: 'custom', message: '缺少排便量' });
-  if (value.type === 'note' && !value.note) ctx.addIssue({ code: 'custom', message: '缺少情况说明' });
-});
+export interface DailyReportInput {
+  babyName: string;
+  ageText: string;
+  date: string;
+  growth: { heightCm: number; weightKg: number; measuredOn: string } | null;
+  prevGrowth: { heightCm: number; weightKg: number; measuredOn: string } | null;
+  yesterday: {
+    breastMl: number;
+    formulaMl: number;
+    feedCount: number;
+    bowelCount: number;
+    supplements: string[];
+    notes: string[];
+  };
+}
 
-const responseSchema = z.object({ records: z.array(interpretedRecordSchema).max(12) });
+const dailyReportSchema = z.object({
+  summary: z.string().trim().min(1).max(300),
+  suggestions: z.array(z.string().trim().min(1).max(60)).min(1).max(5)
+});
 
 function completionUrl(baseUrl: string) {
   return `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
 }
 
-async function requestCompletion(settings: ModelSettings, messages: { role: 'system' | 'user'; content: string }[]) {
+async function requestCompletion(settings: ModelSettings, messages: { role: 'system' | 'user'; content: string }[], maxTokens = 1200) {
   const response = await fetch(completionUrl(settings.baseUrl), {
     method: 'POST',
     headers: { Authorization: `Bearer ${settings.apiKey}`, 'Content-Type': 'application/json' },
@@ -34,7 +37,7 @@ async function requestCompletion(settings: ModelSettings, messages: { role: 'sys
       stream: false,
       thinking: { type: 'disabled' },
       response_format: { type: 'json_object' },
-      max_tokens: 1200
+      max_tokens: maxTokens
     }),
     signal: AbortSignal.timeout(30_000)
   });
@@ -52,23 +55,20 @@ export async function testModelConnection(settings: ModelSettings) {
   ]);
 }
 
-export async function interpretTranscript(transcript: string, settings: ModelSettings, now = new Date(), careItems: string[] = ['AD', 'VD', '益生菌', '推拿']): Promise<DraftRecord[]> {
+export async function generateDailyReport(input: DailyReportInput, settings: ModelSettings): Promise<{ summary: string; suggestions: string[] }> {
+  const growthLine = input.growth
+    ? `最新成长（${input.growth.measuredOn}）：身高 ${input.growth.heightCm}cm、体重 ${input.growth.weightKg}kg${input.prevGrowth ? `；上次（${input.prevGrowth.measuredOn}）身高 ${input.prevGrowth.heightCm}cm、体重 ${input.prevGrowth.weightKg}kg` : ''}`
+    : '暂无成长记录';
   const content = await requestCompletion(settings, [
     {
       role: 'system',
-      content: `你是宝宝照护记录解析器。把家人的一句中文口语转换为 JSON：{"records":[]}。允许类型：feeding（母乳和奶粉毫升数分开）、supplement（仅可使用这些项目：${careItems.join('、')}）、bowel（大、中、小）、note（其他情况）。occurredAt 必须是带时区的 ISO 时间；未说日期时使用今天，未说时间时使用当前时间。不要推测没有说出的数量或事项。当前时间：${now.toISOString()}，家庭时区：Asia/Shanghai。`
+      content: '你是宝宝照护日报助手。基于给定的结构化数据，生成一段简短的昨日总结（≤60 字）与 1~3 条简短建议（每条≤30 字）。只输出 JSON：{"summary":"…","suggestions":["…","…"]}，不要任何额外解释或 Markdown。语气温和、口语化，像有经验的家人给的建议。'
     },
-    { role: 'user', content: transcript }
-  ]);
+    {
+      role: 'user',
+      content: `宝宝：${input.babyName}（${input.ageText}）。日期：${input.date}。${growthLine}。昨日照护：母乳 ${input.yesterday.breastMl}ml、奶粉 ${input.yesterday.formulaMl}ml、喂奶 ${input.yesterday.feedCount} 次、排便 ${input.yesterday.bowelCount} 次；营养补充：${input.yesterday.supplements.length ? input.yesterday.supplements.join('、') : '无'}；备注：${input.yesterday.notes.length ? input.yesterday.notes.join('；') : '无'}。`
+    }
+  ], 400);
   const parsedJson = JSON.parse(content) as unknown;
-  const parsed = responseSchema.parse(parsedJson);
-  if (parsed.records.some(record => record.type === 'supplement' && record.supplement && !careItems.includes(record.supplement))) throw new Error('模型返回了未启用的用药项目');
-  return parsed.records.map(record => ({
-    ...record,
-    breastMilkMl: record.type === 'feeding' ? record.breastMilkMl ?? null : null,
-    formulaMl: record.type === 'feeding' ? record.formulaMl ?? null : null,
-    supplement: record.type === 'supplement' ? record.supplement ?? null : null,
-    bowelSize: record.type === 'bowel' ? record.bowelSize ?? null : null,
-    note: record.note ?? null
-  }));
+  return dailyReportSchema.parse(parsedJson);
 }

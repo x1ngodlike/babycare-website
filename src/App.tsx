@@ -4,17 +4,9 @@ import { addDays, calculateAge, isoDay, startOfWeek, toLocalInput } from './date
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
 import type { AiSettingsPublic, AuditEntry, AuditIdentity, BowelSize, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, RecordType, ServerBackupFile, ServerBackupStatus, SessionUser, Supplement, UserRole } from './types';
-import { parseVoiceRecords } from './voice';
 
 type Tab = 'today' | 'history' | 'trends' | 'archive' | 'settings';
 type TrendMode = 'seven' | 'month' | 'total';
-type SpeechEvent = { results: ArrayLike<{ 0: { transcript: string } }> };
-type SpeechRecognitionLike = {
-  lang: string; interimResults: boolean; continuous: boolean;
-  start(): void; stop(): void; abort(): void;
-  onresult: ((event: SpeechEvent) => void) | null;
-  onerror: (() => void) | null; onend: (() => void) | null;
-};
 type ToastState = { message: string; actionLabel?: string; onAction?: () => void | Promise<void> };
 
 const typeNames: Record<RecordType, string> = { feeding: '喂奶', supplement: '用药', bowel: '排便', note: '其他情况' };
@@ -27,7 +19,7 @@ const familyMembers: { id: FamilyId; name: string; role: string; icon: string }[
 ];
 const auditNames: Record<AuditIdentity, string> = { father: '爸爸', mother: '妈妈', grandfather: '爷爷', grandmother: '奶奶', legacy: '历史数据' };
 const auditActions: Record<AuditEntry['action'], string> = { create: '创建记录', update: '修改记录', delete: '删除记录', restore: '恢复记录', import: '从备份导入' };
-const emptyCapabilities: Capabilities = { aiTranscription: false, transcribeModel: null, aiInterpretation: false, interpretationModel: null };
+const emptyCapabilities: Capabilities = { aiEnabled: false, aiModel: null };
 const roleNames: Record<UserRole, string> = { superadmin: '超管', admin: '管理员', member: '普通用户' };
 const canManage = (user: SessionUser | null) => user?.role === 'superadmin' || user?.role === 'admin';
 const careItemIcon = (value: CareRecord | DraftRecord, items: CareItem[]) => value.type === 'supplement' && items.find(item => item.name === value.supplement)?.icon === 'massage' ? '/icons/record-massage.png' : typeIcons[value.type];
@@ -213,77 +205,6 @@ function ChoiceField<T extends string>({ label, values, selected, onSelect }: { 
   return <fieldset><legend>{label}</legend><div className="choice-group">{values.map(value => <button type="button" key={value} aria-pressed={selected === value} className={selected === value ? 'selected' : ''} onClick={() => onSelect(value)}>{selected === value && '✓ '}{value}</button>)}</div></fieldset>;
 }
 
-function VoiceStateIcon({ state }: { state: 'idle' | 'recording' | 'processing' }) {
-  if (state === 'processing') return <span className="voice-spinner" aria-hidden="true" />;
-  if (state === 'recording') return <svg className="voice-state-icon" viewBox="0 0 32 32" aria-hidden="true"><rect x="9" y="9" width="14" height="14" rx="2" fill="currentColor" /></svg>;
-  return <svg className="voice-state-icon" viewBox="0 0 32 32" aria-hidden="true"><rect x="11" y="4" width="10" height="17" rx="5" fill="currentColor" /><path d="M7.5 16.5a8.5 8.5 0 0 0 17 0M16 25v4M11 29h10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>;
-}
-
-function VoiceCapture({ capabilities, onDrafts }: { capabilities: Capabilities; onDrafts(drafts: DraftRecord[], transcript: string): void }) {
-  const [state, setState] = useState<'idle' | 'recording' | 'processing'>('idle');
-  const [message, setMessage] = useState('');
-  const recorder = useRef<MediaRecorder | null>(null);
-  const recognition = useRef<SpeechRecognitionLike | null>(null);
-  const chunks = useRef<Blob[]>([]);
-  const timer = useRef<number | null>(null);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); recognition.current?.abort(); if (recorder.current?.state === 'recording') recorder.current.stop(); }, []);
-  const smartAvailable = capabilities.aiTranscription || capabilities.aiInterpretation;
-  async function createDrafts(text: string) {
-    let drafts: DraftRecord[] = [];
-    if (capabilities.aiInterpretation) {
-      try { drafts = (await api.interpret(text)).records; }
-      catch { drafts = parseVoiceRecords(text); }
-    } else drafts = parseVoiceRecords(text);
-    drafts.length ? onDrafts(drafts, text) : setMessage(`识别到“${text}”，但没有找到可保存的信息。`);
-  }
-  const browserSpeech = () => {
-    const source = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
-    const Recognition = source.SpeechRecognition || source.webkitSpeechRecognition;
-    if (!Recognition) { setMessage('当前浏览器不支持语音，请使用下方快捷记录。'); return; }
-    const next = new Recognition(); recognition.current = next; next.lang = 'zh-CN'; next.interimResults = false; next.continuous = false;
-    next.onresult = event => { const text = event.results[0]?.[0]?.transcript || ''; void createDrafts(text); };
-    next.onerror = () => setMessage('没有识别成功，请检查麦克风权限。');
-    next.onend = () => { recognition.current = null; setState('idle'); };
-    setState('recording'); next.start();
-  };
-  async function start() {
-    setMessage('');
-    if (!capabilities.aiTranscription || !navigator.mediaDevices || !window.MediaRecorder) return browserSpeech();
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const next = new MediaRecorder(stream); chunks.current = [];
-      next.ondataavailable = event => event.data.size && chunks.current.push(event.data);
-      next.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop()); setState('processing');
-        try { const result = await api.transcribe(new Blob(chunks.current, { type: next.mimeType || 'audio/webm' })); await createDrafts(result.transcript); }
-        catch (err) { setMessage(err instanceof Error ? err.message : 'AI 语音识别失败'); }
-        finally { setState('idle'); }
-      };
-      recorder.current = next; next.start(); setState('recording'); timer.current = window.setTimeout(() => next.state === 'recording' && next.stop(), 20_000);
-    } catch { setMessage('无法使用麦克风，请检查浏览器权限。'); }
-  }
-  function stop() {
-    if (timer.current) clearTimeout(timer.current);
-    recognition.current?.stop();
-    if (recorder.current?.state === 'recording') recorder.current.stop();
-  }
-  return <section className="voice-panel"><div className="voice-copy"><p className="kicker">{smartAvailable ? '智能语音' : '浏览器语音'}</p><h2>说一句，记完整</h2><p>“母乳三十毫升，AD 吃了。”</p></div>
-    <button className={`voice-orb ${state}`} onClick={state === 'recording' ? stop : start} disabled={state === 'processing'} aria-label={state === 'recording' ? '停止语音记录' : `开始${smartAvailable ? '智能' : '浏览器'}语音记录`}><VoiceStateIcon state={state} /><b>{state === 'processing' ? '识别中' : state === 'recording' ? '点此结束' : smartAvailable ? '智能语音' : '语音记录'}</b></button>
-    {message && <p className="voice-status" role="status">{message}</p>}
-  </section>;
-}
-
-function VoiceReview({ initial, transcript, careItems, onClose, onSave }: { initial: DraftRecord[]; transcript: string; careItems: CareItem[]; onClose(): void; onSave(values: DraftRecord[]): Promise<void> }) {
-  const [values, setValues] = useState(initial); const [editing, setEditing] = useState<number | null>(null); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
-  const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, onClose);
-  const hasIssues = values.some(value => Boolean(draftIssue(value)));
-  async function confirm() { if (hasIssues) { setError('请先补全标记的草稿'); return; } setBusy(true); setError(''); try { await onSave(values); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
-  function update(index: number, next: DraftRecord) { setValues(items => items.map((item, itemIndex) => itemIndex === index ? next : item)); }
-  return <div className="modal-layer"><section ref={dialogRef} className="editor review" role="dialog" aria-modal="true" aria-labelledby="review-title"><header className="editor-head"><div><p className="kicker">语音识别草稿</p><h2 id="review-title">确认 {values.length} 条记录</h2></div><button className="close-btn" onClick={onClose} aria-label="关闭">×</button></header>
-    <blockquote>“{transcript}”</blockquote><div className="review-list">{values.map((value, index) => { const issue = draftIssue(value); return <article className={editing === index ? 'editing' : ''} key={`${value.type}-${index}`}><img className="record-mark" src={careItemIcon(value, careItems)} alt="" /><div><small>{new Date(value.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })} · {typeNames[value.type]}</small><strong><FeedingSummary record={value} /></strong>{issue && <em>{issue}</em>}</div><div className="review-card-actions"><button onClick={() => setEditing(editing === index ? null : index)}>{editing === index ? '完成' : '修改'}</button><button onClick={() => { setValues(items => items.filter((_, i) => i !== index)); setEditing(null); }} aria-label={`移除${typeNames[value.type]}`}>×</button></div>{editing === index && <div className="voice-draft-editor"><label>记录时间<input type="datetime-local" value={toLocalInput(value.occurredAt)} onChange={e => update(index, { ...value, occurredAt: new Date(e.target.value).toISOString() })} /></label>{value.type === 'feeding' && <div className="input-pair"><label>母乳量 <span>ml</span><input inputMode="numeric" type="number" min="0" max="500" value={value.breastMilkMl ?? ''} onChange={e => update(index, { ...value, breastMilkMl: e.target.value ? Number(e.target.value) : null })} /></label><label>奶粉量 <span>ml</span><input inputMode="numeric" type="number" min="0" max="500" value={value.formulaMl ?? ''} onChange={e => update(index, { ...value, formulaMl: e.target.value ? Number(e.target.value) : null })} /></label></div>}{value.type === 'supplement' && <ChoiceField label="用药或照护项目" values={selectableCareItems(careItems, value.supplement)} selected={value.supplement} onSelect={supplement => update(index, { ...value, supplement })} />}{value.type === 'bowel' && <ChoiceField label="排便量" values={['大', '中', '小'] as BowelSize[]} selected={value.bowelSize} onSelect={bowelSize => update(index, { ...value, bowelSize })} />}{value.type === 'note' && <label>情况说明<textarea rows={2} maxLength={200} value={value.note ?? ''} onChange={e => update(index, { ...value, note: e.target.value })} /></label>}</div>}</article>; })}</div>
-    <p className="review-hint">请检查每条记录；数量或时间不准确时可以直接修改。</p>{error && <p className="error-text">{error}</p>}<footer className="editor-actions"><button className="btn secondary" onClick={onClose}>取消</button><button className="btn primary" disabled={busy || !values.length || hasIssues} onClick={confirm}>{busy ? '保存中…' : `保存 ${values.length} 条记录`}</button></footer>
-  </section></div>;
-}
 
 function AuditDialog({ record, onClose }: { record: CareRecord; onClose(): void }) {
   const [items, setItems] = useState<AuditEntry[]>([]);
@@ -317,7 +238,47 @@ function Timeline({ records, careItems, manager, emptyText = '这一天还没有
   return <div className="timeline">{records.map(record => { const created = auditNames[record.createdBy || 'legacy']; const updated = auditNames[record.updatedBy || record.createdBy || 'legacy']; const changed = record.updatedBy && record.updatedBy !== record.createdBy; return <article className={`timeline-item ${record.type}`} key={record.id}><div className="time-col"><time>{new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}</time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy"><small>{typeNames[record.type]}</small><strong><FeedingSummary record={record} /></strong>{record.note && record.type !== 'note' && <p>{record.note}</p>}<em>{created === '历史数据' ? '历史数据' : `${created}录入`}{changed ? ` · ${updated}修改` : ''}</em></div><details data-record-menu={record.id} open={openMenu === record.id}><summary aria-label={`${summary(record)}的操作菜单`} aria-expanded={openMenu === record.id} onClick={event => { event.preventDefault(); setOpenMenu(current => current === record.id ? null : record.id); }}><span className="menu-dots" aria-hidden="true"><i /><i /><i /></span></summary><div>{manager && <button onClick={() => { setOpenMenu(null); onAudit(record); }}>操作记录</button>}<button onClick={() => { setOpenMenu(null); onEdit(record); }}>编辑</button>{manager && <button className="danger" onClick={() => { setOpenMenu(null); onDelete(record); }}>删除</button>}</div></details></article>; })}</div>;
 }
 
-function TodayView({ profile, records, careItems, capabilities, manager, weeklyGrowth, onAddGrowth, onAdd, onVoice, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; careItems: CareItem[]; capabilities: Capabilities; manager: boolean; weeklyGrowth?: GrowthRecord; onAddGrowth(): void; onAdd(type: RecordType): void; onVoice(drafts: DraftRecord[], transcript: string): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+function DailyReport({ profile, growthRecords, capabilities, online, onOpenSettings }: { profile: Profile; growthRecords: GrowthRecord[]; capabilities: Capabilities; online: boolean; onOpenSettings(): void }) {
+  const [data, setData] = useState<{ date: string; summary: string; suggestions: string[]; model: string; generatedAt: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const load = useCallback(() => {
+    if (!online) { setLoading(false); return; }
+    setLoading(true); setError('');
+    api.dailyReport().then(result => { if (result.exists) setData({ date: result.date, summary: result.summary!, suggestions: result.suggestions!, model: result.model!, generatedAt: result.generatedAt! }); else setData(null); })
+      .catch(err => setError(err instanceof Error ? err.message : '无法读取日报')).finally(() => setLoading(false));
+  }, [online]);
+  useEffect(() => { load(); }, [load]);
+  async function generate() {
+    setBusy(true); setError('');
+    try { const result = await api.generateDailyReport(); setData({ date: result.date, summary: result.summary, suggestions: result.suggestions, model: result.model, generatedAt: result.generatedAt }); }
+    catch (err) { setError(err instanceof Error ? err.message : '日报生成失败'); }
+    finally { setBusy(false); }
+  }
+  const [y, m, d] = data ? data.date.split('-').map(Number) : [0, 0, 0];
+  const weekday = data ? ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date(`${data.date}T00:00:00`).getDay()] : '';
+  const growth = growthRecords[0];
+  const ageText = calculateAge(profile.birthDate, data ? new Date(`${data.date}T12:00:00`) : new Date());
+  return (
+    <section className="daily-report" aria-label="昨日日报">
+      <div className="section-title"><h2>昨日日报</h2>{data && <span>{`${m}月${d}日 ${weekday}`}</span>}</div>
+      {loading && <p className="loading-copy">正在读取昨日日报…</p>}
+      {!loading && error && <div className="dr-empty"><p className="error-text">{error}</p><button className="btn secondary" disabled={!online || busy} onClick={generate}>{busy ? '生成中…' : '重试'}</button></div>}
+      {!loading && !error && !online && !data && <p className="dr-note">联网后可查看昨日日报。</p>}
+      {!loading && !error && online && !capabilities.aiEnabled && <div className="dr-empty"><p>还没有配置 AI 模型，暂不能生成日报。</p><button className="btn secondary" onClick={onOpenSettings}>去设置</button></div>}
+      {!loading && !error && online && capabilities.aiEnabled && !data && <div className="dr-empty"><p>今日日报还没准备好。</p><button className="btn primary" disabled={busy} onClick={generate}>{busy ? '生成中…' : '手动生成'}</button></div>}
+      {!loading && !error && data && <>
+        {growth && <p className="dr-metrics">{ageText} · 身高 {growth.heightCm}cm · 体重 {growth.weightKg}kg</p>}
+        <p className="dr-summary">{data.summary}</p>
+        {data.suggestions.length > 0 && <ul className="dr-suggestions">{data.suggestions.map((item, index) => <li key={index}>{item}</li>)}</ul>}
+        <div className="dr-footer"><button className="btn secondary" disabled={busy || !online} onClick={generate}>{busy ? '生成中…' : '重新生成'}</button>{data.generatedAt && <small>生成于 {new Date(data.generatedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</small>}</div>
+      </>}
+    </section>
+  );
+}
+
+function TodayView({ profile, records, careItems, growthRecords, capabilities, online, onOpenSettings, manager, weeklyGrowth, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; careItems: CareItem[]; growthRecords: GrowthRecord[]; capabilities: Capabilities; online: boolean; onOpenSettings(): void; manager: boolean; weeklyGrowth?: GrowthRecord; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [savingSupplement, setSavingSupplement] = useState<Supplement | null>(null);
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r])); const lastFeed = feed[0];
   async function addSupplement(item: Supplement) { setSavingSupplement(item); try { await onSupplement(item); } finally { setSavingSupplement(null); } }
@@ -325,7 +286,7 @@ function TodayView({ profile, records, careItems, capabilities, manager, weeklyG
     <section className="baby-hero"><div><p className="kicker">今日 · {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</p><h1>{profile.name}</h1><p>{calculateAge(profile.birthDate)}{lastFeed ? ` · 上次喂奶 ${new Date(lastFeed.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : ' · 今天还未喂奶'}</p></div><img src="/bear-bottle.png" alt="" /></section>
     <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>ml</small></div><div><span>奶粉</span><strong>{formula}</strong><small>ml</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
     {!weeklyGrowth && <section className="weekly-growth-prompt"><div><p className="kicker">本周成长</p><h2>记录身高和体重</h2><p>每周记录一次，成长变化会保存到档案。</p></div><button className="btn primary" onClick={onAddGrowth}>去记录</button></section>}
-    <VoiceCapture capabilities={capabilities} onDrafts={onVoice} />
+    <DailyReport profile={profile} growthRecords={growthRecords} capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} />
     <section className="quick-section"><div className="section-title"><h2>快捷记录</h2></div><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>记录喂奶</b><small>母乳、奶粉</small></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>记录排便</b><small>大、中、小</small></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他情况</b><small>吐奶、状态</small></button></div></section>
     <section className="medicine-card"><h2>今日用药</h2><div className="medicine-actions">{careItems.filter(item => item.active).map(item => { const record = done.get(item.name); return <button key={item.id} className={record ? 'done' : ''} disabled={Boolean(record) || Boolean(savingSupplement)} onClick={() => addSupplement(item.name)}><span>{record ? '✓' : savingSupplement === item.name ? '···' : '+'}</span><b>{item.name}</b><small>{record ? `${auditNames[record.createdBy]} ${new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : savingSupplement === item.name ? '记录中' : '点按记录'}</small></button>; })}</div></section>
   </div><div className="today-timeline"><div className="section-title"><h2>今天的记录</h2><span>{records.length} 条</span></div><Timeline records={records} careItems={careItems} manager={manager} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} /></div></div>;
@@ -462,14 +423,14 @@ function AiSettingsCard({ capabilities, onChanged }: { capabilities: Capabilitie
     finally { setBusy(''); }
   }
   async function clearKey() {
-    if (!window.confirm('移除密钥后将停止使用模型理解语音内容，是否继续？')) return;
+    if (!window.confirm('移除密钥后将无法生成宝宝日报，是否继续？')) return;
     setBusy('clear'); setStatus(null);
     try { const next = await api.updateAiSettings({ baseUrl, model, apiKey: '' }); setSettings(next); setApiKey(''); await onChanged(); setStatus({ text: 'API 密钥已移除' }); }
     catch (err) { setStatus({ text: err instanceof Error ? err.message : '移除失败', error: true }); }
     finally { setBusy(''); }
   }
-  return <section className="settings-card model-settings"><div className="setting-status"><h2>模型配置</h2><span className={capabilities.aiInterpretation ? 'on' : ''}>{capabilities.aiInterpretation ? '已启用' : '未配置'}</span></div>
-    <p>语音先转成文字，再由模型理解时间、奶量、用药和排便信息。保存前仍需人工确认。</p>
+  return <section className="settings-card model-settings"><div className="setting-status"><h2>模型配置</h2><span className={capabilities.aiEnabled ? 'on' : ''}>{capabilities.aiEnabled ? '已启用' : '未配置'}</span></div>
+    <p>配置 AI 模型后，应用会每天自动生成「宝宝日报」。</p>
     <form onSubmit={save}>
       <label>服务商<input value="DeepSeek" readOnly aria-readonly="true" /></label>
       <label>接口地址<input type="url" inputMode="url" value={baseUrl} onChange={e => setBaseUrl(e.target.value)} required /></label>
@@ -558,7 +519,7 @@ function FamilyPermissionsCard() {
   return <section className="settings-card family-permissions-card"><div className="setting-status"><h2>家庭成员权限</h2><span className="on">超管</span></div><p>管理员可管理用药项目和回收站；普通用户可记录和修改照护信息。</p><div className="family-permission-list">{members.map(member => { const visual = familyMembers.find(item => item.id === member.id)!; return <article key={member.id}><img src={visual.icon} alt="" /><div><b>{member.name}</b><small>{member.id === 'father' ? '最高管理权限' : roleNames[member.role]}</small></div>{member.id === 'father' ? <span className="fixed-role">超管·不可修改</span> : <div className="role-switch" role="group" aria-label={`${member.name}的权限`}><button type="button" className={member.role === 'admin' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => changeRole(member, 'admin')}>管理员</button><button type="button" className={member.role === 'member' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => changeRole(member, 'member')}>普通用户</button></div>}</article>; })}</div>{message && <p className={message.includes('失败') || message.includes('无法') ? 'error-text' : 'success-text'} role="status">{message}</p>}</section>;
 }
 
-type SettingsSection = 'root' | 'family' | 'care-items' | 'speech' | 'ai' | 'backup';
+type SettingsSection = 'root' | 'family' | 'care-items' | 'ai' | 'backup';
 function SettingsEntry({ icon, title, description, status, onClick }: { icon: string; title: string; description: string; status: string; onClick(): void }) {
   return <button type="button" className="settings-entry" onClick={onClick}><span className="settings-entry-icon" aria-hidden="true">{icon}</span><span><b>{title}</b><small>{description}</small></span><em>{status}</em><i aria-hidden="true">›</i></button>;
 }
@@ -569,17 +530,16 @@ function SettingsView({ careItems, capabilities, user, onCapabilitiesChanged, on
   const member = familyMembers.find(item => item.id === user.id)!;
   function open(next: Exclude<SettingsSection, 'root'>) { window.history.pushState({ babycareSettings: next }, ''); pushedRef.current = true; setSection(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   function back() { if (pushedRef.current) window.history.back(); else setSection('root'); }
-  if (section !== 'root') return <div className="page-stack settings-subpage"><header className="subpage-head"><button type="button" onClick={back} aria-label="返回设置">‹</button><div><p className="kicker">设置</p><h1>{{ family: '家庭成员权限', 'care-items': '今日用药项目', speech: '语音转成文字', ai: '指令理解模型', backup: '服务器数据备份' }[section]}</h1></div></header><div className="settings-grid">
+  if (section !== 'root') return <div className="page-stack settings-subpage"><header className="subpage-head"><button type="button" onClick={back} aria-label="返回设置">‹</button><div><p className="kicker">设置</p><h1>{{ family: '家庭成员权限', 'care-items': '今日用药项目', ai: '指令理解模型', backup: '服务器数据备份' }[section]}</h1></div></header><div className="settings-grid">
     {section === 'family' && <FamilyPermissionsCard />}
     {section === 'care-items' && <CareItemsCard items={careItems} onChanged={onCareItemsChanged} />}
-    {section === 'speech' && <section className="settings-card"><div className="setting-status"><h2>识别方式</h2><span className={capabilities.aiTranscription ? 'on' : ''}>{capabilities.aiTranscription ? '服务器识别' : '浏览器识别'}</span></div><p>{capabilities.aiTranscription ? '短录音由服务器识别为文字，录音不会写入磁盘。' : '目前使用浏览器自带语音识别；部分微信浏览器可能不支持。'}</p></section>}
     {section === 'ai' && <AiSettingsCard capabilities={capabilities} onChanged={onCapabilitiesChanged} />}
     {section === 'backup' && <ServerBackupCard onImported={onImported} />}
   </div></div>;
   return <div className="page-stack settings-home"><header className="page-head"><h1>设置</h1><p>{user.role === 'superadmin' ? '管理家庭成员、照护项目和服务器。' : user.role === 'admin' ? '管理用药项目和已删除记录。' : '查看当前身份和权限。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份与权限</span><h2>{user.name}</h2><p>{roleNames[user.role]}</p></div><i>{canManage(user) ? '管理权限' : '记录权限'}</i></section>
     {user.role === 'admin' && <section className="settings-card permission-note"><p className="kicker">管理员权限</p><h2>管理日常照护</h2><p>可管理用药项目和回收站。宝宝资料、家庭权限、AI 服务和备份仅超管可操作。</p></section>}
     {user.role === 'member' && <section className="settings-card permission-note"><p className="kicker">普通用户权限</p><h2>可以记录和修改</h2><p>可查看、添加和修改照护记录；不能删除记录或查看操作历史。</p></section>}
-    <section className="settings-menu" aria-label="设置项目">{user.role === 'superadmin' && <SettingsEntry icon="成员" title="家庭成员权限" description="设置管理员与普通用户" status="4 位家人" onClick={() => open('family')} />}{canManage(user) && <SettingsEntry icon="用药" title="今日用药项目" description="新增、停用与排序" status={`${careItems.filter(item => item.active).length} 项使用中`} onClick={() => open('care-items')} />}{user.role === 'superadmin' && <><SettingsEntry icon="语音" title="语音转成文字" description="查看当前语音识别方式" status={capabilities.aiTranscription ? '服务器' : '浏览器'} onClick={() => open('speech')} /><SettingsEntry icon="模型" title="指令理解模型" description="DeepSeek 接口与模型配置" status={capabilities.aiInterpretation ? '已启用' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="备份" title="服务器数据备份" description="自动备份、导入与恢复" status="每 6 小时" onClick={() => open('backup')} /></>}</section>
+    <section className="settings-menu" aria-label="设置项目">{user.role === 'superadmin' && <SettingsEntry icon="成员" title="家庭成员权限" description="设置管理员与普通用户" status="4 位家人" onClick={() => open('family')} />}{canManage(user) && <SettingsEntry icon="用药" title="今日用药项目" description="新增、停用与排序" status={`${careItems.filter(item => item.active).length} 项使用中`} onClick={() => open('care-items')} />}{user.role === 'superadmin' && <><SettingsEntry icon="模型" title="指令理解模型" description="DeepSeek 接口与模型配置" status={capabilities.aiEnabled ? '已启用' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="备份" title="服务器数据备份" description="自动备份、导入与恢复" status="每 6 小时" onClick={() => open('backup')} /></>}</section>
     <button className="logout" onClick={onLogout}>退出当前身份</button></div>;
 }
 
@@ -591,7 +551,7 @@ export default function App() {
   const [deletedRecords, setDeletedRecords] = useState<CareRecord[]>([]); const [careItems, setCareItems] = useState<CareItem[]>([]);
   const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([]); const [deletedGrowthRecords, setDeletedGrowthRecords] = useState<GrowthRecord[]>([]);
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date());
-  const [editor, setEditor] = useState<DraftRecord | null>(null); const [voiceReview, setVoiceReview] = useState<{ drafts: DraftRecord[]; transcript: string } | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
+  const [editor, setEditor] = useState<DraftRecord | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
   const [growthEditor, setGrowthEditor] = useState<GrowthRecord | 'new' | null>(null);
   const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(false); const [pendingCount, setPendingCount] = useState(0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
   const refreshingRef = useRef(false);
@@ -702,18 +662,6 @@ export default function App() {
     }
   }
 
-  async function saveMany(values: DraftRecord[]) {
-    if (!currentUser) throw new Error('请先登录');
-    let queued = 0;
-    for (const input of values) {
-      const value = { ...input, id: input.id || createUuid() };
-      try { await api.createRecord(value); }
-      catch (error) { if (error instanceof ApiError) throw error; queueAction(currentUser.id, { action: 'create', payload: value }); updateLocalRecords(currentUser.id, items => [optimisticRecord(value, currentUser), ...items]); queued += 1; }
-    }
-    setPendingCount(getOutbox(currentUser.id).length); if (!queued) await loadRecords(); else setOnline(false);
-    setToast({ message: queued ? `${queued} 条记录已暂存，联网后同步` : `已保存 ${values.length} 条记录` });
-  }
-
   async function recordSupplement(supplement: Supplement) {
     try { await saveOne({ ...blankDraft('supplement'), supplement }); }
     catch (error) {
@@ -763,7 +711,7 @@ export default function App() {
 
   const todayRecords = useMemo(() => records.filter(r => isoDay(new Date(r.occurredAt)) === isoDay(new Date())), [records]);
   const weeklyGrowth = growthRecords.find(record => weekContains(record));
-  const pull = usePullToRefresh(Boolean(authenticated && currentUser && (tab === 'today' || tab === 'history' || tab === 'archive') && !editor && !growthEditor && !voiceReview && !auditRecord), refreshAll);
+  const pull = usePullToRefresh(Boolean(authenticated && currentUser && (tab === 'today' || tab === 'history' || tab === 'archive') && !editor && !growthEditor && !auditRecord), refreshAll);
 
   if (authenticated === null) return <main className="loading-page"><img src="/bear-bottle.png" alt="" /><p>正在打开照护记录…</p></main>;
   if (!authenticated || !currentUser) return <Login onSuccess={user => { rememberUser(user); setCurrentUser(user); setRecords(getCachedRecords(user.id)); setAuthenticated(true); setOfflineSession(false); }} />;
@@ -773,9 +721,9 @@ export default function App() {
   const pullOffset = pull.phase === 'refreshing' || pull.phase === 'done' ? 8 : Math.min(8, pull.distance - 44);
   return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}<div className="top-status"><button className="user-pill" onClick={() => setTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button><div className={`network-pill ${online ? refreshing ? 'syncing' : '' : 'offline'}`}>{connectionLabel}</div></div>
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}>×</button></div>}
-    <main className="main-content">{tab === 'today' && <TodayView profile={profile} records={todayRecords} careItems={careItems} capabilities={capabilities} manager={canManage(currentUser)} weeklyGrowth={weeklyGrowth} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} onVoice={(drafts, transcript) => setVoiceReview({ drafts: drafts.map(draft => ({ ...draft, id: createUuid() })), transcript })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} />}{tab === 'trends' && <TrendsView records={records} />}{tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} user={currentUser} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}{tab === 'settings' && <SettingsView careItems={careItems} capabilities={capabilities} user={currentUser} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={loadCareItems} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); }} />}</main>
+    <main className="main-content">{tab === 'today' && <TodayView profile={profile} records={todayRecords} careItems={careItems} capabilities={capabilities} manager={canManage(currentUser)} weeklyGrowth={weeklyGrowth} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} growthRecords={growthRecords} online={online} onOpenSettings={() => setTab('settings')} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} />}{tab === 'trends' && <TrendsView records={records} />}{tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} user={currentUser} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}{tab === 'settings' && <SettingsView careItems={careItems} capabilities={capabilities} user={currentUser} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={loadCareItems} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); }} />}</main>
     <button className="floating-add" onClick={() => setEditor(blankDraft())} aria-label="添加记录"><span>＋</span><b>记录</b></button>
     <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录'], ['trends', '/icons/nav-trends.png', '趋势'], ['archive', '/icons/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img src={icon} alt="" /><b>{label}</b></button>)}</nav>
-    {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor profile={profile} initial={growthEditor === 'new' ? undefined : growthEditor} previous={growthRecords[0]} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{voiceReview && <VoiceReview initial={voiceReview.drafts} transcript={voiceReview.transcript} careItems={careItems} onClose={() => setVoiceReview(null)} onSave={saveMany} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
+    {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor profile={profile} initial={growthEditor === 'new' ? undefined : growthEditor} previous={growthRecords[0]} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
   </div>;
 }

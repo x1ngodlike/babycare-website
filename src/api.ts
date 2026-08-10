@@ -32,7 +32,8 @@ export const api = {
   aiSettings: () => request<AiSettingsPublic>('/api/ai/settings'),
   updateAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<AiSettingsPublic>('/api/ai/settings', { method: 'PUT', body: JSON.stringify(settings) }),
   testAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<{ ok: boolean; message: string }>('/api/ai/settings/test', { method: 'POST', body: JSON.stringify(settings) }),
-  interpret: (transcript: string) => request<{ records: DraftRecord[]; model: string }>('/api/ai/interpret', { method: 'POST', body: JSON.stringify({ transcript }) }),
+  dailyReport: (date?: string) => request<{ date: string; exists: boolean; summary?: string; suggestions?: string[]; model?: string; generatedAt?: string }>(`/api/daily-report${date ? `?date=${encodeURIComponent(date)}` : ''}`),
+  generateDailyReport: (date?: string) => request<{ date: string; summary: string; suggestions: string[]; model: string; generatedAt: string }>(`/api/daily-report/generate${date ? `?date=${encodeURIComponent(date)}` : ''}`, { method: 'POST' }),
   updateProfile: (profile: Profile) => request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
   growthRecords: () => request<GrowthRecord[]>('/api/growth-records'),
   deletedGrowthRecords: () => request<GrowthRecord[]>('/api/growth-records/deleted'),
@@ -61,12 +62,4 @@ export const api = {
   createServerBackup: () => request<{ name: string; createdAt: string; status: ServerBackupStatus }>('/api/backups', { method: 'POST' }),
   restoreServerBackup: (name: string) => request<{ imported: number; profileRestored: boolean; restoredFrom: string; status: ServerBackupStatus }>(`/api/backups/${encodeURIComponent(name)}/restore`, { method: 'POST' }),
   importData: (data: unknown) => request<{ imported: number; profileRestored: boolean }>('/api/import', { method: 'POST', body: JSON.stringify(data) }),
-  transcribe: async (audio: Blob) => {
-    const form = new FormData();
-    form.append('audio', audio, 'baby-recording.webm');
-    const response = await fetch('/api/voice/transcribe', { method: 'POST', credentials: 'same-origin', body: form });
-    const body = await response.json().catch(() => ({ error: '语音识别失败' }));
-    if (!response.ok) throw new Error(body.error || '语音识别失败');
-    return body as { transcript: string; model: string };
-  }
 };

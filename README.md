@@ -106,16 +106,9 @@ chown -R 1000:1000 /mnt/user/appdata/baby-care/data
 
 SQLite 数据库存放在 `data/baby-care.db`。应用每 6 小时把完整 JSON 自动保存到 `data/backups/`，最多保留最近 28 份；Unraid 中对应 `/mnt/user/appdata/baby-care/data/backups/`，不会建立新的共享目录。爸爸可在设置页立即备份、选择服务器备份进行完整恢复，或手动导出和导入备份文件；服务器恢复前会先自动保存当前数据，恢复后宝宝资料、照护记录和操作历史与所选备份完全一致。不要在容器运行时只复制单个数据库文件，以免遗漏 WAL 中尚未合并的记录。
 
-## 智能语音与模型配置
+## AI 模型配置
 
-在 `.env` 中配置：
-
-```env
-OPENAI_API_KEY=你的服务端API密钥
-OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
-```
-
-API Key 只在 Node 后端读取，不会发送到网页。前端录制不超过 20 秒的短音频，后端以临时内存方式转发给语音转写接口，不写入磁盘；转写结果解析成记录草稿，用户确认后才保存。
+宝宝日报与智能功能依赖 AI 模型，在应用内「设置 → 指令理解模型」中填写 DeepSeek 接口地址与 API 密钥即可，无需在 `.env` 中配置。配置完成后，服务端每天北京时间 00:00 自动生成前一天的「宝宝日报」。
 
 爸爸登录后可以在“设置 → 指令理解模型”中填写 DeepSeek API 密钥。默认配置为：
 
