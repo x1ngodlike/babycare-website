@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # 宝宝照护记录 Unraid 统一管理脚本。
-# 无参数运行时显示中文菜单，也支持“部署、更新、备份、状态、日志、停止、启动”等直接命令。
+# 无参数运行时显示中文菜单，直接命令使用 deploy、update、backup 等英文名称。
 
 PROJECT_NAME="babycare-website"
 SERVICE_NAME="babycare-website"
@@ -314,7 +314,7 @@ perform_update() {
   info "从 GitHub 拉取 main 分支最新代码。"
   git -C "$SCRIPT_DIR" pull --ff-only origin main
   info "使用更新后的脚本重新部署。"
-  BABYCARE_SKIP_BACKUP=true exec "${SCRIPT_DIR}/babycare.sh" 部署
+  BABYCARE_SKIP_BACKUP=true exec "${SCRIPT_DIR}/babycare.sh" deploy
 }
 
 show_status() {
@@ -365,14 +365,28 @@ show_menu() {
   esac
 }
 
+show_help() {
+  printf '\n宝宝照护记录管理命令\n\n'
+  printf '  ./babycare.sh deploy   首次部署或重新构建\n'
+  printf '  ./babycare.sh update   备份后更新到 GitHub 最新版本\n'
+  printf '  ./babycare.sh backup   备份数据和环境配置\n'
+  printf '  ./babycare.sh status   查看容器运行状态\n'
+  printf '  ./babycare.sh logs     查看实时日志\n'
+  printf '  ./babycare.sh stop     停止服务\n'
+  printf '  ./babycare.sh start    启动服务\n'
+  printf '  ./babycare.sh help     显示本帮助\n\n'
+  printf '无参数运行 ./babycare.sh 可打开中文菜单。\n'
+}
+
 case "${1:-菜单}" in
   菜单|menu) show_menu ;;
-  部署|deploy) perform_deploy ;;
-  更新|update) perform_update ;;
-  备份|backup) perform_backup ;;
-  状态|status) show_status ;;
-  日志|logs) show_logs ;;
-  停止|stop) stop_service ;;
-  启动|start) start_service ;;
-  *) fail "未知命令：${1}。可用命令：部署、更新、备份、状态、日志、停止、启动。" ;;
+  deploy|部署) perform_deploy ;;
+  update|更新) perform_update ;;
+  backup|备份) perform_backup ;;
+  status|状态) show_status ;;
+  logs|日志) show_logs ;;
+  stop|停止) stop_service ;;
+  start|启动) start_service ;;
+  help|-h|--help) show_help ;;
+  *) fail "未知命令：${1}。请运行 ./babycare.sh help 查看可用命令。" ;;
 esac

@@ -59,16 +59,16 @@ chmod +x babycare.sh
 0. 退出
 ```
 
-也可以直接使用中文命令：
+也可以直接使用英文命令：
 
 ```bash
-./babycare.sh 部署
-./babycare.sh 更新
-./babycare.sh 备份
-./babycare.sh 状态
-./babycare.sh 日志
-./babycare.sh 停止
-./babycare.sh 启动
+./babycare.sh deploy
+./babycare.sh update
+./babycare.sh backup
+./babycare.sh status
+./babycare.sh logs
+./babycare.sh stop
+./babycare.sh start
 ```
 
 “更新”会依次备份数据库、拉取 GitHub 最新代码、删除本项目以前创建的新旧容器、构建镜像并创建唯一的 `babycare-website` 容器。新容器通过完整健康检查后，脚本会精确删除本项目上一版且已不再被使用的镜像，不会全局清理其他 Unraid 应用的镜像或缓存。脚本不会删除 `/mnt/user/appdata/baby-care/data`。
@@ -79,7 +79,7 @@ chmod +x babycare.sh
 /mnt/user/appdata/baby-care/backups
 ```
 
-首次生成的 `.env` 使用爸爸密码 `qwe123`，妈妈、爷爷、奶奶密码 `111111`，并生成随机会话密钥。部署成功后建议修改密码，再执行 `./babycare.sh 部署`。
+首次生成的 `.env` 使用爸爸密码 `qwe123`，妈妈、爷爷、奶奶密码 `111111`，并生成随机会话密钥。部署成功后建议修改密码，再执行 `./babycare.sh deploy`。
 
 完整健康检查同时验证容器中的 `/app/dist/index.html`、网页首页和后端接口，避免只有后端启动而前端文件缺失。
 
@@ -89,7 +89,7 @@ chmod +x babycare.sh
 
 ```bash
 cd /mnt/user/appdata/baby-care/app
-./babycare.sh 停止
+./babycare.sh stop
 mkdir -p /mnt/user/appdata/baby-care/restore-temp
 tar -xzf /mnt/user/appdata/baby-care/backups/babycare-website-日期时间.tar.gz \
   -C /mnt/user/appdata/baby-care/restore-temp
@@ -99,7 +99,7 @@ mv /mnt/user/appdata/baby-care/restore-temp/data \
   /mnt/user/appdata/baby-care/data
 cp /mnt/user/appdata/baby-care/restore-temp/.env .env
 chown -R 1000:1000 /mnt/user/appdata/baby-care/data
-./babycare.sh 部署
+./babycare.sh deploy
 ```
 
 确认恢复后的记录无误，再自行处理 `data.before-restore`；它是恢复前的数据副本。
