@@ -47,6 +47,45 @@ describe('record reliability', () => {
     expect(db.listAudit(firstId).map((item: AuditEntry) => item.action)).toEqual(expect.arrayContaining(['create', 'delete', 'restore']));
   });
 
+  it('manages configurable care items and keeps history when an item is renamed or disabled', () => {
+    expect(db.listCareItems().map((item: { name: string }) => item.name)).toEqual(expect.arrayContaining(['AD', 'VD', '益生菌', '推拿']));
+    const item = db.saveCareItem({ id: 'touch', name: '抚触', icon: 'massage', sortOrder: 50 });
+    const saved = db.saveRecord(record({ id: '66666666-6666-4666-8666-666666666666', supplement: item.name, occurredAt: '2026-08-10T08:00:00.000Z' }));
+    db.saveCareItem({ ...item, name: '全身抚触' });
+    expect(db.allRecords(true).find((entry: CareRecord) => entry.id === saved.id)?.supplement).toBe('全身抚触');
+    expect(db.setCareItemActive(item.id, false).active).toBe(false);
+    expect(() => db.saveRecord(record({ id: '77777777-7777-4777-8777-777777777777', supplement: '全身抚触', occurredAt: '2026-08-11T08:00:00.000Z' }))).toThrow(db.CareItemInactiveError);
+  });
+
+  it('reorders every care item in one transaction', () => {
+    const before = db.listCareItems(true);
+    const ids = before.map((item: { id: string }) => item.id).reverse();
+    expect(db.reorderCareItems(ids).map((item: { id: string }) => item.id)).toEqual(ids);
+    expect(() => db.reorderCareItems(ids.slice(1))).toThrow(db.CareItemOrderError);
+  });
+
+  it('lets the super administrator update child account roles while keeping father fixed', () => {
+    expect(db.listFamilyMembers()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'father', role: 'superadmin' }),
+      expect.objectContaining({ id: 'mother', role: 'admin' })
+    ]));
+    expect(db.setFamilyRole('grandfather', 'admin')).toMatchObject({ id: 'grandfather', role: 'admin' });
+    expect(db.getFamilyRole('grandfather')).toBe('admin');
+    expect(() => db.setFamilyRole('father', 'member')).toThrow(db.FamilyPermissionError);
+    db.setFamilyRole('grandfather', 'member');
+  });
+
+  it('permanently removes only records already in the recycle bin', () => {
+    const item = record({ id: '88888888-8888-4888-8888-888888888888', type: 'feeding', supplement: null, breastMilkMl: 80 });
+    db.saveRecord(item);
+    expect(db.purgeRecord(item.id)).toBe(false);
+    db.removeRecord(item.id, 'mother');
+    expect(db.listDeletedRecords().some((entry: CareRecord) => entry.id === item.id)).toBe(true);
+    expect(db.purgeRecord(item.id)).toBe(true);
+    expect(db.allRecords(true).some((entry: CareRecord) => entry.id === item.id)).toBe(false);
+    expect(db.listAudit(item.id)).toEqual([]);
+  });
+
   it('restores profile and records in one backup import', () => {
     const feeding = record({ id: '44444444-4444-4444-8444-444444444444', type: 'feeding', supplement: null, breastMilkMl: 90 });
     const result = db.importBackup({ profile: { name: '测试宝宝', birthDate: '2026-01-01' }, records: [feeding] });

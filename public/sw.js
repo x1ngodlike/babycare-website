@@ -1,8 +1,8 @@
-const CACHE = 'babycare-website-v7';
+const CACHE = 'babycare-website-v8';
 const SHELL = [
   '/', '/manifest.webmanifest', '/bear-bottle.png', '/icon-192.png', '/icon-512.png',
   '/icons/nav-today.png', '/icons/nav-records.png', '/icons/nav-trends.png', '/icons/nav-settings.png',
-  '/icons/quick-feeding.png', '/icons/quick-bowel.png', '/icons/quick-note.png', '/icons/record-supplement.png'
+  '/icons/quick-feeding.png', '/icons/quick-bowel.png', '/icons/quick-note.png', '/icons/record-supplement.png', '/icons/record-massage.png'
 ];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL))));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))));

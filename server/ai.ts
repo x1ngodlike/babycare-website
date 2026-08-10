@@ -8,7 +8,7 @@ const interpretedRecordSchema = z.object({
   occurredAt: z.string().datetime({ offset: true }),
   breastMilkMl: z.number().int().min(1).max(500).nullable().optional(),
   formulaMl: z.number().int().min(1).max(500).nullable().optional(),
-  supplement: z.enum(['AD', 'VD', '益生菌']).nullable().optional(),
+  supplement: z.string().trim().min(1).max(30).nullable().optional(),
   bowelSize: z.enum(['大', '中', '小']).nullable().optional(),
   note: z.string().trim().max(200).nullable().optional()
 }).superRefine((value, ctx) => {
@@ -52,16 +52,17 @@ export async function testModelConnection(settings: ModelSettings) {
   ]);
 }
 
-export async function interpretTranscript(transcript: string, settings: ModelSettings, now = new Date()): Promise<DraftRecord[]> {
+export async function interpretTranscript(transcript: string, settings: ModelSettings, now = new Date(), careItems: string[] = ['AD', 'VD', '益生菌', '推拿']): Promise<DraftRecord[]> {
   const content = await requestCompletion(settings, [
     {
       role: 'system',
-      content: `你是宝宝照护记录解析器。把家人的一句中文口语转换为 JSON：{"records":[]}。允许类型：feeding（母乳和奶粉毫升数分开）、supplement（仅 AD、VD、益生菌）、bowel（大、中、小）、note（其他情况）。occurredAt 必须是带时区的 ISO 时间；未说日期时使用今天，未说时间时使用当前时间。不要推测没有说出的数量或事项。当前时间：${now.toISOString()}，家庭时区：Asia/Shanghai。`
+      content: `你是宝宝照护记录解析器。把家人的一句中文口语转换为 JSON：{"records":[]}。允许类型：feeding（母乳和奶粉毫升数分开）、supplement（仅可使用这些项目：${careItems.join('、')}）、bowel（大、中、小）、note（其他情况）。occurredAt 必须是带时区的 ISO 时间；未说日期时使用今天，未说时间时使用当前时间。不要推测没有说出的数量或事项。当前时间：${now.toISOString()}，家庭时区：Asia/Shanghai。`
     },
     { role: 'user', content: transcript }
   ]);
   const parsedJson = JSON.parse(content) as unknown;
   const parsed = responseSchema.parse(parsedJson);
+  if (parsed.records.some(record => record.type === 'supplement' && record.supplement && !careItems.includes(record.supplement))) throw new Error('模型返回了未启用的用药项目');
   return parsed.records.map(record => ({
     ...record,
     breastMilkMl: record.type === 'feeding' ? record.breastMilkMl ?? null : null,

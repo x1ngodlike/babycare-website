@@ -54,7 +54,7 @@ export function parseVoiceRecords(text: string, now = new Date()): DraftRecord[]
       formulaMl: amountNear(clean, '奶粉')
     });
   }
-  (['益生菌', 'AD', 'VD'] as Supplement[])
+  (['益生菌', '推拿', 'AD', 'VD'] as Supplement[])
     .filter(item => clean.toUpperCase().includes(item.toUpperCase()))
     .forEach(supplement => records.push({ type: 'supplement', occurredAt, supplement }));
   if (clean.includes('排便') || clean.includes('大便') || clean.includes('拉屎')) {

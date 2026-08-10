@@ -3,7 +3,7 @@ import { api, ApiError } from './api';
 import { addDays, calculateAge, isoDay, toLocalInput } from './date';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
-import type { AiSettingsPublic, AuditEntry, AuditIdentity, BowelSize, Capabilities, CareRecord, DraftRecord, FamilyId, Profile, RecordType, ServerBackupFile, ServerBackupStatus, SessionUser, Supplement } from './types';
+import type { AiSettingsPublic, AuditEntry, AuditIdentity, BowelSize, Capabilities, CareItem, CareRecord, DraftRecord, FamilyId, FamilyMemberPermission, Profile, RecordType, ServerBackupFile, ServerBackupStatus, SessionUser, Supplement, UserRole } from './types';
 import { parseVoiceRecords } from './voice';
 
 type Tab = 'today' | 'history' | 'trends' | 'settings';
@@ -19,22 +19,25 @@ type ToastState = { message: string; actionLabel?: string; onAction?: () => void
 
 const typeNames: Record<RecordType, string> = { feeding: '喂奶', supplement: '用药', bowel: '排便', note: '其他情况' };
 const typeIcons: Record<RecordType, string> = { feeding: '/icons/quick-feeding.png', supplement: '/icons/record-supplement.png', bowel: '/icons/quick-bowel.png', note: '/icons/quick-note.png' };
-const supplements: Supplement[] = ['AD', 'VD', '益生菌'];
 const familyMembers: { id: FamilyId; name: string; role: string; icon: string }[] = [
-  { id: 'father', name: '爸爸', role: '管理员', icon: '/icons/father.png' },
-  { id: 'mother', name: '妈妈', role: '普通用户', icon: '/icons/mother.png' },
+  { id: 'father', name: '爸爸', role: '超管', icon: '/icons/father.png' },
+  { id: 'mother', name: '妈妈', role: '管理员', icon: '/icons/mother.png' },
   { id: 'grandfather', name: '爷爷', role: '普通用户', icon: '/icons/grandfather.png' },
   { id: 'grandmother', name: '奶奶', role: '普通用户', icon: '/icons/grandmother.png' }
 ];
 const auditNames: Record<AuditIdentity, string> = { father: '爸爸', mother: '妈妈', grandfather: '爷爷', grandmother: '奶奶', legacy: '历史数据' };
 const auditActions: Record<AuditEntry['action'], string> = { create: '创建记录', update: '修改记录', delete: '删除记录', restore: '恢复记录', import: '从备份导入' };
 const emptyCapabilities: Capabilities = { aiTranscription: false, transcribeModel: null, aiInterpretation: false, interpretationModel: null };
+const roleNames: Record<UserRole, string> = { superadmin: '超管', admin: '管理员', member: '普通用户' };
+const canManage = (user: SessionUser | null) => user?.role === 'superadmin' || user?.role === 'admin';
+const careItemIcon = (value: CareRecord | DraftRecord, items: CareItem[]) => value.type === 'supplement' && items.find(item => item.name === value.supplement)?.icon === 'massage' ? '/icons/record-massage.png' : typeIcons[value.type];
+const selectableCareItems = (items: CareItem[], current?: string | null) => [...new Set([...items.filter(item => item.active).map(item => item.name), ...(current ? [current] : [])])];
 
 const blankDraft = (type: RecordType = 'feeding'): DraftRecord => ({ id: createUuid(), type, occurredAt: new Date().toISOString(), breastMilkMl: null, formulaMl: null });
 
 function summary(record: CareRecord | DraftRecord) {
   if (record.type === 'feeding') return [record.breastMilkMl ? `母乳 ${record.breastMilkMl}ml` : '', record.formulaMl ? `奶粉 ${record.formulaMl}ml` : ''].filter(Boolean).join('，') || '待补充奶量';
-  if (record.type === 'supplement') return `${record.supplement || '营养补充剂'}已服用`;
+  if (record.type === 'supplement') return record.supplement === '推拿' ? '推拿已完成' : `${record.supplement || '用药项目'}已服用`;
   if (record.type === 'bowel') return `排便量：${record.bowelSize || '中'}`;
   return record.note || '其他情况';
 }
@@ -47,7 +50,7 @@ function FeedingSummary({ record }: { record: CareRecord | DraftRecord }) {
 
 function draftIssue(value: DraftRecord) {
   if (value.type === 'feeding' && !value.breastMilkMl && !value.formulaMl) return '请补充母乳量或奶粉量';
-  if (value.type === 'supplement' && !value.supplement) return '请选择营养补充剂';
+  if (value.type === 'supplement' && !value.supplement) return '请选择用药或照护项目';
   if (value.type === 'bowel' && !value.bowelSize) return '请选择排便量';
   if (value.type === 'note' && !value.note?.trim()) return '请填写情况说明';
   return '';
@@ -141,9 +144,11 @@ function usePullToRefresh(enabled: boolean, onRefresh: () => Promise<void>) {
 
 function Login({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
   const [identity, setIdentity] = useState<FamilyId>('father');
+  const [loginMembers, setLoginMembers] = useState(familyMembers);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  useEffect(() => { api.loginOptions().then(items => setLoginMembers(items.map(item => ({ ...item, role: roleNames[item.role], icon: familyMembers.find(member => member.id === item.id)!.icon })))).catch(() => undefined); }, []);
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError('');
     try { const result = await api.login(identity, password); onSuccess(result.user); }
@@ -154,8 +159,8 @@ function Login({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
     <div className="brand-bear"><img src="/bear-bottle.png" alt="小熊抱着奶瓶" /></div>
     <h1>宝宝照护记录</h1>
     <p className="supporting">家人共享同一份喂养、用药和排便记录。</p>
-    <form onSubmit={submit}><fieldset className="identity-picker"><legend>选择身份</legend><div>{familyMembers.map(member => <button type="button" key={member.id} aria-pressed={identity === member.id} className={identity === member.id ? 'selected' : ''} onClick={() => { setIdentity(member.id); setPassword(''); }}><img src={member.icon} alt="" /><b>{member.name}</b><small>{member.role}</small></button>)}</div></fieldset>
-      <label>{familyMembers.find(member => member.id === identity)?.name}的密码<input autoFocus type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" /></label>
+    <form onSubmit={submit}><fieldset className="identity-picker"><legend>选择身份</legend><div>{loginMembers.map(member => <button type="button" key={member.id} aria-pressed={identity === member.id} className={identity === member.id ? 'selected' : ''} onClick={() => { setIdentity(member.id); setPassword(''); }}><img src={member.icon} alt="" /><b>{member.name}</b><small>{member.role}</small></button>)}</div></fieldset>
+      <label>{loginMembers.find(member => member.id === identity)?.name}的密码<input autoFocus type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" /></label>
       {error && <p className="error-text" role="alert">{error}</p>}<button className="btn primary full" disabled={busy || !password}>{busy ? '正在登录…' : '进入记录'}</button>
     </form>
   </section></main>;
@@ -165,7 +170,7 @@ function hasEnteredContent(value: DraftRecord) {
   return Boolean(value.breastMilkMl || value.formulaMl || value.supplement || value.bowelSize || value.note?.trim());
 }
 
-function RecordEditor({ initial, onClose, onSave }: { initial: DraftRecord; onClose(): void; onSave(value: DraftRecord): Promise<void> }) {
+function RecordEditor({ initial, careItems, onClose, onSave }: { initial: DraftRecord; careItems: CareItem[]; onClose(): void; onSave(value: DraftRecord): Promise<void> }) {
   const [value, setValue] = useState(initial);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -190,7 +195,7 @@ function RecordEditor({ initial, onClose, onSave }: { initial: DraftRecord; onCl
       <form className="editor-form" onSubmit={submit}>
         <label>记录时间<input type="datetime-local" max={toLocalInput(new Date(Date.now() + 10 * 60 * 1000).toISOString())} value={toLocalInput(value.occurredAt)} onChange={e => setValue({ ...value, occurredAt: new Date(e.target.value).toISOString() })} required /></label>
         {value.type === 'feeding' && <div className="input-pair"><label>母乳量 <span>ml</span><input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 90" value={value.breastMilkMl ?? ''} onChange={e => setValue({ ...value, breastMilkMl: e.target.value ? Number(e.target.value) : null })} /></label><label>奶粉量 <span>ml</span><input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 120" value={value.formulaMl ?? ''} onChange={e => setValue({ ...value, formulaMl: e.target.value ? Number(e.target.value) : null })} /></label></div>}
-        {value.type === 'supplement' && <ChoiceField label="选择营养补充剂" values={supplements} selected={value.supplement} onSelect={supplement => setValue({ ...value, supplement })} />}
+        {value.type === 'supplement' && <ChoiceField label="选择用药或照护项目" values={selectableCareItems(careItems, value.supplement)} selected={value.supplement} onSelect={supplement => setValue({ ...value, supplement })} />}
         {value.type === 'bowel' && <ChoiceField label="排便量" values={['大', '中', '小'] as BowelSize[]} selected={value.bowelSize} onSelect={bowelSize => setValue({ ...value, bowelSize })} />}
         {(value.type === 'note' || value.type === 'feeding' || value.type === 'bowel') && <label>{value.type === 'note' ? '情况说明' : '补充说明（选填）'}<textarea rows={3} maxLength={200} placeholder={value.type === 'note' ? '例如：今天有点吐奶' : '可留空'} value={value.note ?? ''} onChange={e => setValue({ ...value, note: e.target.value })} /></label>}
         {error && <p className="error-text" role="alert">{error}</p>}
@@ -264,14 +269,14 @@ function VoiceCapture({ capabilities, onDrafts }: { capabilities: Capabilities; 
   </section>;
 }
 
-function VoiceReview({ initial, transcript, onClose, onSave }: { initial: DraftRecord[]; transcript: string; onClose(): void; onSave(values: DraftRecord[]): Promise<void> }) {
+function VoiceReview({ initial, transcript, careItems, onClose, onSave }: { initial: DraftRecord[]; transcript: string; careItems: CareItem[]; onClose(): void; onSave(values: DraftRecord[]): Promise<void> }) {
   const [values, setValues] = useState(initial); const [editing, setEditing] = useState<number | null>(null); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, onClose);
   const hasIssues = values.some(value => Boolean(draftIssue(value)));
   async function confirm() { if (hasIssues) { setError('请先补全标记的草稿'); return; } setBusy(true); setError(''); try { await onSave(values); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
   function update(index: number, next: DraftRecord) { setValues(items => items.map((item, itemIndex) => itemIndex === index ? next : item)); }
   return <div className="modal-layer"><section ref={dialogRef} className="editor review" role="dialog" aria-modal="true" aria-labelledby="review-title"><header className="editor-head"><div><p className="kicker">语音识别草稿</p><h2 id="review-title">确认 {values.length} 条记录</h2></div><button className="close-btn" onClick={onClose} aria-label="关闭">×</button></header>
-    <blockquote>“{transcript}”</blockquote><div className="review-list">{values.map((value, index) => { const issue = draftIssue(value); return <article className={editing === index ? 'editing' : ''} key={`${value.type}-${index}`}><img className="record-mark" src={typeIcons[value.type]} alt="" /><div><small>{new Date(value.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })} · {typeNames[value.type]}</small><strong><FeedingSummary record={value} /></strong>{issue && <em>{issue}</em>}</div><div className="review-card-actions"><button onClick={() => setEditing(editing === index ? null : index)}>{editing === index ? '完成' : '修改'}</button><button onClick={() => { setValues(items => items.filter((_, i) => i !== index)); setEditing(null); }} aria-label={`移除${typeNames[value.type]}`}>×</button></div>{editing === index && <div className="voice-draft-editor"><label>记录时间<input type="datetime-local" value={toLocalInput(value.occurredAt)} onChange={e => update(index, { ...value, occurredAt: new Date(e.target.value).toISOString() })} /></label>{value.type === 'feeding' && <div className="input-pair"><label>母乳量 <span>ml</span><input inputMode="numeric" type="number" min="0" max="500" value={value.breastMilkMl ?? ''} onChange={e => update(index, { ...value, breastMilkMl: e.target.value ? Number(e.target.value) : null })} /></label><label>奶粉量 <span>ml</span><input inputMode="numeric" type="number" min="0" max="500" value={value.formulaMl ?? ''} onChange={e => update(index, { ...value, formulaMl: e.target.value ? Number(e.target.value) : null })} /></label></div>}{value.type === 'supplement' && <ChoiceField label="营养补充剂" values={supplements} selected={value.supplement} onSelect={supplement => update(index, { ...value, supplement })} />}{value.type === 'bowel' && <ChoiceField label="排便量" values={['大', '中', '小'] as BowelSize[]} selected={value.bowelSize} onSelect={bowelSize => update(index, { ...value, bowelSize })} />}{value.type === 'note' && <label>情况说明<textarea rows={2} maxLength={200} value={value.note ?? ''} onChange={e => update(index, { ...value, note: e.target.value })} /></label>}</div>}</article>; })}</div>
+    <blockquote>“{transcript}”</blockquote><div className="review-list">{values.map((value, index) => { const issue = draftIssue(value); return <article className={editing === index ? 'editing' : ''} key={`${value.type}-${index}`}><img className="record-mark" src={careItemIcon(value, careItems)} alt="" /><div><small>{new Date(value.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })} · {typeNames[value.type]}</small><strong><FeedingSummary record={value} /></strong>{issue && <em>{issue}</em>}</div><div className="review-card-actions"><button onClick={() => setEditing(editing === index ? null : index)}>{editing === index ? '完成' : '修改'}</button><button onClick={() => { setValues(items => items.filter((_, i) => i !== index)); setEditing(null); }} aria-label={`移除${typeNames[value.type]}`}>×</button></div>{editing === index && <div className="voice-draft-editor"><label>记录时间<input type="datetime-local" value={toLocalInput(value.occurredAt)} onChange={e => update(index, { ...value, occurredAt: new Date(e.target.value).toISOString() })} /></label>{value.type === 'feeding' && <div className="input-pair"><label>母乳量 <span>ml</span><input inputMode="numeric" type="number" min="0" max="500" value={value.breastMilkMl ?? ''} onChange={e => update(index, { ...value, breastMilkMl: e.target.value ? Number(e.target.value) : null })} /></label><label>奶粉量 <span>ml</span><input inputMode="numeric" type="number" min="0" max="500" value={value.formulaMl ?? ''} onChange={e => update(index, { ...value, formulaMl: e.target.value ? Number(e.target.value) : null })} /></label></div>}{value.type === 'supplement' && <ChoiceField label="用药或照护项目" values={selectableCareItems(careItems, value.supplement)} selected={value.supplement} onSelect={supplement => update(index, { ...value, supplement })} />}{value.type === 'bowel' && <ChoiceField label="排便量" values={['大', '中', '小'] as BowelSize[]} selected={value.bowelSize} onSelect={bowelSize => update(index, { ...value, bowelSize })} />}{value.type === 'note' && <label>情况说明<textarea rows={2} maxLength={200} value={value.note ?? ''} onChange={e => update(index, { ...value, note: e.target.value })} /></label>}</div>}</article>; })}</div>
     <p className="review-hint">请检查每条记录；数量或时间不准确时可以直接修改。</p>{error && <p className="error-text">{error}</p>}<footer className="editor-actions"><button className="btn secondary" onClick={onClose}>取消</button><button className="btn primary" disabled={busy || !values.length || hasIssues} onClick={confirm}>{busy ? '保存中…' : `保存 ${values.length} 条记录`}</button></footer>
   </section></div>;
 }
@@ -289,7 +294,7 @@ function AuditDialog({ record, onClose }: { record: CareRecord; onClose(): void 
   </section></div>;
 }
 
-function Timeline({ records, emptyText = '这一天还没有记录', onEdit, onDelete, onAudit }: { records: CareRecord[]; emptyText?: string; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+function Timeline({ records, careItems, manager, emptyText = '这一天还没有记录', onEdit, onDelete, onAudit }: { records: CareRecord[]; careItems: CareItem[]; manager: boolean; emptyText?: string; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   useEffect(() => {
     if (!openMenu) return;
@@ -305,10 +310,10 @@ function Timeline({ records, emptyText = '这一天还没有记录', onEdit, onD
     return () => { document.removeEventListener('pointerdown', pointerDown); window.removeEventListener('scroll', closeOnScroll, true); window.removeEventListener('keydown', closeOnEscape); };
   }, [openMenu]);
   if (!records.length) return <div className="empty-state"><span>○</span><h3>{emptyText}</h3><p>记录后会按时间排列在这里。</p></div>;
-  return <div className="timeline">{records.map(record => { const created = auditNames[record.createdBy || 'legacy']; const updated = auditNames[record.updatedBy || record.createdBy || 'legacy']; const changed = record.updatedBy && record.updatedBy !== record.createdBy; return <article className={`timeline-item ${record.type}`} key={record.id}><div className="time-col"><time>{new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}</time><i /></div><img className="record-mark" src={typeIcons[record.type]} alt="" /><div className="record-copy"><small>{typeNames[record.type]}</small><strong><FeedingSummary record={record} /></strong>{record.note && record.type !== 'note' && <p>{record.note}</p>}<em>{created === '历史数据' ? '历史数据' : `${created}录入`}{changed ? ` · ${updated}修改` : ''}</em></div><details data-record-menu={record.id} open={openMenu === record.id}><summary aria-label={`${summary(record)}的操作菜单`} aria-expanded={openMenu === record.id} onClick={event => { event.preventDefault(); setOpenMenu(current => current === record.id ? null : record.id); }}><span className="menu-dots" aria-hidden="true"><i /><i /><i /></span></summary><div><button onClick={() => { setOpenMenu(null); onAudit(record); }}>操作记录</button><button onClick={() => { setOpenMenu(null); onEdit(record); }}>编辑</button><button className="danger" onClick={() => { setOpenMenu(null); onDelete(record); }}>删除</button></div></details></article>; })}</div>;
+  return <div className="timeline">{records.map(record => { const created = auditNames[record.createdBy || 'legacy']; const updated = auditNames[record.updatedBy || record.createdBy || 'legacy']; const changed = record.updatedBy && record.updatedBy !== record.createdBy; return <article className={`timeline-item ${record.type}`} key={record.id}><div className="time-col"><time>{new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}</time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy"><small>{typeNames[record.type]}</small><strong><FeedingSummary record={record} /></strong>{record.note && record.type !== 'note' && <p>{record.note}</p>}<em>{created === '历史数据' ? '历史数据' : `${created}录入`}{changed ? ` · ${updated}修改` : ''}</em></div><details data-record-menu={record.id} open={openMenu === record.id}><summary aria-label={`${summary(record)}的操作菜单`} aria-expanded={openMenu === record.id} onClick={event => { event.preventDefault(); setOpenMenu(current => current === record.id ? null : record.id); }}><span className="menu-dots" aria-hidden="true"><i /><i /><i /></span></summary><div>{manager && <button onClick={() => { setOpenMenu(null); onAudit(record); }}>操作记录</button>}<button onClick={() => { setOpenMenu(null); onEdit(record); }}>编辑</button>{manager && <button className="danger" onClick={() => { setOpenMenu(null); onDelete(record); }}>删除</button>}</div></details></article>; })}</div>;
 }
 
-function TodayView({ profile, records, capabilities, onAdd, onVoice, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; capabilities: Capabilities; onAdd(type: RecordType): void; onVoice(drafts: DraftRecord[], transcript: string): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+function TodayView({ profile, records, careItems, capabilities, manager, onAdd, onVoice, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; careItems: CareItem[]; capabilities: Capabilities; manager: boolean; onAdd(type: RecordType): void; onVoice(drafts: DraftRecord[], transcript: string): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [savingSupplement, setSavingSupplement] = useState<Supplement | null>(null);
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r])); const lastFeed = feed[0];
   async function addSupplement(item: Supplement) { setSavingSupplement(item); try { await onSupplement(item); } finally { setSavingSupplement(null); } }
@@ -317,12 +322,13 @@ function TodayView({ profile, records, capabilities, onAdd, onVoice, onSupplemen
     <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>ml</small></div><div><span>奶粉</span><strong>{formula}</strong><small>ml</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
     <VoiceCapture capabilities={capabilities} onDrafts={onVoice} />
     <section className="quick-section"><div className="section-title"><h2>快捷记录</h2></div><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>记录喂奶</b><small>母乳、奶粉</small></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>记录排便</b><small>大、中、小</small></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他情况</b><small>吐奶、状态</small></button></div></section>
-    <section className="medicine-card"><h2>今日用药</h2><div className="medicine-actions">{supplements.map(item => { const record = done.get(item); return <button key={item} className={record ? 'done' : ''} disabled={Boolean(record) || Boolean(savingSupplement)} onClick={() => addSupplement(item)}><span>{record ? '✓' : savingSupplement === item ? '···' : '+'}</span><b>{item}</b><small>{record ? `${auditNames[record.createdBy]} ${new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : savingSupplement === item ? '记录中' : '点按记录'}</small></button>; })}</div></section>
-  </div><div className="today-timeline"><div className="section-title"><h2>今天的记录</h2><span>{records.length} 条</span></div><Timeline records={records} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} /></div></div>;
+    <section className="medicine-card"><h2>今日用药</h2><div className="medicine-actions">{careItems.filter(item => item.active).map(item => { const record = done.get(item.name); return <button key={item.id} className={record ? 'done' : ''} disabled={Boolean(record) || Boolean(savingSupplement)} onClick={() => addSupplement(item.name)}><span>{record ? '✓' : savingSupplement === item.name ? '···' : '+'}</span><b>{item.name}</b><small>{record ? `${auditNames[record.createdBy]} ${new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : savingSupplement === item.name ? '记录中' : '点按记录'}</small></button>; })}</div></section>
+  </div><div className="today-timeline"><div className="section-title"><h2>今天的记录</h2><span>{records.length} 条</span></div><Timeline records={records} careItems={careItems} manager={manager} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} /></div></div>;
 }
 
-function HistoryView({ records, selected, setSelected, onEdit, onDelete, onAudit }: { records: CareRecord[]; selected: Date; setSelected(value: Date): void; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
-  const [query, setQuery] = useState(''); const [typeFilter, setTypeFilter] = useState<'all' | RecordType>('all'); const [actorFilter, setActorFilter] = useState<'all' | FamilyId>('all');
+function HistoryView({ records, deletedRecords, careItems, manager, selected, setSelected, onEdit, onDelete, onAudit, onLoadDeleted, onRestore, onPurge }: { records: CareRecord[]; deletedRecords: CareRecord[]; careItems: CareItem[]; manager: boolean; selected: Date; setSelected(value: Date): void; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void; onLoadDeleted(): Promise<void>; onRestore(record: CareRecord): Promise<void>; onPurge(record: CareRecord): Promise<void> }) {
+  const [query, setQuery] = useState(''); const [typeFilter, setTypeFilter] = useState<'all' | RecordType>('all'); const [actorFilter, setActorFilter] = useState<'all' | FamilyId>('all'); const [view, setView] = useState<'active' | 'deleted'>('active');
+  useEffect(() => { if (view === 'deleted' && manager) void onLoadDeleted(); }, [manager, onLoadDeleted, view]);
   const days = Array.from({ length: 7 }, (_, index) => addDays(selected, index - 3));
   const filtered = records.filter(record => {
     const dayMatches = query.trim() ? true : isoDay(new Date(record.occurredAt)) === isoDay(selected);
@@ -330,9 +336,11 @@ function HistoryView({ records, selected, setSelected, onEdit, onDelete, onAudit
     return dayMatches && queryMatches && (typeFilter === 'all' || record.type === typeFilter) && (actorFilter === 'all' || record.createdBy === actorFilter);
   });
   return <div className="page-stack"><header className="page-head"><h1>历史记录</h1><p>按日期查看，或搜索全部照护信息。</p></header>
+    {manager && <div className="record-view-tabs" role="tablist" aria-label="记录范围"><button role="tab" aria-selected={view === 'active'} className={view === 'active' ? 'active' : ''} onClick={() => setView('active')}>照护记录</button><button role="tab" aria-selected={view === 'deleted'} className={view === 'deleted' ? 'active' : ''} onClick={() => setView('deleted')}>已删除</button></div>}
+    {view === 'deleted' ? <section className="deleted-records"><div className="section-title"><h2>已删除记录</h2><span>{deletedRecords.length} 条</span></div>{deletedRecords.length ? deletedRecords.map(record => <article className="deleted-record" key={record.id}><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div><small>{new Date(record.occurredAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} · {typeNames[record.type]}</small><strong>{summary(record)}</strong><p>{auditNames[record.deletedBy || 'legacy']}删除 · {record.deletedAt ? new Date(record.deletedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : ''}</p></div><div className="deleted-actions"><button className="btn secondary" onClick={() => onRestore(record)}>恢复</button><button className="btn danger-button" onClick={() => onPurge(record)}>彻底删除</button></div></article>) : <div className="empty-state"><span>○</span><h3>没有已删除记录</h3><p>管理员删除的记录会暂存在这里。</p></div>}</section> : <>
     <section className="calendar-panel"><div className="calendar-nav"><button onClick={() => setSelected(addDays(selected, -7))} aria-label="向前七天">‹</button><strong>{selected.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</strong><button onClick={() => setSelected(addDays(selected, 7))} aria-label="向后七天">›</button></div><div className="week-strip">{days.map(day => <button key={isoDay(day)} aria-pressed={isoDay(day) === isoDay(selected)} className={`${isoDay(day) === isoDay(selected) ? 'selected' : ''} ${isoDay(day) === isoDay(new Date()) ? 'today' : ''}`} onClick={() => setSelected(day)}><span>{day.toLocaleDateString('zh-CN', { weekday: 'short' })}</span><b>{day.getDate()}</b></button>)}</div></section>
     <div className="record-toolbar"><label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">搜索全部记录</span><input aria-label="搜索全部记录" value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索记录" /></label><label className="filter-field"><span className="sr-only">记录类型</span><select aria-label="记录类型" value={typeFilter} onChange={e => setTypeFilter(e.target.value as 'all' | RecordType)}><option value="all">类型</option>{(Object.keys(typeNames) as RecordType[]).map(type => <option key={type} value={type}>{typeNames[type]}</option>)}</select></label><label className="filter-field"><span className="sr-only">录入人</span><select aria-label="录入人" value={actorFilter} onChange={e => setActorFilter(e.target.value as 'all' | FamilyId)}><option value="all">家人</option>{familyMembers.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label></div>
-    <div className="section-title"><h2>{query.trim() ? '全部搜索结果' : selected.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</h2><span>{filtered.length} 条</span></div><Timeline records={filtered} emptyText={query.trim() ? '没有找到匹配记录' : undefined} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} />
+    <div className="section-title"><h2>{query.trim() ? '全部搜索结果' : selected.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</h2><span>{filtered.length} 条</span></div><Timeline records={filtered} careItems={careItems} manager={manager} emptyText={query.trim() ? '没有找到匹配记录' : undefined} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} /></>}
   </div>;
 }
 
@@ -424,7 +432,7 @@ function AiSettingsCard({ capabilities, onChanged }: { capabilities: Capabilitie
     catch (err) { setStatus({ text: err instanceof Error ? err.message : '移除失败', error: true }); }
     finally { setBusy(''); }
   }
-  return <section className="settings-card model-settings"><div className="setting-status"><h2>指令理解模型</h2><span className={capabilities.aiInterpretation ? 'on' : ''}>{capabilities.aiInterpretation ? '已启用' : '未配置'}</span></div>
+  return <section className="settings-card model-settings"><div className="setting-status"><h2>模型配置</h2><span className={capabilities.aiInterpretation ? 'on' : ''}>{capabilities.aiInterpretation ? '已启用' : '未配置'}</span></div>
     <p>语音先转成文字，再由模型理解时间、奶量、用药和排便信息。保存前仍需人工确认。</p>
     <form onSubmit={save}>
       <label>服务商<input value="DeepSeek" readOnly aria-readonly="true" /></label>
@@ -477,7 +485,7 @@ function ServerBackupCard({ onImported }: { onImported(): void | Promise<void> }
     catch (error) { setMessage(error instanceof Error ? error.message : '导入失败，请选择本应用导出的备份文件'); }
     finally { setBusy(''); }
   }
-  return <><section className="settings-card backup-card"><div className="setting-status"><h2>服务器数据备份</h2><span className="on">每 6 小时</span></div>
+  return <><section className="settings-card backup-card"><div className="setting-status"><h2>备份状态与恢复</h2><span className="on">每 6 小时</span></div>
     <p>自动保存完整照护数据，最多保留最近 {status?.retention ?? 28} 份。可选择服务器备份进行完整恢复，操作前会先保存当前数据。</p>
     <div className="backup-summary"><div><span>最近备份</span><b>{formatTime(status?.lastBackupAt ?? null)}</b></div><div><span>下次预计</span><b>{formatTime(status?.nextBackupAt ?? null)}</b></div><div><span>服务器备份</span><b>{status ? `${status.count} 份` : '读取中…'}</b></div><div><span>保存位置</span><b>{status?.directory || '/data/backups'}</b></div></div>
     <div className="backup-actions"><button className="btn primary wide" disabled={Boolean(busy)} onClick={createBackup}>{busy === 'backup' ? '正在备份…' : '立即备份到服务器'}</button><button className="btn secondary wide" disabled={Boolean(busy) || !status?.count} onClick={() => setShowRestore(true)}>从服务器恢复</button><a className="btn secondary" href="/api/export" download>导出备份文件</a><label className={`btn secondary ${busy ? 'disabled' : ''}`}>导入备份文件<input className="sr-only" type="file" accept="application/json" disabled={Boolean(busy)} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; importFile(file); }} /></label></div>
@@ -485,17 +493,60 @@ function ServerBackupCard({ onImported }: { onImported(): void | Promise<void> }
   </section>{showRestore && <BackupRestoreDialog onClose={() => setShowRestore(false)} onRestored={async (nextStatus, nextMessage) => { setStatus(nextStatus); await onImported(); setMessage(nextMessage); }} />}</>;
 }
 
-function SettingsView({ profile, setProfile, capabilities, user, onCapabilitiesChanged, onImported, onLogout }: { profile: Profile; setProfile(value: Profile): void; capabilities: Capabilities; user: SessionUser; onCapabilitiesChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void }) {
-  const [form, setForm] = useState(profile); const [message, setMessage] = useState(''); useEffect(() => setForm(profile), [profile]);
+function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem; nextOrder: number; onClose(): void; onSaved(item: CareItem): void }) {
+  const [name, setName] = useState(item?.name || ''); const [icon, setIcon] = useState<CareItem['icon']>(item?.icon || 'medicine'); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, onClose);
+  async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const sortOrder = item?.sortOrder ?? nextOrder; const saved = item ? await api.updateCareItem(item.id, { name, icon, sortOrder }) : await api.createCareItem({ name, icon, sortOrder }); onSaved(saved); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
+  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor" role="dialog" aria-modal="true" aria-labelledby="care-item-title"><header className="editor-head"><div><p className="kicker">今日用药项目</p><h2 id="care-item-title">{item ? '修改项目' : '新增项目'}</h2></div><button className="close-btn" onClick={onClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>项目名称<input maxLength={12} value={name} onChange={event => setName(event.target.value)} placeholder="例如：抚触" autoFocus required /></label><fieldset><legend>记录图标</legend><div className="choice-group"><button type="button" className={icon === 'medicine' ? 'selected' : ''} onClick={() => setIcon('medicine')}>药瓶</button><button type="button" className={icon === 'massage' ? 'selected' : ''} onClick={() => setIcon('massage')}>推拿</button></div></fieldset>{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose}>取消</button><button className="btn primary" disabled={busy || !name.trim()}>{busy ? '保存中…' : '保存项目'}</button></footer></form></section></div>;
+}
+
+function CareItemsCard({ items, onChanged }: { items: CareItem[]; onChanged(): Promise<void> }) {
+  const [editing, setEditing] = useState<CareItem | 'new' | null>(null); const [busyId, setBusyId] = useState(''); const [message, setMessage] = useState(''); const [ordered, setOrdered] = useState(items); const [draggingId, setDraggingId] = useState('');
+  const orderedRef = useRef(items); const dragRef = useRef<{ id: string; original: CareItem[] } | null>(null);
+  useEffect(() => { if (!draggingId) { setOrdered(items); orderedRef.current = items; } }, [items, draggingId]);
+  async function toggle(item: CareItem) { if (item.active && !window.confirm(`停用“${item.name}”吗？历史记录仍会保留。`)) return; setBusyId(item.id); setMessage(''); try { await api.setCareItemActive(item.id, !item.active); await onChanged(); setMessage(item.active ? '项目已停用' : '项目已启用'); } catch (err) { setMessage(err instanceof Error ? err.message : '操作失败'); } finally { setBusyId(''); } }
+  function reorderLocal(id: string, targetId: string) { const current = orderedRef.current; const from = current.findIndex(item => item.id === id); const to = current.findIndex(item => item.id === targetId); if (from < 0 || to < 0 || from === to) return; const next = [...current]; const [moved] = next.splice(from, 1); next.splice(to, 0, moved); orderedRef.current = next; setOrdered(next); }
+  async function persistOrder(next: CareItem[], previous: CareItem[]) { if (next.map(item => item.id).join() === previous.map(item => item.id).join()) return; setBusyId('order'); setMessage(''); try { await api.reorderCareItems(next.map(item => item.id)); await onChanged(); setMessage('项目顺序已保存'); } catch (err) { orderedRef.current = previous; setOrdered(previous); setMessage(err instanceof Error ? err.message : '顺序保存失败'); } finally { setBusyId(''); } }
+  async function moveByKeyboard(item: CareItem, direction: -1 | 1) { const previous = orderedRef.current; const index = previous.findIndex(entry => entry.id === item.id); const target = previous[index + direction]; if (!target || busyId) return; reorderLocal(item.id, target.id); await persistOrder(orderedRef.current, previous); }
+  function startDrag(event: React.PointerEvent<HTMLButtonElement>, item: CareItem) { if (busyId) return; event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { id: item.id, original: orderedRef.current }; setDraggingId(item.id); }
+  function drag(event: React.PointerEvent<HTMLButtonElement>) { if (!dragRef.current) return; const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-care-item-id]')?.dataset.careItemId; if (target) reorderLocal(dragRef.current.id, target); }
+  function endDrag() { const state = dragRef.current; if (!state) return; dragRef.current = null; setDraggingId(''); void persistOrder(orderedRef.current, state.original); }
+  function cancelDrag() { const state = dragRef.current; if (!state) return; orderedRef.current = state.original; setOrdered(state.original); dragRef.current = null; setDraggingId(''); }
+  return <><section className="settings-card care-items-card"><div className="setting-status"><h2>今日用药项目</h2><span className="on">管理员</span></div><p>拖动手柄调整首页显示顺序。停用项目不影响历史记录。</p><div className="care-item-list">{ordered.map(item => <article data-care-item-id={item.id} className={`${item.active ? '' : 'inactive'} ${draggingId === item.id ? 'dragging' : ''}`} key={item.id}><button type="button" className="care-drag-handle" aria-label={`调整${item.name}的顺序，可拖动或按上下方向键`} aria-keyshortcuts="ArrowUp ArrowDown" onPointerDown={event => startDrag(event, item)} onPointerMove={drag} onPointerUp={endDrag} onPointerCancel={cancelDrag} onKeyDown={event => { if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { event.preventDefault(); void moveByKeyboard(item, event.key === 'ArrowUp' ? -1 : 1); } }}><span aria-hidden="true">⠇⠇</span></button><img src={item.icon === 'massage' ? '/icons/record-massage.png' : '/icons/record-supplement.png'} alt="" /><div><b>{item.name}</b><small>{item.active ? '使用中' : '已停用'}</small></div><button className="btn secondary" onClick={() => setEditing(item)}>修改</button><button className={`btn ${item.active ? 'secondary' : 'primary'}`} disabled={Boolean(busyId)} onClick={() => toggle(item)}>{item.active ? '停用' : '启用'}</button></article>)}</div><button className="btn primary full" disabled={Boolean(busyId)} onClick={() => setEditing('new')}>新增项目</button>{message && <p className={message.includes('失败') || message.includes('变化') ? 'error-text' : 'success-text'} role="status">{message}</p>}</section>{editing && <CareItemEditor item={editing === 'new' ? undefined : editing} nextOrder={Math.max(0, ...items.map(item => item.sortOrder)) + 10} onClose={() => setEditing(null)} onSaved={async () => { await onChanged(); setMessage(editing === 'new' ? '项目已新增' : '项目已修改'); }} />}</>;
+}
+
+function FamilyPermissionsCard() {
+  const [members, setMembers] = useState<FamilyMemberPermission[]>([]); const [busyId, setBusyId] = useState(''); const [message, setMessage] = useState('');
+  useEffect(() => { api.familyMembers().then(setMembers).catch(err => setMessage(err instanceof Error ? err.message : '无法读取家庭成员')); }, []);
+  async function changeRole(member: FamilyMemberPermission, role: 'admin' | 'member') { if (member.role === role || !window.confirm(`将${member.name}设为“${roleNames[role]}”吗？`)) return; setBusyId(member.id); setMessage(''); try { const updated = await api.updateFamilyRole(member.id as Exclude<FamilyId, 'father'>, role); setMembers(items => items.map(item => item.id === updated.id ? updated : item)); setMessage(`${member.name}已设为${roleNames[role]}`); } catch (err) { setMessage(err instanceof Error ? err.message : '权限修改失败'); } finally { setBusyId(''); } }
+  return <section className="settings-card family-permissions-card"><div className="setting-status"><h2>家庭成员权限</h2><span className="on">超管</span></div><p>管理员可管理用药项目和回收站；普通用户可记录和修改照护信息。</p><div className="family-permission-list">{members.map(member => { const visual = familyMembers.find(item => item.id === member.id)!; return <article key={member.id}><img src={visual.icon} alt="" /><div><b>{member.name}</b><small>{member.id === 'father' ? '最高管理权限' : roleNames[member.role]}</small></div>{member.id === 'father' ? <span className="fixed-role">超管·不可修改</span> : <div className="role-switch" role="group" aria-label={`${member.name}的权限`}><button type="button" className={member.role === 'admin' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => changeRole(member, 'admin')}>管理员</button><button type="button" className={member.role === 'member' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => changeRole(member, 'member')}>普通用户</button></div>}</article>; })}</div>{message && <p className={message.includes('失败') || message.includes('无法') ? 'error-text' : 'success-text'} role="status">{message}</p>}</section>;
+}
+
+type SettingsSection = 'root' | 'profile' | 'family' | 'care-items' | 'speech' | 'ai' | 'backup';
+function SettingsEntry({ icon, title, description, status, onClick }: { icon: string; title: string; description: string; status: string; onClick(): void }) {
+  return <button type="button" className="settings-entry" onClick={onClick}><span className="settings-entry-icon" aria-hidden="true">{icon}</span><span><b>{title}</b><small>{description}</small></span><em>{status}</em><i aria-hidden="true">›</i></button>;
+}
+
+function SettingsView({ profile, setProfile, careItems, capabilities, user, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout }: { profile: Profile; setProfile(value: Profile): void; careItems: CareItem[]; capabilities: Capabilities; user: SessionUser; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void }) {
+  const [form, setForm] = useState(profile); const [message, setMessage] = useState(''); const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false); useEffect(() => setForm(profile), [profile]);
+  useEffect(() => { const pop = () => { pushedRef.current = false; setSection('root'); }; window.addEventListener('popstate', pop); return () => { window.removeEventListener('popstate', pop); if (pushedRef.current) window.history.back(); }; }, []);
   async function save(event: React.FormEvent) { event.preventDefault(); try { const next = await api.updateProfile(form); setProfile(next); cacheProfile(next); setMessage('宝宝资料已保存'); } catch (err) { setMessage(err instanceof Error ? err.message : '保存失败'); } }
   const member = familyMembers.find(item => item.id === user.id)!;
-  return <div className="page-stack"><header className="page-head"><h1>设置</h1><p>{user.role === 'admin' ? '管理宝宝资料、语音服务和数据备份。' : '查看当前身份和应用状态。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份</span><h2>{user.name}</h2><p>{user.role === 'admin' ? '管理员' : '普通用户'}</p></div><i>{user.role === 'admin' ? '管理权限' : '记录权限'}</i></section><div className="settings-grid">
-    {user.role === 'admin' && <><section className="settings-card"><h2>宝宝资料</h2><form onSubmit={save}><label>宝宝姓名<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label><label>出生日期<input type="date" max={isoDay(new Date())} value={form.birthDate} onChange={e => setForm({ ...form, birthDate: e.target.value })} /></label><button className="btn primary">保存资料</button></form></section>
-    <section className="settings-card"><div className="setting-status"><h2>语音转成文字</h2><span className={capabilities.aiTranscription ? 'on' : ''}>{capabilities.aiTranscription ? '服务器识别' : '浏览器识别'}</span></div><p>{capabilities.aiTranscription ? '短录音由服务器识别为文字，录音不会写入磁盘。' : '目前使用浏览器自带语音识别；部分微信浏览器可能不支持。'}</p></section>
-    <AiSettingsCard capabilities={capabilities} onChanged={onCapabilitiesChanged} />
-    <ServerBackupCard onImported={onImported} /></>}
-    {user.role === 'member' && <section className="settings-card permission-note"><p className="kicker">普通用户权限</p><h2>可以记录，不能管理</h2><p>你可以查看、添加、修改和删除照护记录，也可以使用语音记录。宝宝资料、AI 服务和数据备份仅爸爸可以操作。</p></section>}
-  </div>{message && <p className="success-text" role="status">{message}</p>}<button className="logout" onClick={onLogout}>退出当前身份</button></div>;
+  function open(next: Exclude<SettingsSection, 'root'>) { window.history.pushState({ babycareSettings: next }, ''); pushedRef.current = true; setSection(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  function back() { if (pushedRef.current) window.history.back(); else setSection('root'); }
+  if (section !== 'root') return <div className="page-stack settings-subpage"><header className="subpage-head"><button type="button" onClick={back} aria-label="返回设置">‹</button><div><p className="kicker">设置</p><h1>{{ profile: '宝宝资料', family: '家庭成员权限', 'care-items': '今日用药项目', speech: '语音转成文字', ai: '指令理解模型', backup: '服务器数据备份' }[section]}</h1></div></header><div className="settings-grid">
+    {section === 'profile' && <section className="settings-card"><h2>基本资料</h2><form onSubmit={save}><label>宝宝姓名<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label><label>出生日期<input type="date" max={isoDay(new Date())} value={form.birthDate} onChange={e => setForm({ ...form, birthDate: e.target.value })} /></label><button className="btn primary">保存资料</button>{message && <p className="success-text" role="status">{message}</p>}</form></section>}
+    {section === 'family' && <FamilyPermissionsCard />}
+    {section === 'care-items' && <CareItemsCard items={careItems} onChanged={onCareItemsChanged} />}
+    {section === 'speech' && <section className="settings-card"><div className="setting-status"><h2>识别方式</h2><span className={capabilities.aiTranscription ? 'on' : ''}>{capabilities.aiTranscription ? '服务器识别' : '浏览器识别'}</span></div><p>{capabilities.aiTranscription ? '短录音由服务器识别为文字，录音不会写入磁盘。' : '目前使用浏览器自带语音识别；部分微信浏览器可能不支持。'}</p></section>}
+    {section === 'ai' && <AiSettingsCard capabilities={capabilities} onChanged={onCapabilitiesChanged} />}
+    {section === 'backup' && <ServerBackupCard onImported={onImported} />}
+  </div></div>;
+  return <div className="page-stack settings-home"><header className="page-head"><h1>设置</h1><p>{user.role === 'superadmin' ? '管理家庭成员、照护项目和服务器。' : user.role === 'admin' ? '管理用药项目和已删除记录。' : '查看当前身份和权限。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份与权限</span><h2>{user.name}</h2><p>{roleNames[user.role]}</p></div><i>{canManage(user) ? '管理权限' : '记录权限'}</i></section>
+    {user.role === 'admin' && <section className="settings-card permission-note"><p className="kicker">管理员权限</p><h2>管理日常照护</h2><p>可管理用药项目和回收站。宝宝资料、家庭权限、AI 服务和备份仅超管可操作。</p></section>}
+    {user.role === 'member' && <section className="settings-card permission-note"><p className="kicker">普通用户权限</p><h2>可以记录和修改</h2><p>可查看、添加和修改照护记录；不能删除记录或查看操作历史。</p></section>}
+    <section className="settings-menu" aria-label="设置项目">{user.role === 'superadmin' && <><SettingsEntry icon="资料" title="宝宝资料" description="姓名与出生日期" status={profile.name} onClick={() => open('profile')} /><SettingsEntry icon="成员" title="家庭成员权限" description="设置管理员与普通用户" status="4 位家人" onClick={() => open('family')} /></>}{canManage(user) && <SettingsEntry icon="用药" title="今日用药项目" description="新增、停用与排序" status={`${careItems.filter(item => item.active).length} 项使用中`} onClick={() => open('care-items')} />}{user.role === 'superadmin' && <><SettingsEntry icon="语音" title="语音转成文字" description="查看当前语音识别方式" status={capabilities.aiTranscription ? '服务器' : '浏览器'} onClick={() => open('speech')} /><SettingsEntry icon="模型" title="指令理解模型" description="DeepSeek 接口与模型配置" status={capabilities.aiInterpretation ? '已启用' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="备份" title="服务器数据备份" description="自动备份、导入与恢复" status="每 6 小时" onClick={() => open('backup')} /></>}</section>
+    <button className="logout" onClick={onLogout}>退出当前身份</button></div>;
 }
 
 export default function App() {
@@ -503,6 +554,7 @@ export default function App() {
   const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01' });
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [records, setRecords] = useState<CareRecord[]>([]);
+  const [deletedRecords, setDeletedRecords] = useState<CareRecord[]>([]); const [careItems, setCareItems] = useState<CareItem[]>([]);
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date());
   const [editor, setEditor] = useState<DraftRecord | null>(null); const [voiceReview, setVoiceReview] = useState<{ drafts: DraftRecord[]; transcript: string } | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
   const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(false); const [pendingCount, setPendingCount] = useState(0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
@@ -529,12 +581,16 @@ export default function App() {
     catch { setCapabilities(emptyCapabilities); }
   }, []);
 
+  const loadCareItems = useCallback(async () => { try { setCareItems(await api.careItems()); } catch { /* keep current items while offline */ } }, []);
+  const loadDeletedRecords = useCallback(async () => { if (!canManage(currentUser)) return; try { setDeletedRecords(await api.deletedRecords()); } catch { setDeletedRecords([]); } }, [currentUser]);
+  const refreshSession = useCallback(async () => { try { const next = await api.session(); if (!next.authenticated || !next.user) return; setCurrentUser(current => { if (current?.id === next.user!.id && current.role === next.user!.role) return current; rememberUser(next.user!); return next.user; }); } catch { /* keep current session while offline */ } }, []);
+
   const refreshAll = useCallback(async () => {
     if (refreshingRef.current) return;
     refreshingRef.current = true; setRefreshing(true);
-    try { await Promise.all([loadRecords(), loadProfile(), loadCapabilities()]); }
+    try { await Promise.all([refreshSession(), loadRecords(), loadProfile(), loadCapabilities(), loadCareItems(), loadDeletedRecords()]); }
     finally { refreshingRef.current = false; setRefreshing(false); }
-  }, [loadCapabilities, loadProfile, loadRecords]);
+  }, [loadCapabilities, loadCareItems, loadDeletedRecords, loadProfile, loadRecords, refreshSession]);
 
   const syncOutbox = useCallback(async () => {
     if (!currentUser) return;
@@ -562,9 +618,9 @@ export default function App() {
   useEffect(() => {
     if (!authenticated || !currentUser) return;
     setPendingCount(getOutbox(currentUser.id).length);
-    loadProfile(); loadCapabilities();
+    loadProfile(); loadCapabilities(); loadCareItems();
     loadRecords().then(() => { if (navigator.onLine) syncOutbox(); });
-  }, [authenticated, currentUser, loadCapabilities, loadProfile, loadRecords, syncOutbox]);
+  }, [authenticated, currentUser, loadCapabilities, loadCareItems, loadProfile, loadRecords, syncOutbox]);
 
   useEffect(() => {
     const onOnline = () => { setOnline(true); syncOutbox(); };
@@ -628,22 +684,20 @@ export default function App() {
     }
   }
 
-  async function undoDelete(record: CareRecord, wasPendingCreate: boolean) {
-    if (!currentUser) return;
-    try { if (wasPendingCreate) { queueAction(currentUser.id, { action: 'create', payload: record }); } else if (online) { await api.restoreRecord(record.id); } else { queueAction(currentUser.id, { action: 'restore', recordId: record.id }); } updateLocalRecords(currentUser.id, items => [record, ...items.filter(item => item.id !== record.id)]); setPendingCount(getOutbox(currentUser.id).length); setToast({ message: '记录已恢复' }); }
+  async function undoDelete(record: CareRecord) {
+    if (!currentUser || !canManage(currentUser)) return;
+    try { await api.restoreRecord(record.id); await Promise.all([loadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); }
     catch (error) { setToast({ message: error instanceof Error ? error.message : '恢复失败' }); }
   }
 
   async function remove(record: CareRecord) {
-    if (!currentUser || !window.confirm(`删除“${summary(record)}”吗？删除后可以撤销。`)) return;
-    const pendingCreate = getOutbox(currentUser.id).some(item => item.action === 'create' && item.payload?.id === record.id);
-    try { await api.deleteRecord(record.id); updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== record.id)); }
-    catch (error) {
-      if (error instanceof ApiError) { setToast({ message: error.message }); return; }
-      queueAction(currentUser.id, { action: 'delete', recordId: record.id }); updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== record.id)); setOnline(false);
-    }
-    setPendingCount(getOutbox(currentUser.id).length); setToast({ message: '记录已删除', actionLabel: '撤销', onAction: () => undoDelete(record, pendingCreate) });
+    if (!currentUser || !canManage(currentUser) || !window.confirm(`删除“${summary(record)}”吗？记录会移到已删除列表。`)) return;
+    try { await api.deleteRecord(record.id); updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== record.id)); await loadDeletedRecords(); setToast({ message: '记录已移到已删除', actionLabel: '撤销', onAction: () => undoDelete(record) }); }
+    catch (error) { setToast({ message: error instanceof Error ? error.message : '删除失败，请联网后重试' }); }
   }
+
+  async function restoreDeleted(record: CareRecord) { try { await api.restoreRecord(record.id); await Promise.all([loadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '恢复失败' }); } }
+  async function purgeDeleted(record: CareRecord) { if (!window.confirm(`彻底删除“${summary(record)}”吗？\n\n删除后无法恢复。`)) return; try { await api.purgeRecord(record.id); await loadDeletedRecords(); setToast({ message: '记录已彻底删除' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '彻底删除失败' }); } }
 
   const todayRecords = useMemo(() => records.filter(r => isoDay(new Date(r.occurredAt)) === isoDay(new Date())), [records]);
   const pull = usePullToRefresh(Boolean(authenticated && currentUser && (tab === 'today' || tab === 'history') && !editor && !voiceReview && !auditRecord), refreshAll);
@@ -654,11 +708,11 @@ export default function App() {
   const connectionLabel = offlineSession ? '离线身份' : !online ? '离线' : pendingCount ? `待同步 ${pendingCount} 条` : refreshing ? '正在更新' : '已连接';
   const pullLabel = pull.phase === 'refreshing' ? '正在更新' : pull.phase === 'done' ? '已更新' : pull.phase === 'ready' ? '松开刷新' : '继续下拉刷新';
   const pullOffset = pull.phase === 'refreshing' || pull.phase === 'done' ? 8 : Math.min(8, pull.distance - 44);
-  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}<div className="top-status"><div className="user-pill"><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{currentUser.role === 'admin' ? '管理员' : '普通用户'}</span></div><div className={`network-pill ${online ? refreshing ? 'syncing' : '' : 'offline'}`}>{connectionLabel}</div></div>
+  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}<div className="top-status"><div className="user-pill"><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></div><div className={`network-pill ${online ? refreshing ? 'syncing' : '' : 'offline'}`}>{connectionLabel}</div></div>
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}>×</button></div>}
-    <main className="main-content">{tab === 'today' && <TodayView profile={profile} records={todayRecords} capabilities={capabilities} onAdd={type => setEditor(blankDraft(type))} onVoice={(drafts, transcript) => setVoiceReview({ drafts: drafts.map(draft => ({ ...draft, id: createUuid() })), transcript })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'history' && <HistoryView records={records} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'trends' && <TrendsView records={records} />}{tab === 'settings' && <SettingsView profile={profile} setProfile={setProfile} capabilities={capabilities} user={currentUser} onCapabilitiesChanged={loadCapabilities} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); }} />}</main>
+    <main className="main-content">{tab === 'today' && <TodayView profile={profile} records={todayRecords} careItems={careItems} capabilities={capabilities} manager={canManage(currentUser)} onAdd={type => setEditor(blankDraft(type))} onVoice={(drafts, transcript) => setVoiceReview({ drafts: drafts.map(draft => ({ ...draft, id: createUuid() })), transcript })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} />}{tab === 'trends' && <TrendsView records={records} />}{tab === 'settings' && <SettingsView profile={profile} setProfile={setProfile} careItems={careItems} capabilities={capabilities} user={currentUser} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={loadCareItems} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); }} />}</main>
     <button className="floating-add" onClick={() => setEditor(blankDraft())} aria-label="添加记录"><span>＋</span><b>记录</b></button>
     <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录'], ['trends', '/icons/nav-trends.png', '趋势'], ['settings', '/icons/nav-settings.png', '设置']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img src={icon} alt="" /><b>{label}</b></button>)}</nav>
-    {editor && <RecordEditor initial={editor} onClose={() => setEditor(null)} onSave={saveOne} />}{voiceReview && <VoiceReview initial={voiceReview.drafts} transcript={voiceReview.transcript} onClose={() => setVoiceReview(null)} onSave={saveMany} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
+    {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{voiceReview && <VoiceReview initial={voiceReview.drafts} transcript={voiceReview.transcript} careItems={careItems} onClose={() => setVoiceReview(null)} onSave={saveMany} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
   </div>;
 }

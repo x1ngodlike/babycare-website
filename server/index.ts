@@ -7,12 +7,12 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import { interpretTranscript, testModelConnection } from './ai.js';
-import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth } from './auth.js';
+import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import type { FamilyId } from './auth.js';
 import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
-import { allAudit, allRecords, DuplicateSupplementError, getAiSettings, getProfile, importBackup, listAudit, listRecords, RecordNotFoundError, removeRecord, replaceBackup, restoreRecord, saveAiSettings, saveProfile, saveRecord } from './db.js';
+import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateSupplementError, FamilyPermissionError, getAiSettings, getProfile, importBackup, listAudit, listCareItems, listDeletedRecords, listFamilyMembers, listRecords, purgeRecord, RecordNotFoundError, removeRecord, reorderCareItems, replaceBackup, restoreRecord, saveAiSettings, saveCareItem, saveProfile, saveRecord, setCareItemActive, setFamilyRole } from './db.js';
 import { createChangeHub } from './events.js';
-import type { AuditEntry, CareRecord } from './types.js';
+import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission } from './types.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -62,7 +62,7 @@ const recordSchema = z.object({
   occurredAt: z.string().datetime({ offset: true }),
   breastMilkMl: z.number().int().min(0).max(500).nullable().optional(),
   formulaMl: z.number().int().min(0).max(500).nullable().optional(),
-  supplement: z.enum(['AD', 'VD', '益生菌']).nullable().optional(),
+  supplement: z.string().trim().min(1).max(30).nullable().optional(),
   bowelSize: z.enum(['大', '中', '小']).nullable().optional(),
   note: z.string().trim().max(200).nullable().optional(),
   createdAt: z.string().datetime({ offset: true }).optional(),
@@ -85,11 +85,25 @@ const auditEntrySchema = z.object({
   occurredAt: z.string().datetime({ offset: true }), snapshot: z.record(z.string(), z.unknown()).nullable()
 });
 
+const careItemSchema = z.object({
+  id: z.string().min(1).max(50), name: z.string().trim().min(1, '请填写项目名称').max(12, '项目名称不能超过 12 个字'),
+  icon: z.enum(['medicine', 'massage']), sortOrder: z.number().int().min(0).max(999), active: z.boolean(),
+  createdAt: z.string().datetime({ offset: true }), updatedAt: z.string().datetime({ offset: true })
+});
+
+const familyMemberSchema = z.object({
+  id: z.enum(['father', 'mother', 'grandfather', 'grandmother']),
+  name: z.string().min(1).max(10),
+  role: z.enum(['superadmin', 'admin', 'member'])
+});
+
 const backupPayloadSchema = z.object({
   version: z.number().int().optional(),
   profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date() }).optional(),
   records: z.array(recordSchema).max(10000),
-  audits: z.array(auditEntrySchema).max(50000).optional()
+  audits: z.array(auditEntrySchema).max(50000).optional(),
+  careItems: z.array(careItemSchema).max(100).optional(),
+  familyMembers: z.array(familyMemberSchema).max(4).optional()
 });
 
 const aiSettingsSchema = z.object({
@@ -146,7 +160,7 @@ function normalizeRecord(input: z.infer<typeof recordSchema>, actor: FamilyId, p
 }
 
 function exportPayload() {
-  return { version: 2, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit() };
+  return { version: 4, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers() };
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -154,6 +168,7 @@ app.get('/api/session', (req, res) => {
   const user = getSessionUser(req);
   res.json({ authenticated: Boolean(user), user });
 });
+app.get('/api/login-options', (_req, res) => res.json(listFamilyMembers()));
 
 app.post('/api/login', (req, res) => {
   const identity = z.enum(['father', 'mother', 'grandfather', 'grandmother']).safeParse(req.body?.identity);
@@ -190,16 +205,28 @@ app.get('/api/capabilities', (_req, res) => res.json({
   interpretationModel: getAiSettings().apiKey ? getAiSettings().model : null
 }));
 
-app.get('/api/ai/settings', requireAdmin, (_req, res) => res.json(publicAiSettings()));
+app.get('/api/family-members', requireSuperAdmin, (_req, res) => res.json(listFamilyMembers()));
 
-app.put('/api/ai/settings', requireAdmin, (req, res) => {
+app.put('/api/family-members/:id/role', requireSuperAdmin, (req, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const parsed = z.object({ role: z.enum(['admin', 'member']) }).safeParse(req.body);
+  const parsedId = z.enum(['mother', 'grandfather', 'grandmother']).safeParse(id);
+  if (!parsed.success || !parsedId.success) return res.status(400).json({ error: '家庭成员权限格式不正确' });
+  const member = setFamilyRole(parsedId.data, parsed.data.role);
+  changeHub.broadcast('all');
+  return res.json(member);
+});
+
+app.get('/api/ai/settings', requireSuperAdmin, (_req, res) => res.json(publicAiSettings()));
+
+app.put('/api/ai/settings', requireSuperAdmin, (req, res) => {
   const parsed = aiSettingsSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '模型配置格式不正确' });
   saveAiSettings(parsed.data);
   return res.json(publicAiSettings());
 });
 
-app.post('/api/ai/settings/test', requireAdmin, async (req, res) => {
+app.post('/api/ai/settings/test', requireSuperAdmin, async (req, res) => {
   const parsed = aiSettingsSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '模型配置格式不正确' });
   const settings = modelSettings(parsed.data);
@@ -218,7 +245,7 @@ app.post('/api/ai/interpret', async (req, res) => {
   const settings = modelSettings();
   if (!settings.apiKey) return res.status(503).json({ error: '服务器尚未配置指令理解模型' });
   try {
-    const records = await interpretTranscript(parsed.data.transcript, settings);
+    const records = await interpretTranscript(parsed.data.transcript, settings, new Date(), listCareItems().map(item => item.name));
     return res.json({ records, model: settings.model });
   } catch (error) {
     return res.status(502).json({ error: modelError(error) });
@@ -247,7 +274,7 @@ app.post('/api/voice/transcribe', audioUpload.single('audio'), async (req, res) 
   return res.json({ transcript: body.text, model: transcribeModel });
 });
 
-app.put('/api/profile', requireAdmin, (req, res) => {
+app.put('/api/profile', requireSuperAdmin, (req, res) => {
   const parsed = z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: '宝宝资料格式不正确' });
   if (new Date(`${parsed.data.birthDate}T00:00:00+08:00`) > new Date()) return res.status(400).json({ error: '出生日期不能晚于今天' });
@@ -260,6 +287,45 @@ app.get('/api/records', (req, res) => {
   const parsed = z.object({ from: z.string().datetime({ offset: true }), to: z.string().datetime({ offset: true }) }).safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: '日期范围格式不正确' });
   return res.json(listRecords(parsed.data.from, parsed.data.to));
+});
+
+app.get('/api/care-items', (req, res) => {
+  const role = getSessionUser(req)!.role;
+  return res.json(listCareItems(role === 'superadmin' || role === 'admin'));
+});
+
+app.post('/api/care-items', requireAdmin, (req, res) => {
+  const parsed = z.object({ name: z.string().trim().min(1).max(12), icon: z.enum(['medicine', 'massage']).default('medicine'), sortOrder: z.number().int().min(0).max(999) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: '照护项目格式不正确' });
+  const item = saveCareItem({ id: randomUUID(), ...parsed.data });
+  changeHub.broadcast('all');
+  return res.status(201).json(item);
+});
+
+app.put('/api/care-items/order', requireAdmin, (req, res) => {
+  const parsed = z.object({ ids: z.array(z.string().min(1).max(50)).min(1).max(100).refine(ids => new Set(ids).size === ids.length, '项目顺序不能重复') }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '项目顺序格式不正确' });
+  const items = reorderCareItems(parsed.data.ids);
+  changeHub.broadcast('all');
+  return res.json(items);
+});
+
+app.put('/api/care-items/:id', requireAdmin, (req, res) => {
+  const parsed = z.object({ name: z.string().trim().min(1).max(12), icon: z.enum(['medicine', 'massage']), sortOrder: z.number().int().min(0).max(999) }).safeParse(req.body);
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!parsed.success || !id) return res.status(400).json({ error: '照护项目格式不正确' });
+  const item = saveCareItem({ id, ...parsed.data });
+  changeHub.broadcast('all');
+  return res.json(item);
+});
+
+app.patch('/api/care-items/:id/active', requireAdmin, (req, res) => {
+  const parsed = z.object({ active: z.boolean() }).safeParse(req.body);
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!parsed.success || !id) return res.status(400).json({ error: '照护项目状态不正确' });
+  const item = setCareItemActive(id, parsed.data.active);
+  changeHub.broadcast('all');
+  return res.json(item);
 });
 
 app.post('/api/records', (req, res) => {
@@ -280,7 +346,9 @@ app.put('/api/records/:id', (req, res) => {
   return res.json(record);
 });
 
-app.delete('/api/records/:id', (req, res) => {
+app.get('/api/records/deleted', requireAdmin, (_req, res) => res.json(listDeletedRecords()));
+
+app.delete('/api/records/:id', requireAdmin, (req, res) => {
   const parsed = z.string().uuid().safeParse(req.params.id);
   if (!parsed.success) return res.status(400).json({ error: '记录编号不正确' });
   const record = removeRecord(parsed.data, getSessionUser(req)!.id);
@@ -288,7 +356,7 @@ app.delete('/api/records/:id', (req, res) => {
   return res.json({ deleted: Boolean(record), record });
 });
 
-app.post('/api/records/:id/restore', (req, res) => {
+app.post('/api/records/:id/restore', requireAdmin, (req, res) => {
   const parsed = z.string().uuid().safeParse(req.params.id);
   if (!parsed.success) return res.status(400).json({ error: '记录编号不正确' });
   const record = restoreRecord(parsed.data, getSessionUser(req)!.id);
@@ -296,44 +364,53 @@ app.post('/api/records/:id/restore', (req, res) => {
   return res.json(record);
 });
 
-app.get('/api/records/:id/audit', (req, res) => {
+app.delete('/api/records/:id/permanent', requireAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '记录编号不正确' });
+  const deleted = purgeRecord(parsed.data);
+  if (!deleted) return res.status(404).json({ error: '已删除记录不存在' });
+  changeHub.broadcast('records');
+  return res.json({ deleted: true });
+});
+
+app.get('/api/records/:id/audit', requireAdmin, (req, res) => {
   const parsed = z.string().uuid().safeParse(req.params.id);
   if (!parsed.success) return res.status(400).json({ error: '记录编号不正确' });
   return res.json(listAudit(parsed.data));
 });
 
-app.get('/api/export', requireAdmin, (_req, res) => {
+app.get('/api/export', requireSuperAdmin, (_req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="babycare-backup-${new Date().toISOString().slice(0, 10)}.json"`);
   res.json(exportPayload());
 });
 
-app.get('/api/backups/status', requireAdmin, (_req, res) => res.json(serverBackupStatus(backupDirectory)));
-app.get('/api/backups', requireAdmin, (_req, res) => res.json(listServerBackups(backupDirectory)));
+app.get('/api/backups/status', requireSuperAdmin, (_req, res) => res.json(serverBackupStatus(backupDirectory)));
+app.get('/api/backups', requireSuperAdmin, (_req, res) => res.json(listServerBackups(backupDirectory)));
 
-app.post('/api/backups', requireAdmin, (_req, res) => {
+app.post('/api/backups', requireSuperAdmin, (_req, res) => {
   const result = writeServerBackup(exportPayload(), { directory: backupDirectory });
   res.status(201).json(result);
 });
 
-app.post('/api/backups/:name/restore', requireAdmin, (req, res) => {
+app.post('/api/backups/:name/restore', requireSuperAdmin, (req, res) => {
   const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
   const parsed = backupPayloadSchema.safeParse(readServerBackup(name, backupDirectory));
   if (!parsed.success || !parsed.data.profile) return res.status(400).json({ error: '服务器备份内容不完整，无法恢复' });
   writeServerBackup(exportPayload(), { directory: backupDirectory });
   const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
-  const result = replaceBackup({ profile: parsed.data.profile, records, audits });
+  const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined });
   changeHub.broadcast('all');
   res.json({ ...result, restoredFrom: name, status: serverBackupStatus(backupDirectory) });
 });
 
-app.post('/api/import', requireAdmin, (req, res) => {
+app.post('/api/import', requireSuperAdmin, (req, res) => {
   const parsed = backupPayloadSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: '导入文件格式不正确' });
   writeServerBackup(exportPayload(), { directory: backupDirectory });
   const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
-  const result = importBackup({ profile: parsed.data.profile, records, audits });
+  const result = importBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined });
   changeHub.broadcast('all');
   res.json(result);
 });
@@ -347,6 +424,10 @@ if (production) {
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (error instanceof DuplicateSupplementError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_SUPPLEMENT', existing: error.existing });
+  if (error instanceof CareItemConflictError) return res.status(409).json({ error: error.message, code: 'CARE_ITEM_CONFLICT' });
+  if (error instanceof CareItemInactiveError) return res.status(409).json({ error: error.message, code: 'CARE_ITEM_INACTIVE' });
+  if (error instanceof CareItemOrderError) return res.status(409).json({ error: error.message, code: 'CARE_ITEM_ORDER_CHANGED' });
+  if (error instanceof FamilyPermissionError) return res.status(400).json({ error: error.message, code: 'FAMILY_PERMISSION_ERROR' });
   if (error instanceof RecordNotFoundError) return res.status(404).json({ error: error.message });
   if (error instanceof InvalidBackupNameError || error instanceof SyntaxError) return res.status(400).json({ error: '服务器备份文件不正确' });
   if (error instanceof BackupFileNotFoundError) return res.status(404).json({ error: error.message });

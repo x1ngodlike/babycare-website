@@ -16,6 +16,7 @@ describe('voice parser', () => {
   });
   it('parses supplements and bowel', () => {
     expect(parseVoice('十一点AD吃了')?.supplement).toBe('AD');
+    expect(parseVoice('下午两点做了推拿')?.supplement).toBe('推拿');
     expect(parseVoice('下午三点排便，中')?.bowelSize).toBe('中');
   });
   it('parses colloquial formula amount', () => {
