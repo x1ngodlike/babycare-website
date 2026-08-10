@@ -645,7 +645,7 @@ export default function App() {
         break;
       }
     }
-    if (queue.length && !remaining.length) { setToast({ message: discarded ? `${discarded} 条离线操作因冲突未同步` : '离线记录已同步' }); await loadRecords(); }
+    if (queue.length && !remaining.length) { setToast({ message: discarded ? `${discarded} 条离线操作因冲突未同步` : '离线记录已同步' }); await Promise.all([loadRecords(), loadDeletedRecords()]); }
   }, [currentUser, loadRecords]);
 
   useEffect(() => {
@@ -724,17 +724,33 @@ export default function App() {
 
   async function undoDelete(record: CareRecord) {
     if (!currentUser || !canManage(currentUser)) return;
-    try { await api.restoreRecord(record.id); await Promise.all([loadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); }
-    catch (error) { setToast({ message: error instanceof Error ? error.message : '恢复失败' }); }
+    await restoreDeleted(record);
   }
 
   async function remove(record: CareRecord) {
     if (!currentUser || !canManage(currentUser) || !window.confirm(`删除“${summary(record)}”吗？记录会移到已删除列表。`)) return;
     try { await api.deleteRecord(record.id); updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== record.id)); await loadDeletedRecords(); setToast({ message: '记录已移到已删除', actionLabel: '撤销', onAction: () => undoDelete(record) }); }
-    catch (error) { setToast({ message: error instanceof Error ? error.message : '删除失败，请联网后重试' }); }
+    catch (error) {
+      if (error instanceof ApiError) { setToast({ message: error.message }); return; }
+      queueAction(currentUser.id, { action: 'delete', recordId: record.id });
+      updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== record.id));
+      setPendingCount(getOutbox(currentUser.id).length); setOnline(false);
+      setToast({ message: '删除已暂存，联网后自动同步', actionLabel: '撤销', onAction: () => undoDelete(record) });
+    }
   }
 
-  async function restoreDeleted(record: CareRecord) { try { await api.restoreRecord(record.id); await Promise.all([loadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '恢复失败' }); } }
+  async function restoreDeleted(record: CareRecord) {
+    if (!currentUser) return;
+    try { await api.restoreRecord(record.id); await Promise.all([loadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); }
+    catch (error) {
+      if (error instanceof ApiError) { setToast({ message: error.message }); return; }
+      queueAction(currentUser.id, { action: 'restore', recordId: record.id });
+      updateLocalRecords(currentUser.id, items => items.some(item => item.id === record.id) ? items : [record, ...items]);
+      setDeletedRecords(items => items.filter(item => item.id !== record.id));
+      setPendingCount(getOutbox(currentUser.id).length); setOnline(false);
+      setToast({ message: '恢复已暂存，联网后自动同步' });
+    }
+  }
   async function purgeDeleted(record: CareRecord) { if (!window.confirm(`彻底删除“${summary(record)}”吗？\n\n删除后无法恢复。`)) return; try { await api.purgeRecord(record.id); await loadDeletedRecords(); setToast({ message: '记录已彻底删除' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '彻底删除失败' }); } }
 
   async function saveGrowth(value: DraftGrowthRecord) {
