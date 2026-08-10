@@ -10,9 +10,9 @@ import { interpretTranscript, testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import type { FamilyId } from './auth.js';
 import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
-import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateSupplementError, FamilyPermissionError, getAiSettings, getProfile, importBackup, listAudit, listCareItems, listDeletedRecords, listFamilyMembers, listRecords, purgeRecord, RecordNotFoundError, removeRecord, reorderCareItems, replaceBackup, restoreRecord, saveAiSettings, saveCareItem, saveProfile, saveRecord, setCareItemActive, setFamilyRole } from './db.js';
+import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateGrowthWeekError, DuplicateSupplementError, FamilyPermissionError, getAiSettings, getProfile, importBackup, listAudit, listCareItems, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, reorderCareItems, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, setCareItemActive, setFamilyRole } from './db.js';
 import { createChangeHub } from './events.js';
-import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission } from './types.js';
+import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission, GrowthRecord } from './types.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -97,13 +97,27 @@ const familyMemberSchema = z.object({
   role: z.enum(['superadmin', 'admin', 'member'])
 });
 
+const growthRecordSchema = z.object({
+  id: z.string().uuid().optional(),
+  measuredOn: z.string().date(),
+  heightCm: z.number().min(20).max(150),
+  weightKg: z.number().min(0.5).max(50),
+  createdAt: z.string().datetime({ offset: true }).optional(),
+  updatedAt: z.string().datetime({ offset: true }).optional(),
+  createdBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).optional(),
+  updatedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).optional(),
+  deletedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  deletedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).nullable().optional()
+});
+
 const backupPayloadSchema = z.object({
   version: z.number().int().optional(),
   profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date() }).optional(),
   records: z.array(recordSchema).max(10000),
   audits: z.array(auditEntrySchema).max(50000).optional(),
   careItems: z.array(careItemSchema).max(100).optional(),
-  familyMembers: z.array(familyMemberSchema).max(4).optional()
+  familyMembers: z.array(familyMemberSchema).max(4).optional(),
+  growthRecords: z.array(growthRecordSchema).max(1000).optional()
 });
 
 const aiSettingsSchema = z.object({
@@ -159,8 +173,21 @@ function normalizeRecord(input: z.infer<typeof recordSchema>, actor: FamilyId, p
   };
 }
 
+function normalizeGrowthRecord(input: z.infer<typeof growthRecordSchema>, actor: FamilyId, preserveAudit = false): GrowthRecord {
+  const now = new Date().toISOString();
+  return {
+    id: input.id || randomUUID(), measuredOn: input.measuredOn,
+    heightCm: Math.round(input.heightCm * 10) / 10, weightKg: Math.round(input.weightKg * 100) / 100,
+    createdAt: input.createdAt || now, updatedAt: preserveAudit && input.updatedAt ? input.updatedAt : now,
+    createdBy: preserveAudit ? input.createdBy || 'legacy' : actor,
+    updatedBy: preserveAudit ? input.updatedBy || input.createdBy || 'legacy' : actor,
+    deletedAt: preserveAudit ? input.deletedAt || null : null,
+    deletedBy: preserveAudit ? input.deletedBy || null : null
+  };
+}
+
 function exportPayload() {
-  return { version: 4, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers() };
+  return { version: 5, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true) };
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -283,6 +310,62 @@ app.put('/api/profile', requireSuperAdmin, (req, res) => {
   return res.json(profile);
 });
 
+app.get('/api/growth-records', (_req, res) => res.json(listGrowthRecords()));
+
+app.get('/api/growth-records/deleted', requireAdmin, (_req, res) => res.json(listGrowthRecords(true).filter(record => record.deletedAt)));
+
+function validateGrowthDate(measuredOn: string) {
+  const profile = getProfile();
+  if (measuredOn < profile.birthDate) return '测量日期不能早于出生日期';
+  if (measuredOn > new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })) return '测量日期不能晚于今天';
+  return '';
+}
+
+app.post('/api/growth-records', (req, res) => {
+  const parsed = growthRecordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '成长记录格式不正确' });
+  const dateError = validateGrowthDate(parsed.data.measuredOn);
+  if (dateError) return res.status(400).json({ error: dateError });
+  const record = saveGrowthRecord(normalizeGrowthRecord(parsed.data, getSessionUser(req)!.id));
+  changeHub.broadcast('all');
+  return res.status(201).json(record);
+});
+
+app.put('/api/growth-records/:id', (req, res) => {
+  const parsed = growthRecordSchema.safeParse({ ...req.body, id: req.params.id });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '成长记录格式不正确' });
+  const dateError = validateGrowthDate(parsed.data.measuredOn);
+  if (dateError) return res.status(400).json({ error: dateError });
+  const record = saveGrowthRecord(normalizeGrowthRecord(parsed.data, getSessionUser(req)!.id));
+  changeHub.broadcast('all');
+  return res.json(record);
+});
+
+app.delete('/api/growth-records/:id', requireAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '成长记录编号不正确' });
+  const record = removeGrowthRecord(parsed.data, getSessionUser(req)!.id);
+  if (!record) return res.status(404).json({ error: '成长记录不存在' });
+  changeHub.broadcast('all');
+  return res.json({ deleted: true, record });
+});
+
+app.post('/api/growth-records/:id/restore', requireAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '成长记录编号不正确' });
+  const record = restoreGrowthRecord(parsed.data, getSessionUser(req)!.id);
+  changeHub.broadcast('all');
+  return res.json(record);
+});
+
+app.delete('/api/growth-records/:id/permanent', requireAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '成长记录编号不正确' });
+  if (!purgeGrowthRecord(parsed.data)) return res.status(404).json({ error: '已删除的成长记录不存在' });
+  changeHub.broadcast('all');
+  return res.json({ deleted: true });
+});
+
 app.get('/api/records', (req, res) => {
   const parsed = z.object({ from: z.string().datetime({ offset: true }), to: z.string().datetime({ offset: true }) }).safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: '日期范围格式不正确' });
@@ -399,7 +482,8 @@ app.post('/api/backups/:name/restore', requireSuperAdmin, (req, res) => {
   writeServerBackup(exportPayload(), { directory: backupDirectory });
   const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
-  const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined });
+  const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
+  const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords });
   changeHub.broadcast('all');
   res.json({ ...result, restoredFrom: name, status: serverBackupStatus(backupDirectory) });
 });
@@ -410,7 +494,8 @@ app.post('/api/import', requireSuperAdmin, (req, res) => {
   writeServerBackup(exportPayload(), { directory: backupDirectory });
   const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
-  const result = importBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined });
+  const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
+  const result = importBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords });
   changeHub.broadcast('all');
   res.json(result);
 });
@@ -423,6 +508,7 @@ if (production) {
 }
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (error instanceof DuplicateGrowthWeekError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_GROWTH_WEEK', existing: error.existing });
   if (error instanceof DuplicateSupplementError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_SUPPLEMENT', existing: error.existing });
   if (error instanceof CareItemConflictError) return res.status(409).json({ error: error.message, code: 'CARE_ITEM_CONFLICT' });
   if (error instanceof CareItemInactiveError) return res.status(409).json({ error: error.message, code: 'CARE_ITEM_INACTIVE' });

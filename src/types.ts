@@ -7,6 +7,8 @@ export type AuditIdentity = FamilyId | 'legacy';
 export type AuditAction = 'create' | 'update' | 'delete' | 'restore' | 'import';
 export interface SessionUser { id: FamilyId; name: string; role: UserRole }
 export interface FamilyMemberPermission { id: FamilyId; name: string; role: UserRole }
+export interface GrowthRecord { id: string; measuredOn: string; heightCm: number; weightKg: number; createdAt: string; updatedAt: string; createdBy: AuditIdentity; updatedBy: AuditIdentity; deletedAt: string | null; deletedBy: AuditIdentity | null }
+export interface DraftGrowthRecord { id?: string; measuredOn: string; heightCm: number; weightKg: number }
 export interface Capabilities {
   aiTranscription: boolean;
   transcribeModel: string | null;

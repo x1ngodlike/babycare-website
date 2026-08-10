@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AuditEntry, CareRecord } from './types.js';
+import type { AuditEntry, CareRecord, GrowthRecord } from './types.js';
 
 const directory = mkdtempSync(join(tmpdir(), 'baby-care-db-test-'));
 process.env.DATABASE_PATH = join(directory, 'test.db');
@@ -17,6 +17,11 @@ function record(overrides: Partial<CareRecord> = {}): CareRecord {
     createdAt: now, updatedAt: now, createdBy: 'father', updatedBy: 'father',
     deletedAt: null, deletedBy: null, ...overrides
   };
+}
+
+function growth(overrides: Partial<GrowthRecord> = {}): GrowthRecord {
+  const now = '2026-08-10T08:00:00.000Z';
+  return { id: crypto.randomUUID(), measuredOn: '2026-08-10', heightCm: 62.5, weightKg: 6.35, createdAt: now, updatedAt: now, createdBy: 'father', updatedBy: 'father', deletedAt: null, deletedBy: null, ...overrides };
 }
 
 beforeAll(() => expect(db.getProfile()).toMatchObject({ name: '示例宝宝' }));
@@ -86,6 +91,19 @@ describe('record reliability', () => {
     expect(db.listAudit(item.id)).toEqual([]);
   });
 
+  it('keeps one active growth record per Monday-to-Sunday week and supports recovery', () => {
+    const monday = growth({ id: '99999999-9999-4999-8999-999999999991', measuredOn: '2026-08-10' });
+    expect(db.saveGrowthRecord(monday)).toMatchObject({ heightCm: 62.5, weightKg: 6.35 });
+    expect(() => db.saveGrowthRecord(growth({ id: '99999999-9999-4999-8999-999999999992', measuredOn: '2026-08-16' }))).toThrow(db.DuplicateGrowthWeekError);
+    const nextWeek = growth({ id: '99999999-9999-4999-8999-999999999993', measuredOn: '2026-08-17', heightCm: 63.1 });
+    db.saveGrowthRecord(nextWeek);
+    expect(db.listGrowthRecords()).toHaveLength(2);
+    expect(db.removeGrowthRecord(monday.id, 'mother')?.deletedBy).toBe('mother');
+    expect(db.restoreGrowthRecord(monday.id, 'father').deletedAt).toBeNull();
+    db.removeGrowthRecord(monday.id, 'father');
+    expect(db.purgeGrowthRecord(monday.id)).toBe(true);
+  });
+
   it('restores profile and records in one backup import', () => {
     const feeding = record({ id: '44444444-4444-4444-8444-444444444444', type: 'feeding', supplement: null, breastMilkMl: 90 });
     const result = db.importBackup({ profile: { name: '测试宝宝', birthDate: '2026-01-01' }, records: [feeding] });
@@ -102,5 +120,6 @@ describe('record reliability', () => {
     expect(db.getProfile()).toMatchObject({ name: '恢复宝宝', birthDate: '2026-02-02' });
     expect(db.allRecords(true).map((item: CareRecord) => item.id)).toEqual([onlyRecord.id]);
     expect(db.allAudit()).toEqual([audit]);
+    expect(db.listGrowthRecords(true)).toEqual([]);
   });
 });

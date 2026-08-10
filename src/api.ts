@@ -1,4 +1,4 @@
-import type { AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, DraftRecord, FamilyId, FamilyMemberPermission, Profile, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole } from './types';
+import type { AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole } from './types';
 
 export class ApiError extends Error {
   status: number;
@@ -34,6 +34,13 @@ export const api = {
   testAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<{ ok: boolean; message: string }>('/api/ai/settings/test', { method: 'POST', body: JSON.stringify(settings) }),
   interpret: (transcript: string) => request<{ records: DraftRecord[]; model: string }>('/api/ai/interpret', { method: 'POST', body: JSON.stringify({ transcript }) }),
   updateProfile: (profile: Profile) => request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
+  growthRecords: () => request<GrowthRecord[]>('/api/growth-records'),
+  deletedGrowthRecords: () => request<GrowthRecord[]>('/api/growth-records/deleted'),
+  createGrowthRecord: (record: DraftGrowthRecord) => request<GrowthRecord>('/api/growth-records', { method: 'POST', body: JSON.stringify(record) }),
+  updateGrowthRecord: (id: string, record: DraftGrowthRecord) => request<GrowthRecord>(`/api/growth-records/${id}`, { method: 'PUT', body: JSON.stringify(record) }),
+  deleteGrowthRecord: (id: string) => request<{ deleted: boolean; record: GrowthRecord }>(`/api/growth-records/${id}`, { method: 'DELETE' }),
+  restoreGrowthRecord: (id: string) => request<GrowthRecord>(`/api/growth-records/${id}/restore`, { method: 'POST' }),
+  purgeGrowthRecord: (id: string) => request<{ deleted: boolean }>(`/api/growth-records/${id}/permanent`, { method: 'DELETE' }),
   familyMembers: () => request<FamilyMemberPermission[]>('/api/family-members'),
   updateFamilyRole: (id: Exclude<FamilyId, 'father'>, role: Exclude<UserRole, 'superadmin'>) => request<FamilyMemberPermission>(`/api/family-members/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
   records: (from: string, to: string) => request<CareRecord[]>(`/api/records?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),

@@ -12,6 +12,19 @@ export interface FamilyMemberPermission {
   role: UserRole;
 }
 
+export interface GrowthRecord {
+  id: string;
+  measuredOn: string;
+  heightCm: number;
+  weightKg: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: AuditIdentity;
+  updatedBy: AuditIdentity;
+  deletedAt: string | null;
+  deletedBy: AuditIdentity | null;
+}
+
 export interface CareRecord {
   id: string;
   type: RecordType;

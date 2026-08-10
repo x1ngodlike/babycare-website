@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, ApiError } from './api';
-import { addDays, calculateAge, isoDay, toLocalInput } from './date';
+import { addDays, calculateAge, isoDay, startOfWeek, toLocalInput } from './date';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
-import type { AiSettingsPublic, AuditEntry, AuditIdentity, BowelSize, Capabilities, CareItem, CareRecord, DraftRecord, FamilyId, FamilyMemberPermission, Profile, RecordType, ServerBackupFile, ServerBackupStatus, SessionUser, Supplement, UserRole } from './types';
+import type { AiSettingsPublic, AuditEntry, AuditIdentity, BowelSize, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, RecordType, ServerBackupFile, ServerBackupStatus, SessionUser, Supplement, UserRole } from './types';
 import { parseVoiceRecords } from './voice';
 
-type Tab = 'today' | 'history' | 'trends' | 'settings';
+type Tab = 'today' | 'history' | 'trends' | 'archive' | 'settings';
 type TrendMode = 'seven' | 'month' | 'total';
 type SpeechEvent = { results: ArrayLike<{ 0: { transcript: string } }> };
 type SpeechRecognitionLike = {
@@ -32,6 +32,10 @@ const roleNames: Record<UserRole, string> = { superadmin: '超管', admin: '管�
 const canManage = (user: SessionUser | null) => user?.role === 'superadmin' || user?.role === 'admin';
 const careItemIcon = (value: CareRecord | DraftRecord, items: CareItem[]) => value.type === 'supplement' && items.find(item => item.name === value.supplement)?.icon === 'massage' ? '/icons/record-massage.png' : typeIcons[value.type];
 const selectableCareItems = (items: CareItem[], current?: string | null) => [...new Set([...items.filter(item => item.active).map(item => item.name), ...(current ? [current] : [])])];
+const weekContains = (record: GrowthRecord, date = new Date()) => {
+  const from = isoDay(startOfWeek(date)); const to = isoDay(addDays(startOfWeek(date), 7));
+  return record.measuredOn >= from && record.measuredOn < to;
+};
 
 const blankDraft = (type: RecordType = 'feeding'): DraftRecord => ({ id: createUuid(), type, occurredAt: new Date().toISOString(), breastMilkMl: null, formulaMl: null });
 
@@ -313,13 +317,14 @@ function Timeline({ records, careItems, manager, emptyText = '这一天还没有
   return <div className="timeline">{records.map(record => { const created = auditNames[record.createdBy || 'legacy']; const updated = auditNames[record.updatedBy || record.createdBy || 'legacy']; const changed = record.updatedBy && record.updatedBy !== record.createdBy; return <article className={`timeline-item ${record.type}`} key={record.id}><div className="time-col"><time>{new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}</time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy"><small>{typeNames[record.type]}</small><strong><FeedingSummary record={record} /></strong>{record.note && record.type !== 'note' && <p>{record.note}</p>}<em>{created === '历史数据' ? '历史数据' : `${created}录入`}{changed ? ` · ${updated}修改` : ''}</em></div><details data-record-menu={record.id} open={openMenu === record.id}><summary aria-label={`${summary(record)}的操作菜单`} aria-expanded={openMenu === record.id} onClick={event => { event.preventDefault(); setOpenMenu(current => current === record.id ? null : record.id); }}><span className="menu-dots" aria-hidden="true"><i /><i /><i /></span></summary><div>{manager && <button onClick={() => { setOpenMenu(null); onAudit(record); }}>操作记录</button>}<button onClick={() => { setOpenMenu(null); onEdit(record); }}>编辑</button>{manager && <button className="danger" onClick={() => { setOpenMenu(null); onDelete(record); }}>删除</button>}</div></details></article>; })}</div>;
 }
 
-function TodayView({ profile, records, careItems, capabilities, manager, onAdd, onVoice, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; careItems: CareItem[]; capabilities: Capabilities; manager: boolean; onAdd(type: RecordType): void; onVoice(drafts: DraftRecord[], transcript: string): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+function TodayView({ profile, records, careItems, capabilities, manager, weeklyGrowth, onAddGrowth, onAdd, onVoice, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; careItems: CareItem[]; capabilities: Capabilities; manager: boolean; weeklyGrowth?: GrowthRecord; onAddGrowth(): void; onAdd(type: RecordType): void; onVoice(drafts: DraftRecord[], transcript: string): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [savingSupplement, setSavingSupplement] = useState<Supplement | null>(null);
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r])); const lastFeed = feed[0];
   async function addSupplement(item: Supplement) { setSavingSupplement(item); try { await onSupplement(item); } finally { setSavingSupplement(null); } }
   return <div className="today-layout"><div className="today-primary">
     <section className="baby-hero"><div><p className="kicker">今日 · {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</p><h1>{profile.name}</h1><p>{calculateAge(profile.birthDate)}{lastFeed ? ` · 上次喂奶 ${new Date(lastFeed.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : ' · 今天还未喂奶'}</p></div><img src="/bear-bottle.png" alt="" /></section>
     <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>ml</small></div><div><span>奶粉</span><strong>{formula}</strong><small>ml</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
+    {!weeklyGrowth && <section className="weekly-growth-prompt"><div><p className="kicker">本周成长</p><h2>记录身高和体重</h2><p>每周记录一次，成长变化会保存到档案。</p></div><button className="btn primary" onClick={onAddGrowth}>去记录</button></section>}
     <VoiceCapture capabilities={capabilities} onDrafts={onVoice} />
     <section className="quick-section"><div className="section-title"><h2>快捷记录</h2></div><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>记录喂奶</b><small>母乳、奶粉</small></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>记录排便</b><small>大、中、小</small></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他情况</b><small>吐奶、状态</small></button></div></section>
     <section className="medicine-card"><h2>今日用药</h2><div className="medicine-actions">{careItems.filter(item => item.active).map(item => { const record = done.get(item.name); return <button key={item.id} className={record ? 'done' : ''} disabled={Boolean(record) || Boolean(savingSupplement)} onClick={() => addSupplement(item.name)}><span>{record ? '✓' : savingSupplement === item.name ? '···' : '+'}</span><b>{item.name}</b><small>{record ? `${auditNames[record.createdBy]} ${new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : savingSupplement === item.name ? '记录中' : '点按记录'}</small></button>; })}</div></section>
@@ -366,13 +371,17 @@ function TrendsView({ records }: { records: CareRecord[] }) {
     const summary = summarizeTrendRecords(records.filter(record => isoDay(new Date(record.occurredAt)) === isoDay(day)));
     return { key: isoDay(day), label: day.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' }), axis: day.toLocaleDateString('zh-CN', { weekday: 'short' }), ...summary };
   });
-  const monthYear = selectedMonth.getFullYear(); const monthIndex = selectedMonth.getMonth(); const monthLength = new Date(monthYear, monthIndex + 1, 0).getDate();
-  const visibleMonthLength = selectedMonth.getTime() === todayMonth.getTime() ? now.getDate() : monthLength;
+  const monthYear = selectedMonth.getFullYear(); const monthIndex = selectedMonth.getMonth();
   const monthRecords = records.filter(record => { const date = new Date(record.occurredAt); return date.getFullYear() === monthYear && date.getMonth() === monthIndex; });
-  const monthData: TrendBucket[] = Array.from({ length: Math.ceil(visibleMonthLength / 7) }, (_, index) => {
-    const start = index * 7 + 1; const end = Math.min(visibleMonthLength, start + 6);
-    const summary = summarizeTrendRecords(monthRecords.filter(record => { const date = new Date(record.occurredAt); return date.getDate() >= start && date.getDate() <= end; }));
-    return { key: `${monthYear}-${monthIndex + 1}-${start}`, label: `${monthIndex + 1}月${start}–${end}日`, axis: `${start}–${end}`, ...summary };
+  const firstWeek = startOfWeek(new Date(monthYear, monthIndex, 1));
+  const lastVisibleDay = selectedMonth.getTime() === todayMonth.getTime() ? now : new Date(monthYear, monthIndex + 1, 0);
+  const lastWeek = startOfWeek(lastVisibleDay);
+  const weekCount = Math.floor((lastWeek.getTime() - firstWeek.getTime()) / 604800000) + 1;
+  const monthData: TrendBucket[] = Array.from({ length: weekCount }, (_, index) => {
+    const monday = addDays(firstWeek, index * 7); const nextMonday = addDays(monday, 7); const sunday = addDays(monday, 6);
+    const summary = summarizeTrendRecords(records.filter(record => { const date = new Date(record.occurredAt); return date >= monday && date < nextMonday; }));
+    const compact = (date: Date) => `${date.getMonth() + 1}/${date.getDate()}`;
+    return { key: isoDay(monday), label: `${compact(monday)}–${compact(sunday)}`, axis: compact(monday), ...summary };
   });
   const monthKeys = [...new Set(records.map(record => { const date = new Date(record.occurredAt); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }))].sort();
   const totalData: TrendBucket[] = monthKeys.map(key => {
@@ -388,7 +397,7 @@ function TrendsView({ records }: { records: CareRecord[] }) {
   const maxMilk = Math.max(1, ...chartData.map(item => item.breast + item.formula));
   const chartTitle = mode === 'seven' ? '每日奶量' : mode === 'month' ? '每周奶量' : '最近六个月奶量';
   const totalLabel = mode === 'seven' ? '七日总奶量' : mode === 'month' ? '本月总奶量' : '累计总奶量';
-  const description = mode === 'seven' ? '最近七天数据，图表按时间顺序展示。' : mode === 'month' ? '按周查看本月记录，明细优先显示最近数据。' : '汇总开始记录至今的全部照护数据。';
+  const description = mode === 'seven' ? '最近七天数据，图表按时间顺序展示。' : mode === 'month' ? '月度汇总按自然月；每周奶量按周一至周日，跨月周按完整周统计。' : '汇总开始记录至今的全部照护数据。';
   const shiftMonth = (offset: number) => setSelectedMonth(value => new Date(value.getFullYear(), value.getMonth() + offset, 1));
   return <div className="page-stack trends-page"><header className="page-head"><h1>趋势统计</h1><p>{description}</p></header>
     <div className="trend-tabs" role="tablist" aria-label="趋势统计范围">{([['seven', '七日'], ['month', '月数据'], ['total', '总数据']] as [TrendMode, string][]).map(([value, label]) => <button key={value} role="tab" aria-selected={mode === value} className={mode === value ? 'active' : ''} onClick={() => setMode(value)}>{label}</button>)}</div>
@@ -398,6 +407,33 @@ function TrendsView({ records }: { records: CareRecord[] }) {
     <section className="chart-card"><div className="section-title"><h2>{chartTitle}</h2><div className="legend"><i className="breast" />母乳<i className="formula" />奶粉</div></div><div className="bar-chart" style={{ gridTemplateColumns: `repeat(${Math.max(1, chartData.length)}, minmax(30px, 1fr))` }}>{chartData.map(item => <div className="bar-day" key={item.key} aria-label={`${item.label}，母乳${item.breast}ml，奶粉${item.formula}ml`}><div className="bar-value">{item.breast + item.formula || ''}</div><div className="bar-track"><i className="formula" style={{ height: `${item.formula / maxMilk * 100}%` }} /><i className="breast" style={{ height: `${item.breast / maxMilk * 100}%` }} /></div><span>{item.axis}</span></div>)}</div><div className="chart-values">{detailData.map(item => <div key={item.key}><time>{item.label}</time><span>母乳 {item.breast}</span><span>奶粉 {item.formula}</span></div>)}</div></section>
     <section className="rhythm-list"><div className="section-title"><h2>{mode === 'seven' ? '次数概览' : mode === 'month' ? '每周次数' : '月度次数'}</h2></div>{detailData.map(item => <div key={item.key}><time>{item.label}</time><span>喂奶 <b>{item.feeds}</b> 次</span><span>排便 <b>{item.bowel}</b> 次</span></div>)}</section>
   </div>;
+}
+
+function GrowthEditor({ profile, initial, previous, onClose, onSave }: { profile: Profile; initial?: GrowthRecord; previous?: GrowthRecord; onClose(): void; onSave(value: DraftGrowthRecord): Promise<void> }) {
+  const [measuredOn, setMeasuredOn] = useState(initial?.measuredOn || isoDay(new Date()));
+  const [height, setHeight] = useState(initial ? String(initial.heightCm) : '');
+  const [weight, setWeight] = useState(initial ? String(initial.weightKg) : '');
+  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, onClose);
+  async function submit(event: React.FormEvent) {
+    event.preventDefault(); setBusy(true); setError('');
+    try { await onSave({ id: initial?.id, measuredOn, heightCm: Number(height), weightKg: Number(weight) }); onClose(); }
+    catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); }
+  }
+  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor growth-editor" role="dialog" aria-modal="true" aria-labelledby="growth-editor-title"><header className="editor-head"><div><p className="kicker">宝宝档案</p><h2 id="growth-editor-title">{initial ? '修改成长记录' : '记录本周成长'}</h2></div><button className="close-btn" onClick={onClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>测量日期<input type="date" min={profile.birthDate} max={isoDay(new Date())} value={measuredOn} onChange={event => setMeasuredOn(event.target.value)} required /></label><div className="growth-fields"><label>身高 <small>cm</small><input type="number" inputMode="decimal" min="20" max="150" step="0.1" value={height} onChange={event => setHeight(event.target.value)} placeholder="例如 62.5" required /></label><label>体重 <small>kg</small><input type="number" inputMode="decimal" min="0.5" max="50" step="0.01" value={weight} onChange={event => setWeight(event.target.value)} placeholder="例如 6.35" required /></label></div>{previous && !initial && <p className="growth-reference">上次：{previous.heightCm} cm · {previous.weightKg} kg</p>}{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose}>取消</button><button className="btn primary" disabled={busy || !height || !weight}>{busy ? '保存中…' : '保存记录'}</button></footer></form></section></div>;
+}
+
+function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClose(): void; onSaved(value: Profile): void }) {
+  const [form, setForm] = useState(profile); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, onClose);
+  async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const next = await api.updateProfile(form); cacheProfile(next); onSaved(next); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
+  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor" role="dialog" aria-modal="true" aria-labelledby="profile-editor-title"><header className="editor-head"><div><p className="kicker">宝宝档案</p><h2 id="profile-editor-title">修改基本资料</h2></div><button className="close-btn" onClick={onClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>宝宝姓名<input value={form.name} maxLength={30} onChange={event => setForm({ ...form, name: event.target.value })} required /></label><label>出生日期<input type="date" max={isoDay(new Date())} value={form.birthDate} onChange={event => setForm({ ...form, birthDate: event.target.value })} required /></label>{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '保存资料'}</button></footer></form></section></div>;
+}
+
+function ArchiveView({ profile, growthRecords, deletedGrowthRecords, user, onEditGrowth, onAddGrowth, onDeleteGrowth, onRestoreGrowth, onPurgeGrowth, onProfileSaved }: { profile: Profile; growthRecords: GrowthRecord[]; deletedGrowthRecords: GrowthRecord[]; user: SessionUser; onEditGrowth(record: GrowthRecord): void; onAddGrowth(): void; onDeleteGrowth(record: GrowthRecord): Promise<void>; onRestoreGrowth(record: GrowthRecord): Promise<void>; onPurgeGrowth(record: GrowthRecord): Promise<void>; onProfileSaved(value: Profile): void }) {
+  const [editingProfile, setEditingProfile] = useState(false); const [showDeleted, setShowDeleted] = useState(false);
+  const latest = growthRecords[0]; const current = growthRecords.find(record => weekContains(record));
+  return <div className="page-stack archive-page"><header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header><section className="archive-profile"><div><p className="kicker">基本资料</p><h2>{profile.name}</h2><p>{calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div>{user.role === 'superadmin' && <button className="btn secondary" onClick={() => setEditingProfile(true)}>编辑资料</button>}<div className="archive-metrics"><div><span>最新身高</span><strong>{latest?.heightCm ?? '—'}</strong><small>{latest ? 'cm' : '暂无'}</small></div><div><span>最新体重</span><strong>{latest?.weightKg ?? '—'}</strong><small>{latest ? 'kg' : '暂无'}</small></div></div></section><section className="growth-history"><div className="section-title"><div><p className="kicker">周一至周日</p><h2>成长记录</h2></div><button className="btn primary" onClick={() => current ? onEditGrowth(current) : onAddGrowth()}>{current ? '修改本周' : '记录本周'}</button></div>{growthRecords.length ? <div className="growth-list">{growthRecords.map((record, index) => { const previous = growthRecords[index + 1]; return <article key={record.id}><time>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}<small>{calculateAge(profile.birthDate, new Date(`${record.measuredOn}T12:00:00`))}</small></time><div><span>身高</span><b>{record.heightCm} cm</b>{previous && <small>{record.heightCm >= previous.heightCm ? '+' : ''}{(record.heightCm - previous.heightCm).toFixed(1)} cm</small>}</div><div><span>体重</span><b>{record.weightKg} kg</b>{previous && <small>{record.weightKg >= previous.weightKg ? '+' : ''}{(record.weightKg - previous.weightKg).toFixed(2)} kg</small>}</div><p>{auditNames[record.createdBy]}录入</p><div className="growth-actions"><button onClick={() => onEditGrowth(record)}>修改</button>{canManage(user) && <button className="danger" onClick={() => void onDeleteGrowth(record)}>删除</button>}</div></article>; })}</div> : <div className="empty-state"><span>○</span><h3>还没有成长记录</h3><p>首页每周会提醒记录一次。</p></div>}</section>{canManage(user) && <section className="deleted-growth"><button className="settings-entry" onClick={() => setShowDeleted(value => !value)}><span className="settings-entry-icon">已删</span><span><b>已删除的成长记录</b><small>可恢复或彻底删除</small></span><em>{deletedGrowthRecords.length} 条</em><i>{showDeleted ? '⌃' : '›'}</i></button>{showDeleted && <div className="growth-deleted-list">{deletedGrowthRecords.length ? deletedGrowthRecords.map(record => <article key={record.id}><span>{record.measuredOn}</span><b>{record.heightCm} cm · {record.weightKg} kg</b><button className="btn secondary" onClick={() => void onRestoreGrowth(record)}>恢复</button><button className="btn danger-button" onClick={() => void onPurgeGrowth(record)}>彻底删除</button></article>) : <p>没有已删除的成长记录。</p>}</div>}</section>}{editingProfile && <ProfileEditor profile={profile} onClose={() => setEditingProfile(false)} onSaved={onProfileSaved} />}</div>;
 }
 
 function AiSettingsCard({ capabilities, onChanged }: { capabilities: Capabilities; onChanged(): Promise<void> }) {
@@ -522,20 +558,18 @@ function FamilyPermissionsCard() {
   return <section className="settings-card family-permissions-card"><div className="setting-status"><h2>家庭成员权限</h2><span className="on">超管</span></div><p>管理员可管理用药项目和回收站；普通用户可记录和修改照护信息。</p><div className="family-permission-list">{members.map(member => { const visual = familyMembers.find(item => item.id === member.id)!; return <article key={member.id}><img src={visual.icon} alt="" /><div><b>{member.name}</b><small>{member.id === 'father' ? '最高管理权限' : roleNames[member.role]}</small></div>{member.id === 'father' ? <span className="fixed-role">超管·不可修改</span> : <div className="role-switch" role="group" aria-label={`${member.name}的权限`}><button type="button" className={member.role === 'admin' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => changeRole(member, 'admin')}>管理员</button><button type="button" className={member.role === 'member' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => changeRole(member, 'member')}>普通用户</button></div>}</article>; })}</div>{message && <p className={message.includes('失败') || message.includes('无法') ? 'error-text' : 'success-text'} role="status">{message}</p>}</section>;
 }
 
-type SettingsSection = 'root' | 'profile' | 'family' | 'care-items' | 'speech' | 'ai' | 'backup';
+type SettingsSection = 'root' | 'family' | 'care-items' | 'speech' | 'ai' | 'backup';
 function SettingsEntry({ icon, title, description, status, onClick }: { icon: string; title: string; description: string; status: string; onClick(): void }) {
   return <button type="button" className="settings-entry" onClick={onClick}><span className="settings-entry-icon" aria-hidden="true">{icon}</span><span><b>{title}</b><small>{description}</small></span><em>{status}</em><i aria-hidden="true">›</i></button>;
 }
 
-function SettingsView({ profile, setProfile, careItems, capabilities, user, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout }: { profile: Profile; setProfile(value: Profile): void; careItems: CareItem[]; capabilities: Capabilities; user: SessionUser; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void }) {
-  const [form, setForm] = useState(profile); const [message, setMessage] = useState(''); const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false); useEffect(() => setForm(profile), [profile]);
+function SettingsView({ careItems, capabilities, user, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout }: { careItems: CareItem[]; capabilities: Capabilities; user: SessionUser; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void }) {
+  const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false);
   useEffect(() => { const pop = () => { pushedRef.current = false; setSection('root'); }; window.addEventListener('popstate', pop); return () => { window.removeEventListener('popstate', pop); if (pushedRef.current) window.history.back(); }; }, []);
-  async function save(event: React.FormEvent) { event.preventDefault(); try { const next = await api.updateProfile(form); setProfile(next); cacheProfile(next); setMessage('宝宝资料已保存'); } catch (err) { setMessage(err instanceof Error ? err.message : '保存失败'); } }
   const member = familyMembers.find(item => item.id === user.id)!;
   function open(next: Exclude<SettingsSection, 'root'>) { window.history.pushState({ babycareSettings: next }, ''); pushedRef.current = true; setSection(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   function back() { if (pushedRef.current) window.history.back(); else setSection('root'); }
-  if (section !== 'root') return <div className="page-stack settings-subpage"><header className="subpage-head"><button type="button" onClick={back} aria-label="返回设置">‹</button><div><p className="kicker">设置</p><h1>{{ profile: '宝宝资料', family: '家庭成员权限', 'care-items': '今日用药项目', speech: '语音转成文字', ai: '指令理解模型', backup: '服务器数据备份' }[section]}</h1></div></header><div className="settings-grid">
-    {section === 'profile' && <section className="settings-card"><h2>基本资料</h2><form onSubmit={save}><label>宝宝姓名<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label><label>出生日期<input type="date" max={isoDay(new Date())} value={form.birthDate} onChange={e => setForm({ ...form, birthDate: e.target.value })} /></label><button className="btn primary">保存资料</button>{message && <p className="success-text" role="status">{message}</p>}</form></section>}
+  if (section !== 'root') return <div className="page-stack settings-subpage"><header className="subpage-head"><button type="button" onClick={back} aria-label="返回设置">‹</button><div><p className="kicker">设置</p><h1>{{ family: '家庭成员权限', 'care-items': '今日用药项目', speech: '语音转成文字', ai: '指令理解模型', backup: '服务器数据备份' }[section]}</h1></div></header><div className="settings-grid">
     {section === 'family' && <FamilyPermissionsCard />}
     {section === 'care-items' && <CareItemsCard items={careItems} onChanged={onCareItemsChanged} />}
     {section === 'speech' && <section className="settings-card"><div className="setting-status"><h2>识别方式</h2><span className={capabilities.aiTranscription ? 'on' : ''}>{capabilities.aiTranscription ? '服务器识别' : '浏览器识别'}</span></div><p>{capabilities.aiTranscription ? '短录音由服务器识别为文字，录音不会写入磁盘。' : '目前使用浏览器自带语音识别；部分微信浏览器可能不支持。'}</p></section>}
@@ -545,7 +579,7 @@ function SettingsView({ profile, setProfile, careItems, capabilities, user, onCa
   return <div className="page-stack settings-home"><header className="page-head"><h1>设置</h1><p>{user.role === 'superadmin' ? '管理家庭成员、照护项目和服务器。' : user.role === 'admin' ? '管理用药项目和已删除记录。' : '查看当前身份和权限。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份与权限</span><h2>{user.name}</h2><p>{roleNames[user.role]}</p></div><i>{canManage(user) ? '管理权限' : '记录权限'}</i></section>
     {user.role === 'admin' && <section className="settings-card permission-note"><p className="kicker">管理员权限</p><h2>管理日常照护</h2><p>可管理用药项目和回收站。宝宝资料、家庭权限、AI 服务和备份仅超管可操作。</p></section>}
     {user.role === 'member' && <section className="settings-card permission-note"><p className="kicker">普通用户权限</p><h2>可以记录和修改</h2><p>可查看、添加和修改照护记录；不能删除记录或查看操作历史。</p></section>}
-    <section className="settings-menu" aria-label="设置项目">{user.role === 'superadmin' && <><SettingsEntry icon="资料" title="宝宝资料" description="姓名与出生日期" status={profile.name} onClick={() => open('profile')} /><SettingsEntry icon="成员" title="家庭成员权限" description="设置管理员与普通用户" status="4 位家人" onClick={() => open('family')} /></>}{canManage(user) && <SettingsEntry icon="用药" title="今日用药项目" description="新增、停用与排序" status={`${careItems.filter(item => item.active).length} 项使用中`} onClick={() => open('care-items')} />}{user.role === 'superadmin' && <><SettingsEntry icon="语音" title="语音转成文字" description="查看当前语音识别方式" status={capabilities.aiTranscription ? '服务器' : '浏览器'} onClick={() => open('speech')} /><SettingsEntry icon="模型" title="指令理解模型" description="DeepSeek 接口与模型配置" status={capabilities.aiInterpretation ? '已启用' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="备份" title="服务器数据备份" description="自动备份、导入与恢复" status="每 6 小时" onClick={() => open('backup')} /></>}</section>
+    <section className="settings-menu" aria-label="设置项目">{user.role === 'superadmin' && <SettingsEntry icon="成员" title="家庭成员权限" description="设置管理员与普通用户" status="4 位家人" onClick={() => open('family')} />}{canManage(user) && <SettingsEntry icon="用药" title="今日用药项目" description="新增、停用与排序" status={`${careItems.filter(item => item.active).length} 项使用中`} onClick={() => open('care-items')} />}{user.role === 'superadmin' && <><SettingsEntry icon="语音" title="语音转成文字" description="查看当前语音识别方式" status={capabilities.aiTranscription ? '服务器' : '浏览器'} onClick={() => open('speech')} /><SettingsEntry icon="模型" title="指令理解模型" description="DeepSeek 接口与模型配置" status={capabilities.aiInterpretation ? '已启用' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="备份" title="服务器数据备份" description="自动备份、导入与恢复" status="每 6 小时" onClick={() => open('backup')} /></>}</section>
     <button className="logout" onClick={onLogout}>退出当前身份</button></div>;
 }
 
@@ -555,8 +589,10 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [records, setRecords] = useState<CareRecord[]>([]);
   const [deletedRecords, setDeletedRecords] = useState<CareRecord[]>([]); const [careItems, setCareItems] = useState<CareItem[]>([]);
+  const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([]); const [deletedGrowthRecords, setDeletedGrowthRecords] = useState<GrowthRecord[]>([]);
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date());
   const [editor, setEditor] = useState<DraftRecord | null>(null); const [voiceReview, setVoiceReview] = useState<{ drafts: DraftRecord[]; transcript: string } | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
+  const [growthEditor, setGrowthEditor] = useState<GrowthRecord | 'new' | null>(null);
   const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(false); const [pendingCount, setPendingCount] = useState(0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
   const refreshingRef = useRef(false);
 
@@ -583,14 +619,16 @@ export default function App() {
 
   const loadCareItems = useCallback(async () => { try { setCareItems(await api.careItems()); } catch { /* keep current items while offline */ } }, []);
   const loadDeletedRecords = useCallback(async () => { if (!canManage(currentUser)) return; try { setDeletedRecords(await api.deletedRecords()); } catch { setDeletedRecords([]); } }, [currentUser]);
+  const loadGrowthRecords = useCallback(async () => { try { setGrowthRecords(await api.growthRecords()); } catch { /* keep current items while offline */ } }, []);
+  const loadDeletedGrowthRecords = useCallback(async () => { if (!canManage(currentUser)) return; try { setDeletedGrowthRecords(await api.deletedGrowthRecords()); } catch { setDeletedGrowthRecords([]); } }, [currentUser]);
   const refreshSession = useCallback(async () => { try { const next = await api.session(); if (!next.authenticated || !next.user) return; setCurrentUser(current => { if (current?.id === next.user!.id && current.role === next.user!.role) return current; rememberUser(next.user!); return next.user; }); } catch { /* keep current session while offline */ } }, []);
 
   const refreshAll = useCallback(async () => {
     if (refreshingRef.current) return;
     refreshingRef.current = true; setRefreshing(true);
-    try { await Promise.all([refreshSession(), loadRecords(), loadProfile(), loadCapabilities(), loadCareItems(), loadDeletedRecords()]); }
+    try { await Promise.all([refreshSession(), loadRecords(), loadProfile(), loadCapabilities(), loadCareItems(), loadDeletedRecords(), loadGrowthRecords(), loadDeletedGrowthRecords()]); }
     finally { refreshingRef.current = false; setRefreshing(false); }
-  }, [loadCapabilities, loadCareItems, loadDeletedRecords, loadProfile, loadRecords, refreshSession]);
+  }, [loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadDeletedRecords, loadGrowthRecords, loadProfile, loadRecords, refreshSession]);
 
   const syncOutbox = useCallback(async () => {
     if (!currentUser) return;
@@ -618,9 +656,9 @@ export default function App() {
   useEffect(() => {
     if (!authenticated || !currentUser) return;
     setPendingCount(getOutbox(currentUser.id).length);
-    loadProfile(); loadCapabilities(); loadCareItems();
+    loadProfile(); loadCapabilities(); loadCareItems(); loadGrowthRecords(); loadDeletedGrowthRecords();
     loadRecords().then(() => { if (navigator.onLine) syncOutbox(); });
-  }, [authenticated, currentUser, loadCapabilities, loadCareItems, loadProfile, loadRecords, syncOutbox]);
+  }, [authenticated, currentUser, loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadGrowthRecords, loadProfile, loadRecords, syncOutbox]);
 
   useEffect(() => {
     const onOnline = () => { setOnline(true); syncOutbox(); };
@@ -699,8 +737,17 @@ export default function App() {
   async function restoreDeleted(record: CareRecord) { try { await api.restoreRecord(record.id); await Promise.all([loadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '恢复失败' }); } }
   async function purgeDeleted(record: CareRecord) { if (!window.confirm(`彻底删除“${summary(record)}”吗？\n\n删除后无法恢复。`)) return; try { await api.purgeRecord(record.id); await loadDeletedRecords(); setToast({ message: '记录已彻底删除' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '彻底删除失败' }); } }
 
+  async function saveGrowth(value: DraftGrowthRecord) {
+    try { value.id ? await api.updateGrowthRecord(value.id, value) : await api.createGrowthRecord(value); await loadGrowthRecords(); setToast({ message: '成长记录已保存' }); }
+    catch (error) { if (error instanceof ApiError && error.code === 'DUPLICATE_GROWTH_WEEK') { const existing = (error.details as { existing?: GrowthRecord })?.existing; if (existing) setGrowthEditor(existing); } throw error; }
+  }
+  async function removeGrowth(record: GrowthRecord) { if (!window.confirm('删除这条成长记录吗？可以从档案中恢复。')) return; try { await api.deleteGrowthRecord(record.id); await Promise.all([loadGrowthRecords(), loadDeletedGrowthRecords()]); setToast({ message: '成长记录已移到已删除' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '删除失败' }); } }
+  async function restoreGrowth(record: GrowthRecord) { try { await api.restoreGrowthRecord(record.id); await Promise.all([loadGrowthRecords(), loadDeletedGrowthRecords()]); setToast({ message: '成长记录已恢复' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '恢复失败' }); } }
+  async function purgeGrowth(record: GrowthRecord) { if (!window.confirm('彻底删除这条成长记录吗？删除后无法恢复。')) return; try { await api.purgeGrowthRecord(record.id); await loadDeletedGrowthRecords(); setToast({ message: '成长记录已彻底删除' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '彻底删除失败' }); } }
+
   const todayRecords = useMemo(() => records.filter(r => isoDay(new Date(r.occurredAt)) === isoDay(new Date())), [records]);
-  const pull = usePullToRefresh(Boolean(authenticated && currentUser && (tab === 'today' || tab === 'history') && !editor && !voiceReview && !auditRecord), refreshAll);
+  const weeklyGrowth = growthRecords.find(record => weekContains(record));
+  const pull = usePullToRefresh(Boolean(authenticated && currentUser && (tab === 'today' || tab === 'history' || tab === 'archive') && !editor && !growthEditor && !voiceReview && !auditRecord), refreshAll);
 
   if (authenticated === null) return <main className="loading-page"><img src="/bear-bottle.png" alt="" /><p>正在打开照护记录…</p></main>;
   if (!authenticated || !currentUser) return <Login onSuccess={user => { rememberUser(user); setCurrentUser(user); setRecords(getCachedRecords(user.id)); setAuthenticated(true); setOfflineSession(false); }} />;
@@ -708,11 +755,11 @@ export default function App() {
   const connectionLabel = offlineSession ? '离线身份' : !online ? '离线' : pendingCount ? `待同步 ${pendingCount} 条` : refreshing ? '正在更新' : '已连接';
   const pullLabel = pull.phase === 'refreshing' ? '正在更新' : pull.phase === 'done' ? '已更新' : pull.phase === 'ready' ? '松开刷新' : '继续下拉刷新';
   const pullOffset = pull.phase === 'refreshing' || pull.phase === 'done' ? 8 : Math.min(8, pull.distance - 44);
-  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}<div className="top-status"><div className="user-pill"><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></div><div className={`network-pill ${online ? refreshing ? 'syncing' : '' : 'offline'}`}>{connectionLabel}</div></div>
+  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}<div className="top-status"><button className="user-pill" onClick={() => setTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button><div className={`network-pill ${online ? refreshing ? 'syncing' : '' : 'offline'}`}>{connectionLabel}</div></div>
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}>×</button></div>}
-    <main className="main-content">{tab === 'today' && <TodayView profile={profile} records={todayRecords} careItems={careItems} capabilities={capabilities} manager={canManage(currentUser)} onAdd={type => setEditor(blankDraft(type))} onVoice={(drafts, transcript) => setVoiceReview({ drafts: drafts.map(draft => ({ ...draft, id: createUuid() })), transcript })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} />}{tab === 'trends' && <TrendsView records={records} />}{tab === 'settings' && <SettingsView profile={profile} setProfile={setProfile} careItems={careItems} capabilities={capabilities} user={currentUser} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={loadCareItems} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); }} />}</main>
+    <main className="main-content">{tab === 'today' && <TodayView profile={profile} records={todayRecords} careItems={careItems} capabilities={capabilities} manager={canManage(currentUser)} weeklyGrowth={weeklyGrowth} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} onVoice={(drafts, transcript) => setVoiceReview({ drafts: drafts.map(draft => ({ ...draft, id: createUuid() })), transcript })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} />}{tab === 'trends' && <TrendsView records={records} />}{tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} user={currentUser} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}{tab === 'settings' && <SettingsView careItems={careItems} capabilities={capabilities} user={currentUser} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={loadCareItems} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); }} />}</main>
     <button className="floating-add" onClick={() => setEditor(blankDraft())} aria-label="添加记录"><span>＋</span><b>记录</b></button>
-    <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录'], ['trends', '/icons/nav-trends.png', '趋势'], ['settings', '/icons/nav-settings.png', '设置']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img src={icon} alt="" /><b>{label}</b></button>)}</nav>
-    {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{voiceReview && <VoiceReview initial={voiceReview.drafts} transcript={voiceReview.transcript} careItems={careItems} onClose={() => setVoiceReview(null)} onSave={saveMany} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
+    <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录'], ['trends', '/icons/nav-trends.png', '趋势'], ['archive', '/icons/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img src={icon} alt="" /><b>{label}</b></button>)}</nav>
+    {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor profile={profile} initial={growthEditor === 'new' ? undefined : growthEditor} previous={growthRecords[0]} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{voiceReview && <VoiceReview initial={voiceReview.drafts} transcript={voiceReview.transcript} careItems={careItems} onClose={() => setVoiceReview(null)} onSave={saveMany} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
   </div>;
 }

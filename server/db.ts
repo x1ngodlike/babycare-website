@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { AuditAction, AuditEntry, AuditIdentity, CareItem, CareRecord, FamilyId, FamilyMemberPermission, UserRole } from './types.js';
+import type { AuditAction, AuditEntry, AuditIdentity, CareItem, CareRecord, FamilyId, FamilyMemberPermission, GrowthRecord, UserRole } from './types.js';
 
 const databasePath = process.env.DATABASE_PATH || './data/baby-care.db';
 mkdirSync(dirname(databasePath), { recursive: true });
@@ -116,6 +116,20 @@ db.exec(`
     ('mother', 'admin', datetime('now')),
     ('grandfather', 'member', datetime('now')),
     ('grandmother', 'member', datetime('now'));
+
+  CREATE TABLE IF NOT EXISTS growth_records (
+    id TEXT PRIMARY KEY,
+    measured_on TEXT NOT NULL,
+    height_cm REAL NOT NULL,
+    weight_kg REAL NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    updated_by TEXT NOT NULL,
+    deleted_at TEXT,
+    deleted_by TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_growth_records_measured_on ON growth_records(measured_on DESC);
 `);
 
 const columns = `
@@ -151,6 +165,10 @@ export class CareItemConflictError extends Error {}
 export class CareItemInactiveError extends Error {}
 export class CareItemOrderError extends Error {}
 export class FamilyPermissionError extends Error {}
+export class DuplicateGrowthWeekError extends Error {
+  existing: GrowthRecord;
+  constructor(existing: GrowthRecord) { super('本周已经记录身高体重'); this.existing = existing; }
+}
 
 function ensureNoDuplicateSupplement(record: CareRecord) {
   if (record.type !== 'supplement' || !record.supplement) return;
@@ -326,6 +344,62 @@ export function replaceFamilyRoles(items: Pick<FamilyMemberPermission, 'id' | 'r
   })();
 }
 
+const growthColumns = `id, measured_on AS measuredOn, height_cm AS heightCm, weight_kg AS weightKg,
+  created_at AS createdAt, updated_at AS updatedAt, created_by AS createdBy, updated_by AS updatedBy,
+  deleted_at AS deletedAt, deleted_by AS deletedBy`;
+function growthWeekBounds(measuredOn: string) {
+  const value = new Date(`${measuredOn}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() - ((value.getUTCDay() + 6) % 7));
+  const from = value.toISOString().slice(0, 10);
+  value.setUTCDate(value.getUTCDate() + 7);
+  return { from, to: value.toISOString().slice(0, 10) };
+}
+function getGrowthRecord(id: string): GrowthRecord | null {
+  return db.prepare(`SELECT ${growthColumns} FROM growth_records WHERE id = ?`).get(id) as GrowthRecord | undefined || null;
+}
+function duplicateGrowthRecord(record: GrowthRecord) {
+  const { from, to } = growthWeekBounds(record.measuredOn);
+  return db.prepare(`SELECT ${growthColumns} FROM growth_records WHERE deleted_at IS NULL AND measured_on >= ? AND measured_on < ? AND id <> ? LIMIT 1`)
+    .get(from, to, record.id) as GrowthRecord | undefined;
+}
+export function listGrowthRecords(includeDeleted = false): GrowthRecord[] {
+  const where = includeDeleted ? '' : 'WHERE deleted_at IS NULL';
+  return db.prepare(`SELECT ${growthColumns} FROM growth_records ${where} ORDER BY measured_on DESC, updated_at DESC`).all() as GrowthRecord[];
+}
+const saveGrowthTransaction = db.transaction((record: GrowthRecord): GrowthRecord => {
+  const existing = getGrowthRecord(record.id);
+  if (existing?.deletedAt) throw new RecordNotFoundError('成长记录已经删除');
+  const duplicate = duplicateGrowthRecord(record);
+  if (duplicate) throw new DuplicateGrowthWeekError(duplicate);
+  if (existing) {
+    db.prepare('UPDATE growth_records SET measured_on = ?, height_cm = ?, weight_kg = ?, updated_at = ?, updated_by = ? WHERE id = ? AND deleted_at IS NULL')
+      .run(record.measuredOn, record.heightCm, record.weightKg, record.updatedAt, record.updatedBy, record.id);
+  } else {
+    db.prepare(`INSERT INTO growth_records (id, measured_on, height_cm, weight_kg, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`)
+      .run(record.id, record.measuredOn, record.heightCm, record.weightKg, record.createdAt, record.updatedAt, record.createdBy, record.updatedBy);
+  }
+  return getGrowthRecord(record.id)!;
+});
+export function saveGrowthRecord(record: GrowthRecord): GrowthRecord { return saveGrowthTransaction(record); }
+export function removeGrowthRecord(id: string, actor: AuditIdentity): GrowthRecord | null {
+  const now = new Date().toISOString();
+  const result = db.prepare('UPDATE growth_records SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE id = ? AND deleted_at IS NULL').run(now, actor, now, actor, id);
+  return result.changes ? getGrowthRecord(id) : null;
+}
+export function restoreGrowthRecord(id: string, actor: AuditIdentity): GrowthRecord {
+  const existing = getGrowthRecord(id);
+  if (!existing?.deletedAt) throw new RecordNotFoundError('已删除的成长记录不存在');
+  const duplicate = duplicateGrowthRecord(existing);
+  if (duplicate) throw new DuplicateGrowthWeekError(duplicate);
+  const now = new Date().toISOString();
+  db.prepare('UPDATE growth_records SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ? WHERE id = ?').run(now, actor, id);
+  return getGrowthRecord(id)!;
+}
+export function purgeGrowthRecord(id: string): boolean {
+  return db.prepare('DELETE FROM growth_records WHERE id = ? AND deleted_at IS NOT NULL').run(id).changes > 0;
+}
+
 export interface AiSettings {
   provider: string;
   baseUrl: string;
@@ -347,7 +421,7 @@ export function saveAiSettings(input: Pick<AiSettings, 'baseUrl' | 'model'> & { 
   return getAiSettings();
 }
 
-type ImportPayload = { profile?: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[] };
+type ImportPayload = { profile?: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[] };
 type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
   if (payload.profile) saveProfile(payload.profile.name, payload.profile.birthDate);
@@ -357,6 +431,13 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
       .run(item.id, item.name, item.icon, item.sortOrder, item.active ? 1 : 0, item.createdAt, item.updatedAt);
   }
   if (payload.familyMembers?.length) replaceFamilyRoles(payload.familyMembers);
+  if (payload.growthRecords?.length) {
+    const upsertGrowth = db.prepare(`INSERT INTO growth_records (id, measured_on, height_cm, weight_kg, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+      VALUES (@id, @measuredOn, @heightCm, @weightKg, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
+      ON CONFLICT(id) DO UPDATE SET measured_on=excluded.measured_on, height_cm=excluded.height_cm, weight_kg=excluded.weight_kg,
+        updated_at=excluded.updated_at, updated_by=excluded.updated_by, deleted_at=excluded.deleted_at, deleted_by=excluded.deleted_by`);
+    for (const record of payload.growthRecords) upsertGrowth.run(record);
+  }
   const upsert = db.prepare(`
     INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
     VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
@@ -379,7 +460,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
 
-type ReplacePayload = { profile: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[] };
+type ReplacePayload = { profile: { name: string; birthDate: string }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[] };
 const replaceBackupTransaction = db.transaction((payload: ReplacePayload): ImportResult => {
   db.prepare('DELETE FROM record_audit').run();
   db.prepare('DELETE FROM care_records').run();
@@ -390,6 +471,12 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     for (const item of payload.careItems) insertItem.run(item.id, item.name, item.icon, item.sortOrder, item.active ? 1 : 0, item.createdAt, item.updatedAt);
   }
   if (payload.familyMembers?.length) replaceFamilyRoles(payload.familyMembers);
+  db.prepare('DELETE FROM growth_records').run();
+  if (payload.growthRecords?.length) {
+    const insertGrowth = db.prepare(`INSERT INTO growth_records (id, measured_on, height_cm, weight_kg, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+      VALUES (@id, @measuredOn, @heightCm, @weightKg, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)`);
+    for (const record of payload.growthRecords) insertGrowth.run(record);
+  }
   const insertRecord = db.prepare(`
     INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
     VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
