@@ -78,7 +78,20 @@ const auditEntrySchema = z.object({
 const careItemSchema = z.object({
   id: z.string().min(1).max(50), name: z.string().trim().min(1, '请填写项目名称').max(12, '项目名称不能超过 12 个字'),
   icon: z.enum(['medicine', 'massage']), sortOrder: z.number().int().min(0).max(999), active: z.boolean(),
+  scheduleType: z.enum(['daily', 'interval', 'as_needed']).default('as_needed'), intervalDays: z.number().int().min(1).max(365).default(1),
+  scheduleStartDate: z.string().date().nullable().default(null), reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().default(null),
+  scheduleEndDate: z.string().date().nullable().default(null),
   createdAt: z.string().datetime({ offset: true }), updatedAt: z.string().datetime({ offset: true })
+});
+
+const careItemInputSchema = z.object({
+  name: z.string().trim().min(1).max(12), icon: z.enum(['medicine', 'massage']).default('medicine'),
+  sortOrder: z.number().int().min(0).max(999), scheduleType: z.enum(['daily', 'interval', 'as_needed']),
+  intervalDays: z.number().int().min(1).max(365), scheduleStartDate: z.string().date().nullable(),
+  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable(), scheduleEndDate: z.string().date().nullable()
+}).superRefine((value, ctx) => {
+  if (value.scheduleType !== 'as_needed' && !value.scheduleStartDate) ctx.addIssue({ code: 'custom', message: '请设置计划开始日期' });
+  if (value.scheduleStartDate && value.scheduleEndDate && value.scheduleEndDate < value.scheduleStartDate) ctx.addIssue({ code: 'custom', message: '结束日期不能早于开始日期' });
 });
 
 const familyMemberSchema = z.object({
@@ -222,7 +235,7 @@ function normalizeVaccineRecord(input: z.infer<typeof vaccineRecordSchema>, acto
 }
 
 function exportPayload() {
-  return { version: 9, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true), vaccineRecords: listVaccineRecords(true), vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports() };
+  return { version: 10, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true), vaccineRecords: listVaccineRecords(true), vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports() };
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -473,8 +486,8 @@ app.get('/api/care-items', (req, res) => {
 });
 
 app.post('/api/care-items', requireAdmin, (req, res) => {
-  const parsed = z.object({ name: z.string().trim().min(1).max(12), icon: z.enum(['medicine', 'massage']).default('medicine'), sortOrder: z.number().int().min(0).max(999) }).safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: '照护项目格式不正确' });
+  const parsed = careItemInputSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '照护项目格式不正确' });
   const item = saveCareItem({ id: randomUUID(), ...parsed.data });
   changeHub.broadcast('all');
   return res.status(201).json(item);
@@ -489,9 +502,9 @@ app.put('/api/care-items/order', requireAdmin, (req, res) => {
 });
 
 app.put('/api/care-items/:id', requireAdmin, (req, res) => {
-  const parsed = z.object({ name: z.string().trim().min(1).max(12), icon: z.enum(['medicine', 'massage']), sortOrder: z.number().int().min(0).max(999) }).safeParse(req.body);
+  const parsed = careItemInputSchema.safeParse(req.body);
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  if (!parsed.success || !id) return res.status(400).json({ error: '照护项目格式不正确' });
+  if (!parsed.success || !id) return res.status(400).json({ error: parsed.success ? '照护项目格式不正确' : parsed.error.issues[0]?.message || '照护项目格式不正确' });
   const item = saveCareItem({ id, ...parsed.data });
   changeHub.broadcast('all');
   return res.json(item);

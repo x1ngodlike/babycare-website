@@ -57,7 +57,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const role = getSessionUser(req)?.role;
-  if (role !== 'superadmin' && role !== 'admin') return res.status(403).json({ error: '只有管理员可以进行这项操作' });
+  if (role !== 'superadmin' && role !== 'admin') return res.status(403).json({ error: '只有管理身份可以进行这项操作' });
   next();
 }
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {

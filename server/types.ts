@@ -99,6 +99,11 @@ export interface CareItem {
   icon: 'medicine' | 'massage';
   sortOrder: number;
   active: boolean;
+  scheduleType: 'daily' | 'interval' | 'as_needed';
+  intervalDays: number;
+  scheduleStartDate: string | null;
+  reminderTime: string | null;
+  scheduleEndDate: string | null;
   createdAt: string;
   updatedAt: string;
 }

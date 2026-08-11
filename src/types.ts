@@ -72,7 +72,21 @@ export interface AuditEntry {
 export interface Profile { name: string; birthDate: string; sex: BabySex; updatedAt?: string }
 export interface ServerBackupStatus { directory: string; intervalHours: number; retention: number; count: number; lastBackupAt: string | null; nextBackupAt: string }
 export interface ServerBackupFile { name: string; createdAt: string; size: number }
-export interface CareItem { id: string; name: string; icon: 'medicine' | 'massage'; sortOrder: number; active: boolean; createdAt: string; updatedAt: string }
+export type CareScheduleType = 'daily' | 'interval' | 'as_needed';
+export interface CareItem {
+  id: string;
+  name: string;
+  icon: 'medicine' | 'massage';
+  sortOrder: number;
+  active: boolean;
+  scheduleType: CareScheduleType;
+  intervalDays: number;
+  scheduleStartDate: string | null;
+  reminderTime: string | null;
+  scheduleEndDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface DraftRecord {
   id?: string;
   type: RecordType;

@@ -14,7 +14,7 @@ function dayDistance(day: string) {
 function planStatus(day: string) {
   const distance = dayDistance(day);
   if (distance < 0) return { label: `已超过 ${Math.abs(distance)} 天`, tone: 'overdue' };
-  if (distance === 0) return { label: '今天', tone: 'soon' };
+  if (distance === 0) return { label: '今日', tone: 'soon' };
   if (distance <= 7) return { label: `${distance} 天后`, tone: 'soon' };
   return { label: `${distance} 天后`, tone: 'normal' };
 }
@@ -57,22 +57,21 @@ function VaccineSchedulePage({ items, onBack, onOpenEditor, onCancelAppointment 
   </div>;
 }
 
-export function nextVaccineItem(profile: Profile, records: VaccineRecord[], catalog?: VaccineCatalogItem[]) {
-  return buildVaccinePlan(profile.birthDate, records, catalog)
-    .filter(item => !item.record?.administeredOn)
-    .sort((a, b) => (a.record?.appointmentOn || a.plannedOn).localeCompare(b.record?.appointmentOn || b.plannedOn))[0];
-}
-
 export function VaccineReminderCard({ profile, records, catalog, onComplete, onAppointment }: { profile: Profile; records: VaccineRecord[]; catalog: VaccineCatalogItem[]; onComplete(item: VaccinePlanItem): void; onAppointment(item: VaccinePlanItem): void }) {
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('babycare:vaccineReminderCollapsed') === 'true');
-  const next = nextVaccineItem(profile, records, catalog.length ? catalog : undefined);
+  const [open, setOpen] = useState(false);
+  const dialogRef = useRef<HTMLElement | null>(null);
+  useDialogFocus(dialogRef, () => setOpen(false), open);
+  const next = buildVaccinePlan(profile.birthDate, records, catalog.length ? catalog : undefined)
+    .filter(item => !item.record?.administeredOn)
+    .filter(item => dayDistance(item.record?.appointmentOn || item.plannedOn) > 0)
+    .sort((a, b) => (a.record?.appointmentOn || a.plannedOn).localeCompare(b.record?.appointmentOn || b.plannedOn))[0];
   if (!next) return null;
   const reminderOn = next.record?.appointmentOn || next.plannedOn; const status = planStatus(reminderOn);
-  function changeCollapsed(value: boolean) { setCollapsed(value); localStorage.setItem('babycare:vaccineReminderCollapsed', String(value)); }
-  if (collapsed) return <button type="button" className="vaccine-reminder-card collapsed" aria-label="展开下一针疫苗" onClick={() => changeCollapsed(false)}><span>{status.label}：{next.vaccineName} · 第{next.dose}剂</span><span className="vaccine-collapsed-action">展开</span></button>;
-  return <section className="vaccine-reminder-card" aria-labelledby="next-vaccine-title">
-    <div className="vaccine-card-copy"><div className="vaccine-card-head"><p className="kicker">下一针疫苗 · {status.label}</p><div className="vaccine-card-icon-actions"><button type="button" className="vaccine-icon-action" aria-label={next.record?.appointmentOn ? '修改门诊预约' : '设置门诊预约'} title={next.record?.appointmentOn ? '修改预约' : '设置预约'} onClick={() => onAppointment(next)}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M8 3v4M16 3v4M4 10h16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg></button><button type="button" className="vaccine-icon-action" aria-label="记录已接种" title="已接种" onClick={() => onComplete(next)}><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" /><path d="m8 12 2.5 2.5L16.5 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button><button type="button" className="vaccine-icon-action" aria-label="收起下一针疫苗" title="收起" onClick={() => changeCollapsed(true)}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button></div></div><div className="vaccine-title-line"><h2 id="next-vaccine-title">{next.vaccineName} · 第{next.dose}剂</h2><VaccineKind category={next.category} /></div>{next.record?.appointmentOn ? <p><b>门诊预约：{formatVaccineDay(next.record.appointmentOn)}{next.record.appointmentTime ? ` ${next.record.appointmentTime}` : ''}</b>{next.hasSuggestedDate && <small>建议接种：{formatVaccineDay(next.plannedOn)}前后</small>}</p> : <p>建议接种：{formatVaccineDay(next.plannedOn)}前后</p>}</div>
-  </section>;
+  if (!next.record?.appointmentOn && dayDistance(next.plannedOn) > 30) return null;
+  return <>
+    <button type="button" className="vaccine-reminder-card collapsed info-summary-row" aria-label="查看疫苗安排" onClick={() => setOpen(true)}><span className="info-row-label">疫苗安排</span><span className="info-row-value">{next.vaccineName} · 第{next.dose}剂 · {status.label}</span><span className="info-row-chevron" aria-hidden="true">›</span></button>
+    {open && <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && setOpen(false)}><section ref={dialogRef} className="editor info-sheet vaccine-info-sheet" role="dialog" aria-modal="true" aria-labelledby="next-vaccine-title"><header className="editor-head"><div><p className="kicker">疫苗安排 · {status.label}</p><div className="vaccine-title-line"><h2 id="next-vaccine-title">{next.vaccineName} · 第{next.dose}剂</h2><VaccineKind category={next.category} /></div></div><button className="close-btn" onClick={() => setOpen(false)} aria-label="关闭">×</button></header><div className="vaccine-sheet-date">{next.record?.appointmentOn ? <p><b>门诊预约：{formatVaccineDay(next.record.appointmentOn)}{next.record.appointmentTime ? ` ${next.record.appointmentTime}` : ''}</b>{next.hasSuggestedDate && <small>建议接种：{formatVaccineDay(next.plannedOn)}前后</small>}</p> : <p>建议接种：{formatVaccineDay(next.plannedOn)}前后</p>}</div><div className="editor-actions"><button type="button" className="btn secondary" onClick={() => { setOpen(false); onAppointment(next); }}>预约</button><button type="button" className="btn primary" onClick={() => { setOpen(false); onComplete(next); }}>记录</button></div><p className="vaccine-safety-note">具体接种与补种安排请以接种门诊为准。</p></section></div>}
+  </>;
 }
 
 export function VaccineArchiveSummary({ profile, records, catalog, onOpen }: { profile: Profile; records: VaccineRecord[]; catalog: VaccineCatalogItem[]; onOpen(): void }) {
