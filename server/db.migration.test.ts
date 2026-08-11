@@ -8,6 +8,14 @@ const directory = mkdtempSync(join(tmpdir(), 'baby-care-migration-test-'));
 const databasePath = join(directory, 'legacy.db');
 const legacy = new Database(databasePath);
 legacy.exec(`
+  CREATE TABLE profile (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    name TEXT NOT NULL,
+    birth_date TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  INSERT INTO profile VALUES (1, '旧版宝宝', '2026-01-01', '2026-08-09T08:00:00.000Z');
+
   CREATE TABLE care_records (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL CHECK (type IN ('feeding', 'supplement', 'bowel', 'note')),
@@ -30,6 +38,7 @@ afterAll(() => { db.closeDatabaseForTests(); rmSync(directory, { recursive: true
 
 describe('legacy database migration', () => {
   it('retains old records and accepts the new massage item', () => {
+    expect(db.getProfile()).toMatchObject({ name: '旧版宝宝', sex: 'unspecified' });
     expect(db.allRecords(true)[0]?.supplement).toBe('AD');
     expect(db.listCareItems().map(item => item.name)).toContain('推拿');
     expect(() => db.saveRecord({

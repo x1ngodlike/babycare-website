@@ -28,6 +28,12 @@ beforeAll(() => expect(db.getProfile()).toMatchObject({ name: '示例宝宝' }))
 afterAll(() => { db.closeDatabaseForTests(); rmSync(directory, { recursive: true, force: true }); });
 
 describe('record reliability', () => {
+  it('stores the baby sex and defaults legacy profile imports safely', () => {
+    expect(db.saveProfile('示例宝宝', '2026-01-01', 'female')).toMatchObject({ sex: 'female' });
+    db.importBackup({ profile: { name: '旧备份宝宝', birthDate: '2026-01-02' }, records: [] });
+    expect(db.getProfile()).toMatchObject({ name: '旧备份宝宝', sex: 'unspecified' });
+  });
+
   it('stores model settings with safe defaults', () => {
     expect(db.getAiSettings()).toMatchObject({ provider: 'DeepSeek', baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', apiKey: '' });
     db.saveAiSettings({ baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', apiKey: 'test-key' });
@@ -91,14 +97,18 @@ describe('record reliability', () => {
     expect(db.listAudit(item.id)).toEqual([]);
   });
 
-  it('keeps one active growth record per Monday-to-Sunday week and supports recovery', () => {
+  it('keeps one active growth record per day and supports recovery', () => {
     const monday = growth({ id: '99999999-9999-4999-8999-999999999991', measuredOn: '2026-08-10' });
     expect(db.saveGrowthRecord(monday)).toMatchObject({ heightCm: 62.5, weightKg: 6.35 });
-    expect(() => db.saveGrowthRecord(growth({ id: '99999999-9999-4999-8999-999999999992', measuredOn: '2026-08-16' }))).toThrow(db.DuplicateGrowthWeekError);
-    const nextWeek = growth({ id: '99999999-9999-4999-8999-999999999993', measuredOn: '2026-08-17', heightCm: 63.1 });
-    db.saveGrowthRecord(nextWeek);
+    expect(() => db.saveGrowthRecord(growth({ id: '99999999-9999-4999-8999-999999999992', measuredOn: '2026-08-10' }))).toThrow(db.DuplicateGrowthDayError);
+    const nextDay = growth({ id: '99999999-9999-4999-8999-999999999993', measuredOn: '2026-08-11', heightCm: 63.1 });
+    db.saveGrowthRecord(nextDay);
     expect(db.listGrowthRecords()).toHaveLength(2);
     expect(db.removeGrowthRecord(monday.id, 'mother')?.deletedBy).toBe('mother');
+    const replacement = growth({ id: '99999999-9999-4999-8999-999999999994', measuredOn: '2026-08-10' });
+    db.saveGrowthRecord(replacement);
+    expect(() => db.restoreGrowthRecord(monday.id, 'father')).toThrow(db.DuplicateGrowthDayError);
+    db.removeGrowthRecord(replacement.id, 'father');
     expect(db.restoreGrowthRecord(monday.id, 'father').deletedAt).toBeNull();
     db.removeGrowthRecord(monday.id, 'father');
     expect(db.purgeGrowthRecord(monday.id)).toBe(true);

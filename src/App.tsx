@@ -3,7 +3,7 @@ import { api, ApiError } from './api';
 import { addDays, calculateAge, isoDay, startOfWeek, toLocalInput } from './date';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
-import type { AiSettingsPublic, AuditEntry, AuditIdentity, BowelSize, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, RecordType, ServerBackupFile, ServerBackupStatus, SessionUser, Supplement, UserRole } from './types';
+import type { AiSettingsPublic, AuditEntry, AuditIdentity, BabySex, BowelSize, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, RecordType, ServerBackupFile, ServerBackupStatus, SessionUser, Supplement, UserRole } from './types';
 
 type Tab = 'today' | 'history' | 'trends' | 'archive' | 'settings';
 type TrendMode = 'seven' | 'month' | 'total';
@@ -21,6 +21,7 @@ const auditNames: Record<AuditIdentity, string> = { father: '爸爸', mother: '�
 const auditActions: Record<AuditEntry['action'], string> = { create: '创建记录', update: '修改记录', delete: '删除记录', restore: '恢复记录', import: '从备份导入' };
 const emptyCapabilities: Capabilities = { aiEnabled: false, aiModel: null };
 const roleNames: Record<UserRole, string> = { superadmin: '超管', admin: '管理员', member: '普通用户' };
+const sexLabels: Record<BabySex, string> = { male: '男宝宝', female: '女宝宝', unspecified: '性别未设置' };
 const canManage = (user: SessionUser | null) => user?.role === 'superadmin' || user?.role === 'admin';
 const careItemIcon = (value: CareRecord | DraftRecord, items: CareItem[]) => value.type === 'supplement' && items.find(item => item.name === value.supplement)?.icon === 'massage' ? '/icons/record-massage.png' : typeIcons[value.type];
 const selectableCareItems = (items: CareItem[], current?: string | null) => [...new Set([...items.filter(item => item.active).map(item => item.name), ...(current ? [current] : [])])];
@@ -201,8 +202,8 @@ function RecordEditor({ initial, careItems, onClose, onSave }: { initial: DraftR
   </div>;
 }
 
-function ChoiceField<T extends string>({ label, values, selected, onSelect }: { label: string; values: T[]; selected?: T | null; onSelect(value: T): void }) {
-  return <fieldset><legend>{label}</legend><div className="choice-group">{values.map(value => <button type="button" key={value} aria-pressed={selected === value} className={selected === value ? 'selected' : ''} onClick={() => onSelect(value)}>{selected === value && '✓ '}{value}</button>)}</div></fieldset>;
+function ChoiceField<T extends string>({ label, values, selected, onSelect, getLabel = value => value }: { label: string; values: T[]; selected?: T | null; onSelect(value: T): void; getLabel?(value: T): string }) {
+  return <fieldset><legend>{label}</legend><div className="choice-group">{values.map(value => <button type="button" key={value} aria-pressed={selected === value} className={selected === value ? 'selected' : ''} onClick={() => onSelect(value)}>{selected === value && '✓ '}{getLabel(value)}</button>)}</div></fieldset>;
 }
 
 
@@ -260,7 +261,7 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin }: { cap
   }
   function closeReport() { if (!data) return; localStorage.setItem('babycare:dailyReportDismissed', data.date); setDismissed(true); }
   function openReport() { localStorage.removeItem('babycare:dailyReportDismissed'); setDismissed(false); }
-  const [m, d] = data ? data.date.split('-').map(Number) : [0, 0];
+  const [year, month, day] = data ? data.date.split('-').map(Number) : [0, 0, 0];
   const weekday = data ? ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date(`${data.date}T00:00:00`).getDay()] : '';
   if (data && dismissed) {
     return (
@@ -272,7 +273,7 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin }: { cap
   }
   return (
     <section className="daily-report" aria-label="昨日日报">
-      <div className="section-title"><p className="kicker">昨日日报</p><div className="dr-head-right">{superadmin && <button type="button" className={`dr-regen${busy ? ' spinning' : ''}`} aria-label="重新生成日报" title="重新生成日报" disabled={busy || !online} onClick={generate}><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z" fill="currentColor" /></svg></button>}{data && <button type="button" className="dr-close" aria-label="收起日报" title="收起日报" onClick={closeReport}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" /></svg></button>}</div></div>
+      <div className="section-title"><p className="kicker">昨日日报</p><div className="dr-head-right">{superadmin && <button type="button" className={`dr-regen${busy ? ' spinning' : ''}`} aria-label="重新生成日报" title="重新生成日报" disabled={busy || !online} onClick={generate}><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z" fill="currentColor" /></svg></button>}{data && <button type="button" className="dr-close" aria-label="收起日报" title="收起日报" onClick={closeReport}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /></svg></button>}</div></div>
       {loading && <p className="loading-copy">正在读取昨日日报…</p>}
       {!loading && error && <p className="error-text">{error}{superadmin && '，点击右上角重试。'}</p>}
       {!loading && !error && !online && !data && <p className="dr-note">联网后可查看昨日日报。</p>}
@@ -281,10 +282,14 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin }: { cap
       {!loading && !error && data && <>
         <p className="dr-summary">{data.summary}</p>
         {data.suggestions.length > 0 && <ul className="dr-suggestions">{data.suggestions.map((item, index) => <li key={index}>{item}</li>)}</ul>}
-        <div className="dr-footer"><small>{`${m}月${d}日 ${weekday}${data.generatedAt ? ` · 生成于 ${new Date(data.generatedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}` : ''}`}</small></div>
+        <div className="dr-footer"><small>{`${year}年${month}月${day}日 · ${weekday}${data.generatedAt ? ` · 生成于 ${new Date(data.generatedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}` : ''}`}</small></div>
       </>}
     </section>
   );
+}
+
+function WeeklyGrowthPrompt({ onOpen }: { onOpen(): void }) {
+  return <section className="weekly-growth-prompt"><div><p className="kicker">本周成长</p><h2>记录身高和体重</h2><p>每周记录一次，成长变化会保存到档案。</p></div><button className="btn primary" onClick={onOpen}>去记录</button></section>;
 }
 
 function TodayView({ profile, records, careItems, capabilities, online, onOpenSettings, manager, superadmin, weeklyGrowth, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; careItems: CareItem[]; capabilities: Capabilities; online: boolean; onOpenSettings(): void; manager: boolean; superadmin: boolean; weeklyGrowth?: GrowthRecord; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
@@ -294,7 +299,7 @@ function TodayView({ profile, records, careItems, capabilities, online, onOpenSe
   return <div className="today-layout"><div className="today-primary">
     <section className="baby-hero"><div><p className="kicker">今日 · {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</p><h1>{profile.name}</h1><p>{calculateAge(profile.birthDate)}{lastFeed ? ` · 上次喂奶 ${new Date(lastFeed.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : ' · 今天还未喂奶'}</p></div><img src="/bear-bottle.png" alt="" /></section>
     <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>ml</small></div><div><span>奶粉</span><strong>{formula}</strong><small>ml</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
-    {!weeklyGrowth && <section className="weekly-growth-prompt"><div><p className="kicker">本周成长</p><h2>记录身高和体重</h2><p>每周记录一次，成长变化会保存到档案。</p></div><button className="btn primary" onClick={onAddGrowth}>去记录</button></section>}
+    {!weeklyGrowth && <WeeklyGrowthPrompt onOpen={onAddGrowth} />}
     <DailyReport capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} superadmin={superadmin} />
     <section className="quick-section"><div className="section-title"><h2>快捷记录</h2></div><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>记录喂奶</b><small>母乳、奶粉</small></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>记录排便</b><small>大、中、小</small></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他情况</b><small>吐奶、状态</small></button></div></section>
     <section className="medicine-card"><h2>今日用药</h2><div className="medicine-actions">{careItems.filter(item => item.active).map(item => { const record = done.get(item.name); return <button key={item.id} className={record ? 'done' : ''} disabled={Boolean(record) || Boolean(savingSupplement)} onClick={() => addSupplement(item.name)}><span>{record ? '✓' : savingSupplement === item.name ? '···' : '+'}</span><b>{item.name}</b><small>{record ? `${auditNames[record.createdBy]} ${new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : savingSupplement === item.name ? '记录中' : '点按记录'}</small></button>; })}</div></section>
@@ -379,10 +384,11 @@ function TrendsView({ records }: { records: CareRecord[] }) {
   </div>;
 }
 
-function GrowthEditor({ profile, initial, previous, onClose, onSave }: { profile: Profile; initial?: GrowthRecord; previous?: GrowthRecord; onClose(): void; onSave(value: DraftGrowthRecord): Promise<void> }) {
+function GrowthEditor({ profile, records, initial, onClose, onSave }: { profile: Profile; records: GrowthRecord[]; initial?: GrowthRecord; onClose(): void; onSave(value: DraftGrowthRecord): Promise<void> }) {
   const [measuredOn, setMeasuredOn] = useState(initial?.measuredOn || isoDay(new Date()));
   const [height, setHeight] = useState(initial ? String(initial.heightCm) : '');
   const [weight, setWeight] = useState(initial ? String(initial.weightKg) : '');
+  const previous = records.find(record => record.id !== initial?.id && record.measuredOn < measuredOn);
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, onClose);
   async function submit(event: React.FormEvent) {
@@ -390,20 +396,62 @@ function GrowthEditor({ profile, initial, previous, onClose, onSave }: { profile
     try { await onSave({ id: initial?.id, measuredOn, heightCm: Number(height), weightKg: Number(weight) }); onClose(); }
     catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); }
   }
-  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor growth-editor" role="dialog" aria-modal="true" aria-labelledby="growth-editor-title"><header className="editor-head"><div><p className="kicker">宝宝档案</p><h2 id="growth-editor-title">{initial ? '修改成长记录' : '记录本周成长'}</h2></div><button className="close-btn" onClick={onClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>测量日期<input type="date" min={profile.birthDate} max={isoDay(new Date())} value={measuredOn} onChange={event => setMeasuredOn(event.target.value)} required /></label><div className="growth-fields"><label>身高 <small>cm</small><input type="number" inputMode="decimal" min="20" max="150" step="0.1" value={height} onChange={event => setHeight(event.target.value)} placeholder="例如 62.5" required /></label><label>体重 <small>kg</small><input type="number" inputMode="decimal" min="0.5" max="50" step="0.01" value={weight} onChange={event => setWeight(event.target.value)} placeholder="例如 6.35" required /></label></div>{previous && !initial && <p className="growth-reference">上次：{previous.heightCm} cm · {previous.weightKg} kg</p>}{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose}>取消</button><button className="btn primary" disabled={busy || !height || !weight}>{busy ? '保存中…' : '保存记录'}</button></footer></form></section></div>;
+  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor growth-editor" role="dialog" aria-modal="true" aria-labelledby="growth-editor-title"><header className="editor-head"><div><p className="kicker">宝宝档案</p><h2 id="growth-editor-title">{initial ? '修改成长记录' : '记录成长'}</h2></div><button className="close-btn" onClick={onClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>测量日期<input type="date" min={profile.birthDate} max={isoDay(new Date())} value={measuredOn} onChange={event => setMeasuredOn(event.target.value)} required /></label><div className="growth-fields"><label>身高 <small>cm</small><input type="number" inputMode="decimal" min="20" max="150" step="0.1" value={height} onChange={event => setHeight(event.target.value)} placeholder="例如 62.5" required /></label><label>体重 <small>kg</small><input type="number" inputMode="decimal" min="0.5" max="50" step="0.01" value={weight} onChange={event => setWeight(event.target.value)} placeholder="例如 6.35" required /></label></div>{previous && !initial && <p className="growth-reference">上次：{previous.heightCm} cm · {previous.weightKg} kg</p>}{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose}>取消</button><button className="btn primary" disabled={busy || !height || !weight}>{busy ? '保存中…' : '保存记录'}</button></footer></form></section></div>;
 }
 
 function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClose(): void; onSaved(value: Profile): void }) {
-  const [form, setForm] = useState(profile); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified' }); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, onClose);
   async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const next = await api.updateProfile(form); cacheProfile(next); onSaved(next); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
-  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor" role="dialog" aria-modal="true" aria-labelledby="profile-editor-title"><header className="editor-head"><div><p className="kicker">宝宝档案</p><h2 id="profile-editor-title">修改基本资料</h2></div><button className="close-btn" onClick={onClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>宝宝姓名<input value={form.name} maxLength={30} onChange={event => setForm({ ...form, name: event.target.value })} required /></label><label>出生日期<input type="date" max={isoDay(new Date())} value={form.birthDate} onChange={event => setForm({ ...form, birthDate: event.target.value })} required /></label>{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '保存资料'}</button></footer></form></section></div>;
+  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor" role="dialog" aria-modal="true" aria-labelledby="profile-editor-title"><header className="editor-head"><div><p className="kicker">宝宝档案</p><h2 id="profile-editor-title">修改基本资料</h2></div><button className="close-btn" onClick={onClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>宝宝姓名<input value={form.name} maxLength={30} onChange={event => setForm({ ...form, name: event.target.value })} required /></label><ChoiceField label="宝宝性别" values={['male', 'female', 'unspecified'] as BabySex[]} selected={form.sex} onSelect={sex => setForm({ ...form, sex })} getLabel={sex => sex === 'unspecified' ? '未设置' : sexLabels[sex]} /><label>出生日期<input type="date" max={isoDay(new Date())} value={form.birthDate} onChange={event => setForm({ ...form, birthDate: event.target.value })} required /></label>{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '保存资料'}</button></footer></form></section></div>;
+}
+
+function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange(page: number): void }) {
+  if (totalPages <= 1) return null;
+  return <nav className="pagination" aria-label="成长记录分页"><button disabled={page <= 1} onClick={() => onChange(page - 1)}>‹ 上一页</button><span>第 {page} / {totalPages} 页</span><button disabled={page >= totalPages} onClick={() => onChange(page + 1)}>下一页 ›</button></nav>;
+}
+
+function GrowthDelta({ value, digits, unit }: { value: number; digits: number; unit: string }) {
+  const direction = value > 0 ? 'up' : value < 0 ? 'down' : 'flat';
+  return <small className={`growth-delta ${direction}`} aria-label={`较上次${value > 0 ? '增加' : value < 0 ? '减少' : '无变化'}${Math.abs(value).toFixed(digits)}${unit}`}>{value > 0 ? '+' : ''}{value.toFixed(digits)} {unit}</small>;
 }
 
 function ArchiveView({ profile, growthRecords, deletedGrowthRecords, user, onEditGrowth, onAddGrowth, onDeleteGrowth, onRestoreGrowth, onPurgeGrowth, onProfileSaved }: { profile: Profile; growthRecords: GrowthRecord[]; deletedGrowthRecords: GrowthRecord[]; user: SessionUser; onEditGrowth(record: GrowthRecord): void; onAddGrowth(): void; onDeleteGrowth(record: GrowthRecord): Promise<void>; onRestoreGrowth(record: GrowthRecord): Promise<void>; onPurgeGrowth(record: GrowthRecord): Promise<void>; onProfileSaved(value: Profile): void }) {
   const [editingProfile, setEditingProfile] = useState(false); const [showDeleted, setShowDeleted] = useState(false);
-  const latest = growthRecords[0]; const current = growthRecords.find(record => weekContains(record));
-  return <div className="page-stack archive-page"><header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header><section className="archive-profile"><div><p className="kicker">基本资料</p><h2>{profile.name}</h2><p>{calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div>{user.role === 'superadmin' && <button className="btn secondary" onClick={() => setEditingProfile(true)}>编辑资料</button>}<div className="archive-metrics"><div><span>最新身高</span><strong>{latest?.heightCm ?? '—'}</strong><small>{latest ? 'cm' : '暂无'}</small></div><div><span>最新体重</span><strong>{latest?.weightKg ?? '—'}</strong><small>{latest ? 'kg' : '暂无'}</small></div></div></section><section className="growth-history"><div className="section-title"><div><p className="kicker">周一至周日</p><h2>成长记录</h2></div><button className="btn primary" onClick={() => current ? onEditGrowth(current) : onAddGrowth()}>{current ? '修改本周' : '记录本周'}</button></div>{growthRecords.length ? <div className="growth-list">{growthRecords.map((record, index) => { const previous = growthRecords[index + 1]; return <article key={record.id}><time>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}<small>{calculateAge(profile.birthDate, new Date(`${record.measuredOn}T12:00:00`))}</small></time><div><span>身高</span><b>{record.heightCm} cm</b>{previous && <small>{record.heightCm >= previous.heightCm ? '+' : ''}{(record.heightCm - previous.heightCm).toFixed(1)} cm</small>}</div><div><span>体重</span><b>{record.weightKg} kg</b>{previous && <small>{record.weightKg >= previous.weightKg ? '+' : ''}{(record.weightKg - previous.weightKg).toFixed(2)} kg</small>}</div><p>{auditNames[record.createdBy]}录入</p><div className="growth-actions"><button onClick={() => onEditGrowth(record)}>修改</button>{canManage(user) && <button className="danger" onClick={() => void onDeleteGrowth(record)}>删除</button>}</div></article>; })}</div> : <div className="empty-state"><span>○</span><h3>还没有成长记录</h3><p>首页每周会提醒记录一次。</p></div>}</section>{canManage(user) && <section className="deleted-growth"><button className="settings-entry" onClick={() => setShowDeleted(value => !value)}><span className="settings-entry-icon">已删</span><span><b>已删除的成长记录</b><small>可恢复或彻底删除</small></span><em>{deletedGrowthRecords.length} 条</em><i>{showDeleted ? '⌃' : '›'}</i></button>{showDeleted && <div className="growth-deleted-list">{deletedGrowthRecords.length ? deletedGrowthRecords.map(record => <article key={record.id}><span>{record.measuredOn}</span><b>{record.heightCm} cm · {record.weightKg} kg</b><button className="btn secondary" onClick={() => void onRestoreGrowth(record)}>恢复</button><button className="btn danger-button" onClick={() => void onPurgeGrowth(record)}>彻底删除</button></article>) : <p>没有已删除的成长记录。</p>}</div>}</section>}{editingProfile && <ProfileEditor profile={profile} onClose={() => setEditingProfile(false)} onSaved={onProfileSaved} />}</div>;
+  const [growthPage, setGrowthPage] = useState(1); const [deletedPage, setDeletedPage] = useState(1); const [openGrowthMenu, setOpenGrowthMenu] = useState<string | null>(null);
+  const previousGrowthCount = useRef(growthRecords.length);
+  const latest = growthRecords[0];
+  const todayGrowth = growthRecords.find(record => record.measuredOn === isoDay(new Date()));
+  const growthPages = Math.max(1, Math.ceil(growthRecords.length / 5));
+  const deletedPages = Math.max(1, Math.ceil(deletedGrowthRecords.length / 10));
+  const visibleGrowthRecords = growthRecords.slice((growthPage - 1) * 5, growthPage * 5);
+  const visibleDeletedRecords = deletedGrowthRecords.slice((deletedPage - 1) * 10, deletedPage * 10);
+  useEffect(() => {
+    setGrowthPage(page => growthRecords.length > previousGrowthCount.current ? 1 : Math.min(page, growthPages));
+    previousGrowthCount.current = growthRecords.length;
+  }, [growthPages, growthRecords.length]);
+  useEffect(() => setDeletedPage(page => Math.min(page, deletedPages)), [deletedPages]);
+  useEffect(() => {
+    if (!openGrowthMenu) return;
+    const closeOutside = (event: PointerEvent) => { if (!(event.target as HTMLElement).closest('[data-growth-menu]')) setOpenGrowthMenu(null); };
+    const closeOnScroll = () => setOpenGrowthMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpenGrowthMenu(null); };
+    document.addEventListener('pointerdown', closeOutside); window.addEventListener('scroll', closeOnScroll, true); window.addEventListener('keydown', closeOnEscape);
+    return () => { document.removeEventListener('pointerdown', closeOutside); window.removeEventListener('scroll', closeOnScroll, true); window.removeEventListener('keydown', closeOnEscape); };
+  }, [openGrowthMenu]);
+
+  if (showDeleted && canManage(user)) return <div className="page-stack archive-page"><header className="subpage-head"><button onClick={() => setShowDeleted(false)} aria-label="返回宝宝档案">‹</button><div><p className="kicker">宝宝档案</p><h1>已删除的成长记录</h1></div></header><section className="growth-history growth-deleted-page">{deletedGrowthRecords.length ? <div className="growth-deleted-list">{visibleDeletedRecords.map(record => <article key={record.id}><span>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span><b>{record.heightCm} cm · {record.weightKg} kg</b><button className="btn secondary" onClick={() => void onRestoreGrowth(record)}>恢复</button><button className="btn danger-button" onClick={() => void onPurgeGrowth(record)}>彻底删除</button></article>)}</div> : <div className="empty-state"><span>○</span><h3>没有已删除的成长记录</h3><p>删除的记录会保留在这里。</p></div>}<Pagination page={deletedPage} totalPages={deletedPages} onChange={setDeletedPage} /></section></div>;
+
+  return <div className="page-stack archive-page">
+    <header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header>
+    <section className="archive-profile"><div><p className="kicker">基本资料</p><h2>{profile.name}</h2><p>{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div>{user.role === 'superadmin' && <button className="btn secondary" onClick={() => setEditingProfile(true)}>编辑资料</button>}<div className="archive-metrics"><div><span>最新身高</span><strong>{latest?.heightCm ?? '—'}</strong><small>{latest ? 'cm' : '暂无'}</small></div><div><span>最新体重</span><strong>{latest?.weightKg ?? '—'}</strong><small>{latest ? 'kg' : '暂无'}</small></div></div></section>
+    <section className="growth-history">
+      <div className="section-title"><h2>成长记录</h2><div className="growth-head-actions">{canManage(user) && <button className="growth-deleted-toggle" onClick={() => setShowDeleted(true)}>已删 {deletedGrowthRecords.length}</button>}<button className="btn primary" onClick={() => todayGrowth ? onEditGrowth(todayGrowth) : onAddGrowth()}>{todayGrowth ? '修改今日' : '记录今日'}</button></div></div>
+      {growthRecords.length ? <div className="growth-list">{visibleGrowthRecords.map(record => { const recordIndex = growthRecords.findIndex(item => item.id === record.id); const previous = growthRecords[recordIndex + 1]; return <article key={record.id}><time>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}<small>{calculateAge(profile.birthDate, new Date(`${record.measuredOn}T12:00:00`))}</small><small>{auditNames[record.createdBy]}录入</small></time><div><span>身高</span><b>{record.heightCm} cm</b>{previous && <GrowthDelta value={record.heightCm - previous.heightCm} digits={1} unit="cm" />}</div><div><span>体重</span><b>{record.weightKg} kg</b>{previous && <GrowthDelta value={record.weightKg - previous.weightKg} digits={2} unit="kg" />}</div><div className="growth-actions" data-growth-menu><button className="growth-menu-trigger" aria-label={`${record.measuredOn}成长记录操作`} aria-expanded={openGrowthMenu === record.id} onClick={() => setOpenGrowthMenu(value => value === record.id ? null : record.id)}><span aria-hidden="true">•••</span></button>{openGrowthMenu === record.id && <div className="growth-menu-popover" role="menu"><button role="menuitem" onClick={() => { setOpenGrowthMenu(null); onEditGrowth(record); }}>修改记录</button>{canManage(user) && <button role="menuitem" className="danger" onClick={() => { setOpenGrowthMenu(null); void onDeleteGrowth(record); }}>删除记录</button>}</div>}</div></article>; })}</div> : <div className="empty-state"><span>○</span><h3>还没有成长记录</h3><p>可以从今天开始记录身高和体重。</p></div>}
+      <Pagination page={growthPage} totalPages={growthPages} onChange={setGrowthPage} />
+    </section>
+    {editingProfile && <ProfileEditor profile={profile} onClose={() => setEditingProfile(false)} onSaved={onProfileSaved} />}
+  </div>;
 }
 
 function AiSettingsCard({ capabilities, onChanged }: { capabilities: Capabilities; onChanged(): Promise<void> }) {
@@ -554,7 +602,7 @@ function SettingsView({ careItems, capabilities, user, onCapabilitiesChanged, on
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
-  const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01' });
+  const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01', sex: 'unspecified' });
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [records, setRecords] = useState<CareRecord[]>([]);
   const [deletedRecords, setDeletedRecords] = useState<CareRecord[]>([]); const [careItems, setCareItems] = useState<CareItem[]>([]);
@@ -712,7 +760,7 @@ export default function App() {
 
   async function saveGrowth(value: DraftGrowthRecord) {
     try { value.id ? await api.updateGrowthRecord(value.id, value) : await api.createGrowthRecord(value); await loadGrowthRecords(); setToast({ message: '成长记录已保存' }); }
-    catch (error) { if (error instanceof ApiError && error.code === 'DUPLICATE_GROWTH_WEEK') { const existing = (error.details as { existing?: GrowthRecord })?.existing; if (existing) setGrowthEditor(existing); } throw error; }
+    catch (error) { if (error instanceof ApiError && error.code === 'DUPLICATE_GROWTH_DAY') { const existing = (error.details as { existing?: GrowthRecord })?.existing; if (existing) setGrowthEditor(existing); } throw error; }
   }
   async function removeGrowth(record: GrowthRecord) { if (!window.confirm('删除这条成长记录吗？可以从档案中恢复。')) return; try { await api.deleteGrowthRecord(record.id); await Promise.all([loadGrowthRecords(), loadDeletedGrowthRecords()]); setToast({ message: '成长记录已移到已删除' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '删除失败' }); } }
   async function restoreGrowth(record: GrowthRecord) { try { await api.restoreGrowthRecord(record.id); await Promise.all([loadGrowthRecords(), loadDeletedGrowthRecords()]); setToast({ message: '成长记录已恢复' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '恢复失败' }); } }
@@ -733,6 +781,6 @@ export default function App() {
     <main className="main-content">{tab === 'today' && <TodayView profile={profile} records={todayRecords} careItems={careItems} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} weeklyGrowth={weeklyGrowth} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} onOpenSettings={() => setTab('settings')} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}{tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} />}{tab === 'trends' && <TrendsView records={records} />}{tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} user={currentUser} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}{tab === 'settings' && <SettingsView careItems={careItems} capabilities={capabilities} user={currentUser} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={loadCareItems} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); }} />}</main>
     <button className="floating-add" onClick={() => setEditor(blankDraft())} aria-label="添加记录"><span>＋</span><b>记录</b></button>
     <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录'], ['trends', '/icons/nav-trends.png', '趋势'], ['archive', '/icons/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img src={icon} alt="" /><b>{label}</b></button>)}</nav>
-    {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor profile={profile} initial={growthEditor === 'new' ? undefined : growthEditor} previous={growthRecords[0]} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
+    {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor key={growthEditor === 'new' ? 'new' : growthEditor.id} profile={profile} records={growthRecords} initial={growthEditor === 'new' ? undefined : growthEditor} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
   </div>;
 }

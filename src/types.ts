@@ -3,6 +3,7 @@ export type Supplement = string;
 export type BowelSize = '大' | '中' | '小';
 export type FamilyId = 'father' | 'mother' | 'grandfather' | 'grandmother';
 export type UserRole = 'superadmin' | 'admin' | 'member';
+export type BabySex = 'male' | 'female' | 'unspecified';
 export type AuditIdentity = FamilyId | 'legacy';
 export type AuditAction = 'create' | 'update' | 'delete' | 'restore' | 'import';
 export interface SessionUser { id: FamilyId; name: string; role: UserRole }
@@ -48,7 +49,7 @@ export interface AuditEntry {
   snapshot: CareRecord | null;
 }
 
-export interface Profile { name: string; birthDate: string; updatedAt?: string }
+export interface Profile { name: string; birthDate: string; sex: BabySex; updatedAt?: string }
 export interface ServerBackupStatus { directory: string; intervalHours: number; retention: number; count: number; lastBackupAt: string | null; nextBackupAt: string }
 export interface ServerBackupFile { name: string; createdAt: string; size: number }
 export interface CareItem { id: string; name: string; icon: 'medicine' | 'massage'; sortOrder: number; active: boolean; createdAt: string; updatedAt: string }

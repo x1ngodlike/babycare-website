@@ -9,7 +9,7 @@ import { testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import type { FamilyId } from './auth.js';
 import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
-import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DailyReport, DuplicateGrowthWeekError, DuplicateSupplementError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, reorderCareItems, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, setCareItemActive, setFamilyRole } from './db.js';
+import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DailyReport, DuplicateGrowthDayError, DuplicateSupplementError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, reorderCareItems, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, setCareItemActive, setFamilyRole } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
 import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission, GrowthRecord } from './types.js';
@@ -102,7 +102,7 @@ const growthRecordSchema = z.object({
 
 const backupPayloadSchema = z.object({
   version: z.number().int().optional(),
-  profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date() }).optional(),
+  profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), sex: z.enum(['male', 'female', 'unspecified']).optional() }).optional(),
   records: z.array(recordSchema).max(10000),
   audits: z.array(auditEntrySchema).max(50000).optional(),
   careItems: z.array(careItemSchema).max(100).optional(),
@@ -180,7 +180,7 @@ function normalizeGrowthRecord(input: z.infer<typeof growthRecordSchema>, actor:
 }
 
 function exportPayload() {
-  return { version: 5, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true), dailyReports: listDailyReports() };
+  return { version: 6, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true), dailyReports: listDailyReports() };
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -276,10 +276,10 @@ app.post('/api/daily-report/generate', async (req, res) => {
 });
 
 app.put('/api/profile', requireSuperAdmin, (req, res) => {
-  const parsed = z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date() }).safeParse(req.body);
+  const parsed = z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), sex: z.enum(['male', 'female', 'unspecified']).default('unspecified') }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: '宝宝资料格式不正确' });
   if (new Date(`${parsed.data.birthDate}T00:00:00+08:00`) > new Date()) return res.status(400).json({ error: '出生日期不能晚于今天' });
-  const profile = saveProfile(parsed.data.name, parsed.data.birthDate);
+  const profile = saveProfile(parsed.data.name, parsed.data.birthDate, parsed.data.sex);
   changeHub.broadcast('profile');
   return res.json(profile);
 });
@@ -482,7 +482,7 @@ if (production) {
 }
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  if (error instanceof DuplicateGrowthWeekError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_GROWTH_WEEK', existing: error.existing });
+  if (error instanceof DuplicateGrowthDayError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_GROWTH_DAY', existing: error.existing });
   if (error instanceof DuplicateSupplementError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_SUPPLEMENT', existing: error.existing });
   if (error instanceof CareItemConflictError) return res.status(409).json({ error: error.message, code: 'CARE_ITEM_CONFLICT' });
   if (error instanceof CareItemInactiveError) return res.status(409).json({ error: error.message, code: 'CARE_ITEM_INACTIVE' });
@@ -497,4 +497,5 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 
 startBackupScheduler(exportPayload, backupDirectory);
 startDailyReportScheduler();
-app.listen(port, '0.0.0.0', () => console.log(`Baby care server listening on ${port}`));
+const listenHost = production ? '0.0.0.0' : '127.0.0.1';
+app.listen(port, listenHost, () => console.log(`Baby care server listening on http://${listenHost}:${port}`));

@@ -5,6 +5,7 @@ export type AuditIdentity = 'father' | 'mother' | 'grandfather' | 'grandmother' 
 export type AuditAction = 'create' | 'update' | 'delete' | 'restore' | 'import';
 export type FamilyId = 'father' | 'mother' | 'grandfather' | 'grandmother';
 export type UserRole = 'superadmin' | 'admin' | 'member';
+export type BabySex = 'male' | 'female' | 'unspecified';
 
 export interface FamilyMemberPermission {
   id: FamilyId;

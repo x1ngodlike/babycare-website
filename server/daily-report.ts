@@ -1,5 +1,5 @@
 import type { DailyReportInput } from './ai.js';
-import { generateDailyReport } from './ai.js';
+import { evaluateAdVdPlan, generateDailyReport } from './ai.js';
 import { getAiSettings, getDailyReport, getProfile, listGrowthRecords, listRecords, saveDailyReport } from './db.js';
 
 function shanghaiDateString(date = new Date()): string {
@@ -37,9 +37,10 @@ function calculateAgeText(birthDate: string, at: Date): string {
 interface ReportInput {
   babyName: string;
   ageText: string;
+  sex: DailyReportInput['sex'];
   date: string;
-  growth: { heightCm: number; weightKg: number; measuredOn: string } | null;
-  prevGrowth: { heightCm: number; weightKg: number; measuredOn: string } | null;
+  growthContext: DailyReportInput['growthContext'];
+  supplementPlan: DailyReportInput['supplementPlan'];
   yesterday: {
     breastMl: number;
     formulaMl: number;
@@ -51,11 +52,14 @@ interface ReportInput {
   hasData: boolean;
 }
 
+function dayDistance(from: string, to: string) {
+  return Math.floor((new Date(`${to}T00:00:00Z`).getTime() - new Date(`${from}T00:00:00Z`).getTime()) / 86400000);
+}
+
 function buildReportInput(date: string): ReportInput {
   const profile = getProfile();
-  const growthRecords = listGrowthRecords();
+  const growthRecords = listGrowthRecords().filter(record => record.measuredOn <= date);
   const growth = growthRecords[0] || null;
-  const prevGrowth = growthRecords[1] || null;
 
   const from = `${date}T00:00:00+08:00`;
   const to = `${addDaysToDateString(date, 1)}T00:00:00+08:00`;
@@ -65,6 +69,9 @@ function buildReportInput(date: string): ReportInput {
   const formulaMl = feedings.reduce((sum, record) => sum + (record.formulaMl || 0), 0);
   const bowelCount = records.filter(record => record.type === 'bowel').length;
   const supplements = [...new Set(records.filter(record => record.type === 'supplement' && record.supplement).map(record => record.supplement!))];
+  const previousDate = addDaysToDateString(date, -1);
+  const previousDayRecords = listRecords(`${previousDate}T00:00:00+08:00`, `${date}T00:00:00+08:00`);
+  const previousDaySupplements = [...new Set(previousDayRecords.filter(record => record.type === 'supplement' && record.supplement).map(record => record.supplement!))];
   const notes = records.filter(record => record.type === 'note' && record.note).map(record => record.note!);
 
   const hasData = breastMl + formulaMl > 0 || feedings.length > 0 || bowelCount > 0 || supplements.length > 0 || notes.length > 0;
@@ -72,9 +79,18 @@ function buildReportInput(date: string): ReportInput {
   return {
     babyName: profile.name,
     ageText: calculateAgeText(profile.birthDate, new Date(`${date}T12:00:00+08:00`)),
+    sex: profile.sex,
     date,
-    growth: growth ? { heightCm: growth.heightCm, weightKg: growth.weightKg, measuredOn: growth.measuredOn } : null,
-    prevGrowth: prevGrowth ? { heightCm: prevGrowth.heightCm, weightKg: prevGrowth.weightKg, measuredOn: prevGrowth.measuredOn } : null,
+    growthContext: growth ? {
+      heightCm: growth.heightCm, weightKg: growth.weightKg, measuredOn: growth.measuredOn,
+      daysSinceMeasurement: dayDistance(growth.measuredOn, date), recordCount: growthRecords.length,
+      recent: dayDistance(growth.measuredOn, date) <= 14
+    } : null,
+    supplementPlan: {
+      rule: '维生素 AD 与维生素 D（VD）每天一种、交替补充',
+      previousDay: previousDaySupplements,
+      status: evaluateAdVdPlan(supplements, previousDaySupplements)
+    },
     yesterday: { breastMl, formulaMl, feedCount: feedings.length, bowelCount, supplements, notes },
     hasData
   };

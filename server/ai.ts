@@ -1,13 +1,19 @@
 import { z } from 'zod';
+import type { BabySex } from './types.js';
 
 export type ModelSettings = { baseUrl: string; model: string; apiKey: string };
 
 export interface DailyReportInput {
   babyName: string;
   ageText: string;
+  sex: BabySex;
   date: string;
-  growth: { heightCm: number; weightKg: number; measuredOn: string } | null;
-  prevGrowth: { heightCm: number; weightKg: number; measuredOn: string } | null;
+  growthContext: { heightCm: number; weightKg: number; measuredOn: string; daysSinceMeasurement: number; recordCount: number; recent: boolean } | null;
+  supplementPlan: {
+    rule: string;
+    previousDay: string[];
+    status: string;
+  };
   yesterday: {
     breastMl: number;
     formulaMl: number;
@@ -55,20 +61,39 @@ export async function testModelConnection(settings: ModelSettings) {
   ]);
 }
 
-export async function generateDailyReport(input: DailyReportInput, settings: ModelSettings): Promise<{ summary: string; suggestions: string[] }> {
-  const growthLine = input.growth
-    ? `最新成长（${input.growth.measuredOn}）：身高 ${input.growth.heightCm}cm、体重 ${input.growth.weightKg}kg${input.prevGrowth ? `；上次（${input.prevGrowth.measuredOn}）身高 ${input.prevGrowth.heightCm}cm、体重 ${input.prevGrowth.weightKg}kg` : ''}`
-    : '暂无成长记录';
-  const content = await requestCompletion(settings, [
+export function evaluateAdVdPlan(yesterday: string[], previousDay: string[]): string {
+  const current = yesterday.filter(item => item === 'AD' || item === 'VD');
+  const previous = previousDay.filter(item => item === 'AD' || item === 'VD');
+  if (!current.length) return '昨日未记录 AD 或 VD；未记录不等于未服用，只可提醒核对';
+  if (current.length > 1) return '昨日同时记录 AD 和 VD，请核对是否符合当前医嘱';
+  if (previous.length !== 1) return `昨日已记录 ${current[0]}；缺少明确的前一日记录，无法判断交替情况`;
+  return current[0] !== previous[0]
+    ? `昨日 ${current[0]} 与前一日 ${previous[0]} 交替，符合计划`
+    : `昨日与前一日均记录 ${current[0]}，请核对是否符合当前医嘱`;
+}
+
+export function dailyReportMessages(input: DailyReportInput): { role: 'system' | 'user'; content: string }[] {
+  const sexLabel = input.sex === 'male' ? '男宝宝' : input.sex === 'female' ? '女宝宝' : '未设置';
+  return [
     {
       role: 'system',
-      content: '你是「宝宝照护日报」助手。只输出 JSON：{"summary":"…","suggestions":["…"]}。\n1. summary：≤40 字，口语化、温和，点出昨日最值得关注的一件事（总奶量/排便/成长变化），不泛泛而谈。\n2. suggestions：1~3 条，每条≤25 字，针对数据给具体可执行的提醒；若喂奶偏少、当日 0 次排便或成长明显偏离，请温和提醒关注并建议就医。\n3. 有成长数据时在 summary 体现趋势（如“比上次重了 120g”），不编造没有的数据。\n4. 不输出额外解释或 Markdown；不给出医疗诊断，健康异常建议咨询儿科医生。'
+      content: '你是「宝宝昨日照护日报」助手。只输出 JSON：{"summary":"…","suggestions":["…"]}。\n1. summary：≤45 字，口语化、温和，只总结昨日喂养、排便、补充剂执行或备注中最值得关注的一件事；不要在 summary 中展示身高、体重或成长趋势。\n2. suggestions：1~3 条，每条≤30 字，结合宝宝月龄、性别、昨日照护数据，以及仅在 recent=true 时使用的近期身高体重背景，给出具体可执行的提醒。\n3. 成长数据只用于调整建议，不得输出具体身高体重，不得出现“比上次”“增长”“下降”“变化”“趋势”等表述；只有一次记录也不得推测变化，不评价正常、偏高、偏低或发育异常。\n4. 维生素 AD 与维生素 D（VD）按每天一种交替补充；单日只记录其中一种属于正常情况，不要提醒补吃另一种。没有记录不等于没有服用，只能提醒核对；不得建议自行加量、减量、同服、停用或更换。\n5. 数据正常时不强行寻找问题；若昨日照护记录存在明显异常，请温和提醒观察，必要时咨询儿科医生。不给出医疗诊断，不编造输入中没有的事实。\n6. 不输出额外解释或 Markdown。'
     },
     {
       role: 'user',
-      content: `宝宝：${input.babyName}（${input.ageText}）。日期：${input.date}。${growthLine}。昨日照护：母乳 ${input.yesterday.breastMl}ml、奶粉 ${input.yesterday.formulaMl}ml、喂奶 ${input.yesterday.feedCount} 次、排便 ${input.yesterday.bowelCount} 次；营养补充：${input.yesterday.supplements.length ? input.yesterday.supplements.join('、') : '无'}；备注：${input.yesterday.notes.length ? input.yesterday.notes.join('；') : '无'}。`
+      content: JSON.stringify({
+        baby: { name: input.babyName, age: input.ageText, sex: sexLabel },
+        reportDate: input.date,
+        yesterdayCare: input.yesterday,
+        supplementPlan: input.supplementPlan,
+        growthContext: input.growthContext
+      })
     }
-  ], 300);
+  ];
+}
+
+export async function generateDailyReport(input: DailyReportInput, settings: ModelSettings): Promise<{ summary: string; suggestions: string[] }> {
+  const content = await requestCompletion(settings, dailyReportMessages(input), 300);
   const parsedJson = JSON.parse(content) as unknown;
   return dailyReportSchema.parse(parsedJson);
 }
