@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { shanghaiDayUtcRange } from './shanghai-date.js';
 import type { AuditEntry, CareRecord, GrowthRecord, VaccineRecord } from './types.js';
 
 const directory = mkdtempSync(join(tmpdir(), 'baby-care-db-test-'));
@@ -83,6 +84,45 @@ describe('record reliability', () => {
     expect(db.getAiSettings()).toMatchObject({ model: 'deepseek-v4-flash', apiKey: 'test-key' });
     db.saveAiSettings({ baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash' });
     expect(db.getAiSettings().apiKey).toBe('test-key');
+  });
+
+  it('counts midnight-to-midnight milk records using Shanghai UTC boundaries', () => {
+    const samples = [
+      record({ id: '10101010-1010-4010-8010-101010101010', type: 'feeding', supplement: null, occurredAt: '2027-02-02T15:59:59.999Z', breastMilkMl: 90 }),
+      record({ id: '20202020-2020-4020-8020-202020202020', type: 'feeding', supplement: null, occurredAt: '2027-02-02T16:00:00.000Z', breastMilkMl: 1 }),
+      record({ id: '30303030-3030-4030-8030-303030303030', type: 'feeding', supplement: null, occurredAt: '2027-02-02T16:17:00.000Z', formulaMl: 2 }),
+      record({ id: '40404040-4040-4040-8040-404040404040', type: 'feeding', supplement: null, occurredAt: '2027-02-02T23:59:00.000Z', breastMilkMl: 3 }),
+      record({ id: '50505050-5050-4050-8050-505050505050', type: 'feeding', supplement: null, occurredAt: '2027-02-03T00:00:00.000Z', formulaMl: 4 }),
+      record({ id: '60606060-6060-4060-8060-606060606060', type: 'feeding', supplement: null, occurredAt: '2027-02-03T15:59:59.999Z', breastMilkMl: 5 }),
+      record({ id: '70707070-7070-4070-8070-707070707070', type: 'feeding', supplement: null, occurredAt: '2027-02-03T16:00:00.000Z', formulaMl: 90 })
+    ];
+    samples.forEach(db.saveRecord);
+    const range = shanghaiDayUtcRange('2027-02-03');
+    const feedings = db.listRecords(range.from, range.to).filter((item: CareRecord) => item.type === 'feeding');
+    expect(feedings).toHaveLength(5);
+    expect(feedings.reduce((sum: number, item: CareRecord) => sum + (item.breastMilkMl || 0), 0)).toBe(9);
+    expect(feedings.reduce((sum: number, item: CareRecord) => sum + (item.formulaMl || 0), 0)).toBe(6);
+  });
+
+  it('invalidates reports for record creation, cross-day edits, deletion and restoration', () => {
+    const firstDate = '2027-03-01'; const secondDate = '2027-03-02';
+    const item = record({ id: '80808080-8080-4080-8080-808080808080', type: 'feeding', supplement: null, occurredAt: '2027-02-28T16:17:00.000Z', breastMilkMl: 80 });
+    const report = (reportDate: string) => ({ reportDate, summary: '测试报告', suggestions: ['测试建议'], model: 'test', generatedAt: '2027-03-03T00:00:00.000Z' });
+    db.saveDailyReport(report(firstDate));
+    db.saveRecord(item);
+    expect(db.getDailyReport(firstDate)).toBeNull();
+
+    db.saveDailyReport(report(firstDate)); db.saveDailyReport(report(secondDate));
+    const moved = db.saveRecord({ ...item, occurredAt: '2027-03-01T16:17:00.000Z', updatedAt: '2027-03-02T01:00:00.000Z' });
+    expect(db.getDailyReport(firstDate)).toBeNull();
+    expect(db.getDailyReport(secondDate)).toBeNull();
+
+    db.saveDailyReport(report(secondDate));
+    db.removeRecord(moved.id, 'father');
+    expect(db.getDailyReport(secondDate)).toBeNull();
+    db.saveDailyReport(report(secondDate));
+    db.restoreRecord(moved.id, 'father');
+    expect(db.getDailyReport(secondDate)).toBeNull();
   });
   it('blocks duplicate supplements on the same care day', () => {
     db.saveRecord(record({ id: '11111111-1111-4111-8111-111111111111' }));

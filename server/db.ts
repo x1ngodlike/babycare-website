@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { canonicalInstant, shanghaiDateForInstant } from './shanghai-date.js';
 import type { AuditAction, AuditEntry, AuditIdentity, BabySex, CareItem, CareRecord, FamilyId, FamilyMemberPermission, GrowthRecord, UserRole, VaccineCatalogItem, VaccineRecord } from './types.js';
 
 const databasePath = process.env.DATABASE_PATH || './data/baby-care.db';
@@ -71,6 +72,15 @@ if (recordTableSql.includes("supplement IN ('AD', 'VD', '益生菌')")) db.trans
     ALTER TABLE care_records_unrestricted RENAME TO care_records;
     CREATE INDEX idx_care_records_occurred_at ON care_records(occurred_at);
   `);
+})();
+
+db.transaction(() => {
+  const rows = db.prepare('SELECT id, occurred_at AS occurredAt FROM care_records').all() as { id: string; occurredAt: string }[];
+  const update = db.prepare('UPDATE care_records SET occurred_at = ? WHERE id = ?');
+  for (const row of rows) {
+    const normalized = canonicalInstant(row.occurredAt);
+    if (normalized !== row.occurredAt) update.run(normalized, row.id);
+  }
 })();
 
 db.exec(`
@@ -236,7 +246,17 @@ db.exec(`
     model TEXT NOT NULL,
     generated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS schema_migrations (
+    name TEXT PRIMARY KEY,
+    applied_at TEXT NOT NULL
+  );
 `);
+
+const dailyReportUtcMigration = 'daily-report-utc-boundaries-v1';
+if (!db.prepare('SELECT 1 FROM schema_migrations WHERE name = ?').get(dailyReportUtcMigration)) db.transaction(() => {
+  db.prepare('DELETE FROM daily_reports').run();
+  db.prepare('INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)').run(dailyReportUtcMigration, new Date().toISOString());
+})();
 
 const columns = `
   id, type, occurred_at AS occurredAt, breast_milk_ml AS breastMilkMl,
@@ -304,6 +324,7 @@ export function allRecords(includeDeleted = false): CareRecord[] {
 }
 
 const saveRecordTransaction = db.transaction((record: CareRecord): CareRecord => {
+  record = { ...record, occurredAt: canonicalInstant(record.occurredAt) };
   const existing = getRecord(record.id);
   if (existing?.deletedAt) throw new RecordNotFoundError('记录已经删除');
   ensureCareItemAvailable(record, existing);
@@ -323,6 +344,7 @@ const saveRecordTransaction = db.transaction((record: CareRecord): CareRecord =>
   }
   const saved = getRecord(record.id)!;
   addAudit(saved.id, existing ? 'update' : 'create', saved.updatedBy, saved);
+  invalidateDailyReports(existing?.occurredAt, saved.occurredAt);
   return saved;
 });
 export function saveRecord(record: CareRecord): CareRecord { return saveRecordTransaction(record); }
@@ -335,6 +357,7 @@ const removeRecordTransaction = db.transaction((id: string, actor: AuditIdentity
     .run(now, actor, now, actor, id);
   const deleted = getRecord(id)!;
   addAudit(id, 'delete', actor, deleted, now);
+  invalidateDailyReports(deleted.occurredAt);
   return deleted;
 });
 export function removeRecord(id: string, actor: AuditIdentity): CareRecord | null { return removeRecordTransaction(id, actor); }
@@ -348,6 +371,7 @@ const restoreRecordTransaction = db.transaction((id: string, actor: AuditIdentit
   db.prepare('UPDATE care_records SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ? WHERE id = ?').run(now, actor, id);
   const restored = getRecord(id)!;
   addAudit(id, 'restore', actor, restored, now);
+  invalidateDailyReports(restored.occurredAt);
   return restored;
 });
 export function restoreRecord(id: string, actor: AuditIdentity): CareRecord { return restoreRecordTransaction(id, actor); }
@@ -657,6 +681,12 @@ export function saveDailyReport(report: DailyReport): DailyReport {
   return report;
 }
 
+function invalidateDailyReports(...occurredAtValues: (string | undefined)[]) {
+  const dates = [...new Set(occurredAtValues.filter((value): value is string => Boolean(value)).map(shanghaiDateForInstant))];
+  const remove = db.prepare('DELETE FROM daily_reports WHERE report_date = ?');
+  for (const date of dates) remove.run(date);
+}
+
 export function listDailyReports(): DailyReport[] {
   const rows = db.prepare('SELECT report_date AS reportDate, summary, suggestions, model, generated_at AS generatedAt FROM daily_reports ORDER BY report_date DESC').all() as (Omit<DailyReport, 'suggestions'> & { suggestions: string })[];
   return rows.map(row => ({ ...row, suggestions: JSON.parse(row.suggestions) as string[] }));
@@ -707,7 +737,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
       note=excluded.note, updated_at=excluded.updated_at, updated_by=excluded.updated_by,
       deleted_at=excluded.deleted_at, deleted_by=excluded.deleted_by
   `);
-  for (const record of payload.records) upsert.run(record);
+  for (const record of payload.records) upsert.run({ ...record, occurredAt: canonicalInstant(record.occurredAt) });
   if (payload.audits?.length) {
     const ids = [...new Set(payload.records.map(record => record.id))];
     const removeAudit = db.prepare('DELETE FROM record_audit WHERE record_id = ?');
@@ -759,7 +789,7 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
     VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
   `);
-  for (const record of payload.records) insertRecord.run(record);
+  for (const record of payload.records) insertRecord.run({ ...record, occurredAt: canonicalInstant(record.occurredAt) });
   if (payload.audits?.length) {
     const insertAudit = db.prepare('INSERT INTO record_audit (id, record_id, action, actor, occurred_at, snapshot) VALUES (@id, @recordId, @action, @actor, @occurredAt, @snapshot)');
     for (const audit of payload.audits) insertAudit.run({ ...audit, snapshot: audit.snapshot ? JSON.stringify(audit.snapshot) : null });

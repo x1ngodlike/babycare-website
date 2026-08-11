@@ -312,9 +312,13 @@ app.post('/api/ai/settings/test', requireSuperAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/daily-report', (req, res) => {
+app.get('/api/daily-report', async (req, res) => {
   const date = typeof req.query.date === 'string' && req.query.date ? req.query.date : yesterdayInShanghai();
-  const report = getDailyReport(date);
+  let report = getDailyReport(date);
+  if (!report && getAiSettings().apiKey) {
+    try { report = await generateDailyReportForDate(date); }
+    catch (error) { console.error('[daily-report] 按需生成失败', error); }
+  }
   if (!report) return res.json({ date, exists: false });
   return res.json({ date, exists: true, summary: report.summary, suggestions: report.suggestions, model: report.model, generatedAt: report.generatedAt });
 });

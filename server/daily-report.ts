@@ -1,16 +1,7 @@
 import type { DailyReportInput } from './ai.js';
 import { evaluateAdVdPlan, generateDailyReport } from './ai.js';
 import { getAiSettings, getDailyReport, getProfile, listGrowthRecords, listRecords, saveDailyReport } from './db.js';
-
-function shanghaiDateString(date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
-}
-
-function addDaysToDateString(dateStr: string, days: number): string {
-  const value = new Date(`${dateStr}T00:00:00Z`);
-  value.setUTCDate(value.getUTCDate() + days);
-  return value.toISOString().slice(0, 10);
-}
+import { addDaysToDateString, shanghaiDateString, shanghaiDayUtcRange } from './shanghai-date.js';
 
 export function yesterdayInShanghai(): string {
   return addDaysToDateString(shanghaiDateString(), -1);
@@ -61,8 +52,7 @@ function buildReportInput(date: string): ReportInput {
   const growthRecords = listGrowthRecords().filter(record => record.measuredOn <= date);
   const growth = growthRecords[0] || null;
 
-  const from = `${date}T00:00:00+08:00`;
-  const to = `${addDaysToDateString(date, 1)}T00:00:00+08:00`;
+  const { from, to } = shanghaiDayUtcRange(date);
   const records = listRecords(from, to);
   const feedings = records.filter(record => record.type === 'feeding');
   const breastMl = feedings.reduce((sum, record) => sum + (record.breastMilkMl || 0), 0);
@@ -70,7 +60,8 @@ function buildReportInput(date: string): ReportInput {
   const bowelCount = records.filter(record => record.type === 'bowel').length;
   const supplements = [...new Set(records.filter(record => record.type === 'supplement' && record.supplement).map(record => record.supplement!))];
   const previousDate = addDaysToDateString(date, -1);
-  const previousDayRecords = listRecords(`${previousDate}T00:00:00+08:00`, `${date}T00:00:00+08:00`);
+  const previousRange = shanghaiDayUtcRange(previousDate);
+  const previousDayRecords = listRecords(previousRange.from, previousRange.to);
   const previousDaySupplements = [...new Set(previousDayRecords.filter(record => record.type === 'supplement' && record.supplement).map(record => record.supplement!))];
   const notes = records.filter(record => record.type === 'note' && record.note).map(record => record.note!);
 
