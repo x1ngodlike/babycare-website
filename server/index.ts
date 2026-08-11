@@ -136,7 +136,7 @@ const backupPayloadSchema = z.object({
   familyMembers: z.array(familyMemberSchema).max(4).optional(),
   growthRecords: z.array(growthRecordSchema).max(1000).optional(),
   vaccineRecords: z.array(vaccineRecordSchema).max(1000).optional(),
-  vaccineCatalog: z.array(z.object({ id: z.string().min(1).max(50), name: z.string().min(1).max(50), category: z.enum(['program', 'self_paid']), shortName: z.string().max(30).nullable(), description: z.string().max(300), doseCount: z.number().int().min(1).max(20).nullable(), intervalSummary: z.string().max(200), active: z.boolean(), sortOrder: z.number().int().min(0).max(9999) })).max(100).optional(),
+  vaccineCatalog: z.array(z.object({ id: z.string().min(1).max(50), name: z.string().min(1).max(50), category: z.enum(['program', 'self_paid']), shortName: z.string().max(30).nullable(), description: z.string().max(300), doseCount: z.number().int().min(1).max(20).nullable(), intervalSummary: z.string().max(200), active: z.boolean(), sortOrder: z.number().int().min(0).max(9999), isSystem: z.boolean().optional().default(false) })).max(100).optional(),
   dailyReports: z.array(z.object({
     reportDate: z.string(), summary: z.string(), suggestions: z.array(z.string()), model: z.string(), generatedAt: z.string()
   })).max(3650).optional()
@@ -390,7 +390,7 @@ app.post('/api/vaccine-catalog', requireAdmin, (req, res) => {
   const parsed = vaccineCatalogInputSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '疫苗信息格式不正确' });
   const current = listVaccineCatalog(true);
-  const item: VaccineCatalogItem = { id: randomUUID(), ...parsed.data, shortName: parsed.data.shortName || null, description: parsed.data.description || '按接种门诊建议安排。', intervalSummary: parsed.data.intervalSummary || '按接种门诊建议', active: true, sortOrder: (current.at(-1)?.sortOrder || 0) + 10 };
+  const item: VaccineCatalogItem = { id: randomUUID(), ...parsed.data, shortName: parsed.data.shortName || null, description: parsed.data.description || '尚未填写。', intervalSummary: parsed.data.intervalSummary || '按接种门诊安排', active: true, sortOrder: (current.at(-1)?.sortOrder || 0) + 10, isSystem: false };
   try { const saved = saveVaccineCatalogItem(item); changeHub.broadcast('all'); return res.status(201).json(saved); }
   catch (error) { if (error instanceof VaccineCatalogConflictError) return res.status(409).json({ error: error.message }); throw error; }
 });
@@ -400,11 +400,14 @@ app.put('/api/vaccine-catalog/:id', requireAdmin, (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '疫苗信息格式不正确' });
   const existing = listVaccineCatalog(true).find(item => item.id === req.params.id);
   if (!existing) return res.status(404).json({ error: '疫苗不存在' });
-  try { const saved = saveVaccineCatalogItem({ ...existing, ...parsed.data, shortName: parsed.data.shortName || null, description: parsed.data.description || '按接种门诊建议安排。', intervalSummary: parsed.data.intervalSummary || '按接种门诊建议' }); changeHub.broadcast('all'); return res.json(saved); }
+  if (existing.isSystem) return res.status(400).json({ error: '系统默认疫苗只能修改启用状态' });
+  try { const saved = saveVaccineCatalogItem({ ...existing, ...parsed.data, shortName: parsed.data.shortName || null, description: parsed.data.description || '尚未填写。', intervalSummary: parsed.data.intervalSummary || '按接种门诊安排' }); changeHub.broadcast('all'); return res.json(saved); }
   catch (error) { if (error instanceof VaccineCatalogConflictError) return res.status(409).json({ error: error.message }); throw error; }
 });
 
 app.delete('/api/vaccine-catalog/:id', requireAdmin, (req, res) => {
+  const existing = listVaccineCatalog(true).find(item => item.id === req.params.id);
+  if (existing?.isSystem) return res.status(400).json({ error: '系统默认疫苗不能删除' });
   if (!removeVaccineCatalogItem(String(req.params.id))) return res.status(404).json({ error: '疫苗不存在' });
   changeHub.broadcast('all');
   return res.json({ deleted: true });

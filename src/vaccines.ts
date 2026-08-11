@@ -7,12 +7,13 @@ export interface VaccinePlanItem {
   plannedOn: string;
   category: VaccineCategory;
   source: 'schedule' | 'saved';
+  hasSuggestedDate: boolean;
   record?: VaccineRecord;
 }
 
 export type VaccineCategory = 'program' | 'self_paid';
 interface StaticVaccineCatalogItem { name: string; category: VaccineCategory; shortName?: string }
-type ScheduleItem = { vaccineName: string; dose: number; months: number; days?: number };
+type ScheduleItem = { vaccineName: string; dose: number; months: number; days?: number; category?: VaccineCategory };
 
 const programVaccines: StaticVaccineCatalogItem[] = [
   { name: '乙肝疫苗', category: 'program', shortName: 'HepB' },
@@ -76,7 +77,14 @@ export const vaccineSchedule: ScheduleItem[] = [
   { vaccineName: '流脑疫苗', dose: 3, months: 36 },
   { vaccineName: '脊灰疫苗', dose: 4, months: 48 },
   { vaccineName: '百白破疫苗', dose: 5, months: 72 },
-  { vaccineName: '流脑疫苗', dose: 4, months: 72 }
+  { vaccineName: '流脑疫苗', dose: 4, months: 72 },
+  { vaccineName: '13价肺炎疫苗', dose: 1, months: 2, category: 'self_paid' },
+  { vaccineName: '13价肺炎疫苗', dose: 2, months: 4, category: 'self_paid' },
+  { vaccineName: '13价肺炎疫苗', dose: 3, months: 6, category: 'self_paid' },
+  { vaccineName: '13价肺炎疫苗', dose: 4, months: 12, category: 'self_paid' },
+  { vaccineName: '五价轮状疫苗', dose: 1, months: 2, category: 'self_paid' },
+  { vaccineName: '五价轮状疫苗', dose: 2, months: 4, category: 'self_paid' },
+  { vaccineName: '五价轮状疫苗', dose: 3, months: 6, category: 'self_paid' }
 ];
 
 export const vaccineNames = vaccineCatalog.map(item => item.name);
@@ -99,12 +107,12 @@ export function doseOptionLabel(vaccineName: string, dose: number, catalog?: Vac
   const current = schedule.find(item => item.dose === dose); const next = schedule.find(item => item.dose === dose + 1);
   if (current && next) {
     const months = next.months - current.months;
-    return `第 ${dose} 剂 · 下针${months === 1 ? '1月后' : `${months}月后`}`;
+    return `第 ${dose} 剂 · 下针 ${months} 月后`;
   }
-  if (current && !next) return `第 ${dose} 剂 · 常规程序完成`;
+  if (current && !next) return `第 ${dose} 剂 · 完成全程`;
   const item = catalog?.find(value => value.name === vaccineName);
-  if (item?.doseCount && dose >= item.doseCount) return `第 ${dose} 剂 · 常规程序完成`;
-  return `第 ${dose} 剂${item?.doseCount ? ` · 共${item.doseCount}剂` : ' · 后续听门诊安排'}`;
+  if (item?.doseCount && dose >= item.doseCount) return `第 ${dose} 剂 · 完成全程`;
+  return `第 ${dose} 剂${item?.doseCount ? ` · 共 ${item.doseCount} 剂` : ' · 后续按接种门诊安排'}`;
 }
 
 export function addMonths(day: string, months: number, days = 0) {
@@ -142,8 +150,9 @@ export function buildVaccinePlan(birthDate: string, records: VaccineRecord[], ca
       vaccineName: item.vaccineName,
       dose: item.dose,
       plannedOn: record?.plannedOn || addMonths(birthDate, item.months, item.days),
-      category: record?.category || 'program' as const,
+      category: record?.category || item.category || 'program' as const,
       source: record ? 'saved' as const : 'schedule' as const,
+      hasSuggestedDate: true,
       record
     }];
   });
@@ -154,6 +163,7 @@ export function buildVaccinePlan(birthDate: string, records: VaccineRecord[], ca
     plannedOn: record.plannedOn,
     category: record.category,
     source: 'saved' as const,
+    hasSuggestedDate: false,
     record
   }));
   return [...scheduled, ...extras];

@@ -28,7 +28,7 @@ export interface VaccineRecord {
   deletedBy: AuditIdentity | null;
 }
 export interface DraftVaccineRecord { id?: string; vaccineName: string; category: 'program' | 'self_paid'; dose: number; plannedOn: string; appointmentOn?: string | null; appointmentTime?: string | null; administeredOn: string | null; note?: string | null }
-export interface VaccineCatalogItem { id: string; name: string; category: 'program' | 'self_paid'; shortName: string | null; description: string; doseCount: number | null; intervalSummary: string; active: boolean; sortOrder: number }
+export interface VaccineCatalogItem { id: string; name: string; category: 'program' | 'self_paid'; shortName: string | null; description: string; doseCount: number | null; intervalSummary: string; active: boolean; sortOrder: number; isSystem: boolean }
 export type DraftVaccineCatalogItem = Pick<VaccineCatalogItem, 'name' | 'category' | 'shortName' | 'description' | 'doseCount' | 'intervalSummary'>;
 export interface Capabilities {
   aiEnabled: boolean;

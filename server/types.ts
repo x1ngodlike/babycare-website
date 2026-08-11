@@ -54,6 +54,7 @@ export interface VaccineCatalogItem {
   intervalSummary: string;
   active: boolean;
   sortOrder: number;
+  isSystem: boolean;
 }
 
 export interface CareRecord {

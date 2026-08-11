@@ -45,24 +45,30 @@ describe('record reliability', () => {
     expect(db.restoreVaccineRecord(first.id, 'father').deletedAt).toBeNull();
   });
 
-  it('defaults to the booklet catalog and supports enabling and sorting', () => {
+  it('keeps exactly ten protected defaults and only allows toggling them', () => {
     const catalog = db.listVaccineCatalog(true);
+    expect(catalog).toHaveLength(10);
     expect(catalog.filter((item: { active: boolean }) => item.active)).toHaveLength(10);
     expect(catalog.filter((item: { active: boolean; category: string }) => item.active && item.category === 'program')).toHaveLength(8);
-    expect(db.setVaccineCatalogActive('varicella', true).active).toBe(true);
-    const ids = db.listVaccineCatalog(true).map((item: { id: string }) => item.id).reverse();
-    expect(db.reorderVaccineCatalog(ids).map((item: { id: string }) => item.id)).toEqual(ids);
+    expect(catalog.every((item: { isSystem: boolean }) => item.isSystem)).toBe(true);
+    expect(catalog).toContainEqual(expect.objectContaining({ id: 'pcv13', name: '13价肺炎疫苗' }));
+    expect(catalog).toContainEqual(expect.objectContaining({ id: 'rv5', name: '五价轮状疫苗' }));
+    expect(db.setVaccineCatalogActive('hepb', false).active).toBe(false);
+    expect(db.setVaccineCatalogActive('hepb', true).active).toBe(true);
+    expect(() => db.saveVaccineCatalogItem({ ...catalog[0], description: '不能修改。' })).toThrow(db.VaccineCatalogConflictError);
+    expect(db.removeVaccineCatalogItem(catalog[0].id)).toBe(false);
   });
 
   it('creates, edits and soft deletes vaccine catalog items without touching history', () => {
-    const created = db.saveVaccineCatalogItem({ id: 'custom-test', name: '测试疫苗', category: 'self_paid', shortName: null, description: '用于测试。', doseCount: 2, intervalSummary: '间隔1个月', active: true, sortOrder: 999 });
+    const created = db.saveVaccineCatalogItem({ id: 'custom-test', name: '测试疫苗', category: 'self_paid', shortName: null, description: '用于测试。', doseCount: 2, intervalSummary: '共 2 剂，每剂间隔 1 个月', active: true, sortOrder: 999, isSystem: false });
     expect(created).toMatchObject({ name: '测试疫苗', doseCount: 2, active: true });
-    expect(db.saveVaccineCatalogItem({ ...created, description: '修改后的说明。', doseCount: 3 })).toMatchObject({ description: '修改后的说明。', doseCount: 3 });
-    expect(() => db.saveVaccineCatalogItem({ ...created, id: 'custom-duplicate' })).toThrow(db.VaccineCatalogConflictError);
-    expect(db.removeVaccineCatalogItem(created.id)).toBe(true);
-    expect(db.listVaccineCatalog(true)).not.toContainEqual(expect.objectContaining({ id: created.id }));
-    const restored = db.saveVaccineCatalogItem({ ...created, id: 'new-id', description: '重新添加。' });
-    expect(restored).toMatchObject({ id: created.id, name: '测试疫苗', description: '重新添加。' });
+    const modified = db.saveVaccineCatalogItem({ ...created, name: '修改后的测试疫苗', description: '修改后的说明。', doseCount: 3 });
+    expect(modified).toMatchObject({ name: '修改后的测试疫苗', description: '修改后的说明。', doseCount: 3 });
+    expect(() => db.saveVaccineCatalogItem({ ...modified, id: 'custom-duplicate' })).toThrow(db.VaccineCatalogConflictError);
+    expect(db.removeVaccineCatalogItem(modified.id)).toBe(true);
+    expect(db.listVaccineCatalog(true)).not.toContainEqual(expect.objectContaining({ id: modified.id }));
+    const restored = db.saveVaccineCatalogItem({ ...modified, id: 'new-id', description: '重新添加。' });
+    expect(restored).toMatchObject({ id: modified.id, name: '修改后的测试疫苗', description: '重新添加。' });
   });
 
   it('stores the baby sex and defaults legacy profile imports safely', () => {

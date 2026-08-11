@@ -164,6 +164,7 @@ db.exec(`
     interval_summary TEXT NOT NULL,
     active INTEGER NOT NULL DEFAULT 0,
     sort_order INTEGER NOT NULL,
+    is_system INTEGER NOT NULL DEFAULT 0,
     deleted_at TEXT
   );
 `);
@@ -174,32 +175,37 @@ if (!vaccineTableColumns.some(column => column.name === 'appointment_on')) db.ex
 if (!vaccineTableColumns.some(column => column.name === 'appointment_time')) db.exec('ALTER TABLE vaccine_records ADD COLUMN appointment_time TEXT');
 const vaccineCatalogTableColumns = db.prepare('PRAGMA table_info(vaccine_catalog)').all() as { name: string }[];
 if (!vaccineCatalogTableColumns.some(column => column.name === 'deleted_at')) db.exec('ALTER TABLE vaccine_catalog ADD COLUMN deleted_at TEXT');
+if (!vaccineCatalogTableColumns.some(column => column.name === 'is_system')) db.exec('ALTER TABLE vaccine_catalog ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0');
 
 const defaultVaccineCatalog: Omit<VaccineCatalogItem, 'active'>[] = [
-  { id: 'hepb', name: '乙肝疫苗', category: 'program', shortName: '乙肝', description: '预防乙型病毒性肝炎。', doseCount: 3, intervalSummary: '出生、1月龄、6月龄', sortOrder: 10 },
-  { id: 'bcg', name: '卡介苗', category: 'program', shortName: '卡介苗', description: '预防儿童结核病，尤其是结核性脑膜炎等重症。', doseCount: 1, intervalSummary: '出生时接种', sortOrder: 20 },
-  { id: 'polio', name: '脊灰疫苗', category: 'program', shortName: '脊灰', description: '预防脊髓灰质炎。具体剂型由门诊安排。', doseCount: 4, intervalSummary: '2、3、4月龄及4周岁', sortOrder: 30 },
-  { id: 'dtap', name: '百白破疫苗', category: 'program', shortName: '百白破', description: '预防百日咳、白喉和破伤风；学龄期加强由门诊安排。', doseCount: 5, intervalSummary: '3、4、5、18月龄及6周岁加强', sortOrder: 40 },
-  { id: 'mmr', name: '麻腮风疫苗', category: 'program', shortName: '麻腮风', description: '预防麻疹、流行性腮腺炎和风疹。', doseCount: 2, intervalSummary: '8月龄、18月龄', sortOrder: 50 },
-  { id: 'je', name: '乙脑疫苗', category: 'program', shortName: '乙脑', description: '预防流行性乙型脑炎。具体剂型与剂次由门诊安排。', doseCount: 2, intervalSummary: '常规8月龄、2周岁', sortOrder: 60 },
-  { id: 'meningococcal', name: '流脑疫苗', category: 'program', shortName: '流脑', description: '预防流行性脑脊髓膜炎。', doseCount: 4, intervalSummary: '6、9月龄及3、6周岁', sortOrder: 70 },
-  { id: 'hepa', name: '甲肝疫苗', category: 'program', shortName: '甲肝', description: '预防甲型病毒性肝炎。具体剂型由门诊安排。', doseCount: 1, intervalSummary: '常规18月龄起', sortOrder: 80 },
-  { id: 'pcv13', name: '13价肺炎球菌疫苗', category: 'self_paid', shortName: '13价肺炎', description: '预防相应血清型肺炎球菌引起的侵袭性疾病。', doseCount: 4, intervalSummary: '常见程序为基础3剂加加强1剂', sortOrder: 110 },
-  { id: 'rv5', name: '五价轮状病毒疫苗', category: 'self_paid', shortName: '五价轮状', description: '预防相应型别轮状病毒胃肠炎。', doseCount: 3, intervalSummary: '通常每剂间隔4—10周，须在规定月龄内完成', sortOrder: 120 },
-  { id: 'pentavalent', name: '五联疫苗（DTaP-IPV-Hib）', category: 'self_paid', shortName: '五联', description: '联合预防百日咳、白喉、破伤风、脊灰及Hib感染。', doseCount: 4, intervalSummary: '常见程序为3剂基础加1剂加强', sortOrder: 130 },
-  { id: 'quadrivalent', name: '四联疫苗（DTaP-IPV）', category: 'self_paid', shortName: '四联', description: '联合预防百日咳、白喉、破伤风和脊灰。', doseCount: 4, intervalSummary: '按产品说明和门诊安排', sortOrder: 140 },
-  { id: 'hib', name: 'Hib疫苗', category: 'self_paid', shortName: 'Hib', description: '预防b型流感嗜血杆菌引起的侵袭性疾病。', doseCount: 4, intervalSummary: '剂次数随起始月龄不同', sortOrder: 150 },
-  { id: 'varicella', name: '水痘疫苗', category: 'self_paid', shortName: '水痘', description: '预防水痘。', doseCount: 2, intervalSummary: '通常接种2剂，间隔按年龄和产品说明', sortOrder: 160 },
-  { id: 'flu', name: '流感疫苗', category: 'self_paid', shortName: '流感', description: '预防当季疫苗覆盖型别的流行性感冒。', doseCount: null, intervalSummary: '通常每年接种；首次接种儿童可能需2剂', sortOrder: 170 },
-  { id: 'ev71', name: 'EV71疫苗', category: 'self_paid', shortName: 'EV71', description: '预防EV71感染所致手足口病，尤其重症。', doseCount: 2, intervalSummary: '通常2剂，间隔1个月', sortOrder: 180 },
-  { id: 'menac', name: '流脑结合疫苗', category: 'self_paid', shortName: '流脑结合', description: '预防疫苗覆盖血清群的流脑。', doseCount: null, intervalSummary: '剂次数与间隔按产品和起始年龄确定', sortOrder: 190 },
-  { id: 'ppv23', name: '23价肺炎球菌疫苗', category: 'self_paid', shortName: '23价肺炎', description: '预防相应血清型肺炎球菌疾病，主要用于适龄或高风险人群。', doseCount: null, intervalSummary: '按年龄、健康情况和门诊建议', sortOrder: 200 },
-  { id: 'rotavirus', name: '轮状病毒疫苗', category: 'self_paid', shortName: '轮状病毒', description: '预防轮状病毒胃肠炎。', doseCount: null, intervalSummary: '不同产品程序不同，须在规定月龄内完成', sortOrder: 210 },
-  { id: 'rabies', name: '狂犬病疫苗', category: 'self_paid', shortName: '狂犬病', description: '用于狂犬病暴露前或暴露后预防。', doseCount: null, intervalSummary: '暴露后应立即就医并按门诊程序接种', sortOrder: 220 },
-  { id: 'hepe', name: '戊肝疫苗', category: 'self_paid', shortName: '戊肝', description: '预防戊型病毒性肝炎。', doseCount: 3, intervalSummary: '通常0、1、6个月', sortOrder: 230 }
+  { id: 'hepb', name: '乙肝疫苗', category: 'program', shortName: '乙肝', description: '用于预防乙型病毒性肝炎。', doseCount: 3, intervalSummary: '共 3 剂：出生时、1 月龄、6 月龄', sortOrder: 10, isSystem: true },
+  { id: 'bcg', name: '卡介苗', category: 'program', shortName: '卡介苗', description: '用于预防儿童结核病，尤其是结核性脑膜炎、粟粒性肺结核等重症。', doseCount: 1, intervalSummary: '共 1 剂：出生时接种', sortOrder: 20, isSystem: true },
+  { id: 'polio', name: '脊灰疫苗', category: 'program', shortName: '脊灰', description: '用于预防脊髓灰质炎。', doseCount: 4, intervalSummary: '共 4 剂：2、3、4 月龄及 4 周岁', sortOrder: 30, isSystem: true },
+  { id: 'dtap', name: '百白破疫苗', category: 'program', shortName: '百白破', description: '用于预防百日咳、白喉和破伤风。', doseCount: 5, intervalSummary: '共 5 剂：3、4、5、18 月龄及 6 周岁', sortOrder: 40, isSystem: true },
+  { id: 'mmr', name: '麻腮风疫苗', category: 'program', shortName: '麻腮风', description: '用于预防麻疹、流行性腮腺炎和风疹。', doseCount: 2, intervalSummary: '共 2 剂：8 月龄、18 月龄', sortOrder: 50, isSystem: true },
+  { id: 'je', name: '乙脑疫苗', category: 'program', shortName: '乙脑', description: '用于预防流行性乙型脑炎。', doseCount: 2, intervalSummary: '减毒活疫苗共 2 剂：8 月龄、2 周岁；灭活疫苗程序不同，以接种门诊安排为准', sortOrder: 60, isSystem: true },
+  { id: 'meningococcal', name: '流脑疫苗', category: 'program', shortName: '流脑', description: '用于预防流行性脑脊髓膜炎。', doseCount: 4, intervalSummary: '共 4 剂：6、9 月龄及 3、6 周岁', sortOrder: 70, isSystem: true },
+  { id: 'hepa', name: '甲肝疫苗', category: 'program', shortName: '甲肝', description: '用于预防甲型病毒性肝炎。', doseCount: 1, intervalSummary: '减毒活疫苗共 1 剂：18 月龄；灭活疫苗程序不同，以接种门诊安排为准', sortOrder: 80, isSystem: true },
+  { id: 'pcv13', name: '13价肺炎疫苗', category: 'self_paid', shortName: '13价肺炎', description: '用于预防相应血清型肺炎球菌引起的侵袭性疾病。', doseCount: 4, intervalSummary: '常见共 4 剂：6 月龄内完成 3 剂基础免疫，每剂间隔 1–2 个月；12–15 月龄加强 1 剂。具体以产品说明和接种门诊安排为准', sortOrder: 90, isSystem: true },
+  { id: 'rv5', name: '五价轮状疫苗', category: 'self_paid', shortName: '五价轮状', description: '用于预防相应型别轮状病毒引起的胃肠炎。', doseCount: 3, intervalSummary: '共 3 剂：6–12 周龄开始，每剂间隔 4–10 周；第 3 剂不晚于 32 周龄', sortOrder: 100, isSystem: true }
 ];
-const insertDefaultVaccine = db.prepare(`INSERT OR IGNORE INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder)`);
-db.transaction(() => { for (const item of defaultVaccineCatalog) insertDefaultVaccine.run({ ...item, active: item.category === 'program' || ['pcv13', 'rv5'].includes(item.id) ? 1 : 0 }); })();
+const systemVaccineIds = new Set(defaultVaccineCatalog.map(item => item.id));
+const legacyPresetIds = ['pentavalent', 'quadrivalent', 'hib', 'varicella', 'flu', 'ev71', 'menac', 'ppv23', 'rotavirus', 'rabies', 'hepe'];
+const syncDefaultVaccineCatalog = db.transaction(() => {
+  db.prepare("UPDATE vaccine_records SET vaccine_name = '13价肺炎疫苗' WHERE vaccine_name IN ('13价肺炎球菌疫苗', '13价肺炎球菌多糖结合疫苗')").run();
+  db.prepare("UPDATE vaccine_records SET vaccine_name = '五价轮状疫苗' WHERE vaccine_name IN ('五价轮状病毒疫苗', '五价轮状病毒减毒活疫苗')").run();
+  db.prepare('UPDATE vaccine_catalog SET is_system = 0').run();
+  const upsert = db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order, is_system, deleted_at)
+    VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder, 1, NULL)
+    ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, short_name=excluded.short_name,
+      description=excluded.description, dose_count=excluded.dose_count, interval_summary=excluded.interval_summary,
+      sort_order=excluded.sort_order, is_system=1, deleted_at=NULL`);
+  for (const item of defaultVaccineCatalog) upsert.run({ ...item, active: 1 });
+  const archiveUnusedPreset = db.prepare(`UPDATE vaccine_catalog SET active = 0, deleted_at = COALESCE(deleted_at, datetime('now'))
+    WHERE id = ? AND NOT EXISTS (SELECT 1 FROM vaccine_records WHERE vaccine_name = vaccine_catalog.name)`);
+  for (const id of legacyPresetIds) archiveUnusedPreset.run(id);
+});
+syncDefaultVaccineCatalog();
 const knownSelfPaidVaccines = [
   '五联疫苗（DTaP-IPV-Hib）', '四联疫苗（DTaP-IPV）', 'b型流感嗜血杆菌结合疫苗',
   '13价肺炎球菌多糖结合疫苗', '23价肺炎球菌多糖疫苗', '五价轮状病毒减毒活疫苗',
@@ -532,9 +538,9 @@ export function restoreVaccineRecord(id: string, actor: AuditIdentity): VaccineR
   return getVaccineRecord(id)!;
 }
 
-const vaccineCatalogColumns = `id, name, category, short_name AS shortName, description, dose_count AS doseCount, interval_summary AS intervalSummary, active, sort_order AS sortOrder`;
+const vaccineCatalogColumns = `id, name, category, short_name AS shortName, description, dose_count AS doseCount, interval_summary AS intervalSummary, active, sort_order AS sortOrder, is_system AS isSystem`;
 type VaccineCatalogRow = Omit<VaccineCatalogItem, 'active'> & { active: number };
-function mapVaccineCatalog(item: VaccineCatalogRow): VaccineCatalogItem { return { ...item, active: Boolean(item.active) }; }
+function mapVaccineCatalog(item: VaccineCatalogRow): VaccineCatalogItem { return { ...item, active: Boolean(item.active), isSystem: Boolean(item.isSystem) }; }
 export function listVaccineCatalog(includeInactive = false): VaccineCatalogItem[] {
   const where = includeInactive ? 'WHERE deleted_at IS NULL' : 'WHERE active = 1 AND deleted_at IS NULL';
   return (db.prepare(`SELECT ${vaccineCatalogColumns} FROM vaccine_catalog ${where} ORDER BY sort_order, name`).all() as VaccineCatalogRow[]).map(mapVaccineCatalog);
@@ -544,13 +550,14 @@ export function setVaccineCatalogActive(id: string, active: boolean): VaccineCat
   return mapVaccineCatalog(db.prepare(`SELECT ${vaccineCatalogColumns} FROM vaccine_catalog WHERE id = ?`).get(id) as VaccineCatalogRow);
 }
 export function saveVaccineCatalogItem(item: VaccineCatalogItem): VaccineCatalogItem {
-  const existingById = db.prepare('SELECT id FROM vaccine_catalog WHERE id = ?').get(item.id) as { id: string } | undefined;
+  const existingById = db.prepare(`SELECT ${vaccineCatalogColumns} FROM vaccine_catalog WHERE id = ?`).get(item.id) as VaccineCatalogRow | undefined;
+  if (existingById?.isSystem) throw new VaccineCatalogConflictError('系统默认疫苗只能修改启用状态');
   const existingByName = db.prepare('SELECT id, deleted_at AS deletedAt FROM vaccine_catalog WHERE name = ?').get(item.name) as { id: string; deletedAt: string | null } | undefined;
   if (existingByName && !existingByName.deletedAt && existingByName.id !== item.id) throw new VaccineCatalogConflictError('已经存在同名疫苗');
   if (existingById) {
     try {
       db.prepare(`UPDATE vaccine_catalog SET name = @name, category = @category, short_name = @shortName, description = @description,
-        dose_count = @doseCount, interval_summary = @intervalSummary, active = @active, sort_order = @sortOrder, deleted_at = NULL WHERE id = @id`)
+        dose_count = @doseCount, interval_summary = @intervalSummary, active = @active, sort_order = @sortOrder, is_system = 0, deleted_at = NULL WHERE id = @id`)
         .run({ ...item, active: item.active ? 1 : 0 });
     } catch (error) {
       if (error instanceof Error && error.message.includes('UNIQUE')) throw new VaccineCatalogConflictError('已经存在同名疫苗');
@@ -558,22 +565,23 @@ export function saveVaccineCatalogItem(item: VaccineCatalogItem): VaccineCatalog
     }
   } else if (existingByName?.deletedAt) {
     db.prepare(`UPDATE vaccine_catalog SET category = @category, short_name = @shortName, description = @description,
-      dose_count = @doseCount, interval_summary = @intervalSummary, active = @active, sort_order = @sortOrder, deleted_at = NULL WHERE id = @existingId`)
+      dose_count = @doseCount, interval_summary = @intervalSummary, active = @active, sort_order = @sortOrder, is_system = 0, deleted_at = NULL WHERE id = @existingId`)
       .run({ ...item, existingId: existingByName.id, active: item.active ? 1 : 0 });
     item = { ...item, id: existingByName.id };
   } else {
-    db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order, deleted_at)
-      VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder, NULL)`)
+    db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order, is_system, deleted_at)
+      VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder, 0, NULL)`)
       .run({ ...item, active: item.active ? 1 : 0 });
   }
   return mapVaccineCatalog(db.prepare(`SELECT ${vaccineCatalogColumns} FROM vaccine_catalog WHERE id = ? AND deleted_at IS NULL`).get(item.id) as VaccineCatalogRow);
 }
 export function removeVaccineCatalogItem(id: string): boolean {
-  return Boolean(db.prepare("UPDATE vaccine_catalog SET active = 0, deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL").run(id).changes);
+  return Boolean(db.prepare("UPDATE vaccine_catalog SET active = 0, deleted_at = datetime('now') WHERE id = ? AND is_system = 0 AND deleted_at IS NULL").run(id).changes);
 }
 export function reorderVaccineCatalog(ids: string[]): VaccineCatalogItem[] {
   const all = listVaccineCatalog(true);
   if (ids.length !== all.length || ids.some(id => !all.some(item => item.id === id))) throw new Error('疫苗顺序不完整');
+  if (all.some(item => item.isSystem)) throw new Error('系统默认疫苗不可调整顺序');
   const update = db.prepare('UPDATE vaccine_catalog SET sort_order = ? WHERE id = ?');
   db.transaction(() => ids.forEach((id, index) => update.run((index + 1) * 10, id)))();
   return listVaccineCatalog(true);
@@ -651,8 +659,8 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
     for (const record of payload.vaccineRecords) upsertVaccine.run({ appointmentOn: null, appointmentTime: null, ...record });
   }
   if (payload.vaccineCatalog?.length) {
-    const upsertCatalog = db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder) ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, short_name=excluded.short_name, description=excluded.description, dose_count=excluded.dose_count, interval_summary=excluded.interval_summary, active=excluded.active, sort_order=excluded.sort_order`);
-    for (const item of payload.vaccineCatalog) upsertCatalog.run({ ...item, active: item.active ? 1 : 0 });
+    const upsertCatalog = db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order, is_system) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder, @isSystem) ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, short_name=excluded.short_name, description=excluded.description, dose_count=excluded.dose_count, interval_summary=excluded.interval_summary, active=excluded.active, sort_order=excluded.sort_order, is_system=excluded.is_system`);
+    for (const item of payload.vaccineCatalog) upsertCatalog.run({ ...item, active: item.active ? 1 : 0, isSystem: systemVaccineIds.has(item.id) ? 1 : 0 });
   }
   if (payload.dailyReports?.length) {
     const upsertReport = db.prepare('INSERT INTO daily_reports (report_date, summary, suggestions, model, generated_at) VALUES (@reportDate, @summary, @suggestions, @model, @generatedAt) ON CONFLICT(report_date) DO UPDATE SET summary=excluded.summary, suggestions=excluded.suggestions, model=excluded.model, generated_at=excluded.generated_at');
@@ -676,6 +684,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
   } else {
     for (const record of payload.records) addAudit(record.id, 'import', record.updatedBy || 'legacy', record);
   }
+  syncDefaultVaccineCatalog();
   return { imported: payload.records.length, profileRestored: Boolean(payload.profile) };
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
@@ -705,8 +714,8 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
   }
   if (payload.vaccineCatalog?.length) {
     db.prepare('DELETE FROM vaccine_catalog').run();
-    const insertCatalog = db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder)`);
-    for (const item of payload.vaccineCatalog) insertCatalog.run({ ...item, active: item.active ? 1 : 0 });
+    const insertCatalog = db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order, is_system) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder, @isSystem)`);
+    for (const item of payload.vaccineCatalog) insertCatalog.run({ ...item, active: item.active ? 1 : 0, isSystem: systemVaccineIds.has(item.id) ? 1 : 0 });
   }
   db.prepare('DELETE FROM daily_reports').run();
   if (payload.dailyReports?.length) {
@@ -724,6 +733,7 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
   } else {
     for (const record of payload.records) addAudit(record.id, 'import', record.updatedBy || 'legacy', record);
   }
+  syncDefaultVaccineCatalog();
   return { imported: payload.records.length, profileRestored: true };
 });
 export function replaceBackup(payload: ReplacePayload): ImportResult { return replaceBackupTransaction(payload); }
