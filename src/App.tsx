@@ -265,23 +265,23 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin }: { cap
   if (data && dismissed) {
     return (
       <button type="button" className="daily-report collapsed" aria-label="展开昨日日报" onClick={openReport}>
-        <span className="dr-collapsed-label">昨日日报 · 已收起</span>
+        <span className="dr-collapsed-label">{`昨日：${data.summary}`}</span>
         <span className="dr-collapsed-action">展开</span>
       </button>
     );
   }
   return (
     <section className="daily-report" aria-label="昨日日报">
-      <div className="section-title"><h2>昨日日报</h2><div className="dr-head-right">{data && <span>{`${m}月${d}日 ${weekday}`}</span>}{superadmin && <button type="button" className={`dr-regen${busy ? ' spinning' : ''}`} aria-label="重新生成日报" title="重新生成日报" disabled={busy || !online} onClick={generate}><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z" fill="currentColor" /></svg></button>}{data && <button type="button" className="dr-close" aria-label="收起日报" title="收起日报" onClick={closeReport}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" /></svg></button>}</div></div>
+      <div className="section-title"><p className="kicker">昨日日报</p><div className="dr-head-right">{superadmin && <button type="button" className={`dr-regen${busy ? ' spinning' : ''}`} aria-label="重新生成日报" title="重新生成日报" disabled={busy || !online} onClick={generate}><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z" fill="currentColor" /></svg></button>}{data && <button type="button" className="dr-close" aria-label="收起日报" title="收起日报" onClick={closeReport}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" /></svg></button>}</div></div>
       {loading && <p className="loading-copy">正在读取昨日日报…</p>}
-      {!loading && error && <div className="dr-empty"><p className="error-text">{error}</p><button className="btn secondary" disabled={!online || busy} onClick={generate}>{busy ? '生成中…' : '重试'}</button></div>}
+      {!loading && error && <p className="error-text">{error}{superadmin && '，点击右上角重试。'}</p>}
       {!loading && !error && !online && !data && <p className="dr-note">联网后可查看昨日日报。</p>}
-      {!loading && !error && online && !capabilities.aiEnabled && <div className="dr-empty"><p>还没有配置 AI 模型，暂不能生成日报。</p><button className="btn secondary" onClick={onOpenSettings}>去设置</button></div>}
-      {!loading && !error && online && capabilities.aiEnabled && !data && <div className="dr-empty"><p>今日日报还没准备好。</p><button className="btn primary" disabled={busy} onClick={generate}>{busy ? '生成中…' : '手动生成'}</button></div>}
+      {!loading && !error && online && !capabilities.aiEnabled && (superadmin ? <div className="dr-empty"><p>还没有配置 AI 模型，无法生成日报。</p><button className="btn secondary" onClick={onOpenSettings}>去设置</button></div> : <p className="dr-note">还没有配置 AI 模型，暂不能生成日报。</p>)}
+      {!loading && !error && online && capabilities.aiEnabled && !data && <p className="dr-note">{superadmin ? '点击右上角生成昨日日报。' : '今日日报还没准备好，等待超管生成。'}</p>}
       {!loading && !error && data && <>
         <p className="dr-summary">{data.summary}</p>
         {data.suggestions.length > 0 && <ul className="dr-suggestions">{data.suggestions.map((item, index) => <li key={index}>{item}</li>)}</ul>}
-        <div className="dr-footer">{data.generatedAt && <small>生成于 {new Date(data.generatedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</small>}</div>
+        <div className="dr-footer"><small>{`${m}月${d}日 ${weekday}${data.generatedAt ? ` · 生成于 ${new Date(data.generatedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}` : ''}`}</small></div>
       </>}
     </section>
   );

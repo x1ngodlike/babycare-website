@@ -19,8 +19,8 @@ export interface DailyReportInput {
 }
 
 const dailyReportSchema = z.object({
-  summary: z.string().trim().min(1).max(300),
-  suggestions: z.array(z.string().trim().min(1).max(60)).min(1).max(5)
+  summary: z.string().trim().min(1).max(120),
+  suggestions: z.array(z.string().trim().min(1).max(30)).min(1).max(3)
 });
 
 function completionUrl(baseUrl: string) {
@@ -62,13 +62,13 @@ export async function generateDailyReport(input: DailyReportInput, settings: Mod
   const content = await requestCompletion(settings, [
     {
       role: 'system',
-      content: '你是宝宝照护日报助手。基于给定的结构化数据，生成一段简短的昨日总结（≤60 字）与 1~3 条简短建议（每条≤30 字）。只输出 JSON：{"summary":"…","suggestions":["…","…"]}，不要任何额外解释或 Markdown。语气温和、口语化，像有经验的家人给的建议。'
+      content: '你是「宝宝照护日报」助手。只输出 JSON：{"summary":"…","suggestions":["…"]}。\n1. summary：≤40 字，口语化、温和，点出昨日最值得关注的一件事（总奶量/排便/成长变化），不泛泛而谈。\n2. suggestions：1~3 条，每条≤25 字，针对数据给具体可执行的提醒；若喂奶偏少、当日 0 次排便或成长明显偏离，请温和提醒关注并建议就医。\n3. 有成长数据时在 summary 体现趋势（如“比上次重了 120g”），不编造没有的数据。\n4. 不输出额外解释或 Markdown；不给出医疗诊断，健康异常建议咨询儿科医生。'
     },
     {
       role: 'user',
       content: `宝宝：${input.babyName}（${input.ageText}）。日期：${input.date}。${growthLine}。昨日照护：母乳 ${input.yesterday.breastMl}ml、奶粉 ${input.yesterday.formulaMl}ml、喂奶 ${input.yesterday.feedCount} 次、排便 ${input.yesterday.bowelCount} 次；营养补充：${input.yesterday.supplements.length ? input.yesterday.supplements.join('、') : '无'}；备注：${input.yesterday.notes.length ? input.yesterday.notes.join('；') : '无'}。`
     }
-  ], 400);
+  ], 300);
   const parsedJson = JSON.parse(content) as unknown;
   return dailyReportSchema.parse(parsedJson);
 }
