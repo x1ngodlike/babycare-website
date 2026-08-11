@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { AuditAction, AuditEntry, AuditIdentity, BabySex, CareItem, CareRecord, FamilyId, FamilyMemberPermission, GrowthRecord, UserRole } from './types.js';
+import type { AuditAction, AuditEntry, AuditIdentity, BabySex, CareItem, CareRecord, FamilyId, FamilyMemberPermission, GrowthRecord, UserRole, VaccineCatalogItem, VaccineRecord } from './types.js';
 
 const databasePath = process.env.DATABASE_PATH || './data/baby-care.db';
 mkdirSync(dirname(databasePath), { recursive: true });
@@ -134,7 +134,81 @@ db.exec(`
     deleted_by TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_growth_records_measured_on ON growth_records(measured_on DESC);
+
+  CREATE TABLE IF NOT EXISTS vaccine_records (
+    id TEXT PRIMARY KEY,
+    vaccine_name TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'program' CHECK (category IN ('program', 'self_paid')),
+    dose INTEGER NOT NULL,
+    planned_on TEXT NOT NULL,
+    appointment_on TEXT,
+    appointment_time TEXT,
+    administered_on TEXT,
+    note TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    updated_by TEXT NOT NULL,
+    deleted_at TEXT,
+    deleted_by TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_vaccine_records_administered_on ON vaccine_records(administered_on DESC);
+
+  CREATE TABLE IF NOT EXISTS vaccine_catalog (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL CHECK (category IN ('program', 'self_paid')),
+    short_name TEXT,
+    description TEXT NOT NULL,
+    dose_count INTEGER,
+    interval_summary TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 0,
+    sort_order INTEGER NOT NULL,
+    deleted_at TEXT
+  );
 `);
+
+const vaccineTableColumns = db.prepare('PRAGMA table_info(vaccine_records)').all() as { name: string }[];
+if (!vaccineTableColumns.some(column => column.name === 'category')) db.exec("ALTER TABLE vaccine_records ADD COLUMN category TEXT NOT NULL DEFAULT 'program' CHECK (category IN ('program', 'self_paid'))");
+if (!vaccineTableColumns.some(column => column.name === 'appointment_on')) db.exec('ALTER TABLE vaccine_records ADD COLUMN appointment_on TEXT');
+if (!vaccineTableColumns.some(column => column.name === 'appointment_time')) db.exec('ALTER TABLE vaccine_records ADD COLUMN appointment_time TEXT');
+const vaccineCatalogTableColumns = db.prepare('PRAGMA table_info(vaccine_catalog)').all() as { name: string }[];
+if (!vaccineCatalogTableColumns.some(column => column.name === 'deleted_at')) db.exec('ALTER TABLE vaccine_catalog ADD COLUMN deleted_at TEXT');
+
+const defaultVaccineCatalog: Omit<VaccineCatalogItem, 'active'>[] = [
+  { id: 'hepb', name: '乙肝疫苗', category: 'program', shortName: '乙肝', description: '预防乙型病毒性肝炎。', doseCount: 3, intervalSummary: '出生、1月龄、6月龄', sortOrder: 10 },
+  { id: 'bcg', name: '卡介苗', category: 'program', shortName: '卡介苗', description: '预防儿童结核病，尤其是结核性脑膜炎等重症。', doseCount: 1, intervalSummary: '出生时接种', sortOrder: 20 },
+  { id: 'polio', name: '脊灰疫苗', category: 'program', shortName: '脊灰', description: '预防脊髓灰质炎。具体剂型由门诊安排。', doseCount: 4, intervalSummary: '2、3、4月龄及4周岁', sortOrder: 30 },
+  { id: 'dtap', name: '百白破疫苗', category: 'program', shortName: '百白破', description: '预防百日咳、白喉和破伤风；学龄期加强由门诊安排。', doseCount: 5, intervalSummary: '3、4、5、18月龄及6周岁加强', sortOrder: 40 },
+  { id: 'mmr', name: '麻腮风疫苗', category: 'program', shortName: '麻腮风', description: '预防麻疹、流行性腮腺炎和风疹。', doseCount: 2, intervalSummary: '8月龄、18月龄', sortOrder: 50 },
+  { id: 'je', name: '乙脑疫苗', category: 'program', shortName: '乙脑', description: '预防流行性乙型脑炎。具体剂型与剂次由门诊安排。', doseCount: 2, intervalSummary: '常规8月龄、2周岁', sortOrder: 60 },
+  { id: 'meningococcal', name: '流脑疫苗', category: 'program', shortName: '流脑', description: '预防流行性脑脊髓膜炎。', doseCount: 4, intervalSummary: '6、9月龄及3、6周岁', sortOrder: 70 },
+  { id: 'hepa', name: '甲肝疫苗', category: 'program', shortName: '甲肝', description: '预防甲型病毒性肝炎。具体剂型由门诊安排。', doseCount: 1, intervalSummary: '常规18月龄起', sortOrder: 80 },
+  { id: 'pcv13', name: '13价肺炎球菌疫苗', category: 'self_paid', shortName: '13价肺炎', description: '预防相应血清型肺炎球菌引起的侵袭性疾病。', doseCount: 4, intervalSummary: '常见程序为基础3剂加加强1剂', sortOrder: 110 },
+  { id: 'rv5', name: '五价轮状病毒疫苗', category: 'self_paid', shortName: '五价轮状', description: '预防相应型别轮状病毒胃肠炎。', doseCount: 3, intervalSummary: '通常每剂间隔4—10周，须在规定月龄内完成', sortOrder: 120 },
+  { id: 'pentavalent', name: '五联疫苗（DTaP-IPV-Hib）', category: 'self_paid', shortName: '五联', description: '联合预防百日咳、白喉、破伤风、脊灰及Hib感染。', doseCount: 4, intervalSummary: '常见程序为3剂基础加1剂加强', sortOrder: 130 },
+  { id: 'quadrivalent', name: '四联疫苗（DTaP-IPV）', category: 'self_paid', shortName: '四联', description: '联合预防百日咳、白喉、破伤风和脊灰。', doseCount: 4, intervalSummary: '按产品说明和门诊安排', sortOrder: 140 },
+  { id: 'hib', name: 'Hib疫苗', category: 'self_paid', shortName: 'Hib', description: '预防b型流感嗜血杆菌引起的侵袭性疾病。', doseCount: 4, intervalSummary: '剂次数随起始月龄不同', sortOrder: 150 },
+  { id: 'varicella', name: '水痘疫苗', category: 'self_paid', shortName: '水痘', description: '预防水痘。', doseCount: 2, intervalSummary: '通常接种2剂，间隔按年龄和产品说明', sortOrder: 160 },
+  { id: 'flu', name: '流感疫苗', category: 'self_paid', shortName: '流感', description: '预防当季疫苗覆盖型别的流行性感冒。', doseCount: null, intervalSummary: '通常每年接种；首次接种儿童可能需2剂', sortOrder: 170 },
+  { id: 'ev71', name: 'EV71疫苗', category: 'self_paid', shortName: 'EV71', description: '预防EV71感染所致手足口病，尤其重症。', doseCount: 2, intervalSummary: '通常2剂，间隔1个月', sortOrder: 180 },
+  { id: 'menac', name: '流脑结合疫苗', category: 'self_paid', shortName: '流脑结合', description: '预防疫苗覆盖血清群的流脑。', doseCount: null, intervalSummary: '剂次数与间隔按产品和起始年龄确定', sortOrder: 190 },
+  { id: 'ppv23', name: '23价肺炎球菌疫苗', category: 'self_paid', shortName: '23价肺炎', description: '预防相应血清型肺炎球菌疾病，主要用于适龄或高风险人群。', doseCount: null, intervalSummary: '按年龄、健康情况和门诊建议', sortOrder: 200 },
+  { id: 'rotavirus', name: '轮状病毒疫苗', category: 'self_paid', shortName: '轮状病毒', description: '预防轮状病毒胃肠炎。', doseCount: null, intervalSummary: '不同产品程序不同，须在规定月龄内完成', sortOrder: 210 },
+  { id: 'rabies', name: '狂犬病疫苗', category: 'self_paid', shortName: '狂犬病', description: '用于狂犬病暴露前或暴露后预防。', doseCount: null, intervalSummary: '暴露后应立即就医并按门诊程序接种', sortOrder: 220 },
+  { id: 'hepe', name: '戊肝疫苗', category: 'self_paid', shortName: '戊肝', description: '预防戊型病毒性肝炎。', doseCount: 3, intervalSummary: '通常0、1、6个月', sortOrder: 230 }
+];
+const insertDefaultVaccine = db.prepare(`INSERT OR IGNORE INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder)`);
+db.transaction(() => { for (const item of defaultVaccineCatalog) insertDefaultVaccine.run({ ...item, active: item.category === 'program' || ['pcv13', 'rv5'].includes(item.id) ? 1 : 0 }); })();
+const knownSelfPaidVaccines = [
+  '五联疫苗（DTaP-IPV-Hib）', '四联疫苗（DTaP-IPV）', 'b型流感嗜血杆菌结合疫苗',
+  '13价肺炎球菌多糖结合疫苗', '23价肺炎球菌多糖疫苗', '五价轮状病毒减毒活疫苗',
+  '口服轮状病毒活疫苗', '水痘减毒活疫苗', '季节性流感疫苗', '鼻喷流感减毒活疫苗',
+  'AC群流脑结合疫苗', 'ACYW135群流脑多糖疫苗', '流脑多糖结合疫苗',
+  '肠道病毒71型灭活疫苗', '狂犬病疫苗', '戊型肝炎疫苗'
+];
+const markSelfPaid = db.prepare('UPDATE vaccine_records SET category = \'self_paid\' WHERE vaccine_name = ? AND category <> \'self_paid\'');
+db.transaction(() => { for (const name of knownSelfPaidVaccines) markSelfPaid.run(name); })();
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS daily_reports (
@@ -178,6 +252,7 @@ export class RecordNotFoundError extends Error {}
 export class CareItemConflictError extends Error {}
 export class CareItemInactiveError extends Error {}
 export class CareItemOrderError extends Error {}
+export class VaccineCatalogConflictError extends Error {}
 export class FamilyPermissionError extends Error {}
 export class DuplicateGrowthDayError extends Error {
   existing: GrowthRecord;
@@ -406,6 +481,104 @@ export function purgeGrowthRecord(id: string): boolean {
   return db.prepare('DELETE FROM growth_records WHERE id = ? AND deleted_at IS NOT NULL').run(id).changes > 0;
 }
 
+const vaccineColumns = `id, vaccine_name AS vaccineName, category, dose, planned_on AS plannedOn,
+  appointment_on AS appointmentOn, appointment_time AS appointmentTime, administered_on AS administeredOn, note, created_at AS createdAt, updated_at AS updatedAt,
+  created_by AS createdBy, updated_by AS updatedBy, deleted_at AS deletedAt, deleted_by AS deletedBy`;
+
+function getVaccineRecord(id: string): VaccineRecord | null {
+  return db.prepare(`SELECT ${vaccineColumns} FROM vaccine_records WHERE id = ?`).get(id) as VaccineRecord | undefined || null;
+}
+
+export function listVaccineRecords(includeDeleted = false): VaccineRecord[] {
+  const where = includeDeleted ? '' : 'WHERE deleted_at IS NULL';
+  return db.prepare(`SELECT ${vaccineColumns} FROM vaccine_records ${where} ORDER BY COALESCE(administered_on, planned_on) DESC, updated_at DESC`).all() as VaccineRecord[];
+}
+
+export class DuplicateVaccineRecordError extends Error {
+  existing: VaccineRecord;
+  constructor(existing: VaccineRecord) { super('这针疫苗已经记录'); this.existing = existing; }
+}
+
+export function saveVaccineRecord(record: VaccineRecord): VaccineRecord {
+  const storedRecord = { appointmentOn: null, appointmentTime: null, ...record };
+  const existing = getVaccineRecord(record.id);
+  const duplicate = db.prepare(`SELECT ${vaccineColumns} FROM vaccine_records WHERE vaccine_name = ? AND dose = ? AND deleted_at IS NULL AND id <> ? LIMIT 1`)
+    .get(record.vaccineName, record.dose, record.id) as VaccineRecord | undefined;
+  if (duplicate) throw new DuplicateVaccineRecordError(duplicate);
+  if (existing?.deletedAt) throw new RecordNotFoundError('疫苗记录已经删除');
+  if (existing) db.prepare(`UPDATE vaccine_records SET vaccine_name=@vaccineName, category=@category, dose=@dose, planned_on=@plannedOn,
+    appointment_on=@appointmentOn, appointment_time=@appointmentTime, administered_on=@administeredOn, note=@note, updated_at=@updatedAt, updated_by=@updatedBy WHERE id=@id AND deleted_at IS NULL`).run(storedRecord);
+  else db.prepare(`INSERT INTO vaccine_records (id, vaccine_name, category, dose, planned_on, appointment_on, appointment_time, administered_on, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+    VALUES (@id, @vaccineName, @category, @dose, @plannedOn, @appointmentOn, @appointmentTime, @administeredOn, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, NULL, NULL)`).run(storedRecord);
+  return getVaccineRecord(record.id)!;
+}
+
+export function removeVaccineRecord(id: string, actor: AuditIdentity): VaccineRecord | null {
+  const existing = getVaccineRecord(id);
+  if (!existing || existing.deletedAt) return null;
+  const now = new Date().toISOString();
+  db.prepare('UPDATE vaccine_records SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE id = ?').run(now, actor, now, actor, id);
+  return getVaccineRecord(id);
+}
+
+export function restoreVaccineRecord(id: string, actor: AuditIdentity): VaccineRecord {
+  const existing = getVaccineRecord(id);
+  if (!existing) throw new RecordNotFoundError('疫苗记录不存在');
+  const duplicate = db.prepare(`SELECT ${vaccineColumns} FROM vaccine_records WHERE vaccine_name = ? AND dose = ? AND deleted_at IS NULL AND id <> ? LIMIT 1`)
+    .get(existing.vaccineName, existing.dose, id) as VaccineRecord | undefined;
+  if (duplicate) throw new DuplicateVaccineRecordError(duplicate);
+  const now = new Date().toISOString();
+  db.prepare('UPDATE vaccine_records SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ? WHERE id = ?').run(now, actor, id);
+  return getVaccineRecord(id)!;
+}
+
+const vaccineCatalogColumns = `id, name, category, short_name AS shortName, description, dose_count AS doseCount, interval_summary AS intervalSummary, active, sort_order AS sortOrder`;
+type VaccineCatalogRow = Omit<VaccineCatalogItem, 'active'> & { active: number };
+function mapVaccineCatalog(item: VaccineCatalogRow): VaccineCatalogItem { return { ...item, active: Boolean(item.active) }; }
+export function listVaccineCatalog(includeInactive = false): VaccineCatalogItem[] {
+  const where = includeInactive ? 'WHERE deleted_at IS NULL' : 'WHERE active = 1 AND deleted_at IS NULL';
+  return (db.prepare(`SELECT ${vaccineCatalogColumns} FROM vaccine_catalog ${where} ORDER BY sort_order, name`).all() as VaccineCatalogRow[]).map(mapVaccineCatalog);
+}
+export function setVaccineCatalogActive(id: string, active: boolean): VaccineCatalogItem {
+  if (!db.prepare('UPDATE vaccine_catalog SET active = ? WHERE id = ? AND deleted_at IS NULL').run(active ? 1 : 0, id).changes) throw new RecordNotFoundError('疫苗不存在');
+  return mapVaccineCatalog(db.prepare(`SELECT ${vaccineCatalogColumns} FROM vaccine_catalog WHERE id = ?`).get(id) as VaccineCatalogRow);
+}
+export function saveVaccineCatalogItem(item: VaccineCatalogItem): VaccineCatalogItem {
+  const existingById = db.prepare('SELECT id FROM vaccine_catalog WHERE id = ?').get(item.id) as { id: string } | undefined;
+  const existingByName = db.prepare('SELECT id, deleted_at AS deletedAt FROM vaccine_catalog WHERE name = ?').get(item.name) as { id: string; deletedAt: string | null } | undefined;
+  if (existingByName && !existingByName.deletedAt && existingByName.id !== item.id) throw new VaccineCatalogConflictError('已经存在同名疫苗');
+  if (existingById) {
+    try {
+      db.prepare(`UPDATE vaccine_catalog SET name = @name, category = @category, short_name = @shortName, description = @description,
+        dose_count = @doseCount, interval_summary = @intervalSummary, active = @active, sort_order = @sortOrder, deleted_at = NULL WHERE id = @id`)
+        .run({ ...item, active: item.active ? 1 : 0 });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('UNIQUE')) throw new VaccineCatalogConflictError('已经存在同名疫苗');
+      throw error;
+    }
+  } else if (existingByName?.deletedAt) {
+    db.prepare(`UPDATE vaccine_catalog SET category = @category, short_name = @shortName, description = @description,
+      dose_count = @doseCount, interval_summary = @intervalSummary, active = @active, sort_order = @sortOrder, deleted_at = NULL WHERE id = @existingId`)
+      .run({ ...item, existingId: existingByName.id, active: item.active ? 1 : 0 });
+    item = { ...item, id: existingByName.id };
+  } else {
+    db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order, deleted_at)
+      VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder, NULL)`)
+      .run({ ...item, active: item.active ? 1 : 0 });
+  }
+  return mapVaccineCatalog(db.prepare(`SELECT ${vaccineCatalogColumns} FROM vaccine_catalog WHERE id = ? AND deleted_at IS NULL`).get(item.id) as VaccineCatalogRow);
+}
+export function removeVaccineCatalogItem(id: string): boolean {
+  return Boolean(db.prepare("UPDATE vaccine_catalog SET active = 0, deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL").run(id).changes);
+}
+export function reorderVaccineCatalog(ids: string[]): VaccineCatalogItem[] {
+  const all = listVaccineCatalog(true);
+  if (ids.length !== all.length || ids.some(id => !all.some(item => item.id === id))) throw new Error('疫苗顺序不完整');
+  const update = db.prepare('UPDATE vaccine_catalog SET sort_order = ? WHERE id = ?');
+  db.transaction(() => ids.forEach((id, index) => update.run((index + 1) * 10, id)))();
+  return listVaccineCatalog(true);
+}
+
 export interface AiSettings {
   provider: string;
   baseUrl: string;
@@ -452,7 +625,7 @@ export function listDailyReports(): DailyReport[] {
   return rows.map(row => ({ ...row, suggestions: JSON.parse(row.suggestions) as string[] }));
 }
 
-type ImportPayload = { profile?: { name: string; birthDate: string; sex?: BabySex }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; dailyReports?: DailyReport[] };
+type ImportPayload = { profile?: { name: string; birthDate: string; sex?: BabySex }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[] };
 type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
   if (payload.profile) saveProfile(payload.profile.name, payload.profile.birthDate, payload.profile.sex);
@@ -468,6 +641,18 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
       ON CONFLICT(id) DO UPDATE SET measured_on=excluded.measured_on, height_cm=excluded.height_cm, weight_kg=excluded.weight_kg,
         updated_at=excluded.updated_at, updated_by=excluded.updated_by, deleted_at=excluded.deleted_at, deleted_by=excluded.deleted_by`);
     for (const record of payload.growthRecords) upsertGrowth.run(record);
+  }
+  if (payload.vaccineRecords?.length) {
+    const upsertVaccine = db.prepare(`INSERT INTO vaccine_records (id, vaccine_name, category, dose, planned_on, appointment_on, appointment_time, administered_on, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+      VALUES (@id, @vaccineName, @category, @dose, @plannedOn, @appointmentOn, @appointmentTime, @administeredOn, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
+      ON CONFLICT(id) DO UPDATE SET vaccine_name=excluded.vaccine_name, category=excluded.category, dose=excluded.dose, planned_on=excluded.planned_on,
+        appointment_on=excluded.appointment_on, appointment_time=excluded.appointment_time, administered_on=excluded.administered_on, note=excluded.note, updated_at=excluded.updated_at, updated_by=excluded.updated_by,
+        deleted_at=excluded.deleted_at, deleted_by=excluded.deleted_by`);
+    for (const record of payload.vaccineRecords) upsertVaccine.run({ appointmentOn: null, appointmentTime: null, ...record });
+  }
+  if (payload.vaccineCatalog?.length) {
+    const upsertCatalog = db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder) ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, short_name=excluded.short_name, description=excluded.description, dose_count=excluded.dose_count, interval_summary=excluded.interval_summary, active=excluded.active, sort_order=excluded.sort_order`);
+    for (const item of payload.vaccineCatalog) upsertCatalog.run({ ...item, active: item.active ? 1 : 0 });
   }
   if (payload.dailyReports?.length) {
     const upsertReport = db.prepare('INSERT INTO daily_reports (report_date, summary, suggestions, model, generated_at) VALUES (@reportDate, @summary, @suggestions, @model, @generatedAt) ON CONFLICT(report_date) DO UPDATE SET summary=excluded.summary, suggestions=excluded.suggestions, model=excluded.model, generated_at=excluded.generated_at');
@@ -495,7 +680,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
 
-type ReplacePayload = { profile: { name: string; birthDate: string; sex?: BabySex }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; dailyReports?: DailyReport[] };
+type ReplacePayload = { profile: { name: string; birthDate: string; sex?: BabySex }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[] };
 const replaceBackupTransaction = db.transaction((payload: ReplacePayload): ImportResult => {
   db.prepare('DELETE FROM record_audit').run();
   db.prepare('DELETE FROM care_records').run();
@@ -511,6 +696,17 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     const insertGrowth = db.prepare(`INSERT INTO growth_records (id, measured_on, height_cm, weight_kg, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
       VALUES (@id, @measuredOn, @heightCm, @weightKg, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)`);
     for (const record of payload.growthRecords) insertGrowth.run(record);
+  }
+  db.prepare('DELETE FROM vaccine_records').run();
+  if (payload.vaccineRecords?.length) {
+    const insertVaccine = db.prepare(`INSERT INTO vaccine_records (id, vaccine_name, category, dose, planned_on, appointment_on, appointment_time, administered_on, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+      VALUES (@id, @vaccineName, @category, @dose, @plannedOn, @appointmentOn, @appointmentTime, @administeredOn, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)`);
+    for (const record of payload.vaccineRecords) insertVaccine.run({ appointmentOn: null, appointmentTime: null, ...record });
+  }
+  if (payload.vaccineCatalog?.length) {
+    db.prepare('DELETE FROM vaccine_catalog').run();
+    const insertCatalog = db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder)`);
+    for (const item of payload.vaccineCatalog) insertCatalog.run({ ...item, active: item.active ? 1 : 0 });
   }
   db.prepare('DELETE FROM daily_reports').run();
   if (payload.dailyReports?.length) {

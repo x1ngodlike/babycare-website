@@ -1,4 +1,4 @@
-import type { AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole } from './types';
+import type { AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 
 export class ApiError extends Error {
   status: number;
@@ -42,6 +42,18 @@ export const api = {
   deleteGrowthRecord: (id: string) => request<{ deleted: boolean; record: GrowthRecord }>(`/api/growth-records/${id}`, { method: 'DELETE' }),
   restoreGrowthRecord: (id: string) => request<GrowthRecord>(`/api/growth-records/${id}/restore`, { method: 'POST' }),
   purgeGrowthRecord: (id: string) => request<{ deleted: boolean }>(`/api/growth-records/${id}/permanent`, { method: 'DELETE' }),
+  vaccineRecords: () => request<VaccineRecord[]>('/api/vaccine-records'),
+  vaccineCatalog: () => request<VaccineCatalogItem[]>('/api/vaccine-catalog'),
+  createVaccineCatalogItem: (item: DraftVaccineCatalogItem) => request<VaccineCatalogItem>('/api/vaccine-catalog', { method: 'POST', body: JSON.stringify(item) }),
+  updateVaccineCatalogItem: (id: string, item: DraftVaccineCatalogItem) => request<VaccineCatalogItem>(`/api/vaccine-catalog/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(item) }),
+  deleteVaccineCatalogItem: (id: string) => request<{ deleted: boolean }>(`/api/vaccine-catalog/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  setVaccineCatalogActive: (id: string, active: boolean) => request<VaccineCatalogItem>(`/api/vaccine-catalog/${encodeURIComponent(id)}/active`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+  reorderVaccineCatalog: (ids: string[]) => request<VaccineCatalogItem[]>('/api/vaccine-catalog/order', { method: 'PUT', body: JSON.stringify({ ids }) }),
+  deletedVaccineRecords: () => request<VaccineRecord[]>('/api/vaccine-records/deleted'),
+  createVaccineRecord: (record: DraftVaccineRecord) => request<VaccineRecord>('/api/vaccine-records', { method: 'POST', body: JSON.stringify(record) }),
+  updateVaccineRecord: (id: string, record: DraftVaccineRecord) => request<VaccineRecord>(`/api/vaccine-records/${id}`, { method: 'PUT', body: JSON.stringify(record) }),
+  deleteVaccineRecord: (id: string) => request<{ deleted: boolean; record: VaccineRecord | null }>(`/api/vaccine-records/${id}`, { method: 'DELETE' }),
+  restoreVaccineRecord: (id: string) => request<VaccineRecord>(`/api/vaccine-records/${id}/restore`, { method: 'POST' }),
   familyMembers: () => request<FamilyMemberPermission[]>('/api/family-members'),
   updateFamilyRole: (id: Exclude<FamilyId, 'father'>, role: Exclude<UserRole, 'superadmin'>) => request<FamilyMemberPermission>(`/api/family-members/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
   records: (from: string, to: string) => request<CareRecord[]>(`/api/records?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),

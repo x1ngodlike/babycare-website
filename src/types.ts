@@ -10,6 +10,26 @@ export interface SessionUser { id: FamilyId; name: string; role: UserRole }
 export interface FamilyMemberPermission { id: FamilyId; name: string; role: UserRole }
 export interface GrowthRecord { id: string; measuredOn: string; heightCm: number; weightKg: number; createdAt: string; updatedAt: string; createdBy: AuditIdentity; updatedBy: AuditIdentity; deletedAt: string | null; deletedBy: AuditIdentity | null }
 export interface DraftGrowthRecord { id?: string; measuredOn: string; heightCm: number; weightKg: number }
+export interface VaccineRecord {
+  id: string;
+  vaccineName: string;
+  category: 'program' | 'self_paid';
+  dose: number;
+  plannedOn: string;
+  appointmentOn?: string | null;
+  appointmentTime?: string | null;
+  administeredOn: string | null;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: AuditIdentity;
+  updatedBy: AuditIdentity;
+  deletedAt: string | null;
+  deletedBy: AuditIdentity | null;
+}
+export interface DraftVaccineRecord { id?: string; vaccineName: string; category: 'program' | 'self_paid'; dose: number; plannedOn: string; appointmentOn?: string | null; appointmentTime?: string | null; administeredOn: string | null; note?: string | null }
+export interface VaccineCatalogItem { id: string; name: string; category: 'program' | 'self_paid'; shortName: string | null; description: string; doseCount: number | null; intervalSummary: string; active: boolean; sortOrder: number }
+export type DraftVaccineCatalogItem = Pick<VaccineCatalogItem, 'name' | 'category' | 'shortName' | 'description' | 'doseCount' | 'intervalSummary'>;
 export interface Capabilities {
   aiEnabled: boolean;
   aiModel: string | null;

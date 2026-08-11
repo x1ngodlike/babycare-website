@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AuditEntry, CareRecord, GrowthRecord } from './types.js';
+import type { AuditEntry, CareRecord, GrowthRecord, VaccineRecord } from './types.js';
 
 const directory = mkdtempSync(join(tmpdir(), 'baby-care-db-test-'));
 process.env.DATABASE_PATH = join(directory, 'test.db');
@@ -24,10 +24,47 @@ function growth(overrides: Partial<GrowthRecord> = {}): GrowthRecord {
   return { id: crypto.randomUUID(), measuredOn: '2026-08-10', heightCm: 62.5, weightKg: 6.35, createdAt: now, updatedAt: now, createdBy: 'father', updatedBy: 'father', deletedAt: null, deletedBy: null, ...overrides };
 }
 
+function vaccine(overrides: Partial<VaccineRecord> = {}): VaccineRecord {
+  const now = '2026-08-11T08:00:00.000Z';
+  return { id: crypto.randomUUID(), vaccineName: '乙肝疫苗', category: 'program', dose: 1, plannedOn: '2026-01-01', administeredOn: '2026-01-01', note: null, createdAt: now, updatedAt: now, createdBy: 'father', updatedBy: 'father', deletedAt: null, deletedBy: null, ...overrides };
+}
+
 beforeAll(() => expect(db.getProfile()).toMatchObject({ name: '示例宝宝' }));
 afterAll(() => { db.closeDatabaseForTests(); rmSync(directory, { recursive: true, force: true }); });
 
 describe('record reliability', () => {
+  it('stores, protects, soft deletes and restores vaccine records', () => {
+    const first = db.saveVaccineRecord(vaccine());
+    expect(db.listVaccineRecords()).toContainEqual(first);
+    const appointed = db.saveVaccineRecord({ ...first, plannedOn: '2026-01-01', appointmentOn: '2026-01-08', appointmentTime: '09:30' });
+    expect(appointed).toMatchObject({ plannedOn: '2026-01-01', appointmentOn: '2026-01-08', appointmentTime: '09:30' });
+    expect(db.saveVaccineRecord({ ...appointed, appointmentOn: null, appointmentTime: null })).toMatchObject({ plannedOn: '2026-01-01', appointmentOn: null });
+    expect(() => db.saveVaccineRecord(vaccine())).toThrow(db.DuplicateVaccineRecordError);
+    expect(db.removeVaccineRecord(first.id, 'mother')?.deletedBy).toBe('mother');
+    expect(db.listVaccineRecords()).not.toContainEqual(expect.objectContaining({ id: first.id }));
+    expect(db.restoreVaccineRecord(first.id, 'father').deletedAt).toBeNull();
+  });
+
+  it('defaults to the booklet catalog and supports enabling and sorting', () => {
+    const catalog = db.listVaccineCatalog(true);
+    expect(catalog.filter((item: { active: boolean }) => item.active)).toHaveLength(10);
+    expect(catalog.filter((item: { active: boolean; category: string }) => item.active && item.category === 'program')).toHaveLength(8);
+    expect(db.setVaccineCatalogActive('varicella', true).active).toBe(true);
+    const ids = db.listVaccineCatalog(true).map((item: { id: string }) => item.id).reverse();
+    expect(db.reorderVaccineCatalog(ids).map((item: { id: string }) => item.id)).toEqual(ids);
+  });
+
+  it('creates, edits and soft deletes vaccine catalog items without touching history', () => {
+    const created = db.saveVaccineCatalogItem({ id: 'custom-test', name: '测试疫苗', category: 'self_paid', shortName: null, description: '用于测试。', doseCount: 2, intervalSummary: '间隔1个月', active: true, sortOrder: 999 });
+    expect(created).toMatchObject({ name: '测试疫苗', doseCount: 2, active: true });
+    expect(db.saveVaccineCatalogItem({ ...created, description: '修改后的说明。', doseCount: 3 })).toMatchObject({ description: '修改后的说明。', doseCount: 3 });
+    expect(() => db.saveVaccineCatalogItem({ ...created, id: 'custom-duplicate' })).toThrow(db.VaccineCatalogConflictError);
+    expect(db.removeVaccineCatalogItem(created.id)).toBe(true);
+    expect(db.listVaccineCatalog(true)).not.toContainEqual(expect.objectContaining({ id: created.id }));
+    const restored = db.saveVaccineCatalogItem({ ...created, id: 'new-id', description: '重新添加。' });
+    expect(restored).toMatchObject({ id: created.id, name: '测试疫苗', description: '重新添加。' });
+  });
+
   it('stores the baby sex and defaults legacy profile imports safely', () => {
     expect(db.saveProfile('示例宝宝', '2026-01-01', 'female')).toMatchObject({ sex: 'female' });
     db.importBackup({ profile: { name: '旧备份宝宝', birthDate: '2026-01-02' }, records: [] });

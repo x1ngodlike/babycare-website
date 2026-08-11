@@ -9,10 +9,10 @@ import { testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import type { FamilyId } from './auth.js';
 import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
-import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DailyReport, DuplicateGrowthDayError, DuplicateSupplementError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, reorderCareItems, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, setCareItemActive, setFamilyRole } from './db.js';
+import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DailyReport, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, restoreVaccineRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
-import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission, GrowthRecord } from './types.js';
+import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission, GrowthRecord, VaccineCatalogItem, VaccineRecord } from './types.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -100,6 +100,33 @@ const growthRecordSchema = z.object({
   deletedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).nullable().optional()
 });
 
+const vaccineRecordSchema = z.object({
+  id: z.string().uuid().optional(),
+  vaccineName: z.string().trim().min(1).max(40),
+  category: z.enum(['program', 'self_paid']).optional(),
+  dose: z.number().int().min(1).max(9),
+  plannedOn: z.string().date(),
+  appointmentOn: z.string().date().nullable().optional(),
+  appointmentTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
+  administeredOn: z.string().date().nullable(),
+  note: z.string().trim().max(100).nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }).optional(),
+  updatedAt: z.string().datetime({ offset: true }).optional(),
+  createdBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).optional(),
+  updatedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).optional(),
+  deletedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  deletedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).nullable().optional()
+});
+
+const vaccineCatalogInputSchema = z.object({
+  name: z.string().trim().min(1, '请填写疫苗名称').max(50, '疫苗名称过长'),
+  category: z.enum(['program', 'self_paid']),
+  shortName: z.string().trim().max(30).nullable().optional(),
+  description: z.string().trim().max(300),
+  doseCount: z.number().int().min(1).max(9).nullable(),
+  intervalSummary: z.string().trim().max(200)
+});
+
 const backupPayloadSchema = z.object({
   version: z.number().int().optional(),
   profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), sex: z.enum(['male', 'female', 'unspecified']).optional() }).optional(),
@@ -108,6 +135,8 @@ const backupPayloadSchema = z.object({
   careItems: z.array(careItemSchema).max(100).optional(),
   familyMembers: z.array(familyMemberSchema).max(4).optional(),
   growthRecords: z.array(growthRecordSchema).max(1000).optional(),
+  vaccineRecords: z.array(vaccineRecordSchema).max(1000).optional(),
+  vaccineCatalog: z.array(z.object({ id: z.string().min(1).max(50), name: z.string().min(1).max(50), category: z.enum(['program', 'self_paid']), shortName: z.string().max(30).nullable(), description: z.string().max(300), doseCount: z.number().int().min(1).max(20).nullable(), intervalSummary: z.string().max(200), active: z.boolean(), sortOrder: z.number().int().min(0).max(9999) })).max(100).optional(),
   dailyReports: z.array(z.object({
     reportDate: z.string(), summary: z.string(), suggestions: z.array(z.string()), model: z.string(), generatedAt: z.string()
   })).max(3650).optional()
@@ -179,8 +208,21 @@ function normalizeGrowthRecord(input: z.infer<typeof growthRecordSchema>, actor:
   };
 }
 
+function normalizeVaccineRecord(input: z.infer<typeof vaccineRecordSchema>, actor: FamilyId, preserveAudit = false): VaccineRecord {
+  const now = new Date().toISOString();
+  return {
+    id: input.id || randomUUID(), vaccineName: input.vaccineName, category: input.category || 'program', dose: input.dose,
+    plannedOn: input.plannedOn, appointmentOn: input.appointmentOn || null, appointmentTime: input.appointmentOn ? input.appointmentTime || null : null, administeredOn: input.administeredOn, note: input.note || null,
+    createdAt: input.createdAt || now, updatedAt: preserveAudit && input.updatedAt ? input.updatedAt : now,
+    createdBy: preserveAudit ? input.createdBy || 'legacy' : actor,
+    updatedBy: preserveAudit ? input.updatedBy || input.createdBy || 'legacy' : actor,
+    deletedAt: preserveAudit ? input.deletedAt || null : null,
+    deletedBy: preserveAudit ? input.deletedBy || null : null
+  };
+}
+
 function exportPayload() {
-  return { version: 6, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true), dailyReports: listDailyReports() };
+  return { version: 9, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true), vaccineRecords: listVaccineRecords(true), vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports() };
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -340,6 +382,82 @@ app.delete('/api/growth-records/:id/permanent', requireAdmin, (req, res) => {
   return res.json({ deleted: true });
 });
 
+app.get('/api/vaccine-records', (_req, res) => res.json(listVaccineRecords()));
+
+app.get('/api/vaccine-catalog', (_req, res) => res.json(listVaccineCatalog(true)));
+
+app.post('/api/vaccine-catalog', requireAdmin, (req, res) => {
+  const parsed = vaccineCatalogInputSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '疫苗信息格式不正确' });
+  const current = listVaccineCatalog(true);
+  const item: VaccineCatalogItem = { id: randomUUID(), ...parsed.data, shortName: parsed.data.shortName || null, description: parsed.data.description || '按接种门诊建议安排。', intervalSummary: parsed.data.intervalSummary || '按接种门诊建议', active: true, sortOrder: (current.at(-1)?.sortOrder || 0) + 10 };
+  try { const saved = saveVaccineCatalogItem(item); changeHub.broadcast('all'); return res.status(201).json(saved); }
+  catch (error) { if (error instanceof VaccineCatalogConflictError) return res.status(409).json({ error: error.message }); throw error; }
+});
+
+app.put('/api/vaccine-catalog/:id', requireAdmin, (req, res) => {
+  const parsed = vaccineCatalogInputSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '疫苗信息格式不正确' });
+  const existing = listVaccineCatalog(true).find(item => item.id === req.params.id);
+  if (!existing) return res.status(404).json({ error: '疫苗不存在' });
+  try { const saved = saveVaccineCatalogItem({ ...existing, ...parsed.data, shortName: parsed.data.shortName || null, description: parsed.data.description || '按接种门诊建议安排。', intervalSummary: parsed.data.intervalSummary || '按接种门诊建议' }); changeHub.broadcast('all'); return res.json(saved); }
+  catch (error) { if (error instanceof VaccineCatalogConflictError) return res.status(409).json({ error: error.message }); throw error; }
+});
+
+app.delete('/api/vaccine-catalog/:id', requireAdmin, (req, res) => {
+  if (!removeVaccineCatalogItem(String(req.params.id))) return res.status(404).json({ error: '疫苗不存在' });
+  changeHub.broadcast('all');
+  return res.json({ deleted: true });
+});
+
+app.patch('/api/vaccine-catalog/:id/active', requireAdmin, (req, res) => {
+  const parsed = z.object({ active: z.boolean() }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: '启用状态格式不正确' });
+  try { const item = setVaccineCatalogActive(String(req.params.id), parsed.data.active); changeHub.broadcast('all'); return res.json(item); }
+  catch (error) { if (error instanceof RecordNotFoundError) return res.status(404).json({ error: error.message }); throw error; }
+});
+
+app.put('/api/vaccine-catalog/order', requireAdmin, (req, res) => {
+  const parsed = z.object({ ids: z.array(z.string().min(1).max(50)).min(1).max(100) }).safeParse(req.body);
+  if (!parsed.success || new Set(parsed.data.ids).size !== parsed.data.ids.length) return res.status(400).json({ error: '疫苗顺序格式不正确' });
+  try { const items = reorderVaccineCatalog(parsed.data.ids); changeHub.broadcast('all'); return res.json(items); }
+  catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : '排序失败' }); }
+});
+
+app.get('/api/vaccine-records/deleted', requireAdmin, (_req, res) => res.json(listVaccineRecords(true).filter(record => record.deletedAt)));
+
+app.post('/api/vaccine-records', (req, res) => {
+  const parsed = vaccineRecordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '疫苗记录格式不正确' });
+  const profile = getProfile();
+  if (parsed.data.plannedOn < profile.birthDate || (parsed.data.administeredOn && parsed.data.administeredOn < profile.birthDate)) return res.status(400).json({ error: '接种日期不能早于出生日期' });
+  if (parsed.data.appointmentOn && parsed.data.appointmentOn < profile.birthDate) return res.status(400).json({ error: '预约日期不能早于出生日期' });
+  if (parsed.data.administeredOn && parsed.data.administeredOn > new Date().toISOString().slice(0, 10)) return res.status(400).json({ error: '接种日期不能晚于今天' });
+  try { const record = saveVaccineRecord(normalizeVaccineRecord(parsed.data, getSessionUser(req)!.id)); changeHub.broadcast('all'); return res.status(201).json(record); }
+  catch (error) { if (error instanceof DuplicateVaccineRecordError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_VACCINE_RECORD', existing: error.existing }); throw error; }
+});
+
+app.put('/api/vaccine-records/:id', (req, res) => {
+  const parsed = vaccineRecordSchema.safeParse({ ...req.body, id: req.params.id });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '疫苗记录格式不正确' });
+  try { const record = saveVaccineRecord(normalizeVaccineRecord(parsed.data, getSessionUser(req)!.id)); changeHub.broadcast('all'); return res.json(record); }
+  catch (error) { if (error instanceof DuplicateVaccineRecordError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_VACCINE_RECORD', existing: error.existing }); throw error; }
+});
+
+app.delete('/api/vaccine-records/:id', requireAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '疫苗记录编号不正确' });
+  const record = removeVaccineRecord(parsed.data, getSessionUser(req)!.id); changeHub.broadcast('all');
+  return res.json({ deleted: Boolean(record), record });
+});
+
+app.post('/api/vaccine-records/:id/restore', requireAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '疫苗记录编号不正确' });
+  try { const record = restoreVaccineRecord(parsed.data, getSessionUser(req)!.id); changeHub.broadcast('all'); return res.json(record); }
+  catch (error) { if (error instanceof DuplicateVaccineRecordError) return res.status(409).json({ error: '当前已有相同疫苗和剂次的记录' }); throw error; }
+});
+
 app.get('/api/records', (req, res) => {
   const parsed = z.object({ from: z.string().datetime({ offset: true }), to: z.string().datetime({ offset: true }) }).safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: '日期范围格式不正确' });
@@ -457,7 +575,8 @@ app.post('/api/backups/:name/restore', requireSuperAdmin, (req, res) => {
   const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
   const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
-  const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords });
+  const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, 'father', true));
+  const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined });
   changeHub.broadcast('all');
   res.json({ ...result, restoredFrom: name, status: serverBackupStatus(backupDirectory) });
 });
@@ -469,7 +588,8 @@ app.post('/api/import', requireSuperAdmin, (req, res) => {
   const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
   const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
-  const result = importBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords });
+  const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, 'father', true));
+  const result = importBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined });
   changeHub.broadcast('all');
   res.json(result);
 });
