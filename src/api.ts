@@ -1,4 +1,4 @@
-import type { AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
+import type { AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 
 export class ApiError extends Error {
   status: number;
@@ -10,9 +10,11 @@ export class ApiError extends Error {
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const isFormData = options?.body instanceof FormData;
+  const defaultHeaders: Record<string, string> = isFormData ? {} : { 'Content-Type': 'application/json' };
   const response = await fetch(url, {
     credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { ...defaultHeaders, ...options?.headers },
     ...options
   });
   if (!response.ok) {
@@ -34,7 +36,7 @@ export const api = {
   testAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<{ ok: boolean; message: string }>('/api/ai/settings/test', { method: 'POST', body: JSON.stringify(settings) }),
   dailyReport: (date?: string) => request<{ date: string; exists: boolean; summary?: string; suggestions?: string[]; model?: string; generatedAt?: string }>(`/api/daily-report${date ? `?date=${encodeURIComponent(date)}` : ''}`),
   generateDailyReport: (date?: string) => request<{ date: string; summary: string; suggestions: string[]; model: string; generatedAt: string }>(`/api/daily-report/generate${date ? `?date=${encodeURIComponent(date)}` : ''}`, { method: 'POST' }),
-  updateProfile: (profile: Profile) => request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
+  updateProfile: (profile: Partial<Pick<Profile, 'nickname' | 'caregiverTitle'>> & Pick<Profile, 'name' | 'birthDate' | 'sex'>) => request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
   growthRecords: () => request<GrowthRecord[]>('/api/growth-records'),
   deletedGrowthRecords: () => request<GrowthRecord[]>('/api/growth-records/deleted'),
   createGrowthRecord: (record: DraftGrowthRecord) => request<GrowthRecord>('/api/growth-records', { method: 'POST', body: JSON.stringify(record) }),
@@ -74,4 +76,17 @@ export const api = {
   createServerBackup: () => request<{ name: string; createdAt: string; status: ServerBackupStatus }>('/api/backups', { method: 'POST' }),
   restoreServerBackup: (name: string) => request<{ imported: number; profileRestored: boolean; restoredFrom: string; status: ServerBackupStatus }>(`/api/backups/${encodeURIComponent(name)}/restore`, { method: 'POST' }),
   importData: (data: unknown) => request<{ imported: number; profileRestored: boolean }>('/api/import', { method: 'POST', body: JSON.stringify(data) }),
+  pushStatus: () => request<PushStatus>('/api/push/status'),
+  savePushSettings: (data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean }) => request<PushStatus>('/api/push/settings', { method: 'POST', body: JSON.stringify(data) }),
+  testMorningDigestPush: () => request<{ ok: boolean; message: string }>('/api/push/test/morning-digest', { method: 'POST' }),
+  testFeedingGapPush: (level: 'level1' | 'level2' = 'level1') => request<{ ok: boolean; message: string }>('/api/push/test/feeding-gap', { method: 'POST', body: JSON.stringify({ level }) }),
+  testCareItemPush: () => request<{ ok: boolean; message: string }>('/api/push/test/care-item', { method: 'POST' }),
+  enablePush: () => request<PushStatus>('/api/push/enable', { method: 'POST' }),
+  disablePush: () => request<PushStatus>('/api/push/disable', { method: 'POST' }),
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return request<{ url: string; profile: Profile }>('/api/profile/avatar', { method: 'POST', body: formData });
+  },
+  removeAvatar: () => request<{ ok: boolean; profile: Profile }>('/api/profile/avatar', { method: 'DELETE' }),
 };

@@ -11,3 +11,5 @@ coverage/
 *.log
 *.tsbuildinfo
 .workbuddy/
+server/uploads/
+public/.image-backup-*/

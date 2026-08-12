@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, createElement } from 'react';
+import { Baby, Bell, Bot, LogOut, Pencil, Pill, Save, Syringe, Users } from 'lucide-react';
 import { api, ApiError } from './api';
 import { addDays, calculateAge, isoDay, startOfWeek } from './date';
 import { isCareItemDue, nextCareItemDueDate } from './careSchedule';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
-import type { AiSettingsPublic, AuditEntry, AuditIdentity, BabySex, BowelSize, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, RecordType, ServerBackupFile, ServerBackupStatus, SessionUser, Supplement, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
+import type { AiSettingsPublic, AuditEntry, AuditIdentity, BabySex, BowelSize, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, PushStatus, RecordType, ServerBackupFile, ServerBackupStatus, SessionUser, Supplement, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 import { VaccineArchiveSummary, VaccineEditor, VaccineHistory, VaccineReminderCard, type VaccineEditorState } from './VaccineViews';
 import { buildVaccinePlan, type VaccinePlanItem } from './vaccines';
 import { ActionMenu, confirmAction, EmptyState, SegmentedControl, Switch, useDialogFocus } from './ui';
@@ -44,6 +45,32 @@ function summary(record: CareRecord | DraftRecord) {
   if (record.type === 'supplement') return record.supplement === '推拿' ? '推拿已完成' : `${record.supplement || '用药项目'}已服用`;
   if (record.type === 'bowel') return `排便量：${record.bowelSize || '中'}`;
   return record.note || '其他';
+}
+
+function getAgeProfileLine(birthDate: string, realName: string, now = new Date()): string {
+  const birth = new Date(`${birthDate}T12:00:00`);
+  const days = Math.max(0, Math.floor((now.getTime() - birth.getTime()) / 86400000));
+  let stage: string | null = null;
+  let ageText: string;
+  if (days < 30) {
+    stage = '新生儿';
+    ageText = `第 ${days + 1} 天`;
+  } else if (days < 100) {
+    stage = '满月宝宝';
+    ageText = calculateAge(birthDate, now);
+  } else if (days < 180) {
+    stage = '百天宝宝';
+    ageText = calculateAge(birthDate, now);
+  } else if (days < 365) {
+    stage = '小月龄';
+    ageText = calculateAge(birthDate, now);
+  } else {
+    const years = Math.floor(days / 365.25);
+    const restDays = days - Math.floor(years * 365.25);
+    const months = Math.floor(restDays / 30.4375);
+    ageText = months ? `${years}岁${months}个月` : `${years}周岁`;
+  }
+  return stage ? `${realName} · ${stage} · ${ageText}` : `${realName} · ${ageText}`;
 }
 
 function recordMomentLabel(occurredAt: string, now = new Date()) {
@@ -132,6 +159,121 @@ function usePullToRefresh(enabled: boolean, onRefresh: () => Promise<void>) {
     };
   }, [enabled]);
   return { distance, phase };
+}
+
+const caregiverTitles: Record<FamilyId, string> = { father: '爸爸', mother: '妈妈', grandfather: '爷爷', grandmother: '奶奶' };
+
+function getGreeting(profile: Profile, userId: FamilyId): { greeting: string; displayName: string } {
+  const hour = new Date().getHours();
+  let greeting: string;
+  if (hour >= 5 && hour < 11) greeting = '早安';
+  else if (hour < 13) greeting = '午安';
+  else if (hour < 18) greeting = '下午好';
+  else if (hour < 24) greeting = '晚上好';
+  else greeting = '夜深了';
+  const displayName = profile.nickname?.trim() || profile.name;
+  const title = caregiverTitles[userId] || '';
+  return { greeting, displayName: title ? `${displayName}${title}` : displayName };
+}
+
+function AvatarCropperModal({ imageSrc, onClose, onConfirm }: { imageSrc: string; onClose(): void; onConfirm(file: File): void }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const [size] = useState({ w: 320, h: 320 });
+  const stateRef = useRef({ imgW: 0, imgH: 0, scale: 1, offsetX: 0, offsetY: 0, minScale: 1, dragging: false, lastX: 0, lastY: 0 });
+  const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, onClose);
+  const [ready, setReady] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      imageRef.current = img;
+      const canvas = canvasRef.current!;
+      const ctx = canvas.getContext('2d')!;
+      const s = stateRef.current;
+      s.imgW = img.width; s.imgH = img.height;
+      // 最小缩放：确保完全覆盖裁剪圆
+      const cover = Math.max(size.w / img.width, size.h / img.height);
+      s.scale = cover; s.minScale = cover;
+      s.offsetX = (size.w - img.width * s.scale) / 2;
+      s.offsetY = (size.h - img.height * s.scale) / 2;
+      draw(ctx, canvas, img, s);
+      setReady(true);
+    };
+    img.src = imageSrc;
+  }, [imageSrc, size.w, size.h]);
+
+  function draw(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, img: HTMLImageElement, s: typeof stateRef.current) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    // 圆形裁剪区
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2 - 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(img, s.offsetX, s.offsetY, img.width * s.scale, img.height * s.scale);
+    ctx.restore();
+  }
+
+  function redraw() {
+    const canvas = canvasRef.current; const img = imageRef.current; if (!canvas || !img) return;
+    draw(canvas.getContext('2d')!, canvas, img, stateRef.current);
+  }
+
+  function onWheel(e: React.WheelEvent) {
+    e.preventDefault();
+    const s = stateRef.current;
+    const delta = -e.deltaY * 0.0015;
+    const next = Math.max(s.minScale, Math.min(s.minScale * 4, s.scale * (1 + delta)));
+    if (next === s.scale) return;
+    // 以中心为锚点缩放
+    const cx = size.w / 2, cy = size.h / 2;
+    const imgX = (cx - s.offsetX) / s.scale, imgY = (cy - s.offsetY) / s.scale;
+    s.scale = next;
+    s.offsetX = cx - imgX * s.scale;
+    s.offsetY = cy - imgY * s.scale;
+    redraw();
+  }
+  function onDown(clientX: number, clientY: number) {
+    stateRef.current.dragging = true; stateRef.current.lastX = clientX; stateRef.current.lastY = clientY;
+  }
+  function onMove(clientX: number, clientY: number) {
+    const s = stateRef.current; if (!s.dragging) return;
+    s.offsetX += clientX - s.lastX; s.offsetY += clientY - s.lastY;
+    s.lastX = clientX; s.lastY = clientY;
+    redraw();
+  }
+  function onUp() { stateRef.current.dragging = false; }
+
+  async function confirm() {
+    const canvas = canvasRef.current; const img = imageRef.current; if (!canvas || !img || busy) return;
+    setBusy(true);
+    try {
+      // 输出 512×512 的圆形内容（透明圆外），为了兼容直接裁正方形，服务端会再 resize
+      const out = document.createElement('canvas');
+      out.width = 512; out.height = 512;
+      const octx = out.getContext('2d')!;
+      const s = stateRef.current;
+      const ratio = 512 / size.w;
+      octx.drawImage(img, s.offsetX * ratio, s.offsetY * ratio, img.width * s.scale * ratio, img.height * s.scale * ratio);
+      const blob: Blob | null = await new Promise(resolve => out.toBlob(b => resolve(b), 'image/jpeg', 0.92));
+      if (!blob) throw new Error('裁剪失败');
+      const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+      onConfirm(file);
+    } finally { setBusy(false); }
+  }
+
+  return <div className="modal-layer" onMouseDown={e => e.target === e.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor avatar-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="avatar-cropper-title"><header className="editor-head"><div><p className="kicker">宝宝头像</p><h2 id="avatar-cropper-title">裁剪头像</h2></div><button className="close-btn" onClick={() => !busy && onClose()} aria-label="关闭" disabled={busy}>×</button></header><div className="cropper-body" onWheel={onWheel}><canvas ref={canvasRef} width={size.w} height={size.h}
+    onMouseDown={e => { e.preventDefault(); onDown(e.clientX, e.clientY); }}
+    onMouseMove={e => onMove(e.clientX, e.clientY)}
+    onMouseUp={onUp} onMouseLeave={onUp}
+    onTouchStart={e => { const t = e.touches[0]; if (t) onDown(t.clientX, t.clientY); }}
+    onTouchMove={e => { e.preventDefault(); const t = e.touches[0]; if (t) onMove(t.clientX, t.clientY); }}
+    onTouchEnd={onUp} /><p className="cropper-hint">拖动平移 · 滚轮或双指缩放</p></div>
+    {!ready && <p className="cropper-loading">正在载入图片…</p>}
+    <footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose} disabled={busy}>取消</button><button className="btn primary" onClick={() => void confirm()} disabled={!ready || busy}>{busy ? '处理中…' : '确认使用'}</button></footer></section></div>;
 }
 
 function Login({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
@@ -291,11 +433,22 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
     const overdue = effectiveOn < today;
     const hasTodayAppointment = item.record?.appointmentOn === today;
     const overdueDays = overdue ? Math.max(1, Math.round((new Date(`${today}T12:00:00`).getTime() - new Date(`${effectiveOn}T12:00:00`).getTime()) / 86400000)) : 0;
-    return <article className="vaccine-task" key={`vaccine:${item.key}`}><img className="task-icon vaccine" src="/icons/task-vaccine.png" alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{overdue ? `逾期 ${overdueDays} 天 · 待预约` : hasTodayAppointment ? `${item.record?.appointmentTime ? `今日 ${item.record.appointmentTime}` : '今日'} · 已预约` : '今日 · 待预约'}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`预约${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>预约</button>}{!overdue && <button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>记录</button>}</div></article>;
+    const hadAppointmentOverdue = overdue && Boolean(item.record?.appointmentOn);
+    const statusLabel = overdue
+      ? hadAppointmentOverdue
+        ? `逾期 ${overdueDays} 天 · 已过预约期`
+        : `逾期 ${overdueDays} 天 · 待预约`
+      : hasTodayAppointment
+        ? `${item.record?.appointmentTime ? `今日 ${item.record.appointmentTime}` : '今日'} · 已预约`
+        : '今日 · 待预约';
+    const appointmentLabel = hadAppointmentOverdue ? '改约' : '预约';
+    return <article className="vaccine-task" key={`vaccine:${item.key}`}><img className="task-icon vaccine" src="/icons/task-vaccine.png" alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{statusLabel}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`${appointmentLabel}${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>{appointmentLabel}</button>}<button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>记录</button></div></article>;
   }
   return <div className="today-layout">
     <div className="today-workbench">
-      <section className="baby-hero"><div><p className="kicker">今日 · {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</p><div className="baby-title-line"><h1>{profile.name}</h1><span>{calculateAge(profile.birthDate)}</span></div><div className="hero-status"><p>{lastFeed ? `上次喂奶 ${recordMomentLabel(lastFeed.occurredAt)}` : '尚无喂奶记录'}</p><p>{latestRecord ? `最近记录 ${recordMomentLabel(latestRecord.occurredAt)} · ${summary(latestRecord)}` : '尚无历史记录'}</p></div></div><img src="/bear-bottle.png" alt="" /></section>
+      <section className="baby-hero"><div><p className="kicker">{(() => { const d = new Date(); return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p>{(() => { const { greeting, displayName } = getGreeting(profile, userId); return <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<p className="hero-profile-line">{getAgeProfileLine(profile.birthDate, profile.name)}</p><div className="hero-status">{(() => { const hhmm = (at: string) => new Date(at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }); if (!latestRecord && !lastFeed) return <p>开始记录宝宝今天的第一笔吧</p>; if (latestRecord && (latestRecord.type === 'feeding' || !lastFeed || lastFeed.id === latestRecord.id)) return <p>{hhmm(latestRecord.occurredAt)} · {summary(latestRecord)}</p>; return <p>上次喂奶 {lastFeed ? hhmm(lastFeed.occurredAt) : '暂无'} ｜ {latestRecord ? `${hhmm(latestRecord.occurredAt)} · ${summary(latestRecord)}` : '尚无其他记录'}</p>; })()}</div></div>
+        {profile.avatar ? <div className="hero-avatar"><img src={profile.avatar} alt="" /></div> : <img src="/bear-bottle.png" alt="" className="hero-fallback" />}
+      </section>
       <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>ml</small></div><div><span>奶粉</span><strong>{formula}</strong><small>ml</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
       <section className="quick-section" aria-label="快捷记录"><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>喂奶</b></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>排便</b></button><button onClick={() => onAdd('supplement')}><img className="quick-icon" src="/icons/record-medicine.png" alt="" /><b>用药</b></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他</b></button></div></section>
     </div>
@@ -445,12 +598,111 @@ function GrowthEditor({ profile, records, initial, onClose, onSave }: { profile:
 }
 
 function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClose(): void; onSaved(value: Profile): void }) {
-  const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified' }); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
-  const dirty = form.name !== profile.name || form.birthDate !== profile.birthDate || form.sex !== (profile.sex || 'unspecified');
+  const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null });
+  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dirty = form.name !== profile.name || form.birthDate !== profile.birthDate || form.sex !== (profile.sex || 'unspecified') || (form.nickname ?? '') !== (profile.nickname ?? '');
   function requestClose() { void (async () => { if (!dirty || await confirmAction({ title: '放弃未保存的内容？', description: '宝宝资料的修改不会保存。', confirmLabel: '放弃修改', danger: true })) onClose(); })(); }
   const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, requestClose);
-  async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const next = await api.updateProfile(form); cacheProfile(next); onSaved(next); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
-  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && requestClose()}><section ref={dialogRef} className="editor" role="dialog" aria-modal="true" aria-labelledby="profile-editor-title"><header className="editor-head"><div><p className="kicker">宝宝档案</p><h2 id="profile-editor-title">修改基本资料</h2></div><button className="close-btn" onClick={requestClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>宝宝姓名<input value={form.name} maxLength={30} onChange={event => setForm({ ...form, name: event.target.value })} required /></label><ChoiceField label="宝宝性别" values={['male', 'female', 'unspecified'] as BabySex[]} selected={form.sex} onSelect={sex => setForm({ ...form, sex })} getLabel={sex => sex === 'unspecified' ? '未设置' : sexLabels[sex]} /><DateField label="出生日期" max={isoDay(new Date())} value={form.birthDate} onChange={birthDate => setForm({ ...form, birthDate })} />{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" onClick={requestClose}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '保存资料'}</button></footer></form></section></div>;
+  async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const next = await api.updateProfile({ name: form.name, birthDate: form.birthDate, sex: form.sex, nickname: form.nickname, caregiverTitle: form.caregiverTitle }); cacheProfile(next); onSaved(next); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
+  function pickFile() { fileInputRef.current?.click(); }
+  function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]; if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('请选择图片文件'); return; }
+    if (file.size > 8 * 1024 * 1024) { setError('图片不能大于 8MB'); return; }
+    const reader = new FileReader();
+    reader.onload = () => setCropperSrc(String(reader.result));
+    reader.onerror = () => setError('图片读取失败');
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  }
+  async function onCropperConfirm(file: File) {
+    setAvatarBusy(true); setCropperSrc(null);
+    try { const result = await api.uploadAvatar(file); setForm(prev => ({ ...prev, avatar: result.url })); cacheProfile(result.profile); onSaved(result.profile); }
+    catch (err) { setError(err instanceof Error ? err.message : '头像上传失败'); }
+    finally { setAvatarBusy(false); }
+  }
+  async function removeAvatarClick() {
+    if (!await confirmAction({ title: '移除宝宝头像？', description: '将使用默认插画作为头像。', confirmLabel: '移除头像', danger: true })) return;
+    setAvatarBusy(true);
+    try { const result = await api.removeAvatar(); setForm(prev => ({ ...prev, avatar: null })); cacheProfile(result.profile); onSaved(result.profile); }
+    catch (err) { setError(err instanceof Error ? err.message : '头像移除失败'); }
+    finally { setAvatarBusy(false); }
+  }
+  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && requestClose()}><section ref={dialogRef} className="editor" role="dialog" aria-modal="true" aria-labelledby="profile-editor-title"><header className="editor-head"><div><p className="kicker">宝宝档案</p><h2 id="profile-editor-title">修改基本资料</h2></div><button className="close-btn" onClick={requestClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}>
+    <div className="avatar-upload-area">
+      <div className="avatar-preview" aria-label="当前头像">
+        {form.avatar ? <img src={form.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}
+      </div>
+      <div className="avatar-actions">
+        <button type="button" className="btn secondary" onClick={pickFile} disabled={avatarBusy}>{avatarBusy ? '处理中…' : '上传头像'}</button>
+        {form.avatar && <button type="button" className="btn danger-button secondary" onClick={() => void removeAvatarClick()} disabled={avatarBusy}>移除</button>}
+      </div>
+      <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
+    </div>
+    <label>宝宝姓名<input value={form.name} maxLength={30} onChange={event => setForm({ ...form, name: event.target.value })} required /></label>
+    <label>昵称<small className="field-hint">亲切的小名，首页会优先展示</small><input value={form.nickname ?? ''} maxLength={20} placeholder="如 小糯米" onChange={event => setForm({ ...form, nickname: event.target.value })} /></label>
+    <ChoiceField label="宝宝性别" values={['male', 'female', 'unspecified'] as BabySex[]} selected={form.sex} onSelect={sex => setForm({ ...form, sex })} getLabel={sex => sex === 'unspecified' ? '未设置' : sexLabels[sex]} />
+    <DateField label="出生日期" max={isoDay(new Date())} value={form.birthDate} onChange={birthDate => setForm({ ...form, birthDate })} />
+    {error && <p className="error-text" role="alert">{error}</p>}
+    <footer className="editor-actions"><button type="button" className="btn secondary" onClick={requestClose}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '保存资料'}</button></footer>
+  </form></section>
+  {cropperSrc && <AvatarCropperModal imageSrc={cropperSrc} onClose={() => setCropperSrc(null)} onConfirm={file => void onCropperConfirm(file)} />}
+  </div>;
+}
+
+function ProfileSettingsCard({ profile, onSaved }: { profile: Profile; onSaved(value: Profile): void }) {
+  const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null });
+  const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [saved, setSaved] = useState('');
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null); const [avatarBusy, setAvatarBusy] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => { setForm({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null }); setSaved(''); }, [profile]);
+  async function submit(event: React.FormEvent) {
+    event.preventDefault(); setBusy(true); setError(''); setSaved('');
+    try { const next = await api.updateProfile({ name: form.name, birthDate: form.birthDate, sex: form.sex, nickname: form.nickname, caregiverTitle: form.caregiverTitle }); cacheProfile(next); onSaved(next); setSaved('宝宝资料已保存'); }
+    catch (err) { setError(err instanceof Error ? err.message : '保存失败'); }
+    finally { setBusy(false); }
+  }
+  function pickFile() { fileInputRef.current?.click(); }
+  function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]; if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('请选择图片文件'); return; }
+    if (file.size > 8 * 1024 * 1024) { setError('图片不能大于 8MB'); return; }
+    const reader = new FileReader(); reader.onload = () => setCropperSrc(String(reader.result)); reader.onerror = () => setError('图片读取失败'); reader.readAsDataURL(file); event.target.value = '';
+  }
+  async function onCropperConfirm(file: File) {
+    setAvatarBusy(true); setCropperSrc(null); setError(''); setSaved('');
+    try { const result = await api.uploadAvatar(file); setForm(prev => ({ ...prev, avatar: result.url })); cacheProfile(result.profile); onSaved(result.profile); setSaved('头像已更新'); }
+    catch (err) { setError(err instanceof Error ? err.message : '头像上传失败'); }
+    finally { setAvatarBusy(false); }
+  }
+  async function removeAvatarClick() {
+    if (!await confirmAction({ title: '移除宝宝头像？', description: '将使用默认插画作为头像。', confirmLabel: '移除头像', danger: true })) return;
+    setAvatarBusy(true); setError(''); setSaved('');
+    try { const result = await api.removeAvatar(); setForm(prev => ({ ...prev, avatar: null })); cacheProfile(result.profile); onSaved(result.profile); setSaved('头像已移除'); }
+    catch (err) { setError(err instanceof Error ? err.message : '头像移除失败'); }
+    finally { setAvatarBusy(false); }
+  }
+  return <section className="settings-card profile-settings-card"><div className="setting-status"><h2>宝宝资料</h2><span className="on">已配置</span></div>
+    <p>用于问候语、档案页和疫苗提醒。昵称和头像用于首页展示。</p>
+    <form onSubmit={submit}>
+      <div className="avatar-upload-area">
+        <div className="avatar-preview" aria-label="当前头像">{form.avatar ? <img src={form.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}</div>
+        <div className="avatar-actions"><button type="button" className="btn secondary" onClick={pickFile} disabled={avatarBusy}>{avatarBusy ? '处理中…' : '上传头像'}</button>{form.avatar && <button type="button" className="btn danger-button secondary" onClick={() => void removeAvatarClick()} disabled={avatarBusy}>移除</button>}</div>
+        <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
+      </div>
+      <label>宝宝姓名<input value={form.name} maxLength={30} onChange={event => setForm({ ...form, name: event.target.value })} required /></label>
+      <label>昵称<small className="field-hint">亲切的小名，首页会优先展示</small><input value={form.nickname ?? ''} maxLength={20} placeholder="如 小糯米" onChange={event => setForm({ ...form, nickname: event.target.value })} /></label>
+      <ChoiceField label="宝宝性别" values={['male', 'female', 'unspecified'] as BabySex[]} selected={form.sex} onSelect={sex => setForm({ ...form, sex })} getLabel={sex => sex === 'unspecified' ? '未设置' : sexLabels[sex]} />
+      <DateField label="出生日期" max={isoDay(new Date())} value={form.birthDate} onChange={birthDate => setForm({ ...form, birthDate })} />
+      {error && <p className="error-text" role="alert">{error}</p>}
+      {saved && <p className="success-text" role="status">{saved}</p>}
+      <footer className="editor-actions" style={{ marginTop: 16 }}><button className="btn primary" disabled={busy || avatarBusy}>{busy ? '保存中…' : '保存资料'}</button></footer>
+    </form>
+    {cropperSrc && <AvatarCropperModal imageSrc={cropperSrc} onClose={() => setCropperSrc(null)} onConfirm={file => void onCropperConfirm(file)} />}
+  </section>;
 }
 
 function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange(page: number): void }) {
@@ -486,7 +738,7 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
 
   return <div className="page-stack archive-page">
     <header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header>
-    <section className="archive-profile"><div><p className="kicker">基本资料</p><h2>{profile.name}</h2><p>{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div>{user.role === 'superadmin' && <button className="btn secondary" onClick={() => setEditingProfile(true)}>编辑资料</button>}<div className="archive-metrics"><div><span>最新身高</span><strong>{latest?.heightCm ?? '—'}</strong><small>{latest ? 'cm' : '暂无'}</small></div><div><span>最新体重</span><strong>{latest?.weightKg ?? '—'}</strong><small>{latest ? 'kg' : '暂无'}</small></div></div></section>
+    <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像">{profile.avatar ? <img src={profile.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}</div><div className="archive-profile-meta"><h2>{profile.nickname?.trim() ? <>{profile.nickname.trim()}<small className="real-name">· {profile.name}</small></> : profile.name}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div><div className="archive-metrics"><div><span>最新身高</span><strong>{latest?.heightCm ?? '—'}</strong><small>{latest ? 'cm' : '暂无'}</small></div><div><span>最新体重</span><strong>{latest?.weightKg ?? '—'}</strong><small>{latest ? 'kg' : '暂无'}</small></div></div></section>
     <VaccineArchiveSummary profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onOpen={onOpenVaccines} />
     <section className="growth-history">
       <div className="section-title"><h2>成长记录</h2><div className="growth-head-actions">{canManage(user) && <button className="growth-deleted-toggle" onClick={openDeletedArchive}>已删 {deletedGrowthRecords.length}</button>}<button className="btn secondary" onClick={() => todayGrowth ? onEditGrowth(todayGrowth) : onAddGrowth()}>{todayGrowth ? '修改今日' : '记录今日'}</button></div></div>
@@ -656,54 +908,388 @@ function VaccineSettingsCard({ enabled, catalog, manager, onChange, onCatalogCha
   <section className="settings-card vaccine-catalog-card"><div className="section-title"><div><p className="kicker">疫苗目录</p><h2>显示疫苗</h2></div><div className="catalog-head-actions"><span>{catalog.filter(item => item.active).length} 项启用</span>{manager && <button type="button" className="btn secondary" disabled={Boolean(busy)} onClick={() => setEditing('new')}>＋ 新增疫苗</button>}</div></div><p>内置 10 种默认疫苗只能启用或停用；自行新增的疫苗可以修改和删除。</p><div className="vaccine-catalog-list">{catalog.map(item => <article key={item.id} className={`${item.active ? '' : 'inactive'} ${manager ? '' : 'readonly'}`}><div className="catalog-copy"><div className="catalog-title"><b>{item.name}</b><i className={`vaccine-kind ${item.category}`}>{item.category === 'program' ? '规划' : '自费'}</i></div><small>{item.doseCount ? `${item.doseCount} 剂` : '按接种门诊安排'}{item.isSystem ? ' · 系统默认' : ''}</small></div>{manager && !item.isSystem ? <ActionMenu label={`管理${item.name}`} items={[{ label: expanded === item.id ? '收起详情' : '查看详情', onSelect: () => setExpanded(expanded === item.id ? '' : item.id) }, { label: '修改', onSelect: () => setEditing(item) }, { label: '删除', danger: true, onSelect: () => remove(item) }]} /> : <button type="button" className="catalog-detail-toggle" aria-expanded={expanded === item.id} onClick={() => setExpanded(expanded === item.id ? '' : item.id)}>{expanded === item.id ? '收起' : '详情'}</button>}{manager && <Switch checked={item.active} label={`${item.active ? '停用' : '启用'}${item.name}`} disabled={Boolean(busy)} onChange={() => void toggle(item)} />}{expanded === item.id && <div className="catalog-detail"><dl><dt>预防疾病</dt><dd>{item.description || '尚未填写。'}</dd><dt>接种程序</dt><dd>{item.intervalSummary || (item.doseCount ? `共 ${item.doseCount} 剂` : '按接种门诊安排')}</dd></dl></div>}</article>)}</div>{message && <p className={message.error ? 'error-text' : 'success-text'} role="status">{message.text}</p>}</section>{editing && <VaccineCatalogEditor item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSaved={async saved => { await onCatalogChanged(); setMessage({ text: editing === 'new' ? `${saved.name}已新增` : `${saved.name}已修改` }); }} />}</>;
 }
 
-type SettingsSection = 'root' | 'family' | 'care-items' | 'vaccines' | 'ai' | 'backup';
-type SettingsIconName = 'medicine' | 'vaccine' | 'profile' | 'members' | 'ai' | 'backup' | 'logout';
+function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingGap, onTestCareItem, onSave }: { pushStatus: PushStatus | null; onRefresh(): Promise<void>; onTestMorning(): Promise<unknown>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<unknown>; onTestCareItem(): Promise<unknown>; onSave(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean }): Promise<PushStatus> }) {
+  const [enabled, setEnabled] = useState(false);
+  const [pushplusToken, setPushplusToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [pushplusTopic, setPushplusTopic] = useState('');
+
+  const [morningDigestEnabled, setMorningDigestEnabled] = useState(true);
+  const [morningDigestTime, setMorningDigestTime] = useState('08:00');
+
+  const [feedingGapEnabled, setFeedingGapEnabled] = useState(true);
+  const [feedingGapLevel1Minutes, setFeedingGapLevel1Minutes] = useState(150);
+  const [feedingGapLevel2Minutes, setFeedingGapLevel2Minutes] = useState(180);
+
+  const [careItemEnabled, setCareItemEnabled] = useState(true);
+
+  const [saving, setSaving] = useState(false);
+  const [testingKey, setTestingKey] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (!pushStatus || initialized.current) return;
+    setEnabled(pushStatus.enabled);
+    setPushplusToken('');
+    setPushplusTopic('');
+    setMorningDigestEnabled(pushStatus.morningDigestEnabled ?? true);
+    setMorningDigestTime(pushStatus.morningDigestTime || '08:00');
+    setFeedingGapEnabled(pushStatus.feedingGapEnabled ?? true);
+    setFeedingGapLevel1Minutes(pushStatus.feedingGapLevel1Minutes || 150);
+    setFeedingGapLevel2Minutes(pushStatus.feedingGapLevel2Minutes || 180);
+    setCareItemEnabled(pushStatus.careItemEnabled ?? true);
+    initialized.current = true;
+  }, [pushStatus]);
+
+  function minutesLabel(totalMinutes: number): string {
+    const m = Math.max(0, Math.trunc(totalMinutes || 0));
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    if (h === 0) return `${m} 分钟`;
+    if (r === 0) return `${h} 小时`;
+    return `${h} 小时 ${r} 分`;
+  }
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    const l1 = Number(feedingGapLevel1Minutes);
+    const l2 = Number(feedingGapLevel2Minutes);
+    if (!Number.isSafeInteger(l1) || l1 < 30) {
+      setMessage({ text: '轻度提醒至少 30 分钟', error: true });
+      setSaving(false);
+      return;
+    }
+    if (!Number.isSafeInteger(l2) || l2 < 30) {
+      setMessage({ text: '重点提醒至少 30 分钟', error: true });
+      setSaving(false);
+      return;
+    }
+    if (l2 <= l1) {
+      setMessage({ text: '重点提醒分钟数必须大于轻度提醒', error: true });
+      setSaving(false);
+      return;
+    }
+    if (!/^\d{2}:\d{2}$/.test(morningDigestTime)) {
+      setMessage({ text: '早报时间必须为 HH:MM 格式（如 08:00）', error: true });
+      setSaving(false);
+      return;
+    }
+    const payload = {
+      enabled,
+      morningDigestEnabled,
+      morningDigestTime: morningDigestTime.trim(),
+      feedingGapEnabled,
+      feedingGapLevel1Minutes: l1,
+      feedingGapLevel2Minutes: l2,
+      careItemEnabled
+    } as const;
+    const extras: { pushplusToken?: string; pushplusTopic?: string } = {};
+    if (pushplusToken.trim()) extras.pushplusToken = pushplusToken.trim();
+    if (pushplusTopic.trim()) extras.pushplusTopic = pushplusTopic.trim();
+    try {
+      const next = await onSave({ ...payload, ...extras });
+      setEnabled(next.enabled);
+      setPushplusToken('');
+      setPushplusTopic('');
+      setMorningDigestEnabled(next.morningDigestEnabled);
+      setMorningDigestTime(next.morningDigestTime || '08:00');
+      setFeedingGapEnabled(next.feedingGapEnabled);
+      setFeedingGapLevel1Minutes(next.feedingGapLevel1Minutes || 150);
+      setFeedingGapLevel2Minutes(next.feedingGapLevel2Minutes || 180);
+      setCareItemEnabled(next.careItemEnabled);
+      setMessage({ text: '配置已保存', error: false });
+    } catch (error) {
+      const text = error instanceof ApiError ? error.message : '保存失败';
+      setMessage({ text, error: true });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTestMorning() {
+    setTestingKey('morning');
+    setMessage(null);
+    try {
+      const result = await onTestMorning();
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const text = (result as unknown as { message?: string })?.message || '早报测试消息已发送，请查收';
+      setMessage({ text, error: false });
+    } catch (error) {
+      const text = error instanceof ApiError ? error.message : '发送失败，请检查配置';
+      setMessage({ text, error: true });
+    } finally {
+      setTestingKey(null);
+    }
+  }
+
+  async function handleTestFeedingGap(level: 'level1' | 'level2') {
+    setTestingKey(level);
+    setMessage(null);
+    try {
+      const result = await onTestFeedingGap(level);
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const text = (result as unknown as { message?: string })?.message || '喂奶间隔测试消息已发送，请查收';
+      setMessage({ text, error: false });
+    } catch (error) {
+      const text = error instanceof ApiError ? error.message : '发送失败，请检查配置';
+      setMessage({ text, error: true });
+    } finally {
+      setTestingKey(null);
+    }
+  }
+
+  async function handleTestCareItem() {
+    setTestingKey('care-item');
+    setMessage(null);
+    try {
+      const result = await onTestCareItem();
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const text = (result as unknown as { message?: string })?.message || '用药与照护测试消息已发送，请查收';
+      setMessage({ text, error: false });
+    } catch (error) {
+      const text = error instanceof ApiError ? error.message : '发送失败，请检查配置';
+      setMessage({ text, error: true });
+    } finally {
+      setTestingKey(null);
+    }
+  }
+
+  async function refresh() {
+    setMessage(null);
+    try {
+      await onRefresh();
+      setMessage({ text: '状态已刷新', error: false });
+    } catch (error) {
+      const text = error instanceof ApiError ? error.message : '刷新失败';
+      setMessage({ text, error: true });
+    }
+  }
+
+  const feedingGapLabel = (() => {
+    if (!pushStatus?.lastFeedAt) return '暂无喂奶记录';
+    const gap = pushStatus.currentFeedingGapMinutes;
+    if (gap === null || typeof gap !== 'number') return '暂无';
+    const level = pushStatus.feedingGapLevel;
+    const tag = level === 'level1' ? ' · 🟡 一级已提醒' : level === 'level2' ? ' · 🔴 二级已提醒' : '';
+    return `${minutesLabel(gap)}（${new Date(pushStatus.lastFeedAt).toLocaleString('zh-CN')}）${tag}`;
+  })();
+
+  return <section className="settings-card push-settings-card">
+    <div className="setting-status">
+      <div>
+        <h2>消息推送</h2>
+        <p>通过 PushPlus 推送到普通微信：早间日报 + 喂奶间隔提醒 + 单项照护提醒。</p>
+      </div>
+      <span className={pushStatus?.enabled ? 'on' : ''}>
+        {!pushStatus ? '读取中' : pushStatus.enabled ? '已开启' : pushStatus.pushplusConfigured ? '已关闭' : '未配置'}
+      </span>
+    </div>
+
+    <form onSubmit={save}>
+      <div className="form-switch-row">
+        <label>启用推送</label>
+        <Switch checked={enabled} label="启用推送" onChange={value => setEnabled(value)} />
+      </div>
+
+      <fieldset className="push-channel-fieldset">
+        <legend>PushPlus · 普通微信</legend>
+        <label>
+          用户 Token
+          <div className="secret-field">
+            <input
+              type={showToken ? 'text' : 'password'}
+              value={pushplusToken}
+              onChange={e => setPushplusToken(e.target.value)}
+              placeholder={pushStatus?.pushplusConfigured ? `已保存 ${pushStatus.pushplusTokenMasked || 'Token'}，留空不修改` : '从 pushplus.plus 复制的用户 Token'}
+              autoComplete="off"
+            />
+            <button type="button" onClick={() => setShowToken(value => !value)}>{showToken ? '隐藏' : '显示'}</button>
+          </div>
+        </label>
+        <label>
+          一对多话题编码（可选）
+          <input
+            type="text"
+            value={pushplusTopic}
+            onChange={e => setPushplusTopic(e.target.value)}
+            placeholder={pushStatus?.pushplusTopic ? `已保存：${pushStatus.pushplusTopic}，留空不修改` : '不填时只发送到自己；填写后所有订阅此话题的家人都会收到'}
+            autoComplete="off"
+          />
+        </label>
+        <small className="field-help">
+          在 <a href="https://www.pushplus.plus" target="_blank" rel="noreferrer">pushplus.plus</a> 扫码登录拿 Token；进入「一对多消息」新建 topic，家人扫话题二维码加入即可在普通微信里收到提醒。
+        </small>
+      </fieldset>
+
+      <fieldset className="push-digest-fieldset">
+        <legend>早间综合日报</legend>
+        <div className="form-switch-row">
+          <label>启用早报</label>
+          <Switch checked={morningDigestEnabled} label="启用早间日报" onChange={value => setMorningDigestEnabled(value)} />
+        </div>
+        <label>
+          发送时间（北京时间）
+          <input
+            type="time"
+            value={morningDigestTime}
+            onChange={e => setMorningDigestTime(e.target.value)}
+            disabled={!morningDigestEnabled}
+          />
+        </label>
+        <small className="field-help">
+          每天到点发送一次：包含昨日数据概括（喂奶/用药/排便）+ AI 总结（若已配置）+ 今日用药计划 + 疫苗安排（今日/逾期/未来7天）。
+          {pushStatus?.morningDigestTodaySent
+            ? <><br /><span style={{ color: '#2b6b3e', fontWeight: 600 }}>今日早报已发送 ✅</span></>
+            : <><br /><span style={{ color: '#4a6152' }}>今日早报：未发送（到 {morningDigestTime || '08:00'} 自动触发）</span></>}
+        </small>
+        <div className="push-inline-actions">
+          <button type="button" className="btn secondary" disabled={testingKey === 'morning'} onClick={handleTestMorning}>{testingKey === 'morning' ? '发送中…' : '发送早报测试消息'}</button>
+        </div>
+      </fieldset>
+
+      <fieldset className="push-feeding-gap-fieldset">
+        <legend>喂奶间隔提醒（两级）</legend>
+        <div className="form-switch-row">
+          <label>启用喂奶间隔提醒</label>
+          <Switch checked={feedingGapEnabled} label="启用喂奶间隔提醒" onChange={value => setFeedingGapEnabled(value)} />
+        </div>
+        <div className="feeding-gap-grid">
+          <label>
+            🟡 轻度提醒（分钟）
+            <input
+              type="number"
+              min={30}
+              step={1}
+              value={feedingGapLevel1Minutes}
+              onChange={e => setFeedingGapLevel1Minutes(Number(e.target.value))}
+              disabled={!feedingGapEnabled}
+            />
+            <small className="field-help">建议：120~180；当前约等于 <b>{minutesLabel(feedingGapLevel1Minutes)}</b></small>
+          </label>
+          <label>
+            🔴 重点提醒（分钟）
+            <input
+              type="number"
+              min={30}
+              step={1}
+              value={feedingGapLevel2Minutes}
+              onChange={e => setFeedingGapLevel2Minutes(Number(e.target.value))}
+              disabled={!feedingGapEnabled}
+            />
+            <small className="field-help">必须大于轻度；当前约等于 <b>{minutesLabel(feedingGapLevel2Minutes)}</b></small>
+          </label>
+        </div>
+        <small className="field-help">
+          距上次喂奶超过轻度阈值就先推一条提醒；仍无新记录且超过重点阈值再推第二条；有新喂奶记录会自动重置计数。
+          {pushStatus?.lastFeedAt
+            ? <><br />当前距上次喂奶：<b>{feedingGapLabel}</b></>
+            : <><br />暂无喂奶记录；记录后会自动按设定间隔推送。</>}
+        </small>
+        <div className="push-inline-actions">
+          <button type="button" className="btn secondary" disabled={testingKey === 'level1'} onClick={() => handleTestFeedingGap('level1')}>{testingKey === 'level1' ? '发送中…' : '🟡 发送轻度测试'}</button>
+          <button type="button" className="btn secondary" disabled={testingKey === 'level2'} onClick={() => handleTestFeedingGap('level2')}>{testingKey === 'level2' ? '发送中…' : '🔴 发送重点测试'}</button>
+        </div>
+      </fieldset>
+
+      <fieldset className="push-feeding-gap-fieldset">
+        <legend>用药与照护提醒</legend>
+        <div className="form-switch-row">
+          <div>
+            <label>启用用药与照护提醒</label>
+            <small className="field-help">到点推送用药、推拿等定时照护</small>
+          </div>
+          <Switch checked={careItemEnabled} label="启用用药与照护提醒" onChange={value => setCareItemEnabled(value)} />
+        </div>
+        <div className="push-inline-actions">
+          <button type="button" className="btn secondary" disabled={testingKey === 'care-item'} onClick={handleTestCareItem}>{testingKey === 'care-item' ? '发送中…' : '发送照护测试消息'}</button>
+        </div>
+      </fieldset>
+
+      <dl className="push-status-dl">
+        <div><dt>推送通道</dt><dd>PushPlus（微信服务号）</dd></div>
+        <div><dt>调度器</dt><dd>{pushStatus?.schedulerRunning ? '运行中' : '未启动'}</dd></div>
+        <div><dt>上次检查</dt><dd>{pushStatus?.lastCheckAt ? new Date(pushStatus.lastCheckAt).toLocaleString('zh-CN') : '暂无'}</dd></div>
+        <div><dt>今日已推送</dt><dd>{pushStatus?.todayPushedItems ?? 0} 项</dd></div>
+        <div><dt>早报状态</dt><dd>{pushStatus?.morningDigestEnabled ? `每日 ${pushStatus.morningDigestTime || '08:00'} 发送` : '已关闭'}{pushStatus?.morningDigestTodaySent ? ' · 今日已发 ✅' : ''}</dd></div>
+        <div><dt>喂奶阈值</dt><dd>{pushStatus?.feedingGapEnabled ? `🟡 ${minutesLabel(pushStatus.feedingGapLevel1Minutes)} / 🔴 ${minutesLabel(pushStatus.feedingGapLevel2Minutes)}` : '已关闭'}</dd></div>
+        <div><dt>用药与照护提醒</dt><dd>{pushStatus?.careItemEnabled ? '已开启' : '已关闭'}</dd></div>
+        <div><dt>距上次喂奶</dt><dd>{feedingGapLabel}</dd></div>
+        <div><dt>配置状态</dt><dd>{pushStatus?.pushplusConfigured ? 'Token 已配置' : '未配置 Token'}</dd></div>
+        <div><dt>最近更新</dt><dd>{pushStatus?.updatedAt ? new Date(pushStatus.updatedAt).toLocaleString('zh-CN') : '未修改过'}</dd></div>
+      </dl>
+
+      <div className="push-actions">
+        <button type="button" className="btn secondary" onClick={refresh}>刷新状态</button>
+        <button type="submit" className="btn primary" disabled={Boolean(saving)}>{saving ? '保存中…' : '保存配置'}</button>
+      </div>
+
+      {message && <p className={message.error ? 'error-text' : 'success-text'} role="status">{message.text}</p>}
+    </form>
+  </section>;
+}
+
+type SettingsSection = 'root' | 'family' | 'care-items' | 'vaccines' | 'ai' | 'backup' | 'push' | 'baby';
+type SettingsIconName = 'medicine' | 'vaccine' | 'profile' | 'members' | 'ai' | 'backup' | 'bell' | 'logout';
 
 function SettingsIcon({ name }: { name: SettingsIconName }) {
-  let content: ReactNode;
-  if (name === 'medicine') content = <><path d="M8.2 5.2a4 4 0 0 1 5.6 0l5 5a4 4 0 0 1-5.6 5.6l-5-5a4 4 0 0 1 0-5.6Z" /><path d="m10.5 13.1 5.6-5.6" /></>;
-  else if (name === 'vaccine') content = <><path d="M12 3 5.5 5.8v4.3c0 4.4 2.7 8.3 6.5 9.9 3.8-1.6 6.5-5.5 6.5-9.9V5.8L12 3Z" /><path d="m9 11.7 2 2 4-4" /></>;
-  else if (name === 'profile') content = <><circle cx="12" cy="8" r="3.2" /><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6" /></>;
-  else if (name === 'members') content = <><circle cx="9" cy="8" r="3" /><circle cx="16.5" cy="9" r="2.4" /><path d="M3.8 19c.5-3.8 2.3-5.7 5.2-5.7s4.7 1.9 5.2 5.7M14.3 14.2c3.3-.5 5.2 1.1 5.9 4.3" /></>;
-  else if (name === 'ai') content = <><rect x="6" y="6" width="12" height="12" rx="3" /><path d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m12 0h4M2 15h4m12 0h4" /><path d="m12 8.7.8 2.4 2.4.8-2.4.8-.8 2.4-.8-2.4-2.4-.8 2.4-.8.8-2.4Z" /></>;
-  else if (name === 'backup') content = <><ellipse cx="12" cy="5.5" rx="7" ry="3" /><path d="M5 5.5v5c0 1.7 3.1 3 7 3 .8 0 1.5-.1 2.2-.2M5 10.5v5c0 1.7 3.1 3 7 3" /><path d="M17 14.2v5.3m0 0-2-2m2 2 2-2" /></>;
-  else content = <><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" /></>;
-  return <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{content}</svg>;
+  // 使用 Lucide React 线性图标，统一 strokeWidth 1.8，与设计系统的圆角/圆润风格一致
+  const mapping: Record<SettingsIconName, typeof Pill> = {
+    medicine: Pill,
+    vaccine: Syringe,
+    profile: Baby,
+    members: Users,
+    ai: Bot,
+    backup: Save,
+    bell: Bell,
+    logout: LogOut,
+  };
+  const Component = mapping[name];
+  return createElement(Component, { size: 22, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true });
 }
 
 function SettingsEntry({ icon, title, description, status, danger = false, showChevron = true, onClick }: { icon: SettingsIconName; title: string; description: string; status?: string; danger?: boolean; showChevron?: boolean; onClick(): void }) {
   return <button type="button" className={`settings-entry${danger ? ' danger' : ''}`} onClick={onClick}><span className="settings-entry-icon"><SettingsIcon name={icon} /></span><span><b>{title}</b><small>{description}</small></span><em>{status || ''}</em><i aria-hidden="true">{showChevron ? '›' : ''}</i></button>;
 }
 
-function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, vaccineRemindersEnabled, onProfileSaved, onVaccineRemindersChanged, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; vaccineRemindersEnabled: boolean; onProfileSaved(value: Profile): void; onVaccineRemindersChanged(value: boolean): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void }) {
-  const [section, setSection] = useState<SettingsSection>('root'); const [editingProfile, setEditingProfile] = useState(false); const pushedRef = useRef(false);
+function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, vaccineRemindersEnabled, pushStatus, onProfileSaved, onVaccineRemindersChanged, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; vaccineRemindersEnabled: boolean; pushStatus: PushStatus | null; onProfileSaved(value: Profile): void; onVaccineRemindersChanged(value: boolean): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<unknown>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<unknown>; onTestCareItem(): Promise<unknown>; onSavePush(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number }): Promise<PushStatus> }) {
+  const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false);
   useEffect(() => { const pop = () => { pushedRef.current = false; setSection('root'); }; window.addEventListener('popstate', pop); return () => { window.removeEventListener('popstate', pop); if (pushedRef.current) window.history.back(); }; }, []);
   const member = familyMembers.find(item => item.id === user.id)!;
   function open(next: Exclude<SettingsSection, 'root'>) { window.history.pushState({ babycareSettings: next }, ''); pushedRef.current = true; setSection(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   function back() { if (pushedRef.current) window.history.back(); else setSection('root'); }
-  if (section !== 'root') return <div className="page-stack settings-subpage"><header className="subpage-head"><button type="button" onClick={back} aria-label="返回设置">←</button><div><p className="kicker">设置</p><h1>{{ family: '成员权限', 'care-items': '用药计划', vaccines: '疫苗管理', ai: 'AI 模型', backup: '数据备份' }[section]}</h1></div></header><div className="settings-grid">
+  const pushEntryStatus = (() => {
+    if (!pushStatus) return '未配置';
+    if (!pushStatus.pushplusConfigured) return '未配置';
+    return pushStatus.enabled ? '已开启' : '已关闭';
+  })();
+  const subTitles: Record<Exclude<SettingsSection, 'root'>, string> = { baby: '宝宝资料', family: '成员权限', 'care-items': '用药计划', vaccines: '疫苗管理', ai: 'AI 模型', backup: '数据备份', push: '消息推送' };
+  if (section !== 'root') return <div className="page-stack settings-subpage"><header className="subpage-head"><button type="button" onClick={back} aria-label="返回设置">←</button><div><p className="kicker">设置</p><h1>{subTitles[section]}</h1></div></header><div className="settings-grid">
+    {section === 'baby' && <ProfileSettingsCard profile={profile} onSaved={onProfileSaved} />}
     {section === 'family' && <FamilyPermissionsCard />}
     {section === 'care-items' && <CareItemsCard items={careItems} onChanged={onCareItemsChanged} />}
     {section === 'vaccines' && <VaccineSettingsCard enabled={vaccineRemindersEnabled} catalog={vaccineCatalog} manager={canManage(user)} onChange={onVaccineRemindersChanged} onCatalogChanged={onVaccineCatalogChanged} />}
     {section === 'ai' && <AiSettingsCard capabilities={capabilities} onChanged={onCapabilitiesChanged} />}
     {section === 'backup' && <ServerBackupCard onImported={onImported} />}
+    {section === 'push' && <PushSettingsCard pushStatus={pushStatus} onRefresh={onRefreshPush} onTestMorning={onTestMorning} onTestFeedingGap={onTestFeedingGap} onTestCareItem={onTestCareItem} onSave={onSavePush} />}
   </div></div>;
-  return <div className="page-stack settings-home"><header className="page-head"><h1>设置</h1><p>{user.role === 'superadmin' ? '管理家庭成员、照护项目和服务器。' : user.role === 'admin' ? '管理用药项目和已删除记录。' : '查看当前身份和权限。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份与权限</span><h2>{user.name}</h2><p>{roleNames[user.role]}</p></div><i>{canManage(user) ? '管理权限' : '记录权限'}</i></section>
-    {user.role === 'admin' && <section className="settings-card permission-note"><p className="kicker">管理权限</p><h2>管理日常照护</h2><p>可管理用药项目和回收站。宝宝资料、家庭权限、AI 服务和备份仅超管可操作。</p></section>}
+  return <div className="page-stack settings-home"><header className="page-head"><h1>设置</h1><p>{user.role === 'superadmin' ? '管理家庭成员、照护项目和服务器。' : user.role === 'admin' ? '管理宝宝资料、用药项目和已删除记录。' : '查看当前身份和权限。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份与权限</span><h2>{user.name}</h2><p>{roleNames[user.role]}</p></div><i>{canManage(user) ? '管理权限' : '记录权限'}</i></section>
+    {user.role === 'admin' && <section className="settings-card permission-note"><p className="kicker">管理权限</p><h2>管理日常照护</h2><p>可编辑宝宝资料、管理用药项目和回收站。家庭权限、AI 模型、消息推送和备份仅超管可操作。</p></section>}
     {user.role === 'member' && <section className="settings-card permission-note"><p className="kicker">普通权限</p><h2>可以记录和修改</h2><p>可查看、添加和修改照护记录；不能删除记录或查看操作历史。</p></section>}
     <div className="settings-menu-stack">
       <section className="settings-menu" aria-label="照护设置">{canManage(user) && <SettingsEntry icon="medicine" title="用药计划" description="频率、提醒与项目管理" status={`${careItems.filter(item => item.active).length} 项`} onClick={() => open('care-items')} />}<SettingsEntry icon="vaccine" title="疫苗管理" description="提醒、目录与接种计划" status={vaccineRemindersEnabled ? '已开启' : '已关闭'} onClick={() => open('vaccines')} /></section>
-      {user.role === 'superadmin' && <section className="settings-menu" aria-label="家庭设置"><SettingsEntry icon="profile" title="宝宝资料" description="姓名、生日与基础信息" onClick={() => setEditingProfile(true)} /><SettingsEntry icon="members" title="成员权限" description="家庭成员与管理权限" status={`${familyMembers.length} 人`} onClick={() => open('family')} /></section>}
-      {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
+      {canManage(user) && <section className="settings-menu" aria-label="家庭设置"><SettingsEntry icon="profile" title="宝宝资料" description="姓名、生日与基础信息" onClick={() => open('baby')} />{user.role === 'superadmin' && <SettingsEntry icon="members" title="成员权限" description="家庭成员与管理权限" status={`${familyMembers.length} 人`} onClick={() => open('family')} />}</section>}
+      {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="bell" title="消息推送" description="PushPlus 推送到普通微信" status={pushEntryStatus} onClick={() => open('push')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
       <section className="settings-menu logout-menu" aria-label="账号操作"><SettingsEntry icon="logout" title="退出登录" description="退出当前家庭身份" danger showChevron={false} onClick={onLogout} /></section>
     </div>
-    {editingProfile && <ProfileEditor profile={profile} onClose={() => setEditingProfile(false)} onSaved={onProfileSaved} />}
   </div>;
 }
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
-  const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01', sex: 'unspecified' });
+  const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01', sex: 'unspecified', nickname: '', caregiverTitle: '妈妈', avatar: null });
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [records, setRecords] = useState<CareRecord[]>([]);
   const tabRef = useRef<Tab>('today');
@@ -711,6 +1297,7 @@ export default function App() {
   const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([]); const [deletedGrowthRecords, setDeletedGrowthRecords] = useState<GrowthRecord[]>([]);
   const [vaccineRecords, setVaccineRecords] = useState<VaccineRecord[]>([]); const [deletedVaccineRecords, setDeletedVaccineRecords] = useState<VaccineRecord[]>([]);
   const [vaccineCatalog, setVaccineCatalog] = useState<VaccineCatalogItem[]>([]);
+  const [pushStatus, setPushStatus] = useState<PushStatus | null>(null);
   const [todayPlanStatus, setTodayPlanStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [vaccineRemindersEnabled, setVaccineRemindersEnabled] = useState(() => localStorage.getItem('babycare-vaccine-reminders') !== 'off');
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date()); const [historyMode, setHistoryMode] = useState<'care' | 'vaccine'>('care');
@@ -762,6 +1349,15 @@ export default function App() {
   const loadVaccineRecords = useCallback(async () => { try { setVaccineRecords(await api.vaccineRecords()); return true; } catch { return false; } }, []);
   const loadVaccineCatalog = useCallback(async () => { try { setVaccineCatalog(await api.vaccineCatalog()); return true; } catch { return false; } }, []);
   const loadDeletedVaccineRecords = useCallback(async () => { if (!canManage(currentUser)) return; try { setDeletedVaccineRecords(await api.deletedVaccineRecords()); } catch { setDeletedVaccineRecords([]); } }, [currentUser]);
+  const loadPushStatus = useCallback(async () => { try { setPushStatus(await api.pushStatus()); } catch { setPushStatus(null); } }, []);
+  const testMorningDigest = useCallback(async () => { const r = await api.testMorningDigestPush(); await loadPushStatus(); return r; }, [loadPushStatus]);
+  const testFeedingGap = useCallback(async (level: 'level1' | 'level2') => { const r = await api.testFeedingGapPush(level); await loadPushStatus(); return r; }, [loadPushStatus]);
+  const testCareItem = useCallback(async () => { const r = await api.testCareItemPush(); await loadPushStatus(); return r; }, [loadPushStatus]);
+  const savePush = useCallback(async (data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean }) => {
+    const next = await api.savePushSettings(data);
+    setPushStatus(next);
+    return next;
+  }, []);
   const refreshSession = useCallback(async () => { try { const next = await api.session(); if (!next.authenticated || !next.user) return; setCurrentUser(current => { if (current?.id === next.user!.id && current.role === next.user!.role) return current; rememberUser(next.user!); return next.user; }); } catch { /* keep current session while offline */ } }, []);
 
   const refreshAll = useCallback(async () => {
@@ -770,10 +1366,10 @@ export default function App() {
     try {
       const planRefresh = Promise.all([loadRecords(), loadProfile(), loadCareItems(), loadGrowthRecords(), loadVaccineRecords(), loadVaccineCatalog()])
         .then(results => setTodayPlanStatus(results[0] ? 'ready' : 'error'));
-      await Promise.all([refreshSession(), loadCapabilities(), loadDeletedRecords(), loadDeletedGrowthRecords(), loadDeletedVaccineRecords(), planRefresh]);
+      await Promise.all([refreshSession(), loadCapabilities(), loadDeletedRecords(), loadDeletedGrowthRecords(), loadDeletedVaccineRecords(), loadPushStatus(), planRefresh]);
     }
     finally { refreshingRef.current = false; setRefreshing(false); }
-  }, [loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadDeletedRecords, loadDeletedVaccineRecords, loadGrowthRecords, loadProfile, loadRecords, loadVaccineCatalog, loadVaccineRecords, refreshSession]);
+  }, [loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadDeletedRecords, loadDeletedVaccineRecords, loadGrowthRecords, loadProfile, loadPushStatus, loadRecords, loadVaccineCatalog, loadVaccineRecords, refreshSession]);
 
   const refreshRecords = useCallback(async () => {
     if (!currentUser || refreshingRef.current) return;
@@ -837,6 +1433,33 @@ export default function App() {
     if (!authenticated || !currentUser) return;
     if (tab === 'history' || tab === 'trends') void loadRecords();
   }, [authenticated, currentUser, tab, loadRecords]);
+
+  const notifiedOverdueRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!authenticated || !currentUser) return;
+    const checkOverdue = () => {
+      const now = new Date();
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const dueItems = careItems.filter(item =>
+        item.active &&
+        item.reminderTime &&
+        item.reminderTime <= currentTime &&
+        isCareItemDue(item, now)
+      );
+      const doneNames = new Set(records.filter(r => r.type === 'supplement').map(r => r.supplement));
+      dueItems.forEach(item => {
+        if (doneNames.has(item.name)) return;
+        const key = `${isoDay(now)}-${item.id}`;
+        if (!notifiedOverdueRef.current.has(key)) {
+          notifiedOverdueRef.current.add(key);
+          setToast({ message: `🔔 ${item.name} 待记录（${item.reminderTime}）` });
+        }
+      });
+    };
+    checkOverdue();
+    const timer = setInterval(checkOverdue, 60_000);
+    return () => clearInterval(timer);
+  }, [authenticated, currentUser, careItems, records]);
 
   useEffect(() => {
     if (!authenticated || !currentUser) return;
@@ -962,7 +1585,7 @@ export default function App() {
       {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} deletedVaccineRecords={deletedVaccineRecords} profile={profile} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} onRestoreVaccine={record => void restoreVaccine(record)} onLoadDeletedVaccines={() => void loadDeletedVaccineRecords()} />}
       {tab === 'trends' && <TrendsView records={records} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
-      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} vaccineRemindersEnabled={vaccineRemindersEnabled} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineRemindersChanged={changeVaccineReminders} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setDeletedVaccineRecords([]); setVaccineCatalog([]); }} />}
+      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} vaccineRemindersEnabled={vaccineRemindersEnabled} pushStatus={pushStatus} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineRemindersChanged={changeVaccineReminders} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setDeletedVaccineRecords([]); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
     </main>
     {(tab === 'today' || tab === 'history') && <button className="floating-add" onClick={() => historyMode === 'vaccine' && tab === 'history' ? setVaccineEditor({ mode: 'add' }) : setEditor(blankDraft())} aria-label={historyMode === 'vaccine' && tab === 'history' ? '添加疫苗记录' : '添加照护记录'}><span>＋</span><b>记录</b></button>}
     <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录'], ['trends', '/icons/nav-trends.png', '趋势'], ['archive', '/icons/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'archive' ? 'nav-icon-archive' : value === 'history' ? 'nav-icon-records' : undefined} src={icon} alt="" /><b>{label}</b></button>)}</nav>

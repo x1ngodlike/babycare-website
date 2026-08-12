@@ -17,10 +17,22 @@ db.exec(`
     name TEXT NOT NULL,
     birth_date TEXT NOT NULL,
     sex TEXT NOT NULL DEFAULT 'unspecified' CHECK (sex IN ('male', 'female', 'unspecified')),
+    nickname TEXT NOT NULL DEFAULT '',
+    caregiver_title TEXT NOT NULL DEFAULT '妈妈',
+    avatar TEXT,
     updated_at TEXT NOT NULL
   );
-  INSERT OR IGNORE INTO profile (id, name, birth_date, updated_at)
-  VALUES (1, '示例宝宝', '2026-01-01', datetime('now'));
+`);
+
+const profileColumns = db.prepare('PRAGMA table_info(profile)').all() as { name: string }[];
+if (!profileColumns.some(column => column.name === 'sex')) db.exec("ALTER TABLE profile ADD COLUMN sex TEXT NOT NULL DEFAULT 'unspecified' CHECK (sex IN ('male', 'female', 'unspecified'))");
+if (!profileColumns.some(column => column.name === 'nickname')) db.exec("ALTER TABLE profile ADD COLUMN nickname TEXT NOT NULL DEFAULT ''");
+if (!profileColumns.some(column => column.name === 'caregiver_title')) db.exec("ALTER TABLE profile ADD COLUMN caregiver_title TEXT NOT NULL DEFAULT '妈妈'");
+if (!profileColumns.some(column => column.name === 'avatar')) db.exec('ALTER TABLE profile ADD COLUMN avatar TEXT');
+
+db.exec(`
+  INSERT OR IGNORE INTO profile (id, name, birth_date, sex, nickname, caregiver_title, avatar, updated_at)
+  VALUES (1, '示例宝宝', '2026-01-01', 'unspecified', '', '妈妈', NULL, datetime('now'));
 
   CREATE TABLE IF NOT EXISTS care_records (
     id TEXT PRIMARY KEY,
@@ -36,9 +48,6 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_care_records_occurred_at ON care_records(occurred_at);
 `);
-
-const profileColumns = db.prepare('PRAGMA table_info(profile)').all() as { name: string }[];
-if (!profileColumns.some(column => column.name === 'sex')) db.exec("ALTER TABLE profile ADD COLUMN sex TEXT NOT NULL DEFAULT 'unspecified' CHECK (sex IN ('male', 'female', 'unspecified'))");
 
 const recordColumns = db.prepare('PRAGMA table_info(care_records)').all() as { name: string }[];
 if (!recordColumns.some(column => column.name === 'created_by')) db.exec("ALTER TABLE care_records ADD COLUMN created_by TEXT NOT NULL DEFAULT 'legacy'");
@@ -104,6 +113,22 @@ db.exec(`
   );
   INSERT OR IGNORE INTO ai_settings (id, provider, base_url, model, api_key, updated_at)
   VALUES (1, 'DeepSeek', 'https://api.deepseek.com', 'deepseek-v4-flash', '', datetime('now'));
+
+  CREATE TABLE IF NOT EXISTS push_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    enabled INTEGER NOT NULL DEFAULT 0,
+    pushplus_token TEXT NOT NULL DEFAULT '',
+    pushplus_topic TEXT NOT NULL DEFAULT '',
+    morning_digest_enabled INTEGER NOT NULL DEFAULT 1,
+    morning_digest_time TEXT NOT NULL DEFAULT '08:00',
+    feeding_gap_enabled INTEGER NOT NULL DEFAULT 1,
+    feeding_gap_level1_minutes INTEGER NOT NULL DEFAULT 150,
+    feeding_gap_level2_minutes INTEGER NOT NULL DEFAULT 180,
+    care_item_enabled INTEGER NOT NULL DEFAULT 1,
+    push_sent_flags TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT NOT NULL
+  );
+  INSERT OR IGNORE INTO push_settings (id) VALUES (1);
 
   CREATE TABLE IF NOT EXISTS care_items (
     id TEXT PRIMARY KEY,
@@ -198,6 +223,17 @@ if (!vaccineTableColumns.some(column => column.name === 'appointment_time')) db.
 const vaccineCatalogTableColumns = db.prepare('PRAGMA table_info(vaccine_catalog)').all() as { name: string }[];
 if (!vaccineCatalogTableColumns.some(column => column.name === 'deleted_at')) db.exec('ALTER TABLE vaccine_catalog ADD COLUMN deleted_at TEXT');
 if (!vaccineCatalogTableColumns.some(column => column.name === 'is_system')) db.exec('ALTER TABLE vaccine_catalog ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0');
+
+const pushSettingsColumns = db.prepare('PRAGMA table_info(push_settings)').all() as { name: string }[];
+if (!pushSettingsColumns.some(column => column.name === 'pushplus_token')) db.exec("ALTER TABLE push_settings ADD COLUMN pushplus_token TEXT NOT NULL DEFAULT ''");
+if (!pushSettingsColumns.some(column => column.name === 'pushplus_topic')) db.exec("ALTER TABLE push_settings ADD COLUMN pushplus_topic TEXT NOT NULL DEFAULT ''");
+if (!pushSettingsColumns.some(column => column.name === 'morning_digest_enabled')) db.exec('ALTER TABLE push_settings ADD COLUMN morning_digest_enabled INTEGER NOT NULL DEFAULT 1');
+if (!pushSettingsColumns.some(column => column.name === 'morning_digest_time')) db.exec("ALTER TABLE push_settings ADD COLUMN morning_digest_time TEXT NOT NULL DEFAULT '08:00'");
+if (!pushSettingsColumns.some(column => column.name === 'feeding_gap_enabled')) db.exec('ALTER TABLE push_settings ADD COLUMN feeding_gap_enabled INTEGER NOT NULL DEFAULT 1');
+if (!pushSettingsColumns.some(column => column.name === 'feeding_gap_level1_minutes')) db.exec('ALTER TABLE push_settings ADD COLUMN feeding_gap_level1_minutes INTEGER NOT NULL DEFAULT 150');
+if (!pushSettingsColumns.some(column => column.name === 'feeding_gap_level2_minutes')) db.exec('ALTER TABLE push_settings ADD COLUMN feeding_gap_level2_minutes INTEGER NOT NULL DEFAULT 180');
+if (!pushSettingsColumns.some(column => column.name === 'push_sent_flags')) db.exec("ALTER TABLE push_settings ADD COLUMN push_sent_flags TEXT NOT NULL DEFAULT '{}'");
+if (!pushSettingsColumns.some(column => column.name === 'care_item_enabled')) db.exec('ALTER TABLE push_settings ADD COLUMN care_item_enabled INTEGER NOT NULL DEFAULT 1');
 
 const defaultVaccineCatalog: Omit<VaccineCatalogItem, 'active'>[] = [
   { id: 'hepb', name: '乙肝疫苗', category: 'program', shortName: '乙肝', description: '用于预防乙型病毒性肝炎。', doseCount: 3, intervalSummary: '共 3 剂：出生时、1 月龄、6 月龄', sortOrder: 10, isSystem: true },
@@ -399,13 +435,27 @@ export function allAudit(): AuditEntry[] {
 }
 
 export function getProfile() {
-  return db.prepare('SELECT name, birth_date AS birthDate, sex, updated_at AS updatedAt FROM profile WHERE id = 1').get() as { name: string; birthDate: string; sex: BabySex; updatedAt: string };
+  return db.prepare('SELECT name, birth_date AS birthDate, sex, nickname, caregiver_title AS caregiverTitle, avatar, updated_at AS updatedAt FROM profile WHERE id = 1').get() as { name: string; birthDate: string; sex: BabySex; nickname: string; caregiverTitle: string; avatar: string | null; updatedAt: string };
 }
 
-export function saveProfile(name: string, birthDate: string, sex: BabySex = 'unspecified') {
+type SaveProfileObject = { name: string; birthDate: string; sex: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null };
+export function saveProfile(params: SaveProfileObject): { name: string; birthDate: string; sex: BabySex; nickname: string; caregiverTitle: string; avatar: string | null; updatedAt: string };
+export function saveProfile(name: string, birthDate: string, sex: BabySex): { name: string; birthDate: string; sex: BabySex; nickname: string; caregiverTitle: string; avatar: string | null; updatedAt: string };
+export function saveProfile(first: SaveProfileObject | string, birthDate?: string, sex?: BabySex) {
+  let params: SaveProfileObject;
+  if (typeof first === 'string') {
+    params = { name: first, birthDate: birthDate!, sex: sex ?? 'unspecified' };
+  } else {
+    params = first;
+  }
+  const { name, birthDate: bd, sex: sx } = params;
+  const existing = getProfile();
+  const nickname = params.nickname !== undefined ? params.nickname.trim() : existing.nickname;
+  const caregiverTitle = params.caregiverTitle !== undefined ? params.caregiverTitle.trim() || '妈妈' : existing.caregiverTitle;
+  const avatar = params.avatar !== undefined ? params.avatar : existing.avatar;
   const updatedAt = new Date().toISOString();
-  db.prepare('UPDATE profile SET name = ?, birth_date = ?, sex = ?, updated_at = ? WHERE id = 1').run(name, birthDate, sex, updatedAt);
-  return { name, birthDate, sex, updatedAt };
+  db.prepare('UPDATE profile SET name = ?, birth_date = ?, sex = ?, nickname = ?, caregiver_title = ?, avatar = ?, updated_at = ? WHERE id = 1').run(name, bd, sx, nickname, caregiverTitle, avatar, updatedAt);
+  return { name, birthDate: bd, sex: sx, nickname, caregiverTitle, avatar, updatedAt };
 }
 
 const careItemColumns = `id, name, icon, sort_order AS sortOrder, active,
@@ -661,6 +711,99 @@ export function saveAiSettings(input: Pick<AiSettings, 'baseUrl' | 'model'> & { 
   return getAiSettings();
 }
 
+export type FeedingGapLevel = 'none' | 'level1' | 'level2';
+
+export interface PushSentFlags {
+  morningDigestDate?: string | null;
+  lastFeedRecordId?: string | null;
+  feedingGapNotifiedLevel?: FeedingGapLevel;
+}
+
+export interface PushSettings {
+  enabled: boolean;
+  pushplusToken: string;
+  pushplusTopic: string;
+  morningDigestEnabled: boolean;
+  morningDigestTime: string;
+  feedingGapEnabled: boolean;
+  feedingGapLevel1Minutes: number;
+  feedingGapLevel2Minutes: number;
+  careItemEnabled: boolean;
+  pushSentFlags: PushSentFlags;
+  updatedAt: string;
+}
+
+export function getPushSettings(): PushSettings {
+  const row = db.prepare('SELECT enabled, pushplus_token AS pushplusToken, pushplus_topic AS pushplusTopic, morning_digest_enabled AS morningDigestEnabled, morning_digest_time AS morningDigestTime, feeding_gap_enabled AS feedingGapEnabled, feeding_gap_level1_minutes AS feedingGapLevel1Minutes, feeding_gap_level2_minutes AS feedingGapLevel2Minutes, care_item_enabled AS careItemEnabled, push_sent_flags AS pushSentFlags, updated_at AS updatedAt FROM push_settings WHERE id = 1').get() as { enabled: number; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: number; morningDigestTime?: string; feedingGapEnabled?: number; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: number; pushSentFlags?: string; updatedAt: string } | undefined;
+  const envEnabled = process.env.PUSH_ENABLED === 'true';
+  function parseFlags(raw: string | undefined): PushSentFlags {
+    if (!raw) return {};
+    try {
+      const obj = JSON.parse(raw);
+      return {
+        morningDigestDate: typeof obj.morningDigestDate === 'string' ? obj.morningDigestDate : null,
+        lastFeedRecordId: typeof obj.lastFeedRecordId === 'string' ? obj.lastFeedRecordId : null,
+        feedingGapNotifiedLevel: (obj.feedingGapNotifiedLevel === 'level1' || obj.feedingGapNotifiedLevel === 'level2') ? obj.feedingGapNotifiedLevel : undefined
+      };
+    } catch {
+      return {};
+    }
+  }
+  if (!row) {
+    return {
+      enabled: envEnabled,
+      pushplusToken: '',
+      pushplusTopic: '',
+      morningDigestEnabled: true,
+      morningDigestTime: '08:00',
+      feedingGapEnabled: true,
+      feedingGapLevel1Minutes: 150,
+      feedingGapLevel2Minutes: 180,
+      careItemEnabled: true,
+      pushSentFlags: {},
+      updatedAt: new Date().toISOString()
+    };
+  }
+  return {
+    enabled: Boolean(row.enabled) || envEnabled,
+    pushplusToken: row.pushplusToken || '',
+    pushplusTopic: row.pushplusTopic || '',
+    morningDigestEnabled: row.morningDigestEnabled === undefined ? true : Boolean(row.morningDigestEnabled),
+    morningDigestTime: /^\d{2}:\d{2}$/.test(row.morningDigestTime || '') ? row.morningDigestTime! : '08:00',
+    feedingGapEnabled: row.feedingGapEnabled === undefined ? true : Boolean(row.feedingGapEnabled),
+    feedingGapLevel1Minutes: Number.isSafeInteger(row.feedingGapLevel1Minutes) && row.feedingGapLevel1Minutes! > 0 ? row.feedingGapLevel1Minutes! : 150,
+    feedingGapLevel2Minutes: Number.isSafeInteger(row.feedingGapLevel2Minutes) && row.feedingGapLevel2Minutes! > 0 ? row.feedingGapLevel2Minutes! : 180,
+    careItemEnabled: row.careItemEnabled === undefined ? true : Boolean(row.careItemEnabled),
+    pushSentFlags: parseFlags(row.pushSentFlags),
+    updatedAt: row.updatedAt
+  };
+}
+
+export function savePushSettings(input: Partial<Pick<PushSettings, 'enabled' | 'pushplusToken' | 'pushplusTopic' | 'morningDigestEnabled' | 'morningDigestTime' | 'feedingGapEnabled' | 'feedingGapLevel1Minutes' | 'feedingGapLevel2Minutes' | 'careItemEnabled'>>): PushSettings {
+  const current = getPushSettings();
+  const enabled = input.enabled === undefined ? current.enabled : input.enabled;
+  const pushplusToken = input.pushplusToken === undefined ? current.pushplusToken : input.pushplusToken.trim();
+  const pushplusTopic = input.pushplusTopic === undefined ? current.pushplusTopic : input.pushplusTopic.trim();
+  const morningDigestEnabled = input.morningDigestEnabled === undefined ? current.morningDigestEnabled : input.morningDigestEnabled;
+  const morningDigestTime = input.morningDigestTime === undefined ? current.morningDigestTime : (/^\d{2}:\d{2}$/.test(input.morningDigestTime.trim()) ? input.morningDigestTime.trim() : current.morningDigestTime);
+  const feedingGapEnabled = input.feedingGapEnabled === undefined ? current.feedingGapEnabled : input.feedingGapEnabled;
+  const feedingGapLevel1Minutes = input.feedingGapLevel1Minutes === undefined ? current.feedingGapLevel1Minutes : input.feedingGapLevel1Minutes;
+  const feedingGapLevel2Minutes = input.feedingGapLevel2Minutes === undefined ? current.feedingGapLevel2Minutes : input.feedingGapLevel2Minutes;
+  const careItemEnabled = input.careItemEnabled === undefined ? current.careItemEnabled : input.careItemEnabled;
+  const updatedAt = new Date().toISOString();
+  db.prepare('UPDATE push_settings SET enabled = ?, pushplus_token = ?, pushplus_topic = ?, morning_digest_enabled = ?, morning_digest_time = ?, feeding_gap_enabled = ?, feeding_gap_level1_minutes = ?, feeding_gap_level2_minutes = ?, care_item_enabled = ?, updated_at = ? WHERE id = 1')
+    .run(enabled ? 1 : 0, pushplusToken, pushplusTopic, morningDigestEnabled ? 1 : 0, morningDigestTime, feedingGapEnabled ? 1 : 0, feedingGapLevel1Minutes, feedingGapLevel2Minutes, careItemEnabled ? 1 : 0, updatedAt);
+  return getPushSettings();
+}
+
+export function writePushSentFlags(patch: Partial<PushSentFlags>): PushSentFlags {
+  const current = getPushSettings().pushSentFlags;
+  const next: PushSentFlags = { ...current, ...patch };
+  const serialized = JSON.stringify(next);
+  db.prepare('UPDATE push_settings SET push_sent_flags = ?, updated_at = ? WHERE id = 1').run(serialized, new Date().toISOString());
+  return next;
+}
+
 export interface DailyReport {
   reportDate: string;
   summary: string;
@@ -692,10 +835,10 @@ export function listDailyReports(): DailyReport[] {
   return rows.map(row => ({ ...row, suggestions: JSON.parse(row.suggestions) as string[] }));
 }
 
-type ImportPayload = { profile?: { name: string; birthDate: string; sex?: BabySex }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[] };
+type ImportPayload = { profile?: { name: string; birthDate: string; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[] };
 type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
-  if (payload.profile) saveProfile(payload.profile.name, payload.profile.birthDate, payload.profile.sex);
+  if (payload.profile) saveProfile({ name: payload.profile.name, birthDate: payload.profile.birthDate, sex: payload.profile.sex ?? 'unspecified', nickname: payload.profile.nickname, caregiverTitle: payload.profile.caregiverTitle, avatar: payload.profile.avatar });
   if (payload.careItems?.length) for (const item of payload.careItems) {
     db.prepare(`INSERT INTO care_items (id, name, icon, sort_order, active, schedule_type, interval_days, schedule_start_date, reminder_time, schedule_end_date, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -751,11 +894,11 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
 
-type ReplacePayload = { profile: { name: string; birthDate: string; sex?: BabySex }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[] };
+type ReplacePayload = { profile: { name: string; birthDate: string; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[] };
 const replaceBackupTransaction = db.transaction((payload: ReplacePayload): ImportResult => {
   db.prepare('DELETE FROM record_audit').run();
   db.prepare('DELETE FROM care_records').run();
-  saveProfile(payload.profile.name, payload.profile.birthDate, payload.profile.sex);
+  saveProfile({ name: payload.profile.name, birthDate: payload.profile.birthDate, sex: payload.profile.sex ?? 'unspecified', nickname: payload.profile.nickname, caregiverTitle: payload.profile.caregiverTitle, avatar: payload.profile.avatar });
   if (payload.careItems?.length) {
     db.prepare('DELETE FROM care_items').run();
     const insertItem = db.prepare(`INSERT INTO care_items (id, name, icon, sort_order, active, schedule_type, interval_days,

@@ -34,6 +34,28 @@ export interface Capabilities {
   aiEnabled: boolean;
   aiModel: string | null;
 }
+export type FeedingGapLevel = 'none' | 'level1' | 'level2';
+export interface PushStatus {
+  enabled: boolean;
+  pushplusConfigured: boolean;
+  pushplusTokenMasked: string;
+  pushplusTopic: string;
+  schedulerRunning: boolean;
+  lastCheckAt: string | null;
+  todayPushedItems: number;
+  updatedAt: string | null;
+
+  morningDigestEnabled: boolean;
+  morningDigestTime: string;
+  morningDigestTodaySent: boolean;
+  feedingGapEnabled: boolean;
+  feedingGapLevel1Minutes: number;
+  feedingGapLevel2Minutes: number;
+  careItemEnabled: boolean;
+  currentFeedingGapMinutes: number | null;
+  feedingGapLevel: FeedingGapLevel;
+  lastFeedAt: string | null;
+}
 export interface AiSettingsPublic {
   provider: string;
   baseUrl: string;
@@ -69,7 +91,7 @@ export interface AuditEntry {
   snapshot: CareRecord | null;
 }
 
-export interface Profile { name: string; birthDate: string; sex: BabySex; updatedAt?: string }
+export interface Profile { name: string; birthDate: string; sex: BabySex; nickname: string; caregiverTitle: string; avatar: string | null; updatedAt?: string }
 export interface ServerBackupStatus { directory: string; intervalHours: number; retention: number; count: number; lastBackupAt: string | null; nextBackupAt: string }
 export interface ServerBackupFile { name: string; createdAt: string; size: number }
 export type CareScheduleType = 'daily' | 'interval' | 'as_needed';

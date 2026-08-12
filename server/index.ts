@@ -2,9 +2,13 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { resolve, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+import multer from 'multer';
+import sharp from 'sharp';
+import { v4 as uuidv4 } from 'uuid';
 import { testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import type { FamilyId } from './auth.js';
@@ -12,6 +16,7 @@ import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError
 import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DailyReport, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, restoreVaccineRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
+import { getPushStatus, startPushScheduler, stopPushScheduler, testMorningDigestPush, testFeedingGapPush, testCareItemPush, updatePushSettings } from './push.js';
 import { shanghaiDateString } from './shanghai-date.js';
 import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission, GrowthRecord, VaccineCatalogItem, VaccineRecord } from './types.js';
 
@@ -22,6 +27,7 @@ const production = process.env.NODE_ENV === 'production';
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 const changeHub = createChangeHub();
 const backupDirectory = defaultBackupDirectory();
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 if (production && (!(process.env.FATHER_PASSWORD || process.env.ADMIN_PASSWORD) || !process.env.MOTHER_PASSWORD || !process.env.GRANDFATHER_PASSWORD || !process.env.GRANDMOTHER_PASSWORD || !process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
   throw new Error('生产环境必须设置四位家人的密码和至少 32 位的 SESSION_SECRET');
@@ -47,6 +53,9 @@ app.use((req, res, next) => {
   if (host && new URL(origin).host === host) return next();
   return res.status(403).json({ error: '请求来源不受信任' });
 });
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
+app.use('/avatars', express.static(join(__dirname, 'uploads', 'avatars'), { maxAge: '30d' }));
 
 const recordSchema = z.object({
   id: z.string().uuid().optional(),
@@ -144,7 +153,7 @@ const vaccineCatalogInputSchema = z.object({
 
 const backupPayloadSchema = z.object({
   version: z.number().int().optional(),
-  profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), sex: z.enum(['male', 'female', 'unspecified']).optional() }).optional(),
+  profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), sex: z.enum(['male', 'female', 'unspecified']).optional(), nickname: z.string().trim().max(20).optional(), caregiverTitle: z.string().trim().max(10).optional(), avatar: z.string().max(200).nullable().optional() }).optional(),
   records: z.array(recordSchema).max(10000),
   audits: z.array(auditEntrySchema).max(50000).optional(),
   careItems: z.array(careItemSchema).max(100).optional(),
@@ -336,13 +345,55 @@ app.post('/api/daily-report/generate', async (req, res) => {
   }
 });
 
-app.put('/api/profile', requireSuperAdmin, (req, res) => {
-  const parsed = z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), sex: z.enum(['male', 'female', 'unspecified']).default('unspecified') }).safeParse(req.body);
+app.put('/api/profile', requireAdmin, (req, res) => {
+  const parsed = z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), sex: z.enum(['male', 'female', 'unspecified']).default('unspecified'), nickname: z.string().trim().max(20).optional(), caregiverTitle: z.string().trim().max(10).optional() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: '宝宝资料格式不正确' });
   if (new Date(`${parsed.data.birthDate}T00:00:00+08:00`) > new Date()) return res.status(400).json({ error: '出生日期不能晚于今天' });
-  const profile = saveProfile(parsed.data.name, parsed.data.birthDate, parsed.data.sex);
+  const profile = saveProfile({ name: parsed.data.name, birthDate: parsed.data.birthDate, sex: parsed.data.sex, nickname: parsed.data.nickname, caregiverTitle: parsed.data.caregiverTitle });
   changeHub.broadcast('profile');
   return res.json(profile);
+});
+
+app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: '请上传头像图片' });
+    const avatarDir = join(__dirname, 'uploads', 'avatars');
+    if (!existsSync(avatarDir)) mkdirSync(avatarDir, { recursive: true });
+    const filename = `avatar_${uuidv4()}.webp`;
+    const filepath = join(avatarDir, filename);
+    await sharp(file.buffer)
+      .rotate()
+      .resize(512, 512, { fit: 'cover', position: 'entropy' })
+      .webp({ quality: 82, effort: 6 })
+      .toFile(filepath);
+    const profile = getProfile();
+    if (profile.avatar) {
+      const oldPath = join(__dirname, 'uploads', profile.avatar.replace('/avatars/', ''));
+      if (existsSync(oldPath)) try { unlinkSync(oldPath); } catch { /* ignore */ }
+    }
+    const newAvatarUrl = `/avatars/${filename}`;
+    const next = saveProfile({ ...profile, avatar: newAvatarUrl });
+    changeHub.broadcast('profile');
+    res.json({ url: newAvatarUrl, profile: next });
+  } catch (error) {
+    res.status(500).json({ error: '头像上传失败' });
+  }
+});
+
+app.delete('/api/profile/avatar', requireAdmin, (_req, res) => {
+  try {
+    const profile = getProfile();
+    if (profile.avatar) {
+      const oldPath = join(__dirname, 'uploads', profile.avatar.replace('/avatars/', ''));
+      if (existsSync(oldPath)) try { unlinkSync(oldPath); } catch { /* ignore */ }
+    }
+    const next = saveProfile({ ...profile, avatar: null });
+    changeHub.broadcast('profile');
+    res.json({ ok: true, profile: next });
+  } catch (error) {
+    res.status(500).json({ error: '头像移除失败' });
+  }
 });
 
 app.get('/api/growth-records', (_req, res) => res.json(listGrowthRecords()));
@@ -616,6 +667,79 @@ app.post('/api/import', requireSuperAdmin, (req, res) => {
   res.json(result);
 });
 
+app.get('/api/push/status', (_req, res) => res.json(getPushStatus()));
+
+app.post('/api/push/settings', requireSuperAdmin, express.json(), async (req, res) => {
+  const body = req.body || {};
+  const { enabled, pushplusToken, pushplusTopic, morningDigestEnabled, morningDigestTime, feedingGapEnabled, feedingGapLevel1Minutes, feedingGapLevel2Minutes, careItemEnabled } = body;
+  if (enabled !== undefined && typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled 必须为布尔值' });
+  if (pushplusToken !== undefined && typeof pushplusToken !== 'string') return res.status(400).json({ error: 'pushplusToken 必须为字符串' });
+  if (pushplusTopic !== undefined && typeof pushplusTopic !== 'string') return res.status(400).json({ error: 'pushplusTopic 必须为字符串' });
+  if (morningDigestEnabled !== undefined && typeof morningDigestEnabled !== 'boolean') return res.status(400).json({ error: 'morningDigestEnabled 必须为布尔值' });
+  if (morningDigestTime !== undefined) {
+    if (typeof morningDigestTime !== 'string' || !/^\d{2}:\d{2}$/.test(morningDigestTime.trim())) return res.status(400).json({ error: 'morningDigestTime 必须为 HH:MM 格式（如 08:00）' });
+  }
+  if (feedingGapEnabled !== undefined && typeof feedingGapEnabled !== 'boolean') return res.status(400).json({ error: 'feedingGapEnabled 必须为布尔值' });
+  if (feedingGapLevel1Minutes !== undefined) {
+    if (!Number.isSafeInteger(feedingGapLevel1Minutes) || feedingGapLevel1Minutes < 30) return res.status(400).json({ error: 'feedingGapLevel1Minutes 必须为大于等于 30 分钟的整数' });
+  }
+  if (feedingGapLevel2Minutes !== undefined) {
+    if (!Number.isSafeInteger(feedingGapLevel2Minutes) || feedingGapLevel2Minutes < 30) return res.status(400).json({ error: 'feedingGapLevel2Minutes 必须为大于等于 30 分钟的整数' });
+  }
+  if (careItemEnabled !== undefined && typeof careItemEnabled !== 'boolean') return res.status(400).json({ error: 'careItemEnabled 必须为布尔值' });
+  const l1 = feedingGapLevel1Minutes ?? null;
+  const l2 = feedingGapLevel2Minutes ?? null;
+  if (l1 !== null && l2 !== null && l2 <= l1) {
+    return res.status(400).json({ error: '重点提醒分钟数必须大于轻度提醒' });
+  }
+  try {
+    const result = await updatePushSettings({
+      ...(enabled !== undefined ? { enabled } : {}),
+      ...(pushplusToken !== undefined ? { pushplusToken } : {}),
+      ...(pushplusTopic !== undefined ? { pushplusTopic } : {}),
+      ...(morningDigestEnabled !== undefined ? { morningDigestEnabled } : {}),
+      ...(morningDigestTime !== undefined ? { morningDigestTime } : {}),
+      ...(feedingGapEnabled !== undefined ? { feedingGapEnabled } : {}),
+      ...(feedingGapLevel1Minutes !== undefined ? { feedingGapLevel1Minutes } : {}),
+      ...(feedingGapLevel2Minutes !== undefined ? { feedingGapLevel2Minutes } : {}),
+      ...(careItemEnabled !== undefined ? { careItemEnabled } : {})
+    });
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ error: error instanceof Error ? error.message : '保存失败' });
+  }
+});
+
+app.post('/api/push/test/morning-digest', requireSuperAdmin, async (_req, res) => {
+  const result = await testMorningDigestPush();
+  if (!result.ok) return res.status(502).json({ error: result.error || '早报测试推送失败' });
+  return res.json({ ok: true, message: '早报测试消息已发送，请在微信中查看。' });
+});
+
+app.post('/api/push/test/feeding-gap', requireSuperAdmin, express.json(), async (req, res) => {
+  const level = (req.body?.level === 'level2') ? 'level2' : 'level1';
+  const result = await testFeedingGapPush(level);
+  if (!result.ok) return res.status(502).json({ error: result.error || '喂奶间隔测试推送失败' });
+  const label = level === 'level2' ? '重点' : '轻度';
+  return res.json({ ok: true, message: `喂奶间隔（${label}）测试消息已发送，请在微信中查看。` });
+});
+
+app.post('/api/push/test/care-item', requireSuperAdmin, async (_req, res) => {
+  const result = await testCareItemPush();
+  if (!result.ok) return res.status(502).json({ error: result.error || '用药与照护提醒测试推送失败' });
+  return res.json({ ok: true, message: '用药与照护测试消息已发送，请在微信中查看。' });
+});
+
+app.post('/api/push/enable', requireSuperAdmin, async (_req, res) => {
+  const result = await updatePushSettings({ enabled: true });
+  return res.json(result);
+});
+
+app.post('/api/push/disable', requireSuperAdmin, async (_req, res) => {
+  const result = await updatePushSettings({ enabled: false });
+  return res.json(result);
+});
+
 if (production) {
   const staticDir = resolve('dist');
   if (!existsSync(staticDir)) throw new Error('缺少 dist 目录，请先运行 npm run build');
@@ -639,5 +763,6 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 
 startBackupScheduler(exportPayload, backupDirectory);
 startDailyReportScheduler();
+startPushScheduler();
 const listenHost = production ? '0.0.0.0' : '127.0.0.1';
 app.listen(port, listenHost, () => console.log(`Baby care server listening on http://${listenHost}:${port}`));
