@@ -11,6 +11,7 @@ import { ActionMenu, confirmAction, EmptyState, SegmentedControl, Switch, useDia
 
 type Tab = 'today' | 'history' | 'trends' | 'archive' | 'settings';
 type TrendMode = 'seven' | 'month' | 'total';
+type ChangeScope = 'records' | 'profile' | 'all';
 type ToastState = { message: string; actionLabel?: string; onAction?: () => void | Promise<void> };
 
 const typeNames: Record<RecordType, string> = { feeding: '喂奶', supplement: '用药', bowel: '排便', note: '其他' };
@@ -262,16 +263,16 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId,
   );
 }
 
-function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCatalog, vaccineRemindersEnabled, careItems, capabilities, online, onOpenSettings, onCompleteVaccine, onAppointmentVaccine, manager, superadmin, userId, allowReportAutoOpen, weeklyGrowth, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; recentRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; vaccineRemindersEnabled: boolean; careItems: CareItem[]; capabilities: Capabilities; online: boolean; onOpenSettings(): void; onCompleteVaccine(item: VaccinePlanItem): void; onAppointmentVaccine(item: VaccinePlanItem): void; manager: boolean; superadmin: boolean; userId: FamilyId; allowReportAutoOpen: boolean; weeklyGrowth?: GrowthRecord; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCatalog, vaccineRemindersEnabled, careItems, todayPlanStatus, capabilities, online, onOpenSettings, onCompleteVaccine, onAppointmentVaccine, manager, superadmin, userId, allowReportAutoOpen, weeklyGrowth, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; recentRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; vaccineRemindersEnabled: boolean; careItems: CareItem[]; todayPlanStatus: 'loading' | 'ready' | 'error'; capabilities: Capabilities; online: boolean; onOpenSettings(): void; onCompleteVaccine(item: VaccinePlanItem): void; onAppointmentVaccine(item: VaccinePlanItem): void; manager: boolean; superadmin: boolean; userId: FamilyId; allowReportAutoOpen: boolean; weeklyGrowth?: GrowthRecord; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [savingSupplement, setSavingSupplement] = useState<Supplement | null>(null);
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r]));
   const recentSorted = [...recentRecords].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   const latestRecord = recentSorted[0]; const lastFeed = recentSorted.find(record => record.type === 'feeding');
-  const pendingCareItems = careItems
+  const pendingCareItems = todayPlanStatus === 'ready' ? careItems
     .filter(item => item.icon === 'medicine' && isCareItemDue(item) && !done.has(item.name))
-    .sort((a, b) => (a.reminderTime || '').localeCompare(b.reminderTime || ''));
+    .sort((a, b) => (a.reminderTime || '').localeCompare(b.reminderTime || '')) : [];
   const today = isoDay(new Date());
-  const actionableVaccines = vaccineRemindersEnabled ? buildVaccinePlan(profile.birthDate, vaccineRecords, vaccineCatalog.length ? vaccineCatalog : undefined)
+  const actionableVaccines = todayPlanStatus === 'ready' && vaccineRemindersEnabled ? buildVaccinePlan(profile.birthDate, vaccineRecords, vaccineCatalog)
     .filter(item => !item.record?.administeredOn && (item.record?.appointmentOn || item.plannedOn) <= today)
     .sort((a, b) => (a.record?.appointmentOn || a.plannedOn).localeCompare(b.record?.appointmentOn || b.plannedOn)) : [];
   const overdueVaccines = actionableVaccines.filter(item => (item.record?.appointmentOn || item.plannedOn) < today);
@@ -283,13 +284,13 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
   const untimedCareItems = pendingCareItems.filter(item => !item.reminderTime);
   const untimedTodayVaccines = todayVaccines.filter(item => !(item.record?.appointmentOn === today && item.record.appointmentTime));
   async function addSupplement(item: Supplement) { setSavingSupplement(item); try { await onSupplement(item); } finally { setSavingSupplement(null); } }
-  function renderMedicineTask(item: CareItem) { return <article key={`medicine:${item.id}`}><img src="/icons/record-medicine.png" alt="" /><div><b>{item.name}</b><small>{item.reminderTime ? `今日 ${item.reminderTime}` : '今日'} · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label={`记录${item.name}`} disabled={Boolean(savingSupplement)} onClick={() => void addSupplement(item.name)}>{savingSupplement === item.name ? '稍候' : '记录'}</button></div></article>; }
+  function renderMedicineTask(item: CareItem) { return <article key={`medicine:${item.id}`}><img className="task-icon medicine" src="/icons/record-medicine.png" alt="" /><div><b>{item.name}</b><small>{item.reminderTime ? `今日 ${item.reminderTime}` : '今日'} · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label={`记录${item.name}`} disabled={Boolean(savingSupplement)} onClick={() => void addSupplement(item.name)}>{savingSupplement === item.name ? '稍候' : '记录'}</button></div></article>; }
   function renderVaccineTask(item: VaccinePlanItem) {
     const effectiveOn = item.record?.appointmentOn || item.plannedOn;
     const overdue = effectiveOn < today;
     const hasTodayAppointment = item.record?.appointmentOn === today;
     const overdueDays = overdue ? Math.max(1, Math.round((new Date(`${today}T12:00:00`).getTime() - new Date(`${effectiveOn}T12:00:00`).getTime()) / 86400000)) : 0;
-    return <article className="vaccine-task" key={`vaccine:${item.key}`}><img src="/icons/task-vaccine.png" alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{overdue ? `逾期 ${overdueDays} 天 · 待预约` : hasTodayAppointment ? `${item.record?.appointmentTime ? `今日 ${item.record.appointmentTime}` : '今日'} · 已预约` : '今日 · 待预约'}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`预约${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>预约</button>}{!overdue && <button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>记录</button>}</div></article>;
+    return <article className="vaccine-task" key={`vaccine:${item.key}`}><img className="task-icon vaccine" src="/icons/task-vaccine.png" alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{overdue ? `逾期 ${overdueDays} 天 · 待预约` : hasTodayAppointment ? `${item.record?.appointmentTime ? `今日 ${item.record.appointmentTime}` : '今日'} · 已预约` : '今日 · 待预约'}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`预约${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>预约</button>}{!overdue && <button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>记录</button>}</div></article>;
   }
   return <div className="today-layout">
     <div className="today-workbench">
@@ -297,9 +298,11 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
       <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>ml</small></div><div><span>奶粉</span><strong>{formula}</strong><small>ml</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
       <section className="quick-section" aria-label="快捷记录"><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>喂奶</b></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>排便</b></button><button onClick={() => onAdd('supplement')}><img className="quick-icon" src="/icons/record-medicine.png" alt="" /><b>用药</b></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他</b></button></div></section>
     </div>
-    {(pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日计划</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item) : renderVaccineTask(task.item))}{untimedCareItems.map(renderMedicineTask)}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img src="/icons/task-growth.png" alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>记录</button></div></article>}</div></section>}
+    {todayPlanStatus === 'loading' && <section className="today-plan today-plan-loading" aria-label="今日计划正在读取" aria-busy="true"><h2>今日计划</h2><div className="today-plan-skeleton"><i /><div><i /><i /></div><i /></div></section>}
+    {todayPlanStatus === 'error' && <section className="today-plan today-plan-error" role="status"><h2>今日计划</h2><p>计划暂时无法读取，请联网后下拉刷新。</p></section>}
+    {todayPlanStatus === 'ready' && (pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日计划</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item) : renderVaccineTask(task.item))}{untimedCareItems.map(renderMedicineTask)}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img className="task-icon growth" src="/icons/task-growth.png" alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>记录</button></div></article>}</div></section>}
     <div className="today-insights" aria-label="今日信息">
-      {vaccineRemindersEnabled && <VaccineReminderCard profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onComplete={onCompleteVaccine} onAppointment={onAppointmentVaccine} />}
+      {todayPlanStatus === 'ready' && vaccineRemindersEnabled && <VaccineReminderCard profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onComplete={onCompleteVaccine} onAppointment={onAppointmentVaccine} />}
       <DailyReport capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} superadmin={superadmin} userId={userId} allowAutoOpen={allowReportAutoOpen} />
     </div>
     <div className="today-timeline"><div className="section-title"><h2>今日记录</h2><span>{records.length} 条</span></div><Timeline records={[...records].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))} careItems={careItems} manager={manager} emptyText="今日还没有记录" emptyAction={<button className="btn secondary" onClick={() => onAdd('feeding')}>记录喂奶</button>} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} /></div>
@@ -346,35 +349,37 @@ function TrendsView({ records }: { records: CareRecord[] }) {
   const [selectedMonth, setSelectedMonth] = useState(() => { const value = new Date(); return new Date(value.getFullYear(), value.getMonth(), 1); });
   const now = new Date();
   const todayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const sevenDays = Array.from({ length: 7 }, (_, index) => addDays(now, index - 6));
-  const sevenData: TrendBucket[] = sevenDays.map(day => {
-    const summary = summarizeTrendRecords(records.filter(record => isoDay(new Date(record.occurredAt)) === isoDay(day)));
-    return { key: isoDay(day), label: day.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' }), axis: day.toLocaleDateString('zh-CN', { weekday: 'short' }), ...summary };
-  });
-  const monthYear = selectedMonth.getFullYear(); const monthIndex = selectedMonth.getMonth();
-  const monthRecords = records.filter(record => { const date = new Date(record.occurredAt); return date.getFullYear() === monthYear && date.getMonth() === monthIndex; });
-  const firstWeek = startOfWeek(new Date(monthYear, monthIndex, 1));
-  const lastVisibleDay = selectedMonth.getTime() === todayMonth.getTime() ? now : new Date(monthYear, monthIndex + 1, 0);
-  const lastWeek = startOfWeek(lastVisibleDay);
-  const weekCount = Math.floor((lastWeek.getTime() - firstWeek.getTime()) / 604800000) + 1;
-  const monthData: TrendBucket[] = Array.from({ length: weekCount }, (_, index) => {
-    const monday = addDays(firstWeek, index * 7); const nextMonday = addDays(monday, 7); const sunday = addDays(monday, 6);
-    const summary = summarizeTrendRecords(records.filter(record => { const date = new Date(record.occurredAt); return date >= monday && date < nextMonday; }));
+  const todayMonthKey = `${todayMonth.getFullYear()}-${todayMonth.getMonth()}`;
+  const todayIso = isoDay(now);
+  const sevenDays = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(now, index - 6)), [todayIso]);
+  const aggregated = useMemo(() => {
+    const [todayYear, todayMon] = todayMonthKey.split('-').map(Number);
+    const sevenData: TrendBucket[] = sevenDays.map(day => ({ key: isoDay(day), label: day.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' }), axis: day.toLocaleDateString('zh-CN', { weekday: 'short' }), ...summarizeTrendRecords(records.filter(record => isoDay(new Date(record.occurredAt)) === isoDay(day))) }));
+    const monthYear = selectedMonth.getFullYear(); const monthIndex = selectedMonth.getMonth();
+    const isCurrentMonth = selectedMonth.getFullYear() === todayYear && selectedMonth.getMonth() === todayMon;
+    const firstWeek = startOfWeek(new Date(monthYear, monthIndex, 1));
+    const lastVisibleDay = isCurrentMonth ? new Date(`${todayIso}T23:59:59.999`) : new Date(monthYear, monthIndex + 1, 0);
+    const lastWeek = startOfWeek(lastVisibleDay);
+    const weekCount = Math.floor((lastWeek.getTime() - firstWeek.getTime()) / 604800000) + 1;
     const compact = (date: Date) => `${date.getMonth() + 1}/${date.getDate()}`;
-    return { key: isoDay(monday), label: `${compact(monday)}–${compact(sunday)}`, axis: compact(monday), ...summary };
-  });
-  const monthKeys = [...new Set(records.map(record => { const date = new Date(record.occurredAt); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }))].sort();
-  const totalData: TrendBucket[] = monthKeys.map(key => {
-    const [year, month] = key.split('-').map(Number);
-    const items = records.filter(record => { const date = new Date(record.occurredAt); return date.getFullYear() === year && date.getMonth() === month - 1; });
-    return { key, label: `${year}年${month}月`, axis: `${month}月`, ...summarizeTrendRecords(items) };
-  });
-  const activeRecords = mode === 'seven' ? records.filter(record => sevenData.some(item => item.key === isoDay(new Date(record.occurredAt)))) : mode === 'month' ? monthRecords : records;
-  const activeSummary = summarizeTrendRecords(activeRecords); const totalMilk = activeSummary.breast + activeSummary.formula;
-  const activeDays = new Set(activeRecords.filter(record => record.type === 'feeding').map(record => isoDay(new Date(record.occurredAt)))).size;
-  const chartData = mode === 'seven' ? sevenData : mode === 'month' ? monthData : totalData.slice(-6);
-  const detailData = [...(mode === 'seven' ? sevenData : mode === 'month' ? monthData : totalData)].reverse();
+    const monthData: TrendBucket[] = Array.from({ length: weekCount }, (_, index) => {
+      const monday = addDays(firstWeek, index * 7); const sunday = addDays(monday, 6);
+      return { key: isoDay(monday), label: `${compact(monday)}–${compact(sunday)}`, axis: compact(monday), ...summarizeTrendRecords(records.filter(record => { const date = new Date(record.occurredAt); return date >= monday && date < addDays(monday, 7); })) };
+    });
+    const monthKeys = [...new Set(records.map(record => { const date = new Date(record.occurredAt); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }))].sort();
+    const totalData: TrendBucket[] = monthKeys.map(key => {
+      const [year, month] = key.split('-').map(Number);
+      return { key, label: `${year}年${month}月`, axis: `${month}月`, ...summarizeTrendRecords(records.filter(record => { const date = new Date(record.occurredAt); return date.getFullYear() === year && date.getMonth() === month - 1; })) };
+    });
+    return { sevenData, monthData, totalData };
+  }, [records, sevenDays, selectedMonth, todayMonthKey, todayIso]);
+  const buckets = mode === 'seven' ? aggregated.sevenData : mode === 'month' ? aggregated.monthData : aggregated.totalData.slice(-6);
+  const chartData = buckets;
+  const detailData = [...buckets].reverse();
   const maxMilk = Math.max(1, ...chartData.map(item => item.breast + item.formula));
+  const activeSummary = buckets.reduce((acc, item) => ({ breast: acc.breast + item.breast, formula: acc.formula + item.formula, feeds: acc.feeds + item.feeds, bowel: acc.bowel + item.bowel, supplements: acc.supplements + item.supplements }), { breast: 0, formula: 0, feeds: 0, bowel: 0, supplements: 0 });
+  const totalMilk = activeSummary.breast + activeSummary.formula;
+  const activeDays = buckets.filter(item => item.feeds > 0).length;
   const chartTitle = mode === 'seven' ? '每日奶量' : mode === 'month' ? '每周奶量' : '最近六个月奶量';
   const totalLabel = mode === 'seven' ? '七日总奶量' : mode === 'month' ? '本月总奶量' : '累计总奶量';
   const description = mode === 'seven' ? '最近七天数据，图表按时间顺序展示。' : mode === 'month' ? '月度汇总按自然月；每周奶量按周一至周日，跨月周按完整周统计。' : '汇总开始记录至今的全部照护数据。';
@@ -668,10 +673,12 @@ export default function App() {
   const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01', sex: 'unspecified' });
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [records, setRecords] = useState<CareRecord[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [deletedRecords, setDeletedRecords] = useState<CareRecord[]>([]); const [careItems, setCareItems] = useState<CareItem[]>([]);
   const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([]); const [deletedGrowthRecords, setDeletedGrowthRecords] = useState<GrowthRecord[]>([]);
   const [vaccineRecords, setVaccineRecords] = useState<VaccineRecord[]>([]); const [deletedVaccineRecords, setDeletedVaccineRecords] = useState<VaccineRecord[]>([]);
   const [vaccineCatalog, setVaccineCatalog] = useState<VaccineCatalogItem[]>([]);
+  const [todayPlanStatus, setTodayPlanStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [vaccineRemindersEnabled, setVaccineRemindersEnabled] = useState(() => localStorage.getItem('babycare-vaccine-reminders') !== 'off');
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date()); const [historyMode, setHistoryMode] = useState<'care' | 'vaccine'>('care');
   const [editor, setEditor] = useState<DraftRecord | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
@@ -687,9 +694,22 @@ export default function App() {
   const loadRecords = useCallback(async () => {
     if (!currentUser) return false;
     const from = new Date('2000-01-01T00:00:00'); const to = addDays(new Date(), 8); to.setHours(0, 0, 0, 0);
-    try { const next = await api.records(from.toISOString(), to.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setOnline(true); setOfflineSession(false); return true; }
+    try { const next = await api.records(from.toISOString(), to.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setHistoryLoaded(true); setOnline(true); setOfflineSession(false); return true; }
     catch { setRecords(getCachedRecords(currentUser.id)); setOnline(false); return false; }
   }, [currentUser]);
+
+  const loadRecordsToday = useCallback(async () => {
+    if (!currentUser) return false;
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = addDays(start, 1);
+    try { const next = await api.records(start.toISOString(), end.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setHistoryLoaded(false); setOnline(true); setOfflineSession(false); return true; }
+    catch { setRecords(getCachedRecords(currentUser.id)); setOnline(false); return false; }
+  }, [currentUser]);
+
+  const reloadRecords = useCallback(async () => {
+    if (historyLoaded) await loadRecords();
+    else await loadRecordsToday();
+  }, [historyLoaded, loadRecords, loadRecordsToday]);
 
   const loadProfile = useCallback(async () => {
     try { const next = await api.profile(); setProfile(next); cacheProfile(next); return true; }
@@ -701,21 +721,42 @@ export default function App() {
     catch { setCapabilities(emptyCapabilities); }
   }, []);
 
-  const loadCareItems = useCallback(async () => { try { setCareItems(await api.careItems()); } catch { /* keep current items while offline */ } }, []);
+  const loadCareItems = useCallback(async () => { try { setCareItems(await api.careItems()); return true; } catch { return false; } }, []);
   const loadDeletedRecords = useCallback(async () => { if (!canManage(currentUser)) return; try { setDeletedRecords(await api.deletedRecords()); } catch { setDeletedRecords([]); } }, [currentUser]);
-  const loadGrowthRecords = useCallback(async () => { try { setGrowthRecords(await api.growthRecords()); } catch { /* keep current items while offline */ } }, []);
+  const loadGrowthRecords = useCallback(async () => { try { setGrowthRecords(await api.growthRecords()); return true; } catch { return false; } }, []);
   const loadDeletedGrowthRecords = useCallback(async () => { if (!canManage(currentUser)) return; try { setDeletedGrowthRecords(await api.deletedGrowthRecords()); } catch { setDeletedGrowthRecords([]); } }, [currentUser]);
-  const loadVaccineRecords = useCallback(async () => { try { setVaccineRecords(await api.vaccineRecords()); } catch { /* keep current items while offline */ } }, []);
-  const loadVaccineCatalog = useCallback(async () => { try { setVaccineCatalog(await api.vaccineCatalog()); } catch { /* keep current catalog while offline */ } }, []);
+  const loadVaccineRecords = useCallback(async () => { try { setVaccineRecords(await api.vaccineRecords()); return true; } catch { return false; } }, []);
+  const loadVaccineCatalog = useCallback(async () => { try { setVaccineCatalog(await api.vaccineCatalog()); return true; } catch { return false; } }, []);
   const loadDeletedVaccineRecords = useCallback(async () => { if (!canManage(currentUser)) return; try { setDeletedVaccineRecords(await api.deletedVaccineRecords()); } catch { setDeletedVaccineRecords([]); } }, [currentUser]);
   const refreshSession = useCallback(async () => { try { const next = await api.session(); if (!next.authenticated || !next.user) return; setCurrentUser(current => { if (current?.id === next.user!.id && current.role === next.user!.role) return current; rememberUser(next.user!); return next.user; }); } catch { /* keep current session while offline */ } }, []);
 
   const refreshAll = useCallback(async () => {
     if (refreshingRef.current) return;
     refreshingRef.current = true; setRefreshing(true);
-    try { await Promise.all([refreshSession(), loadRecords(), loadProfile(), loadCapabilities(), loadCareItems(), loadDeletedRecords(), loadGrowthRecords(), loadDeletedGrowthRecords(), loadVaccineRecords(), loadVaccineCatalog(), loadDeletedVaccineRecords()]); }
+    try {
+      const planRefresh = Promise.all([loadRecords(), loadProfile(), loadCareItems(), loadGrowthRecords(), loadVaccineRecords(), loadVaccineCatalog()])
+        .then(results => setTodayPlanStatus(results[0] ? 'ready' : 'error'));
+      await Promise.all([refreshSession(), loadCapabilities(), loadDeletedRecords(), loadDeletedGrowthRecords(), loadDeletedVaccineRecords(), planRefresh]);
+    }
     finally { refreshingRef.current = false; setRefreshing(false); }
   }, [loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadDeletedRecords, loadDeletedVaccineRecords, loadGrowthRecords, loadProfile, loadRecords, loadVaccineCatalog, loadVaccineRecords, refreshSession]);
+
+  const refreshRecords = useCallback(async () => {
+    if (!currentUser || refreshingRef.current) return;
+    refreshingRef.current = true; setRefreshing(true);
+    try {
+      if (canManage(currentUser)) await Promise.all([reloadRecords(), loadDeletedRecords()]);
+      else await reloadRecords();
+    }
+    finally { refreshingRef.current = false; setRefreshing(false); }
+  }, [currentUser, reloadRecords, loadDeletedRecords]);
+
+  const refreshProfile = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true; setRefreshing(true);
+    try { await loadProfile(); }
+    finally { refreshingRef.current = false; setRefreshing(false); }
+  }, [loadProfile]);
 
   const syncOutbox = useCallback(async () => {
     if (!currentUser) return;
@@ -732,8 +773,8 @@ export default function App() {
         break;
       }
     }
-    if (queue.length && !remaining.length) { setToast({ message: discarded ? `${discarded} 条离线操作因冲突未同步` : '离线记录已同步' }); await Promise.all([loadRecords(), loadDeletedRecords()]); }
-  }, [currentUser, loadRecords]);
+    if (queue.length && !remaining.length) { setToast({ message: discarded ? `${discarded} 条离线操作因冲突未同步` : '离线记录已同步' }); await Promise.all([reloadRecords(), loadDeletedRecords()]); }
+  }, [currentUser, reloadRecords]);
 
   useEffect(() => {
     api.session().then(value => { setAuthenticated(value.authenticated); setCurrentUser(value.user); if (value.user) { rememberUser(value.user); setRecords(getCachedRecords(value.user.id)); } })
@@ -743,9 +784,13 @@ export default function App() {
   useEffect(() => {
     if (!authenticated || !currentUser) return;
     setPendingCount(getOutbox(currentUser.id).length);
-    loadProfile(); loadCapabilities(); loadCareItems(); loadGrowthRecords(); loadDeletedGrowthRecords(); loadVaccineRecords(); loadVaccineCatalog(); loadDeletedVaccineRecords();
-    loadRecords().then(() => { if (navigator.onLine) syncOutbox(); });
-  }, [authenticated, currentUser, loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadDeletedVaccineRecords, loadGrowthRecords, loadProfile, loadRecords, loadVaccineCatalog, loadVaccineRecords, syncOutbox]);
+    setTodayPlanStatus('loading');
+    loadCapabilities(); loadDeletedGrowthRecords(); loadDeletedVaccineRecords();
+    const recordsLoad = loadRecordsToday();
+    Promise.all([recordsLoad, loadProfile(), loadCareItems(), loadGrowthRecords(), loadVaccineRecords(), loadVaccineCatalog()])
+      .then(results => setTodayPlanStatus(results[0] ? 'ready' : 'error'));
+    recordsLoad.then(() => { if (navigator.onLine) syncOutbox(); });
+  }, [authenticated, currentUser, loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadDeletedVaccineRecords, loadGrowthRecords, loadProfile, loadRecordsToday, loadVaccineCatalog, loadVaccineRecords, syncOutbox]);
 
   useEffect(() => {
     const onOnline = () => { setOnline(true); syncOutbox(); };
@@ -756,31 +801,51 @@ export default function App() {
 
   useEffect(() => {
     if (!authenticated || !currentUser) return;
+    if ((tab === 'history' || tab === 'trends') && !historyLoaded) void loadRecords();
+  }, [authenticated, currentUser, tab, historyLoaded, loadRecords]);
+
+  useEffect(() => {
+    if (!authenticated || !currentUser) return;
     let eventTimer: number | null = null;
+    const pendingScope: { value: ChangeScope } = { value: 'all' };
     const source = typeof EventSource === 'undefined' ? null : new EventSource('/api/events');
-    const scheduleRefresh = () => {
+    const scheduleRefresh = (scope: ChangeScope) => {
+      pendingScope.value = scope;
       if (eventTimer) clearTimeout(eventTimer);
-      eventTimer = window.setTimeout(() => { void refreshAll(); }, 180);
+      eventTimer = window.setTimeout(() => {
+        const target = pendingScope.value;
+        if (target === 'records') void refreshRecords();
+        else if (target === 'profile') void refreshProfile();
+        else void refreshAll();
+      }, 180);
     };
     if (source) {
       source.onopen = () => setOnline(true);
-      source.onmessage = scheduleRefresh;
+      source.onmessage = (event) => {
+        let scope: ChangeScope = 'all';
+        try {
+          const parsed = JSON.parse(event.data);
+          if (parsed && (parsed.scope === 'records' || parsed.scope === 'profile' || parsed.scope === 'all')) scope = parsed.scope;
+        }
+        catch { /* 数据格式异常时退化为全量刷新 */ }
+        scheduleRefresh(scope);
+      };
     }
     const pollTimer = window.setInterval(() => {
       if (!source || source.readyState !== EventSource.OPEN) void refreshAll();
     }, 30_000);
-    const visibility = () => { if (document.visibilityState === 'visible') scheduleRefresh(); };
+    const visibility = () => { if (document.visibilityState === 'visible') scheduleRefresh('all'); };
     document.addEventListener('visibilitychange', visibility);
     return () => {
       if (eventTimer) clearTimeout(eventTimer);
       clearInterval(pollTimer); source?.close(); document.removeEventListener('visibilitychange', visibility);
     };
-  }, [authenticated, currentUser, refreshAll]);
+  }, [authenticated, currentUser, refreshAll, refreshRecords, refreshProfile]);
 
   async function saveOne(input: DraftRecord) {
     if (!currentUser) throw new Error('请先登录');
     const value = { ...input, id: input.id || createUuid() };
-    try { value.id && records.some(item => item.id === value.id) ? await api.updateRecord(value.id, value) : await api.createRecord(value); await loadRecords(); setToast({ message: '记录已保存' }); }
+    try { value.id && records.some(item => item.id === value.id) ? await api.updateRecord(value.id, value) : await api.createRecord(value); await reloadRecords(); setToast({ message: '记录已保存' }); }
     catch (error) {
       if (error instanceof ApiError) throw error;
       const previous = records.find(item => item.id === value.id); const optimistic = optimisticRecord(value, currentUser, previous);
@@ -792,7 +857,7 @@ export default function App() {
   async function recordSupplement(supplement: Supplement) {
     try { await saveOne({ ...blankDraft('supplement'), supplement }); }
     catch (error) {
-      if (error instanceof ApiError && error.code === 'DUPLICATE_SUPPLEMENT') { const existing = (error.details as { existing?: CareRecord })?.existing; setToast({ message: existing ? `${supplement} 已由${auditNames[existing.createdBy]}在 ${new Date(existing.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })} 记录` : `${supplement} 今日已经记录` }); await loadRecords(); return; }
+      if (error instanceof ApiError && error.code === 'DUPLICATE_SUPPLEMENT') { const existing = (error.details as { existing?: CareRecord })?.existing; setToast({ message: existing ? `${supplement} 已由${auditNames[existing.createdBy]}在 ${new Date(existing.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })} 记录` : `${supplement} 今日已经记录` }); await reloadRecords(); return; }
       setToast({ message: error instanceof Error ? error.message : '用药记录失败' });
     }
   }
@@ -816,7 +881,7 @@ export default function App() {
 
   async function restoreDeleted(record: CareRecord) {
     if (!currentUser) return;
-    try { await api.restoreRecord(record.id); await Promise.all([loadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); }
+    try { await api.restoreRecord(record.id); await Promise.all([reloadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); }
     catch (error) {
       if (error instanceof ApiError) { setToast({ message: error.message }); return; }
       queueAction(currentUser.id, { action: 'restore', recordId: record.id });
@@ -848,7 +913,7 @@ export default function App() {
 
   const todayRecords = useMemo(() => records.filter(r => isoDay(new Date(r.occurredAt)) === isoDay(new Date())), [records]);
   const weeklyGrowth = growthRecords.find(record => weekContains(record));
-  const pull = usePullToRefresh(Boolean(authenticated && currentUser && (tab === 'today' || tab === 'history' || tab === 'archive') && !editor && !growthEditor && !vaccineEditor && !auditRecord), refreshAll);
+  const pull = usePullToRefresh(Boolean(authenticated && currentUser && (tab === 'today' || tab === 'history' || tab === 'archive') && !editor && !growthEditor && !vaccineEditor && !auditRecord), reloadRecords);
 
   if (authenticated === null) return <main className="loading-page"><img src="/bear-bottle.png" alt="" /><p>正在打开照护记录…</p></main>;
   if (!authenticated || !currentUser) return <Login onSuccess={user => { rememberUser(user); setCurrentUser(user); setRecords(getCachedRecords(user.id)); setAuthenticated(true); setOfflineSession(false); }} />;
@@ -859,11 +924,11 @@ export default function App() {
   return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}<div className="top-status"><button className="user-pill" onClick={() => setTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button>{(!online || pendingCount > 0 || refreshing || offlineSession) && <div className={`network-pill ${online ? refreshing ? 'syncing' : '' : 'offline'}`} role="status" aria-live="polite">{connectionLabel}</div>}</div>
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}>×</button></div>}
     <main className="main-content">
-      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} vaccineRemindersEnabled={vaccineRemindersEnabled} careItems={careItems} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} allowReportAutoOpen={!editor && !growthEditor && !vaccineEditor && !auditRecord} weeklyGrowth={weeklyGrowth} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} onOpenSettings={() => setTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
+      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} vaccineRemindersEnabled={vaccineRemindersEnabled} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} allowReportAutoOpen={!editor && !growthEditor && !vaccineEditor && !auditRecord} weeklyGrowth={weeklyGrowth} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} onOpenSettings={() => setTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
       {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} deletedVaccineRecords={deletedVaccineRecords} profile={profile} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} onRestoreVaccine={record => void restoreVaccine(record)} onLoadDeletedVaccines={() => void loadDeletedVaccineRecords()} />}
       {tab === 'trends' && <TrendsView records={records} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
-      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} vaccineRemindersEnabled={vaccineRemindersEnabled} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineRemindersChanged={changeVaccineReminders} onVaccineCatalogChanged={loadVaccineCatalog} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={loadCareItems} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setDeletedVaccineRecords([]); setVaccineCatalog([]); }} />}
+      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} vaccineRemindersEnabled={vaccineRemindersEnabled} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineRemindersChanged={changeVaccineReminders} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setDeletedVaccineRecords([]); setVaccineCatalog([]); }} />}
     </main>
     {(tab === 'today' || tab === 'history') && <button className="floating-add" onClick={() => historyMode === 'vaccine' && tab === 'history' ? setVaccineEditor({ mode: 'add' }) : setEditor(blankDraft())} aria-label={historyMode === 'vaccine' && tab === 'history' ? '添加疫苗记录' : '添加照护记录'}><span>＋</span><b>记录</b></button>}
     <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录'], ['trends', '/icons/nav-trends.png', '趋势'], ['archive', '/icons/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'archive' ? 'nav-icon-archive' : value === 'history' ? 'nav-icon-records' : undefined} src={icon} alt="" /><b>{label}</b></button>)}</nav>

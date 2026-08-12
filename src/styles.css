@@ -174,7 +174,18 @@ label, fieldset { display: grid; gap: 7px; color: var(--ink); font-size: 14px; f
 .today-workbench .quick-icon { width: 36px; height: 36px; }
 .today-plan > h2 { margin-bottom: 5px; font-size: 13px; font-weight: 800; }
 .today-plan-list article { min-height: 62px; grid-template-columns: 36px minmax(0, 1fr) auto; }
-.today-plan-list img, .today-plan-list .vaccine-task > img, .today-plan-list .growth-task > img { width: 36px; height: 36px; }
+.today-plan-list .task-icon { width: 36px; height: 36px; object-fit: contain; }
+.today-plan-loading { min-height: 91px; }
+.today-plan-skeleton { min-height: 52px; display: grid; grid-template-columns: 36px minmax(0, 1fr) 52px; align-items: center; gap: 9px; }
+.today-plan-skeleton > i, .today-plan-skeleton div i { display: block; border-radius: 7px; background: #eadfd2; animation: plan-skeleton 1.35s ease-in-out infinite; }
+.today-plan-skeleton > i:first-child { width: 36px; height: 36px; }
+.today-plan-skeleton > i:last-child { width: 52px; height: 40px; }
+.today-plan-skeleton div { display: grid; gap: 7px; }
+.today-plan-skeleton div i:first-child { width: min(150px, 62%); height: 14px; }
+.today-plan-skeleton div i:last-child { width: min(110px, 48%); height: 11px; opacity: .72; }
+.today-plan-error { min-height: 91px; display: grid; align-content: center; }
+.today-plan-error p { margin: 5px 0 8px; color: var(--muted); font-size: 12px; }
+@keyframes plan-skeleton { 0%, 100% { opacity: .48; } 50% { opacity: .9; } }
 .today-plan-list b { font-size: 14px; font-weight: 700; }
 .today-plan-list small { color: #58645b; font-size: 12px; line-height: 1.45; }
 .today-timeline .timeline-item { grid-template-columns: 44px 36px minmax(0, 1fr) 44px; }
