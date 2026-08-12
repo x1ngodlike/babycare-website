@@ -353,9 +353,12 @@ function TrendsView({ records }: { records: CareRecord[] }) {
   const todayMonthKey = `${todayMonth.getFullYear()}-${todayMonth.getMonth()}`;
   const todayIso = isoDay(now);
   const sevenDays = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(now, index - 6)), [todayIso]);
+  const [todayYear, todayMon] = todayMonthKey.split('-').map(Number);
   const aggregated = useMemo(() => {
-    const [todayYear, todayMon] = todayMonthKey.split('-').map(Number);
+    // ===== 七日：按天生成图表 buckets =====
     const sevenData: TrendBucket[] = sevenDays.map(day => ({ key: isoDay(day), label: day.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' }), axis: day.toLocaleDateString('zh-CN', { weekday: 'short' }), ...summarizeTrendRecords(records.filter(record => isoDay(new Date(record.occurredAt)) === isoDay(day))) }));
+
+    // ===== 月数据：按周生成图表 buckets（跨月周按完整周展示） =====
     const monthYear = selectedMonth.getFullYear(); const monthIndex = selectedMonth.getMonth();
     const isCurrentMonth = selectedMonth.getFullYear() === todayYear && selectedMonth.getMonth() === todayMon;
     const firstWeek = startOfWeek(new Date(monthYear, monthIndex, 1));
@@ -367,20 +370,49 @@ function TrendsView({ records }: { records: CareRecord[] }) {
       const monday = addDays(firstWeek, index * 7); const sunday = addDays(monday, 6);
       return { key: isoDay(monday), label: `${compact(monday)}–${compact(sunday)}`, axis: compact(monday), ...summarizeTrendRecords(records.filter(record => { const date = new Date(record.occurredAt); return date >= monday && date < addDays(monday, 7); })) };
     });
+
+    // ===== 总数据：按月生成图表 buckets，图表仅展示最近 6 个月 =====
     const monthKeys = [...new Set(records.map(record => { const date = new Date(record.occurredAt); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }))].sort();
     const totalData: TrendBucket[] = monthKeys.map(key => {
       const [year, month] = key.split('-').map(Number);
       return { key, label: `${year}年${month}月`, axis: `${month}月`, ...summarizeTrendRecords(records.filter(record => { const date = new Date(record.occurredAt); return date.getFullYear() === year && date.getMonth() === month - 1; })) };
     });
-    return { sevenData, monthData, totalData };
-  }, [records, sevenDays, selectedMonth, todayMonthKey, todayIso]);
+
+    // ===== 汇总统计：严格按语义化时间范围（与图表 buckets 解耦） =====
+    // 七日：最近 7 天
+    const sevenIsoSet = new Set(sevenDays.map(d => isoDay(d)));
+    const sevenRecords = records.filter(r => sevenIsoSet.has(isoDay(new Date(r.occurredAt))));
+    const sevenSummary = summarizeTrendRecords(sevenRecords);
+    const sevenActiveDays = new Set(sevenRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
+
+    // 月数据：自然月（1 日 → 月末/今日）
+    const naturalMonthStart = new Date(monthYear, monthIndex, 1);
+    const naturalMonthEnd = isCurrentMonth
+      ? new Date(`${todayIso}T23:59:59.999`)
+      : new Date(monthYear, monthIndex + 1, 0, 23, 59, 59, 999);
+    const monthRecords = records.filter(r => { const d = new Date(r.occurredAt); return d >= naturalMonthStart && d <= naturalMonthEnd; });
+    const monthSummary = summarizeTrendRecords(monthRecords);
+    const monthActiveDays = new Set(monthRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
+
+    // 总数据：全部历史记录（累计）
+    const totalSummary = summarizeTrendRecords(records);
+    const totalActiveDays = new Set(records.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
+
+    return {
+      sevenData, monthData, totalData,
+      sevenSummary: { ...sevenSummary, activeDays: sevenActiveDays },
+      monthSummary: { ...monthSummary, activeDays: monthActiveDays },
+      totalSummary: { ...totalSummary, activeDays: totalActiveDays },
+    };
+  }, [records, sevenDays, selectedMonth, todayYear, todayMon, todayIso]);
   const buckets = mode === 'seven' ? aggregated.sevenData : mode === 'month' ? aggregated.monthData : aggregated.totalData.slice(-6);
   const chartData = buckets;
   const detailData = [...buckets].reverse();
   const maxMilk = Math.max(1, ...chartData.map(item => item.breast + item.formula));
-  const activeSummary = buckets.reduce((acc, item) => ({ breast: acc.breast + item.breast, formula: acc.formula + item.formula, feeds: acc.feeds + item.feeds, bowel: acc.bowel + item.bowel, supplements: acc.supplements + item.supplements }), { breast: 0, formula: 0, feeds: 0, bowel: 0, supplements: 0 });
+  const scopeSummary = mode === 'seven' ? aggregated.sevenSummary : mode === 'month' ? aggregated.monthSummary : aggregated.totalSummary;
+  const activeSummary = { breast: scopeSummary.breast, formula: scopeSummary.formula, feeds: scopeSummary.feeds, bowel: scopeSummary.bowel, supplements: scopeSummary.supplements };
   const totalMilk = activeSummary.breast + activeSummary.formula;
-  const activeDays = buckets.filter(item => item.feeds > 0).length;
+  const activeDays = scopeSummary.activeDays;
   const chartTitle = mode === 'seven' ? '每日奶量' : mode === 'month' ? '每周奶量' : '最近六个月奶量';
   const totalLabel = mode === 'seven' ? '七日总奶量' : mode === 'month' ? '本月总奶量' : '累计总奶量';
   const description = mode === 'seven' ? '最近七天数据，图表按时间顺序展示。' : mode === 'month' ? '月度汇总按自然月；每周奶量按周一至周日，跨月周按完整周统计。' : '汇总开始记录至今的全部照护数据。';
