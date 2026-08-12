@@ -33,7 +33,19 @@ const currentDir: string = (() => {
   try { if (typeof __dirname === 'string') return __dirname; } catch { /* ESM 下 __dirname 未声明 */ }
   return dirname(fileURLToPath(import.meta.url));
 })();
-function resolveAvatarDir(): string { const dir = join(currentDir, 'uploads', 'avatars'); if (!existsSync(dir)) try { mkdirSync(dir, { recursive: true }); } catch { /* 上传时再处理权限错误 */ } return dir; }
+// 头像上传目录锚定 DATA_DIR：和 db.sqlite、备份文件共享同一个持久化根（默认为 ./data）
+const dataDir = resolve(process.env.DATA_DIR || './data');
+const avatarHintDir = join(dataDir, 'uploads', 'avatars');
+function resolveAvatarDir(): string {
+  const dir = avatarHintDir;
+  if (!existsSync(dir)) {
+    try { mkdirSync(dir, { recursive: true }); }
+    catch (error) {
+      console.error(`[avatars] 上传目录创建失败：${dir}（DATA_DIR=${process.env.DATA_DIR || '(默认 ./data)'}）。请确认目录可写`, error instanceof Error ? error.message : error);
+    }
+  }
+  return dir;
+}
 const avatarDir = resolveAvatarDir();
 
 if (production && (!(process.env.FATHER_PASSWORD || process.env.ADMIN_PASSWORD) || !process.env.MOTHER_PASSWORD || !process.env.GRANDFATHER_PASSWORD || !process.env.GRANDMOTHER_PASSWORD || !process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
@@ -366,10 +378,17 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
     const file = req.file;
     if (!file) return res.status(400).json({ error: '请上传头像图片' });
     if (!file.mimetype.startsWith('image/')) return res.status(400).json({ error: '仅支持图片格式（PNG / JPG / WebP 等）' });
-    if (!existsSync(avatarDir)) mkdirSync(avatarDir, { recursive: true });
+    try { mkdirSync(avatarDir, { recursive: true }); }
+    catch (error) {
+      const msg = error instanceof Error ? error.message : '';
+      if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: `上传目录权限不足：请联系管理员设置 ${avatarDir}（DATA_DIR=${process.env.DATA_DIR || '默认 ./data'}）可写` });
+      if (msg.includes('ENOENT')) return res.status(500).json({ error: `上传目录不存在或无法写入：${avatarDir}` });
+      return res.status(500).json({ error: `上传目录无法创建：${avatarDir}（${msg || '请查看服务器日志'}）` });
+    }
     const filename = `avatar_${uuidv4()}.webp`;
     const filepath = join(avatarDir, filename);
     try {
+      try { mkdirSync(dirname(filepath), { recursive: true }); } catch { /* 已存在或外层已处理 */ }
       await sharp(file.buffer)
         .rotate()
         .resize(512, 512, { fit: 'cover', position: 'entropy' })
@@ -377,8 +396,8 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
         .toFile(filepath);
     } catch (inner) {
       const msg = inner instanceof Error ? inner.message : '';
-      if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: '服务器上传目录权限不足，请联系管理员设置 server/uploads/avatars 可写' });
-      if (msg.includes('ENOENT')) return res.status(500).json({ error: '服务器上传目录不存在或无法写入' });
+      if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: `上传目录权限不足：请联系管理员设置 ${avatarDir} 可写` });
+      if (msg.includes('ENOENT')) return res.status(500).json({ error: `上传目录不存在或无法写入：${avatarDir}` });
       if (/unsupported|not a valid|decode|format/i.test(msg)) return res.status(400).json({ error: '图片格式不支持或文件已损坏，换一张试试' });
       return res.status(500).json({ error: `图片处理失败（${msg || '请查看服务器日志'}）` });
     }
@@ -393,8 +412,8 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
     res.json({ url: newAvatarUrl, profile: next });
   } catch (error) {
     const msg = error instanceof Error ? error.message : '';
-    if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: '服务器上传目录权限不足，请联系管理员设置 server/uploads/avatars 可写' });
-    if (msg.includes('ENOENT')) return res.status(500).json({ error: '服务器上传目录不存在或无法写入' });
+    if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: `上传目录权限不足：请联系管理员设置 ${avatarDir} 可写` });
+    if (msg.includes('ENOENT')) return res.status(500).json({ error: `上传目录不存在或无法写入：${avatarDir}` });
     if (/too large|file size/i.test(msg)) return res.status(413).json({ error: '图片超过 8MB，压缩后再上传' });
     if (msg) return res.status(500).json({ error: `头像上传失败：${msg}` });
     res.status(500).json({ error: '头像上传失败，请重试或联系管理员查看日志' });
@@ -413,7 +432,10 @@ app.delete('/api/profile/avatar', requireAdmin, (_req, res) => {
     res.json({ ok: true, profile: next });
   } catch (error) {
     const msg = error instanceof Error ? error.message : '';
-    res.status(500).json({ error: msg ? `头像移除失败：${msg}` : '头像移除失败' });
+    if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: `上传目录权限不足：请联系管理员设置 ${avatarDir} 可写` });
+    if (msg.includes('ENOENT')) return res.status(500).json({ error: `上传目录不存在或无法写入：${avatarDir}` });
+    if (msg) return res.status(500).json({ error: `头像删除失败：${msg}` });
+    res.status(500).json({ error: '头像删除失败，请重试或联系管理员查看日志' });
   }
 });
 
@@ -690,7 +712,7 @@ app.post('/api/import', requireSuperAdmin, (req, res) => {
 
 app.get('/api/push/status', (_req, res) => res.json(getPushStatus()));
 
-app.post('/api/push/settings', requireSuperAdmin, express.json(), async (req, res) => {
+app.post('/api/push/settings', requireAdmin, express.json(), async (req, res) => {
   const body = req.body || {};
   const { enabled, pushplusToken, pushplusTopic, morningDigestEnabled, morningDigestTime, feedingGapEnabled, feedingGapLevel1Minutes, feedingGapLevel2Minutes, careItemEnabled } = body;
   if (enabled !== undefined && typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled 必须为布尔值' });
@@ -731,13 +753,13 @@ app.post('/api/push/settings', requireSuperAdmin, express.json(), async (req, re
   }
 });
 
-app.post('/api/push/test/morning-digest', requireSuperAdmin, async (_req, res) => {
+app.post('/api/push/test/morning-digest', requireAdmin, async (_req, res) => {
   const result = await testMorningDigestPush();
   if (!result.ok) return res.status(502).json({ error: result.error || '早报测试推送失败' });
   return res.json({ ok: true, message: '早报测试消息已发送，请在微信中查看。' });
 });
 
-app.post('/api/push/test/feeding-gap', requireSuperAdmin, express.json(), async (req, res) => {
+app.post('/api/push/test/feeding-gap', requireAdmin, express.json(), async (req, res) => {
   const level = (req.body?.level === 'level2') ? 'level2' : 'level1';
   const result = await testFeedingGapPush(level);
   if (!result.ok) return res.status(502).json({ error: result.error || '喂奶间隔测试推送失败' });
@@ -745,18 +767,18 @@ app.post('/api/push/test/feeding-gap', requireSuperAdmin, express.json(), async 
   return res.json({ ok: true, message: `喂奶间隔（${label}）测试消息已发送，请在微信中查看。` });
 });
 
-app.post('/api/push/test/care-item', requireSuperAdmin, async (_req, res) => {
+app.post('/api/push/test/care-item', requireAdmin, async (_req, res) => {
   const result = await testCareItemPush();
   if (!result.ok) return res.status(502).json({ error: result.error || '用药与照护提醒测试推送失败' });
   return res.json({ ok: true, message: '用药与照护测试消息已发送，请在微信中查看。' });
 });
 
-app.post('/api/push/enable', requireSuperAdmin, async (_req, res) => {
+app.post('/api/push/enable', requireAdmin, async (_req, res) => {
   const result = await updatePushSettings({ enabled: true });
   return res.json(result);
 });
 
-app.post('/api/push/disable', requireSuperAdmin, async (_req, res) => {
+app.post('/api/push/disable', requireAdmin, async (_req, res) => {
   const result = await updatePushSettings({ enabled: false });
   return res.json(result);
 });
