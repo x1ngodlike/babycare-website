@@ -9,8 +9,13 @@ const outboxKey = (actorId: string) => `baby-care-outbox-${actorId}`;
 
 export type QueuedAction = { id: string; action: 'create' | 'update' | 'delete' | 'restore'; recordId?: string; payload?: DraftRecord };
 
+function writeStorage(key: string, value: string) {
+  try { localStorage.setItem(key, value); }
+  catch (error) { console.warn('本地缓存写入失败，已跳过缓存', error); }
+}
+
 export function cacheRecords(actorId: string, records: CareRecord[]) {
-  localStorage.setItem(cacheKey(actorId), JSON.stringify(records));
+  writeStorage(cacheKey(actorId), JSON.stringify(records));
 }
 
 export function getCachedRecords(actorId: string): CareRecord[] {
@@ -21,7 +26,7 @@ export function getCachedRecords(actorId: string): CareRecord[] {
 }
 
 export function rememberUser(user: SessionUser) {
-  localStorage.setItem(rememberedUserKey, JSON.stringify(user));
+  writeStorage(rememberedUserKey, JSON.stringify(user));
 }
 
 export function getRememberedUser(): SessionUser | null {
@@ -30,7 +35,7 @@ export function getRememberedUser(): SessionUser | null {
 
 export function clearRememberedUser() { localStorage.removeItem(rememberedUserKey); }
 
-export function cacheProfile(profile: Profile) { localStorage.setItem(profileKey, JSON.stringify(profile)); }
+export function cacheProfile(profile: Profile) { writeStorage(profileKey, JSON.stringify(profile)); }
 export function getCachedProfile(): Profile | null {
   try { return JSON.parse(localStorage.getItem(profileKey) || 'null'); } catch { return null; }
 }
@@ -63,5 +68,5 @@ export function queueAction(actorId: string, action: Omit<QueuedAction, 'id'>) {
 }
 
 export function setOutbox(actorId: string, actions: QueuedAction[]) {
-  localStorage.setItem(outboxKey(actorId), JSON.stringify(actions));
+  writeStorage(outboxKey(actorId), JSON.stringify(actions));
 }

@@ -12,6 +12,7 @@ import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError
 import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DailyReport, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, restoreVaccineRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
+import { shanghaiDateString } from './shanghai-date.js';
 import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission, GrowthRecord, VaccineCatalogItem, VaccineRecord } from './types.js';
 
 const app = express();
@@ -453,7 +454,7 @@ app.post('/api/vaccine-records', (req, res) => {
   const profile = getProfile();
   if (parsed.data.plannedOn < profile.birthDate || (parsed.data.administeredOn && parsed.data.administeredOn < profile.birthDate)) return res.status(400).json({ error: '接种日期不能早于出生日期' });
   if (parsed.data.appointmentOn && parsed.data.appointmentOn < profile.birthDate) return res.status(400).json({ error: '预约日期不能早于出生日期' });
-  if (parsed.data.administeredOn && parsed.data.administeredOn > new Date().toISOString().slice(0, 10)) return res.status(400).json({ error: '接种日期不能晚于今天' });
+  if (parsed.data.administeredOn && parsed.data.administeredOn > shanghaiDateString()) return res.status(400).json({ error: '接种日期不能晚于今天' });
   try { const record = saveVaccineRecord(normalizeVaccineRecord(parsed.data, getSessionUser(req)!.id)); changeHub.broadcast('all'); return res.status(201).json(record); }
   catch (error) { if (error instanceof DuplicateVaccineRecordError) return res.status(409).json({ error: error.message, code: 'DUPLICATE_VACCINE_RECORD', existing: error.existing }); throw error; }
 });
@@ -576,7 +577,7 @@ app.get('/api/records/:id/audit', requireAdmin, (req, res) => {
 });
 
 app.get('/api/export', requireSuperAdmin, (_req, res) => {
-  res.setHeader('Content-Disposition', `attachment; filename="babycare-backup-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.setHeader('Content-Disposition', `attachment; filename="babycare-backup-${shanghaiDateString()}.json"`);
   res.json(exportPayload());
 });
 
