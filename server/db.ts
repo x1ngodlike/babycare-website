@@ -126,9 +126,11 @@ db.exec(`
     feeding_gap_level2_minutes INTEGER NOT NULL DEFAULT 180,
     care_item_enabled INTEGER NOT NULL DEFAULT 1,
     push_sent_flags TEXT NOT NULL DEFAULT '{}',
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL DEFAULT ''
   );
-  INSERT OR IGNORE INTO push_settings (id) VALUES (1);
+  INSERT OR IGNORE INTO push_settings
+    (id, updated_at, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags)
+    VALUES (1, '', 0, '', '', 1, '08:00', 1, 150, 180, 1, '{}');
 
   CREATE TABLE IF NOT EXISTS care_items (
     id TEXT PRIMARY KEY,
@@ -234,6 +236,22 @@ if (!pushSettingsColumns.some(column => column.name === 'feeding_gap_level1_minu
 if (!pushSettingsColumns.some(column => column.name === 'feeding_gap_level2_minutes')) db.exec('ALTER TABLE push_settings ADD COLUMN feeding_gap_level2_minutes INTEGER NOT NULL DEFAULT 180');
 if (!pushSettingsColumns.some(column => column.name === 'push_sent_flags')) db.exec("ALTER TABLE push_settings ADD COLUMN push_sent_flags TEXT NOT NULL DEFAULT '{}'");
 if (!pushSettingsColumns.some(column => column.name === 'care_item_enabled')) db.exec('ALTER TABLE push_settings ADD COLUMN care_item_enabled INTEGER NOT NULL DEFAULT 1');
+// 启动时确保 id=1 的唯一行存在：修复历史库 NOT NULL 无 DEFAULT 导致 INSERT OR IGNORE 被吞、上行缺失的问题
+db.prepare(`
+  INSERT OR IGNORE INTO push_settings
+    (id, updated_at, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags)
+    VALUES (1, COALESCE((SELECT updated_at FROM push_settings WHERE id = 1), ''),
+            COALESCE((SELECT enabled FROM push_settings WHERE id = 1), 0),
+            COALESCE((SELECT pushplus_token FROM push_settings WHERE id = 1), ''),
+            COALESCE((SELECT pushplus_topic FROM push_settings WHERE id = 1), ''),
+            COALESCE((SELECT morning_digest_enabled FROM push_settings WHERE id = 1), 1),
+            COALESCE((SELECT morning_digest_time FROM push_settings WHERE id = 1), '08:00'),
+            COALESCE((SELECT feeding_gap_enabled FROM push_settings WHERE id = 1), 1),
+            COALESCE((SELECT feeding_gap_level1_minutes FROM push_settings WHERE id = 1), 150),
+            COALESCE((SELECT feeding_gap_level2_minutes FROM push_settings WHERE id = 1), 180),
+            COALESCE((SELECT care_item_enabled FROM push_settings WHERE id = 1), 1),
+            COALESCE((SELECT push_sent_flags FROM push_settings WHERE id = 1), '{}'))
+`).run();
 
 const defaultVaccineCatalog: Omit<VaccineCatalogItem, 'active'>[] = [
   { id: 'hepb', name: '乙肝疫苗', category: 'program', shortName: '乙肝', description: '用于预防乙型病毒性肝炎。', doseCount: 3, intervalSummary: '共 3 剂：出生时、1 月龄、6 月龄', sortOrder: 10, isSystem: true },
@@ -791,8 +809,15 @@ export function savePushSettings(input: Partial<Pick<PushSettings, 'enabled' | '
   const feedingGapLevel2Minutes = input.feedingGapLevel2Minutes === undefined ? current.feedingGapLevel2Minutes : input.feedingGapLevel2Minutes;
   const careItemEnabled = input.careItemEnabled === undefined ? current.careItemEnabled : input.careItemEnabled;
   const updatedAt = new Date().toISOString();
-  db.prepare('UPDATE push_settings SET enabled = ?, pushplus_token = ?, pushplus_topic = ?, morning_digest_enabled = ?, morning_digest_time = ?, feeding_gap_enabled = ?, feeding_gap_level1_minutes = ?, feeding_gap_level2_minutes = ?, care_item_enabled = ?, updated_at = ? WHERE id = 1')
+  const info = db.prepare('UPDATE push_settings SET enabled = ?, pushplus_token = ?, pushplus_topic = ?, morning_digest_enabled = ?, morning_digest_time = ?, feeding_gap_enabled = ?, feeding_gap_level1_minutes = ?, feeding_gap_level2_minutes = ?, care_item_enabled = ?, updated_at = ? WHERE id = 1')
     .run(enabled ? 1 : 0, pushplusToken, pushplusTopic, morningDigestEnabled ? 1 : 0, morningDigestTime, feedingGapEnabled ? 1 : 0, feedingGapLevel1Minutes, feedingGapLevel2Minutes, careItemEnabled ? 1 : 0, updatedAt);
+  if (!info.changes) {
+    db.prepare(`
+      INSERT INTO push_settings
+        (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags, updated_at)
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(enabled ? 1 : 0, pushplusToken, pushplusTopic, morningDigestEnabled ? 1 : 0, morningDigestTime, feedingGapEnabled ? 1 : 0, feedingGapLevel1Minutes, feedingGapLevel2Minutes, careItemEnabled ? 1 : 0, '{}', updatedAt);
+  }
   return getPushSettings();
 }
 

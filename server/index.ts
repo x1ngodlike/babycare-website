@@ -27,7 +27,14 @@ const production = process.env.NODE_ENV === 'production';
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 const changeHub = createChangeHub();
 const backupDirectory = defaultBackupDirectory();
-const __dirname = dirname(fileURLToPath(import.meta.url));
+// 兼容：ESM 开发环境（tsx + import.meta.url）和 CJS 生产构建（tsc 输出自带模块作用域 __dirname）
+declare const __dirname: string;
+const currentDir: string = (() => {
+  try { if (typeof __dirname === 'string') return __dirname; } catch { /* ESM 下 __dirname 未声明 */ }
+  return dirname(fileURLToPath(import.meta.url));
+})();
+function resolveAvatarDir(): string { const dir = join(currentDir, 'uploads', 'avatars'); if (!existsSync(dir)) try { mkdirSync(dir, { recursive: true }); } catch { /* 上传时再处理权限错误 */ } return dir; }
+const avatarDir = resolveAvatarDir();
 
 if (production && (!(process.env.FATHER_PASSWORD || process.env.ADMIN_PASSWORD) || !process.env.MOTHER_PASSWORD || !process.env.GRANDFATHER_PASSWORD || !process.env.GRANDMOTHER_PASSWORD || !process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
   throw new Error('生产环境必须设置四位家人的密码和至少 32 位的 SESSION_SECRET');
@@ -55,7 +62,7 @@ app.use((req, res, next) => {
 });
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
-app.use('/avatars', express.static(join(__dirname, 'uploads', 'avatars'), { maxAge: '30d' }));
+app.use('/avatars', express.static(avatarDir, { maxAge: '30d' }));
 
 const recordSchema = z.object({
   id: z.string().uuid().optional(),
@@ -358,18 +365,26 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: '请上传头像图片' });
-    const avatarDir = join(__dirname, 'uploads', 'avatars');
+    if (!file.mimetype.startsWith('image/')) return res.status(400).json({ error: '仅支持图片格式（PNG / JPG / WebP 等）' });
     if (!existsSync(avatarDir)) mkdirSync(avatarDir, { recursive: true });
     const filename = `avatar_${uuidv4()}.webp`;
     const filepath = join(avatarDir, filename);
-    await sharp(file.buffer)
-      .rotate()
-      .resize(512, 512, { fit: 'cover', position: 'entropy' })
-      .webp({ quality: 82, effort: 6 })
-      .toFile(filepath);
+    try {
+      await sharp(file.buffer)
+        .rotate()
+        .resize(512, 512, { fit: 'cover', position: 'entropy' })
+        .webp({ quality: 82, effort: 6 })
+        .toFile(filepath);
+    } catch (inner) {
+      const msg = inner instanceof Error ? inner.message : '';
+      if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: '服务器上传目录权限不足，请联系管理员设置 server/uploads/avatars 可写' });
+      if (msg.includes('ENOENT')) return res.status(500).json({ error: '服务器上传目录不存在或无法写入' });
+      if (/unsupported|not a valid|decode|format/i.test(msg)) return res.status(400).json({ error: '图片格式不支持或文件已损坏，换一张试试' });
+      return res.status(500).json({ error: `图片处理失败（${msg || '请查看服务器日志'}）` });
+    }
     const profile = getProfile();
     if (profile.avatar) {
-      const oldPath = join(__dirname, 'uploads', profile.avatar.replace('/avatars/', ''));
+      const oldPath = join(avatarDir, profile.avatar.replace('/avatars/', ''));
       if (existsSync(oldPath)) try { unlinkSync(oldPath); } catch { /* ignore */ }
     }
     const newAvatarUrl = `/avatars/${filename}`;
@@ -377,7 +392,12 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
     changeHub.broadcast('profile');
     res.json({ url: newAvatarUrl, profile: next });
   } catch (error) {
-    res.status(500).json({ error: '头像上传失败' });
+    const msg = error instanceof Error ? error.message : '';
+    if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: '服务器上传目录权限不足，请联系管理员设置 server/uploads/avatars 可写' });
+    if (msg.includes('ENOENT')) return res.status(500).json({ error: '服务器上传目录不存在或无法写入' });
+    if (/too large|file size/i.test(msg)) return res.status(413).json({ error: '图片超过 8MB，压缩后再上传' });
+    if (msg) return res.status(500).json({ error: `头像上传失败：${msg}` });
+    res.status(500).json({ error: '头像上传失败，请重试或联系管理员查看日志' });
   }
 });
 
@@ -385,14 +405,15 @@ app.delete('/api/profile/avatar', requireAdmin, (_req, res) => {
   try {
     const profile = getProfile();
     if (profile.avatar) {
-      const oldPath = join(__dirname, 'uploads', profile.avatar.replace('/avatars/', ''));
+      const oldPath = join(avatarDir, profile.avatar.replace('/avatars/', ''));
       if (existsSync(oldPath)) try { unlinkSync(oldPath); } catch { /* ignore */ }
     }
     const next = saveProfile({ ...profile, avatar: null });
     changeHub.broadcast('profile');
     res.json({ ok: true, profile: next });
   } catch (error) {
-    res.status(500).json({ error: '头像移除失败' });
+    const msg = error instanceof Error ? error.message : '';
+    res.status(500).json({ error: msg ? `头像移除失败：${msg}` : '头像移除失败' });
   }
 });
 
