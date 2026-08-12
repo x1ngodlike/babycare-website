@@ -2,7 +2,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, unlinkSync, accessSync, constants as fsConstants } from 'node:fs';
+import { existsSync, mkdirSync, unlinkSync, accessSync, constants as fsConstants, statSync, Stats } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
@@ -36,18 +36,44 @@ const currentDir: string = (() => {
 // 头像上传目录锚定 DATA_DIR：和 db.sqlite、备份文件共享同一个持久化根（默认为 ./data）
 const dataDir = resolve(process.env.DATA_DIR || './data');
 const avatarHintDir = join(dataDir, 'uploads', 'avatars');
+function diagnosePathTree(target: string): { path: string; exists: boolean; isDirectory: boolean; writable: boolean; note?: string }[] {
+  // 从根到目标逐级诊断：/app → /app/data → /app/data/uploads → /app/data/uploads/avatars
+  const parts: string[] = [];
+  let p = target;
+  while (true) {
+    parts.push(p);
+    const parent = dirname(p);
+    if (parent === p) break;
+    p = parent;
+  }
+  parts.reverse();
+  return parts.map(path => {
+    let st: Stats | undefined;
+    try { st = statSync(path); } catch { /* not exists */ }
+    const exists = st !== undefined;
+    const isDirectory = Boolean(st?.isDirectory());
+    let writable = false;
+    try { if (exists) accessSync(path, fsConstants.W_OK); writable = true; } catch { /* not writable */ }
+    let note: string | undefined;
+    if (exists && !isDirectory) note = '⚠️ 同名文件占位（不是目录）';
+    return { path, exists, isDirectory, writable, note };
+  });
+}
 function avatarFixHint(dir: string): string {
   const raw = process.env.DATA_DIR || '';
-  const dataArg = raw ? `DATA_DIR="${raw}"` : '';
-  return `请在容器启动/更新脚本里加：mkdir -p ${dir} && chmod 755 ${join(dataDir, 'uploads')} ${dir}`;
+  return `请在容器启动/更新脚本里加：mkdir -p ${dir} && chmod 755 ${join(dataDir, 'uploads')} ${dir}${raw ? `（环境变量 DATA_DIR=${raw}）` : ''}`;
 }
 function resolveAvatarDir(): string {
   const dir = avatarHintDir;
+  let diagnose: ReturnType<typeof diagnosePathTree> | null = null;
   if (!existsSync(dir)) {
     try { mkdirSync(dir, { recursive: true }); }
     catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error(`[avatars] 上传目录创建失败：${dir}（DATA_DIR=${process.env.DATA_DIR || '(默认 ./data)'}）。${avatarFixHint(dir)}（${msg}）`);
+      const tree = diagnosePathTree(dir);
+      diagnose = tree;
+      const blocked = tree.reverse().find(item => !item.exists || !item.isDirectory || !item.writable);
+      console.error(`[avatars] 上传目录创建失败：${dir}（DATA_DIR=${process.env.DATA_DIR || '(默认 ./data)'}）。阻断点：${blocked?.path ?? dir}${blocked?.note ? ' ' + blocked.note : ''}（${msg}）。${avatarFixHint(dir)}`);
       return dir;
     }
   }
@@ -56,10 +82,14 @@ function resolveAvatarDir(): string {
     accessSync(dir, fsConstants.W_OK);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error(`[avatars] 上传目录不可写：${dir}。${avatarFixHint(dir)}（${msg}）`);
+    if (!diagnose) diagnose = diagnosePathTree(dir);
+    const tree = diagnose;
+    const blocked = tree.slice().reverse().find(item => !item.exists || !item.isDirectory || !item.writable);
+    console.error(`[avatars] 上传目录不可写：${dir}。阻断点：${blocked?.path ?? dir}${blocked?.note ? ' ' + blocked.note : ''}（${msg}）。${avatarFixHint(dir)}`);
   }
   return dir;
 }
+function avatarDiagnoseCached(): ReturnType<typeof diagnosePathTree> { return diagnosePathTree(avatarDir); }
 const avatarDir = resolveAvatarDir();
 
 if (production && (!(process.env.FATHER_PASSWORD || process.env.ADMIN_PASSWORD) || !process.env.MOTHER_PASSWORD || !process.env.GRANDFATHER_PASSWORD || !process.env.GRANDMOTHER_PASSWORD || !process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
@@ -389,6 +419,14 @@ app.put('/api/profile', requireAdmin, (req, res) => {
 
 app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (req, res) => {
   const hint = avatarFixHint(avatarDir);
+  function withTree(prefix: string): string {
+    const tree = avatarDiagnoseCached();
+    const rows = tree.map(item => {
+      const flag = item.note ? item.note : (!item.exists ? '❌不存在' : !item.isDirectory ? '❌不是目录' : !item.writable ? '❌不可写' : '✅正常');
+      return `${flag} ${item.path}`;
+    }).join('； ');
+    return `${prefix}。路径诊断：${rows}。${hint}`;
+  }
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: '请上传头像图片' });
@@ -399,11 +437,11 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
     }
     catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      if (msg.includes('ENOTDIR')) return res.status(500).json({ error: `上传路径里夹了非目录（${avatarDir} 父级存在同名文件）。请在容器里删除占位文件后执行：mkdir -p ${avatarDir} && chmod 755 ${join(dataDir, 'uploads')} ${avatarDir}` });
-      if (msg.includes('EROFS') || msg.includes('Read-only file system')) return res.status(500).json({ error: `DATA_DIR（${dataDir}）落在容器只读分层。${hint}，或把 Docker volume 挂到 ${dataDir}` });
-      if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: `上传目录权限不足：${avatarDir}（DATA_DIR=${process.env.DATA_DIR || '默认 ./data'}）。${hint}` });
-      if (msg.includes('ENOENT')) return res.status(500).json({ error: `上传目录不存在或无法写入：${avatarDir}。${hint}` });
-      return res.status(500).json({ error: `上传目录无法创建：${avatarDir}（${msg || '请查看服务器日志'}）。${hint}` });
+      if (msg.includes('ENOTDIR')) return res.status(500).json({ error: withTree(`上传路径里夹了非目录（${avatarDir} 父级存在同名文件）。请在容器里删除占位文件后执行：mkdir -p ${avatarDir} && chmod 755 ${join(dataDir, 'uploads')} ${avatarDir}`) });
+      if (msg.includes('EROFS') || msg.includes('Read-only file system')) return res.status(500).json({ error: withTree(`DATA_DIR（${dataDir}）落在容器只读分层。请把 Docker volume 挂到 ${dataDir}`) });
+      if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: withTree(`上传目录权限不足：${avatarDir}（DATA_DIR=${process.env.DATA_DIR || '默认 ./data'}）`) });
+      if (msg.includes('ENOENT')) return res.status(500).json({ error: withTree(`上传目录不存在或无法写入：${avatarDir}`) });
+      return res.status(500).json({ error: withTree(`上传目录无法创建：${avatarDir}（${msg || '请查看服务器日志'}）`) });
     }
     const filename = `avatar_${uuidv4()}.webp`;
     const filepath = join(avatarDir, filename);
@@ -412,7 +450,7 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
       try { accessSync(dirname(filepath), fsConstants.W_OK); }
       catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        return res.status(500).json({ error: `上传目录不可写：${dirname(filepath)}（${msg}）。${hint}` });
+        return res.status(500).json({ error: withTree(`上传目录不可写：${dirname(filepath)}（${msg}）`) });
       }
       await sharp(file.buffer)
         .rotate()
@@ -421,10 +459,10 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
         .toFile(filepath);
     } catch (inner) {
       const msg = inner instanceof Error ? inner.message : String(inner);
-      if (msg.includes('ENOTDIR')) return res.status(500).json({ error: `上传路径里夹了非目录（${filepath} 父级存在同名文件）。请清理占位文件并${hint}` });
-      if (msg.includes('EROFS') || msg.includes('Read-only file system')) return res.status(500).json({ error: `DATA_DIR（${dataDir}）落在只读分层，写失败。${hint} 或改 volume 挂载到可写层` });
-      if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: `上传目录权限不足：${avatarDir}。${hint}` });
-      if (msg.includes('ENOENT')) return res.status(500).json({ error: `上传目录不存在或无法写入：${avatarDir}。${hint}` });
+      if (msg.includes('ENOTDIR')) return res.status(500).json({ error: withTree(`上传路径里夹了非目录（${filepath} 父级存在同名文件）。请清理占位文件`) });
+      if (msg.includes('EROFS') || msg.includes('Read-only file system')) return res.status(500).json({ error: withTree(`DATA_DIR（${dataDir}）落在只读分层，写失败。请改 volume 挂载到可写层`) });
+      if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: withTree(`上传目录权限不足：${avatarDir}`) });
+      if (msg.includes('ENOENT')) return res.status(500).json({ error: withTree(`上传目录不存在或无法写入：${avatarDir}`) });
       if (/unsupported|not a valid|decode|format/i.test(msg)) return res.status(400).json({ error: '图片格式不支持或文件已损坏，换一张试试' });
       return res.status(500).json({ error: `图片处理失败（${msg || '请查看服务器日志'}）` });
     }
@@ -439,17 +477,25 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
     res.json({ url: newAvatarUrl, profile: next });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    if (msg.includes('ENOTDIR')) return res.status(500).json({ error: `上传路径里夹了非目录（父级存在同名占位文件）。请清理后${hint}` });
-    if (msg.includes('EROFS') || msg.includes('Read-only file system')) return res.status(500).json({ error: `DATA_DIR（${dataDir}）落在只读分层。${hint}，或给 DATA_DIR 挂可写 volume` });
-    if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: `上传目录权限不足：${avatarDir}。${hint}` });
-    if (msg.includes('ENOENT')) return res.status(500).json({ error: `上传目录不存在或无法写入：${avatarDir}。${hint}` });
+    if (msg.includes('ENOTDIR')) return res.status(500).json({ error: withTree(`上传路径里夹了非目录（父级存在同名占位文件）。请清理占位文件`) });
+    if (msg.includes('EROFS') || msg.includes('Read-only file system')) return res.status(500).json({ error: withTree(`DATA_DIR（${dataDir}）落在只读分层。请给 DATA_DIR 挂可写 volume`) });
+    if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: withTree(`上传目录权限不足：${avatarDir}`) });
+    if (msg.includes('ENOENT')) return res.status(500).json({ error: withTree(`上传目录不存在或无法写入：${avatarDir}`) });
     if (/too large|file size/i.test(msg)) return res.status(413).json({ error: '图片超过 8MB，压缩后再上传' });
     if (msg) return res.status(500).json({ error: `头像上传失败：${msg}` });
-    res.status(500).json({ error: `头像上传失败，请重试或联系管理员查看日志。${hint}` });
+    res.status(500).json({ error: withTree('头像上传失败，请重试或联系管理员查看日志') });
   }
 });
 
 app.delete('/api/profile/avatar', requireAdmin, (_req, res) => {
+  function withTree(prefix: string): string {
+    const tree = avatarDiagnoseCached();
+    const rows = tree.map(item => {
+      const flag = item.note ? item.note : (!item.exists ? '❌不存在' : !item.isDirectory ? '❌不是目录' : !item.writable ? '❌不可写' : '✅正常');
+      return `${flag} ${item.path}`;
+    }).join('； ');
+    return `${prefix}。路径诊断：${rows}。${avatarFixHint(avatarDir)}`;
+  }
   try {
     const profile = getProfile();
     if (profile.avatar) {
@@ -461,10 +507,10 @@ app.delete('/api/profile/avatar', requireAdmin, (_req, res) => {
     res.json({ ok: true, profile: next });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    if (msg.includes('ENOTDIR')) return res.status(500).json({ error: `上传路径里夹了非目录（父级存在同名占位文件）。请清理后${avatarFixHint(avatarDir)}` });
-    if (msg.includes('EROFS') || msg.includes('Read-only file system')) return res.status(500).json({ error: `DATA_DIR（${dataDir}）落在只读分层。${avatarFixHint(avatarDir)}` });
-    if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: `上传目录权限不足：${avatarDir}。${avatarFixHint(avatarDir)}` });
-    if (msg.includes('ENOENT')) return res.status(500).json({ error: `上传目录不存在或无法写入：${avatarDir}。${avatarFixHint(avatarDir)}` });
+    if (msg.includes('ENOTDIR')) return res.status(500).json({ error: withTree('上传路径里夹了非目录（父级存在同名占位文件）。请清理占位文件') });
+    if (msg.includes('EROFS') || msg.includes('Read-only file system')) return res.status(500).json({ error: withTree(`DATA_DIR（${dataDir}）落在只读分层`) });
+    if (msg.includes('EACCES') || msg.includes('EPERM') || /permission/i.test(msg)) return res.status(500).json({ error: withTree(`上传目录权限不足：${avatarDir}`) });
+    if (msg.includes('ENOENT')) return res.status(500).json({ error: withTree(`上传目录不存在或无法写入：${avatarDir}`) });
     if (msg) return res.status(500).json({ error: `头像删除失败：${msg}` });
     res.status(500).json({ error: '头像删除失败，请重试或联系管理员查看日志' });
   }
