@@ -674,6 +674,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [records, setRecords] = useState<CareRecord[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const historyLoadedRef = useRef(false);
   const [deletedRecords, setDeletedRecords] = useState<CareRecord[]>([]); const [careItems, setCareItems] = useState<CareItem[]>([]);
   const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([]); const [deletedGrowthRecords, setDeletedGrowthRecords] = useState<GrowthRecord[]>([]);
   const [vaccineRecords, setVaccineRecords] = useState<VaccineRecord[]>([]); const [deletedVaccineRecords, setDeletedVaccineRecords] = useState<VaccineRecord[]>([]);
@@ -694,7 +695,7 @@ export default function App() {
   const loadRecords = useCallback(async () => {
     if (!currentUser) return false;
     const from = new Date('2000-01-01T00:00:00'); const to = addDays(new Date(), 8); to.setHours(0, 0, 0, 0);
-    try { const next = await api.records(from.toISOString(), to.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setHistoryLoaded(true); setOnline(true); setOfflineSession(false); return true; }
+    try { const next = await api.records(from.toISOString(), to.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setHistoryLoaded(true); historyLoadedRef.current = true; setOnline(true); setOfflineSession(false); return true; }
     catch { setRecords(getCachedRecords(currentUser.id)); setOnline(false); return false; }
   }, [currentUser]);
 
@@ -702,14 +703,14 @@ export default function App() {
     if (!currentUser) return false;
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const end = addDays(start, 1);
-    try { const next = await api.records(start.toISOString(), end.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setHistoryLoaded(false); setOnline(true); setOfflineSession(false); return true; }
+    try { const next = await api.records(start.toISOString(), end.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setHistoryLoaded(false); historyLoadedRef.current = false; setOnline(true); setOfflineSession(false); return true; }
     catch { setRecords(getCachedRecords(currentUser.id)); setOnline(false); return false; }
   }, [currentUser]);
 
   const reloadRecords = useCallback(async () => {
-    if (historyLoaded) await loadRecords();
+    if (historyLoadedRef.current) await loadRecords();
     else await loadRecordsToday();
-  }, [historyLoaded, loadRecords, loadRecordsToday]);
+  }, [loadRecords, loadRecordsToday]);
 
   const loadProfile = useCallback(async () => {
     try { const next = await api.profile(); setProfile(next); cacheProfile(next); return true; }
