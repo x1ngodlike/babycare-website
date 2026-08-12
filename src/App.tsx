@@ -673,8 +673,7 @@ export default function App() {
   const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01', sex: 'unspecified' });
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [records, setRecords] = useState<CareRecord[]>([]);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
-  const historyLoadedRef = useRef(false);
+  const tabRef = useRef<Tab>('today');
   const [deletedRecords, setDeletedRecords] = useState<CareRecord[]>([]); const [careItems, setCareItems] = useState<CareItem[]>([]);
   const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([]); const [deletedGrowthRecords, setDeletedGrowthRecords] = useState<GrowthRecord[]>([]);
   const [vaccineRecords, setVaccineRecords] = useState<VaccineRecord[]>([]); const [deletedVaccineRecords, setDeletedVaccineRecords] = useState<VaccineRecord[]>([]);
@@ -682,6 +681,7 @@ export default function App() {
   const [todayPlanStatus, setTodayPlanStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [vaccineRemindersEnabled, setVaccineRemindersEnabled] = useState(() => localStorage.getItem('babycare-vaccine-reminders') !== 'off');
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date()); const [historyMode, setHistoryMode] = useState<'care' | 'vaccine'>('care');
+  useEffect(() => { tabRef.current = tab; }, [tab]);
   const [editor, setEditor] = useState<DraftRecord | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
   const [growthEditor, setGrowthEditor] = useState<GrowthRecord | 'new' | null>(null);
   const [vaccineEditor, setVaccineEditor] = useState<VaccineEditorState | null>(null);
@@ -695,7 +695,7 @@ export default function App() {
   const loadRecords = useCallback(async () => {
     if (!currentUser) return false;
     const from = new Date('2000-01-01T00:00:00'); const to = addDays(new Date(), 8); to.setHours(0, 0, 0, 0);
-    try { const next = await api.records(from.toISOString(), to.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setHistoryLoaded(true); historyLoadedRef.current = true; setOnline(true); setOfflineSession(false); return true; }
+    try { const next = await api.records(from.toISOString(), to.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setOnline(true); setOfflineSession(false); return true; }
     catch { setRecords(getCachedRecords(currentUser.id)); setOnline(false); return false; }
   }, [currentUser]);
 
@@ -703,12 +703,12 @@ export default function App() {
     if (!currentUser) return false;
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const end = addDays(start, 1);
-    try { const next = await api.records(start.toISOString(), end.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setHistoryLoaded(false); historyLoadedRef.current = false; setOnline(true); setOfflineSession(false); return true; }
+    try { const next = await api.records(start.toISOString(), end.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setOnline(true); setOfflineSession(false); return true; }
     catch { setRecords(getCachedRecords(currentUser.id)); setOnline(false); return false; }
   }, [currentUser]);
 
   const reloadRecords = useCallback(async () => {
-    if (historyLoadedRef.current) await loadRecords();
+    if (tabRef.current === 'history' || tabRef.current === 'trends') await loadRecords();
     else await loadRecordsToday();
   }, [loadRecords, loadRecordsToday]);
 
@@ -802,8 +802,8 @@ export default function App() {
 
   useEffect(() => {
     if (!authenticated || !currentUser) return;
-    if ((tab === 'history' || tab === 'trends') && !historyLoaded) void loadRecords();
-  }, [authenticated, currentUser, tab, historyLoaded, loadRecords]);
+    if (tab === 'history' || tab === 'trends') void loadRecords();
+  }, [authenticated, currentUser, tab, loadRecords]);
 
   useEffect(() => {
     if (!authenticated || !currentUser) return;
