@@ -17,7 +17,7 @@ type ToastState = { message: string; actionLabel?: string; onAction?: () => void
 
 const typeNames: Record<RecordType, string> = { feeding: '喂奶', supplement: '用药', bowel: '排便', note: '其他' };
 const recordEditorTypeOrder: RecordType[] = ['feeding', 'bowel', 'supplement', 'note'];
-const typeIcons: Record<RecordType, string> = { feeding: '/icons/3d/feeding.png', supplement: '/icons/3d/medicine.png', bowel: '/icons/3d/diaper.png', note: '/icons/3d/note.png' };
+const typeIcons: Record<RecordType, string> = { feeding: '/icons/quick-feeding.png', supplement: '/icons/record-medicine.png', bowel: '/icons/quick-bowel.png', note: '/icons/quick-note.png' };
 const familyMembers: { id: FamilyId; name: string; role: string; icon: string }[] = [
   { id: 'father', name: '爸爸', role: '超管', icon: '/icons/father.png' },
   { id: 'mother', name: '妈妈', role: '管理', icon: '/icons/mother.png' },
@@ -293,60 +293,12 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
     const overdueDays = overdue ? Math.max(1, Math.round((new Date(`${today}T12:00:00`).getTime() - new Date(`${effectiveOn}T12:00:00`).getTime()) / 86400000)) : 0;
     return <article className="vaccine-task" key={`vaccine:${item.key}`}><img className="task-icon vaccine" src="/icons/task-vaccine.png" alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{overdue ? `逾期 ${overdueDays} 天 · 待预约` : hasTodayAppointment ? `${item.record?.appointmentTime ? `今日 ${item.record.appointmentTime}` : '今日'} · 已预约` : '今日 · 待预约'}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`预约${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>预约</button>}{!overdue && <button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>记录</button>}</div></article>;
   }
-  const bowelCount = records.filter(r => r.type === 'bowel').length;
-  const now = new Date();
-  const hour = now.getHours();
-  const greetingTime = hour < 6 ? '凌晨好' : hour < 12 ? '早上好' : hour < 14 ? '中午好' : hour < 18 ? '下午好' : '晚上好';
-  const caregiverLabel = profile.sex === 'male' ? '爸爸' : '妈妈';
-  const dateStr = now.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
-  const weekdayStr = now.toLocaleDateString('zh-CN', { weekday: 'long' });
-
-  const quickActions = [
-    { key: 'feeding', label: '喂奶', icon: '/icons/3d/feeding.png', onClick: () => onAdd('feeding') },
-    { key: 'bowel', label: '排便', icon: '/icons/3d/diaper.png', onClick: () => onAdd('bowel') },
-    { key: 'supplement', label: '用药', icon: '/icons/3d/medicine.png', onClick: () => onAdd('supplement') },
-    { key: 'note', label: '其他', icon: '/icons/3d/note.png', onClick: () => onAdd('note') },
-  ];
-
   return <div className="today-layout">
-    {/* 问候区 */}
-    <section className="greeting-section">
-      <div className="greeting-avatar">
-        <img src="/bear-bottle.png" alt="" />
-      </div>
-      <div className="greeting-text">
-        <p className="greeting-hi">{greetingTime}，<span className="baby-name">{profile.name}{caregiverLabel}</span>。</p>
-        <p className="greeting-sub">让我们开始一起记录吧～</p>
-      </div>
-      <div className="greeting-date">
-        <div className="date-day">{dateStr}</div>
-        <div className="date-weekday">{weekdayStr}</div>
-      </div>
-    </section>
-
-    {/* 快捷记录宫格 */}
-    <section className="quick-grid-section" aria-label="快捷记录">
-      <div className="section-title"><h2>快捷记录</h2></div>
-      <div className="quick-grid">
-        {quickActions.map(action => (
-          <button key={action.key} onClick={action.onClick}>
-            <img className="quick-icon" src={action.icon} alt="" />
-            <b>{action.label}</b>
-          </button>
-        ))}
-      </div>
-    </section>
-
-    {/* 今日概览卡片 */}
-    <section className="metric-card" aria-label="今日概览">
-      <p className="kicker">今日概览</p>
-      <div className="metric-grid">
-        <div><span>母乳</span><strong>{breast}</strong><small>ml</small></div>
-        <div><span>奶粉</span><strong>{formula}</strong><small>ml</small></div>
-        <div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div>
-        <div><span>排便</span><strong>{bowelCount}</strong><small>次</small></div>
-      </div>
-    </section>
+    <div className="today-workbench">
+      <section className="baby-hero"><div><p className="kicker">今日 · {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</p><div className="baby-title-line"><h1>{profile.name}</h1><span>{calculateAge(profile.birthDate)}</span></div><div className="hero-status"><p>{lastFeed ? `上次喂奶 ${recordMomentLabel(lastFeed.occurredAt)}` : '尚无喂奶记录'}</p><p>{latestRecord ? `最近记录 ${recordMomentLabel(latestRecord.occurredAt)} · ${summary(latestRecord)}` : '尚无历史记录'}</p></div></div><img src="/bear-bottle.png" alt="" /></section>
+      <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>ml</small></div><div><span>奶粉</span><strong>{formula}</strong><small>ml</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
+      <section className="quick-section" aria-label="快捷记录"><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>喂奶</b></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>排便</b></button><button onClick={() => onAdd('supplement')}><img className="quick-icon" src="/icons/record-medicine.png" alt="" /><b>用药</b></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他</b></button></div></section>
+    </div>
     {todayPlanStatus === 'loading' && <section className="today-plan today-plan-loading" aria-label="今日计划正在读取" aria-busy="true"><h2>今日计划</h2><div className="today-plan-skeleton"><i /><div><i /><i /></div><i /></div></section>}
     {todayPlanStatus === 'error' && <section className="today-plan today-plan-error" role="status"><h2>今日计划</h2><p>计划暂时无法读取，请联网后下拉刷新。</p></section>}
     {todayPlanStatus === 'ready' && (pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日计划</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item) : renderVaccineTask(task.item))}{untimedCareItems.map(renderMedicineTask)}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img className="task-icon growth" src="/icons/task-growth.png" alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>记录</button></div></article>}</div></section>}
@@ -404,39 +356,23 @@ function TrendsView({ records }: { records: CareRecord[] }) {
   const aggregated = useMemo(() => {
     const [todayYear, todayMon] = todayMonthKey.split('-').map(Number);
     const sevenData: TrendBucket[] = sevenDays.map(day => ({ key: isoDay(day), label: day.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' }), axis: day.toLocaleDateString('zh-CN', { weekday: 'short' }), ...summarizeTrendRecords(records.filter(record => isoDay(new Date(record.occurredAt)) === isoDay(day))) }));
-    const sevenIsoSet = new Set(sevenDays.map(day => isoDay(day)));
-    const sevenActiveDays = new Set(records.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt))).filter(d => sevenIsoSet.has(d))).size;
     const monthYear = selectedMonth.getFullYear(); const monthIndex = selectedMonth.getMonth();
     const isCurrentMonth = selectedMonth.getFullYear() === todayYear && selectedMonth.getMonth() === todayMon;
     const firstWeek = startOfWeek(new Date(monthYear, monthIndex, 1));
     const lastVisibleDay = isCurrentMonth ? new Date(`${todayIso}T23:59:59.999`) : new Date(monthYear, monthIndex + 1, 0);
     const lastWeek = startOfWeek(lastVisibleDay);
-    const monthRangeStart = firstWeek;
-    const monthRangeEnd = addDays(lastWeek, 7);
     const weekCount = Math.floor((lastWeek.getTime() - firstWeek.getTime()) / 604800000) + 1;
     const compact = (date: Date) => `${date.getMonth() + 1}/${date.getDate()}`;
     const monthData: TrendBucket[] = Array.from({ length: weekCount }, (_, index) => {
       const monday = addDays(firstWeek, index * 7); const sunday = addDays(monday, 6);
       return { key: isoDay(monday), label: `${compact(monday)}–${compact(sunday)}`, axis: compact(monday), ...summarizeTrendRecords(records.filter(record => { const date = new Date(record.occurredAt); return date >= monday && date < addDays(monday, 7); })) };
     });
-    const monthActiveDays = new Set(records.filter(r => {
-      if (r.type !== 'feeding') return false;
-      const d = new Date(r.occurredAt);
-      return d >= monthRangeStart && d < monthRangeEnd;
-    }).map(r => isoDay(new Date(r.occurredAt)))).size;
     const monthKeys = [...new Set(records.map(record => { const date = new Date(record.occurredAt); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }))].sort();
     const totalData: TrendBucket[] = monthKeys.map(key => {
       const [year, month] = key.split('-').map(Number);
       return { key, label: `${year}年${month}月`, axis: `${month}月`, ...summarizeTrendRecords(records.filter(record => { const date = new Date(record.occurredAt); return date.getFullYear() === year && date.getMonth() === month - 1; })) };
     });
-    const lastSixMonthKeys = new Set(totalData.slice(-6).map(b => b.key));
-    const totalActiveDays = new Set(records.filter(r => {
-      if (r.type !== 'feeding') return false;
-      const date = new Date(r.occurredAt);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      return lastSixMonthKeys.has(monthKey);
-    }).map(r => isoDay(new Date(r.occurredAt)))).size;
-    return { sevenData, monthData, totalData, sevenActiveDays, monthActiveDays, totalActiveDays };
+    return { sevenData, monthData, totalData };
   }, [records, sevenDays, selectedMonth, todayMonthKey, todayIso]);
   const buckets = mode === 'seven' ? aggregated.sevenData : mode === 'month' ? aggregated.monthData : aggregated.totalData.slice(-6);
   const chartData = buckets;
@@ -444,7 +380,7 @@ function TrendsView({ records }: { records: CareRecord[] }) {
   const maxMilk = Math.max(1, ...chartData.map(item => item.breast + item.formula));
   const activeSummary = buckets.reduce((acc, item) => ({ breast: acc.breast + item.breast, formula: acc.formula + item.formula, feeds: acc.feeds + item.feeds, bowel: acc.bowel + item.bowel, supplements: acc.supplements + item.supplements }), { breast: 0, formula: 0, feeds: 0, bowel: 0, supplements: 0 });
   const totalMilk = activeSummary.breast + activeSummary.formula;
-  const activeDays = mode === 'seven' ? aggregated.sevenActiveDays : mode === 'month' ? aggregated.monthActiveDays : aggregated.totalActiveDays;
+  const activeDays = buckets.filter(item => item.feeds > 0).length;
   const chartTitle = mode === 'seven' ? '每日奶量' : mode === 'month' ? '每周奶量' : '最近六个月奶量';
   const totalLabel = mode === 'seven' ? '七日总奶量' : mode === 'month' ? '本月总奶量' : '累计总奶量';
   const description = mode === 'seven' ? '最近七天数据，图表按时间顺序展示。' : mode === 'month' ? '月度汇总按自然月；每周奶量按周一至周日，跨月周按完整周统计。' : '汇总开始记录至今的全部照护数据。';
@@ -997,7 +933,7 @@ export default function App() {
       {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} vaccineRemindersEnabled={vaccineRemindersEnabled} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineRemindersChanged={changeVaccineReminders} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setDeletedVaccineRecords([]); setVaccineCatalog([]); }} />}
     </main>
     {(tab === 'today' || tab === 'history') && <button className="floating-add" onClick={() => historyMode === 'vaccine' && tab === 'history' ? setVaccineEditor({ mode: 'add' }) : setEditor(blankDraft())} aria-label={historyMode === 'vaccine' && tab === 'history' ? '添加疫苗记录' : '添加照护记录'}><span>＋</span><b>记录</b></button>}
-    <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/3d/nav-today.png', '今日'], ['history', '/icons/3d/nav-records.png', '记录'], ['trends', '/icons/3d/nav-trends.png', '趋势'], ['archive', '/icons/3d/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'archive' ? 'nav-icon-archive' : value === 'history' ? 'nav-icon-records' : undefined} src={icon} alt="" /><b>{label}</b></button>)}</nav>
+    <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录'], ['trends', '/icons/nav-trends.png', '趋势'], ['archive', '/icons/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'archive' ? 'nav-icon-archive' : value === 'history' ? 'nav-icon-records' : undefined} src={icon} alt="" /><b>{label}</b></button>)}</nav>
     {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor key={growthEditor === 'new' ? 'new' : growthEditor.id} profile={profile} records={growthRecords} initial={growthEditor === 'new' ? undefined : growthEditor} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{vaccineEditor && <VaccineEditor state={vaccineEditor} profile={profile} catalog={vaccineCatalog} records={vaccineRecords} onClose={() => setVaccineEditor(null)} onSave={saveVaccine} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
   </div>;
 }
