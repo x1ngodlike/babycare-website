@@ -49,28 +49,29 @@ function summary(record: CareRecord | DraftRecord) {
 
 function getAgeProfileLine(birthDate: string, realName: string, now = new Date()): string {
   const birth = new Date(`${birthDate}T12:00:00`);
-  const days = Math.max(0, Math.floor((now.getTime() - birth.getTime()) / 86400000));
-  let stage: string | null = null;
-  let ageText: string;
-  if (days < 30) {
-    stage = '新生儿';
-    ageText = `第 ${days + 1} 天`;
-  } else if (days < 100) {
-    stage = '满月宝宝';
-    ageText = calculateAge(birthDate, now);
-  } else if (days < 180) {
-    stage = '百天宝宝';
-    ageText = calculateAge(birthDate, now);
-  } else if (days < 365) {
-    stage = '小月龄';
-    ageText = calculateAge(birthDate, now);
-  } else {
-    const years = Math.floor(days / 365.25);
-    const restDays = days - Math.floor(years * 365.25);
-    const months = Math.floor(restDays / 30.4375);
-    ageText = months ? `${years}岁${months}个月` : `${years}周岁`;
-  }
-  return stage ? `${realName} · ${stage} · ${ageText}` : `${realName} · ${ageText}`;
+  const at = new Date(now); at.setHours(12, 0, 0, 0);
+  let totalMonths = (at.getFullYear() - birth.getFullYear()) * 12 + at.getMonth() - birth.getMonth();
+  const anniversaryFor = (months: number) => {
+    const targetMonth = birth.getMonth() + months;
+    const lastDay = new Date(birth.getFullYear(), targetMonth + 1, 0, 12).getDate();
+    return new Date(birth.getFullYear(), targetMonth, Math.min(birth.getDate(), lastDay), 12);
+  };
+  if (anniversaryFor(totalMonths) > at) totalMonths -= 1;
+  totalMonths = Math.max(0, totalMonths);
+  const days = Math.max(0, Math.floor((at.getTime() - anniversaryFor(totalMonths).getTime()) / 86400000));
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  const ageText = years
+    ? `${years}岁${months ? `${months}个月` : ''}${days ? `${days}天` : ''}`
+    : `${totalMonths}个月${days ? `${days}天` : ''}`;
+  return `${realName} · ${ageText}`;
+}
+
+function recentRecordLabel(record: CareRecord) {
+  if (record.type === 'feeding') return '喂奶';
+  if (record.type === 'supplement') return record.supplement || '用药';
+  if (record.type === 'bowel') return '排便';
+  return '其他';
 }
 
 function recordMomentLabel(occurredAt: string, now = new Date()) {
@@ -356,9 +357,9 @@ function AuditDialog({ record, onClose }: { record: CareRecord; onClose(): void 
   </section></div>;
 }
 
-function Timeline({ records, careItems, manager, emptyText = '这一天还没有记录', emptyAction, onEdit, onDelete, onAudit }: { records: CareRecord[]; careItems: CareItem[]; manager: boolean; emptyText?: string; emptyAction?: ReactNode; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+function Timeline({ records, careItems, manager, emptyText = '这一天还没有记录', emptyAction, onEdit, onDelete, onAudit, searchMode = false }: { records: CareRecord[]; careItems: CareItem[]; manager: boolean; emptyText?: string; emptyAction?: ReactNode; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void; searchMode?: boolean }) {
   if (!records.length) return <EmptyState title={emptyText} description="记录后会按时间排列在这里。" image={emptyText.includes('找到') ? '/illustrations/empty-search.webp' : '/illustrations/empty-records.webp'} action={emptyAction} />;
-  return <div className="timeline">{records.map(record => { const created = auditNames[record.createdBy || 'legacy']; const updated = auditNames[record.updatedBy || record.createdBy || 'legacy']; const changed = record.updatedBy && record.updatedBy !== record.createdBy; const items = [...(manager ? [{ label: '查看操作记录', onSelect: () => onAudit(record) }] : []), { label: '修改记录', onSelect: () => onEdit(record) }, ...(manager ? [{ label: '删除记录', danger: true, onSelect: () => onDelete(record) }] : [])]; return <article className={`timeline-item ${record.type}`} key={record.id}><div className="time-col"><time>{new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}</time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy"><small>{typeNames[record.type]}</small><strong><FeedingSummary record={record} /></strong>{record.note && record.type !== 'note' && <p>{record.note}</p>}<em>{created === '历史数据' ? '历史数据' : `${created}录入`}{changed ? ` · ${updated}修改` : ''}</em></div><ActionMenu label={`${summary(record)}的操作菜单`} items={items} /></article>; })}</div>;
+  return <div className="timeline">{records.map(record => { const created = auditNames[record.createdBy || 'legacy']; const updated = auditNames[record.updatedBy || record.createdBy || 'legacy']; const changed = record.updatedBy && record.updatedBy !== record.createdBy; const items = [...(manager ? [{ label: '查看操作记录', onSelect: () => onAudit(record) }] : []), { label: '修改记录', onSelect: () => onEdit(record) }, ...(manager ? [{ label: '删除记录', danger: true, onSelect: () => onDelete(record) }] : [])]; const timeDisplay = searchMode ? new Date(record.occurredAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }); return <article className={`timeline-item ${record.type}`} key={record.id}><div className="time-col"><time>{timeDisplay}</time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy"><small>{typeNames[record.type]}</small><strong><FeedingSummary record={record} /></strong>{record.note && record.type !== 'note' && <p>{record.note}</p>}<em>{created === '历史数据' ? '历史数据' : `${created}录入`}{changed ? ` · ${updated}修改` : ''}</em></div><ActionMenu label={`${summary(record)}的操作菜单`} items={items} /></article>; })}</div>;
 }
 
 function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId, allowAutoOpen }: { capabilities: Capabilities; online: boolean; onOpenSettings(): void; superadmin: boolean; userId: FamilyId; allowAutoOpen: boolean }) {
@@ -445,7 +446,7 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
   }
   return <div className="today-layout">
     <div className="today-workbench">
-      <section className="baby-hero"><div><p className="kicker">{(() => { const d = new Date(); return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p>{(() => { const { greeting, displayName } = getGreeting(profile, userId); return <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<p className="hero-profile-line">{getAgeProfileLine(profile.birthDate, profile.name)}</p><div className="hero-status">{(() => { const hhmm = (at: string) => new Date(at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }); if (!latestRecord && !lastFeed) return <p>开始记录宝宝今天的第一笔吧</p>; if (latestRecord && (latestRecord.type === 'feeding' || !lastFeed || lastFeed.id === latestRecord.id)) return <p>{hhmm(latestRecord.occurredAt)} · {summary(latestRecord)}</p>; return <p>上次喂奶 {lastFeed ? hhmm(lastFeed.occurredAt) : '暂无'} ｜ {latestRecord ? `${hhmm(latestRecord.occurredAt)} · ${summary(latestRecord)}` : '尚无其他记录'}</p>; })()}</div></div>
+      <section className="baby-hero"><div><p className="kicker">{(() => { const d = new Date(); return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p>{(() => { const { greeting, displayName } = getGreeting(profile, userId); return <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<p className="hero-profile-line">{getAgeProfileLine(profile.birthDate, profile.name)}</p><div className="hero-status">{(() => { const hhmm = (at: string) => new Date(at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }); if (!latestRecord && !lastFeed) return <p>开始记录宝宝今天的第一笔吧</p>; const text = lastFeed && latestRecord && lastFeed.id !== latestRecord.id ? `上次喂奶 ${hhmm(lastFeed.occurredAt)} · 最近记录 ${hhmm(latestRecord.occurredAt)} ${recentRecordLabel(latestRecord)}` : latestRecord ? `最近记录 ${hhmm(latestRecord.occurredAt)} ${recentRecordLabel(latestRecord)}` : `上次喂奶 ${hhmm(lastFeed!.occurredAt)}`; return <p title={text} aria-label={text}>{text}</p>; })()}</div></div>
         {profile.avatar ? <div className="hero-avatar"><img src={profile.avatar} alt="" /></div> : <img src="/bear-bottle.png" alt="" className="hero-fallback" />}
       </section>
       <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>ml</small></div><div><span>奶粉</span><strong>{formula}</strong><small>ml</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
@@ -481,7 +482,7 @@ function HistoryView({ records, deletedRecords, vaccineRecords, vaccineCatalog, 
     view === 'deleted' ? <section className="deleted-records"><button className="inline-back" onClick={closeDeleted}>← 返回照护记录</button><div className="section-title"><h2>已删除记录</h2><span>{deletedRecords.length} 条</span></div>{deletedRecords.length ? deletedRecords.map(record => <article className="deleted-record" key={record.id}><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div><small>{new Date(record.occurredAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} · {typeNames[record.type]}</small><strong>{summary(record)}</strong><p>{auditNames[record.deletedBy || 'legacy']}删除 · {record.deletedAt ? new Date(record.deletedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : ''}</p></div><div className="deleted-actions"><button className="btn secondary" onClick={() => onRestore(record)}>恢复</button><button className="btn danger-button" onClick={() => onPurge(record)}>彻底删除</button></div></article>) : <EmptyState title="没有已删除记录" description="管理身份删除的记录会暂存在这里。" />}</section> : <>
     <section className="calendar-panel"><div className="calendar-nav"><button onClick={() => setSelected(addDays(selected, -7))} aria-label="向前七天">‹</button><strong>{selected.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</strong><button onClick={() => setSelected(addDays(selected, 7))} aria-label="向后七天">›</button></div><div className="week-strip">{days.map(day => <button key={isoDay(day)} aria-pressed={isoDay(day) === isoDay(selected)} className={`${isoDay(day) === isoDay(selected) ? 'selected' : ''} ${isoDay(day) === isoDay(new Date()) ? 'today' : ''}`} onClick={() => setSelected(day)}><span>{day.toLocaleDateString('zh-CN', { weekday: 'short' })}</span><b>{day.getDate()}</b></button>)}</div></section>
     <div className="record-toolbar"><label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">搜索全部记录</span><input aria-label="搜索全部记录" value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索记录" /></label><label className="filter-field"><span className="sr-only">记录类型</span><select aria-label="记录类型" value={typeFilter} onChange={e => setTypeFilter(e.target.value as 'all' | RecordType)}><option value="all">类型</option>{(Object.keys(typeNames) as RecordType[]).map(type => <option key={type} value={type}>{typeNames[type]}</option>)}</select></label><label className="filter-field"><span className="sr-only">录入人</span><select aria-label="录入人" value={actorFilter} onChange={e => setActorFilter(e.target.value as 'all' | FamilyId)}><option value="all">家人</option>{familyMembers.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label></div>
-    <div className="section-title"><h2>{query.trim() ? '全部搜索结果' : selected.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</h2><div className="section-title-actions"><span>{filtered.length} 条</span>{manager && <button className="text-button" onClick={openDeleted}>已删除</button>}</div></div><Timeline records={filtered} careItems={careItems} manager={manager} emptyText={query.trim() ? '没有找到匹配记录' : undefined} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} /></>}
+    <div className="section-title"><h2>{query.trim() ? '全部搜索结果' : selected.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</h2><div className="section-title-actions"><span>{filtered.length} 条</span>{manager && <button className="text-button" onClick={openDeleted}>已删除</button>}</div></div><Timeline records={filtered} careItems={careItems} manager={manager} emptyText={query.trim() ? '没有找到匹配记录' : undefined} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} searchMode={!!query.trim()} /></>}
   </div>;
 }
 
@@ -597,15 +598,15 @@ function GrowthEditor({ profile, records, initial, onClose, onSave }: { profile:
 }
 
 function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClose(): void; onSaved(value: Profile): void }) {
-  const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null });
+  const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null, birthTime: profile.birthTime || '' });
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const dirty = form.name !== profile.name || form.birthDate !== profile.birthDate || form.sex !== (profile.sex || 'unspecified') || (form.nickname ?? '') !== (profile.nickname ?? '');
+  const dirty = form.name !== profile.name || form.birthDate !== profile.birthDate || form.sex !== (profile.sex || 'unspecified') || (form.nickname ?? '') !== (profile.nickname ?? '') || (form.birthTime ?? '') !== (profile.birthTime ?? '');
   function requestClose() { void (async () => { if (!dirty || await confirmAction({ title: '放弃未保存的内容？', description: '宝宝资料的修改不会保存。', confirmLabel: '放弃修改', danger: true })) onClose(); })(); }
   const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, requestClose);
-  async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const next = await api.updateProfile({ name: form.name, birthDate: form.birthDate, sex: form.sex, nickname: form.nickname, caregiverTitle: form.caregiverTitle }); cacheProfile(next); onSaved(next); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
+  async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const next = await api.updateProfile({ name: form.name, birthDate: form.birthDate, birthTime: form.birthTime || undefined, sex: form.sex, nickname: form.nickname, caregiverTitle: form.caregiverTitle }); cacheProfile(next); onSaved(next); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
   function pickFile() { fileInputRef.current?.click(); }
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; if (!file) return;
@@ -645,6 +646,7 @@ function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClos
     <label>昵称<small className="field-hint">亲切的小名，首页会优先展示</small><input value={form.nickname ?? ''} maxLength={20} placeholder="如 小糯米" onChange={event => setForm({ ...form, nickname: event.target.value })} /></label>
     <ChoiceField label="宝宝性别" values={['male', 'female', 'unspecified'] as BabySex[]} selected={form.sex} onSelect={sex => setForm({ ...form, sex })} getLabel={sex => sex === 'unspecified' ? '未设置' : sexLabels[sex]} />
     <DateField label="出生日期" max={isoDay(new Date())} value={form.birthDate} onChange={birthDate => setForm({ ...form, birthDate })} />
+    <TimeField label="出生时间" value={form.birthTime ?? ''} onChange={birthTime => setForm({ ...form, birthTime })} required={false} />
     {error && <p className="error-text" role="alert">{error}</p>}
     <footer className="editor-actions"><button type="button" className="btn secondary" onClick={requestClose}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '保存资料'}</button></footer>
   </form></section>
@@ -653,14 +655,14 @@ function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClos
 }
 
 function ProfileSettingsCard({ profile, onSaved }: { profile: Profile; onSaved(value: Profile): void }) {
-  const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null });
+  const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null, birthTime: profile.birthTime || '' });
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [saved, setSaved] = useState('');
   const [cropperSrc, setCropperSrc] = useState<string | null>(null); const [avatarBusy, setAvatarBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => { setForm({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null }); setSaved(''); }, [profile]);
+  useEffect(() => { setForm({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null, birthTime: profile.birthTime || '' }); setSaved(''); }, [profile]);
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setSaved('');
-    try { const next = await api.updateProfile({ name: form.name, birthDate: form.birthDate, sex: form.sex, nickname: form.nickname, caregiverTitle: form.caregiverTitle }); cacheProfile(next); onSaved(next); setSaved('宝宝资料已保存'); }
+    try { const next = await api.updateProfile({ name: form.name, birthDate: form.birthDate, birthTime: form.birthTime || undefined, sex: form.sex, nickname: form.nickname, caregiverTitle: form.caregiverTitle }); cacheProfile(next); onSaved(next); setSaved('宝宝资料已保存'); }
     catch (err) { setError(err instanceof Error ? err.message : '保存失败'); }
     finally { setBusy(false); }
   }
@@ -696,6 +698,7 @@ function ProfileSettingsCard({ profile, onSaved }: { profile: Profile; onSaved(v
       <label>昵称<small className="field-hint">亲切的小名，首页会优先展示</small><input value={form.nickname ?? ''} maxLength={20} placeholder="如 小糯米" onChange={event => setForm({ ...form, nickname: event.target.value })} /></label>
       <ChoiceField label="宝宝性别" values={['male', 'female', 'unspecified'] as BabySex[]} selected={form.sex} onSelect={sex => setForm({ ...form, sex })} getLabel={sex => sex === 'unspecified' ? '未设置' : sexLabels[sex]} />
       <DateField label="出生日期" max={isoDay(new Date())} value={form.birthDate} onChange={birthDate => setForm({ ...form, birthDate })} />
+      <TimeField label="出生时间" value={form.birthTime ?? ''} onChange={birthTime => setForm({ ...form, birthTime })} required={false} />
       {error && <p className="error-text" role="alert">{error}</p>}
       {saved && <p className="success-text" role="status">{saved}</p>}
       <footer className="editor-actions" style={{ marginTop: 16 }}><button className="btn primary" disabled={busy || avatarBusy}>{busy ? '保存中…' : '保存资料'}</button></footer>
@@ -1433,33 +1436,6 @@ export default function App() {
     if (!authenticated || !currentUser) return;
     if (tab === 'history' || tab === 'trends') void loadRecords();
   }, [authenticated, currentUser, tab, loadRecords]);
-
-  const notifiedOverdueRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!authenticated || !currentUser) return;
-    const checkOverdue = () => {
-      const now = new Date();
-      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      const dueItems = careItems.filter(item =>
-        item.active &&
-        item.reminderTime &&
-        item.reminderTime <= currentTime &&
-        isCareItemDue(item, now)
-      );
-      const doneNames = new Set(records.filter(r => r.type === 'supplement').map(r => r.supplement));
-      dueItems.forEach(item => {
-        if (doneNames.has(item.name)) return;
-        const key = `${isoDay(now)}-${item.id}`;
-        if (!notifiedOverdueRef.current.has(key)) {
-          notifiedOverdueRef.current.add(key);
-          setToast({ message: `🔔 ${item.name} 待记录（${item.reminderTime}）` });
-        }
-      });
-    };
-    checkOverdue();
-    const timer = setInterval(checkOverdue, 60_000);
-    return () => clearInterval(timer);
-  }, [authenticated, currentUser, careItems, records]);
 
   useEffect(() => {
     if (!authenticated || !currentUser) return;

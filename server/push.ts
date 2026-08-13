@@ -6,6 +6,7 @@ import {
   savePushSettings,
   getDailyReport,
   getProfile,
+  listVaccineCatalog,
   listVaccineRecords,
   writePushSentFlags,
   type FeedingGapLevel,
@@ -13,6 +14,7 @@ import {
 } from './db.js';
 import { addDaysToDateString, shanghaiDateForInstant, shanghaiDayUtcRange, shanghaiDateString } from './shanghai-date.js';
 import type { CareItem, CareRecord, VaccineRecord } from './types.js';
+import { buildServerVaccinePlan } from './vaccine-plan.js';
 
 export interface PushStatus {
   enabled: boolean;
@@ -38,7 +40,7 @@ export interface PushStatus {
 
 type MorningDigestRendered = { pushplusTitle: string; pushplusHtml: string };
 type FeedingGapRendered = { pushplusTitle: string; pushplusHtml: string };
-type LocalProfile = { name: string; birthDate: string; sex?: 'male' | 'female' | 'unspecified' };
+type LocalProfile = { name: string; birthDate: string; birthTime?: string | null; sex?: 'male' | 'female' | 'unspecified' };
 
 let schedulerTimer: ReturnType<typeof setInterval> | null = null;
 let lastCheckAt: string | null = null;
@@ -231,18 +233,21 @@ function buildVaccineBrief(todayStr: string): VaccineBrief {
   const overdue: VaccineBrief['overdue'] = [];
   const upcoming: VaccineBrief['upcoming'] = [];
   const todayNum = isoDayNumber(todayStr);
-  const records = listVaccineRecords();
-  for (const record of records) {
-    if (record.administeredOn) continue;
-    const effectiveOn = record.appointmentOn || record.plannedOn;
+  const profile = getProfile();
+  if (!profile) return { todayAppointments, overdue, upcoming };
+  const plan = buildServerVaccinePlan(profile.birthDate, listVaccineRecords(), listVaccineCatalog(true));
+  for (const item of plan) {
+    const record = item.record;
+    if (record?.administeredOn) continue;
+    const effectiveOn = record?.appointmentOn || item.plannedOn;
     const delta = isoDayNumber(effectiveOn) - todayNum;
 
-    if (record.appointmentOn === todayStr) {
-      todayAppointments.push({ vaccineName: record.vaccineName, dose: record.dose, appointmentTime: record.appointmentTime || null });
+    if (effectiveOn === todayStr) {
+      todayAppointments.push({ vaccineName: item.vaccineName, dose: item.dose, appointmentTime: record?.appointmentTime || null });
     } else if (delta < 0) {
-      overdue.push({ vaccineName: record.vaccineName, dose: record.dose, overdueDays: Math.max(1, -delta), plannedOn: effectiveOn });
+      overdue.push({ vaccineName: item.vaccineName, dose: item.dose, overdueDays: Math.max(1, -delta), plannedOn: effectiveOn });
     } else if (delta >= 1 && delta <= 7) {
-      upcoming.push({ vaccineName: record.vaccineName, dose: record.dose, plannedOn: effectiveOn, category: record.category });
+      upcoming.push({ vaccineName: item.vaccineName, dose: item.dose, plannedOn: effectiveOn, category: item.category });
     }
   }
   todayAppointments.sort((a, b) => (a.appointmentTime || '99:99').localeCompare(b.appointmentTime || '99:99'));
@@ -386,8 +391,8 @@ function renderMorningDigestHtml(
     const VACCINE_DIVIDER = 'margin:10px 0;border:none;border-top:1px solid #d4e2ec;';
     const parts: string[] = [];
     if (vaccines.todayAppointments.length > 0) {
-      const rows = vaccines.todayAppointments.map(v => `<div style="padding:4px 0;font-size:13px;color:#1f2a24;line-height:1.5;"><b style="color:#2b6b3e;">📌 ${v.vaccineName} 第${v.dose}剂</b>${v.appointmentTime ? ` · 门诊预约 ${v.appointmentTime}` : ''}</div>`).join('');
-      parts.push(`<div style="font-size:12px;font-weight:700;color:#2b6b3e;margin-bottom:4px;">今日接种</div>${rows}`);
+      const rows = vaccines.todayAppointments.map(v => `<div style="padding:4px 0;font-size:13px;color:#1f2a24;line-height:1.5;"><b style="color:#2b6b3e;">📌 ${v.vaccineName} 第${v.dose}剂</b>${v.appointmentTime ? ` · 门诊预约 ${v.appointmentTime}` : ' · 建议今日接种，待预约'}</div>`).join('');
+      parts.push(`<div style="font-size:12px;font-weight:700;color:#2b6b3e;margin-bottom:4px;">今日疫苗</div>${rows}`);
     }
     if (vaccines.overdue.length > 0) {
       const rows = vaccines.overdue.slice(0, 3).map(v => `<div style="padding:4px 0;font-size:13px;color:#1f2a24;line-height:1.5;"><b style="color:#c4551d;">⚠️ ${v.vaccineName} 第${v.dose}剂</b> · 逾期 ${v.overdueDays} 天</div>`).join('');

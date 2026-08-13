@@ -36,7 +36,7 @@ export const api = {
   testAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<{ ok: boolean; message: string }>('/api/ai/settings/test', { method: 'POST', body: JSON.stringify(settings) }),
   dailyReport: (date?: string) => request<{ date: string; exists: boolean; summary?: string; suggestions?: string[]; model?: string; generatedAt?: string }>(`/api/daily-report${date ? `?date=${encodeURIComponent(date)}` : ''}`),
   generateDailyReport: (date?: string) => request<{ date: string; summary: string; suggestions: string[]; model: string; generatedAt: string }>(`/api/daily-report/generate${date ? `?date=${encodeURIComponent(date)}` : ''}`, { method: 'POST' }),
-  updateProfile: (profile: Partial<Pick<Profile, 'nickname' | 'caregiverTitle'>> & Pick<Profile, 'name' | 'birthDate' | 'sex'>) => request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
+  updateProfile: (profile: Partial<Pick<Profile, 'nickname' | 'caregiverTitle' | 'birthTime'>> & Pick<Profile, 'name' | 'birthDate' | 'sex'>) => request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),
   growthRecords: () => request<GrowthRecord[]>('/api/growth-records'),
   deletedGrowthRecords: () => request<GrowthRecord[]>('/api/growth-records/deleted'),
   createGrowthRecord: (record: DraftGrowthRecord) => request<GrowthRecord>('/api/growth-records', { method: 'POST', body: JSON.stringify(record) }),

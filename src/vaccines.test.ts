@@ -18,8 +18,8 @@ describe('vaccine reminder plan', () => {
       { id: 'rv5', name: '五价轮状疫苗', category: 'self_paid', shortName: null, description: '', doseCount: 3, intervalSummary: '', active: true, sortOrder: 100, isSystem: true }
     ];
     const plan = buildVaccinePlan('2026-01-15', [], catalog);
-    expect(plan.filter(item => item.vaccineName === '13价肺炎疫苗').map(item => item.plannedOn)).toEqual(['2026-03-15', '2026-05-15', '2026-07-15', '2027-01-15']);
-    expect(plan.filter(item => item.vaccineName === '五价轮状疫苗').map(item => item.plannedOn)).toEqual(['2026-03-15', '2026-05-15', '2026-07-15']);
+    expect(plan.filter(item => item.vaccineName === '13价肺炎疫苗').map(item => item.plannedOn)).toEqual(['2026-03-16', '2026-05-16', '2026-07-16', '2027-01-16']);
+    expect(plan.filter(item => item.vaccineName === '五价轮状疫苗').map(item => item.plannedOn)).toEqual(['2026-03-16', '2026-05-16', '2026-07-16']);
     expect(plan.every(item => item.category === 'self_paid' && item.hasSuggestedDate)).toBe(true);
   });
 
@@ -59,5 +59,12 @@ describe('vaccine reminder plan', () => {
     const plan = buildVaccinePlan('2026-01-31', [record], catalog);
     expect(plan.filter(item => item.vaccineName === '乙肝疫苗')).toHaveLength(1);
     expect(plan.find(item => item.vaccineName === '乙肝疫苗')?.record?.id).toBe(record.id);
+  });
+
+  it('uses the day after birth as the baseline for every suggested dose', () => {
+    const plan = buildVaccinePlan('2026-01-13', []);
+    expect(plan.find(item => item.vaccineName === '乙肝疫苗' && item.dose === 1)?.plannedOn).toBe('2026-01-14');
+    expect(plan.find(item => item.vaccineName === '乙肝疫苗' && item.dose === 2)?.plannedOn).toBe('2026-02-14');
+    expect(plan.find(item => item.vaccineName === '乙肝疫苗' && item.dose === 3)?.plannedOn).toBe('2026-07-14');
   });
 });

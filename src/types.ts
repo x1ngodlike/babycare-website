@@ -91,7 +91,7 @@ export interface AuditEntry {
   snapshot: CareRecord | null;
 }
 
-export interface Profile { name: string; birthDate: string; sex: BabySex; nickname: string; caregiverTitle: string; avatar: string | null; updatedAt?: string }
+export interface Profile { name: string; birthDate: string; birthTime?: string; sex: BabySex; nickname: string; caregiverTitle: string; avatar: string | null; updatedAt?: string }
 export interface ServerBackupStatus { directory: string; intervalHours: number; retention: number; count: number; lastBackupAt: string | null; nextBackupAt: string }
 export interface ServerBackupFile { name: string; createdAt: string; size: number }
 export type CareScheduleType = 'daily' | 'interval' | 'as_needed';

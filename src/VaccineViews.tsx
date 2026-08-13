@@ -64,7 +64,6 @@ export function VaccineReminderCard({ profile, records, catalog, onComplete, onA
   useDialogFocus(dialogRef, () => setOpen(false), open);
   const pending = buildVaccinePlan(profile.birthDate, records, catalog.length ? catalog : undefined)
     .filter(item => !item.record?.administeredOn)
-    .filter(item => dayDistance(item.record?.appointmentOn || item.plannedOn) > 0)
     .sort((a, b) => (a.record?.appointmentOn || a.plannedOn).localeCompare(b.record?.appointmentOn || b.plannedOn));
   const next = pending[0];
   if (!next) return null;

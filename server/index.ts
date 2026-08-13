@@ -253,7 +253,7 @@ const vaccineCatalogInputSchema = z.object({
 
 const backupPayloadSchema = z.object({
   version: z.number().int().optional(),
-  profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), sex: z.enum(['male', 'female', 'unspecified']).optional(), nickname: z.string().trim().max(20).optional(), caregiverTitle: z.string().trim().max(10).optional(), avatar: z.string().max(200).nullable().optional() }).optional(),
+  profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), birthTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(), sex: z.enum(['male', 'female', 'unspecified']).optional(), nickname: z.string().trim().max(20).optional(), caregiverTitle: z.string().trim().max(10).optional(), avatar: z.string().max(200).nullable().optional() }).optional(),
   records: z.array(recordSchema).max(10000),
   audits: z.array(auditEntrySchema).max(50000).optional(),
   careItems: z.array(careItemSchema).max(100).optional(),
@@ -446,10 +446,10 @@ app.post('/api/daily-report/generate', async (req, res) => {
 });
 
 app.put('/api/profile', requireAdmin, (req, res) => {
-  const parsed = z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), sex: z.enum(['male', 'female', 'unspecified']).default('unspecified'), nickname: z.string().trim().max(20).optional(), caregiverTitle: z.string().trim().max(10).optional() }).safeParse(req.body);
+  const parsed = z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), birthTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, '时间格式不正确').optional().nullable(), sex: z.enum(['male', 'female', 'unspecified']).default('unspecified'), nickname: z.string().trim().max(20).optional(), caregiverTitle: z.string().trim().max(10).optional() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: '宝宝资料格式不正确' });
   if (new Date(`${parsed.data.birthDate}T00:00:00+08:00`) > new Date()) return res.status(400).json({ error: '出生日期不能晚于今天' });
-  const profile = saveProfile({ name: parsed.data.name, birthDate: parsed.data.birthDate, sex: parsed.data.sex, nickname: parsed.data.nickname, caregiverTitle: parsed.data.caregiverTitle });
+  const profile = saveProfile({ name: parsed.data.name, birthDate: parsed.data.birthDate, birthTime: parsed.data.birthTime ?? null, sex: parsed.data.sex, nickname: parsed.data.nickname, caregiverTitle: parsed.data.caregiverTitle });
   changeHub.broadcast('profile');
   return res.json(profile);
 });

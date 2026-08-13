@@ -149,7 +149,8 @@ export function buildVaccinePlan(birthDate: string, records: VaccineRecord[], ca
       key,
       vaccineName: item.vaccineName,
       dose: item.dose,
-      plannedOn: record?.plannedOn || addMonths(birthDate, item.months, item.days),
+      // 家庭提醒统一从出生次日开始计龄；出生当天的 0 月龄疫苗也建议在次日。
+      plannedOn: record?.plannedOn || addMonths(birthDate, item.months, (item.days ?? 0) + 1),
       category: record?.category || item.category || 'program' as const,
       source: record ? 'saved' as const : 'schedule' as const,
       hasSuggestedDate: true,

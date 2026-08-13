@@ -78,6 +78,13 @@ describe('record reliability', () => {
     expect(db.getProfile()).toMatchObject({ name: '旧备份宝宝', sex: 'unspecified' });
   });
 
+  it('preserves birth time when importing and restoring profile data', () => {
+    db.importBackup({ profile: { name: '导入宝宝', birthDate: '2026-01-13', birthTime: '11:45' }, records: [] });
+    expect(db.getProfile()).toMatchObject({ birthDate: '2026-01-13', birthTime: '11:45' });
+    db.replaceBackup({ profile: { name: '恢复宝宝', birthDate: '2026-01-13', birthTime: '11:45' }, records: [] });
+    expect(db.getProfile()).toMatchObject({ birthDate: '2026-01-13', birthTime: '11:45' });
+  });
+
   it('stores model settings with safe defaults', () => {
     expect(db.getAiSettings()).toMatchObject({ provider: 'DeepSeek', baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', apiKey: '' });
     db.saveAiSettings({ baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', apiKey: 'test-key' });
