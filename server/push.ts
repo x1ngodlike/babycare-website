@@ -11,7 +11,7 @@ import {
   type FeedingGapLevel,
   type PushSentFlags
 } from './db.js';
-import { shanghaiDateForInstant, shanghaiDayUtcRange, shanghaiDateString } from './shanghai-date.js';
+import { addDaysToDateString, shanghaiDateForInstant, shanghaiDayUtcRange, shanghaiDateString } from './shanghai-date.js';
 import type { CareItem, CareRecord, VaccineRecord } from './types.js';
 
 export interface PushStatus {
@@ -62,12 +62,6 @@ function isCareItemDue(item: CareItem, date = new Date()) {
   if (item.scheduleType === 'daily') return true;
   const elapsedDays = isoDayNumber(today) - isoDayNumber(item.scheduleStartDate);
   return elapsedDays >= 0 && elapsedDays % Math.max(1, item.intervalDays) === 0;
-}
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T12:00:00+08:00`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }
 
 function shanghaiHHMM(date = new Date()): string {
@@ -435,7 +429,7 @@ function renderMorningDigestHtml(
 
 function renderMorningDigest(now = new Date()): MorningDigestRendered | null {
   const todayStr = shanghaiDateString(now);
-  const yesterdayStr = addDays(todayStr, -1);
+  const yesterdayStr = addDaysToDateString(todayStr, -1);
 
   const profile = getProfile();
   if (!profile || !profile.name) return null;
