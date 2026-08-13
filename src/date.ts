@@ -15,23 +15,6 @@ export function isoDay(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export function dayRange(date: Date) {
-  const from = new Date(date); from.setHours(0, 0, 0, 0);
-  const to = addDays(from, 1);
-  return { from: from.toISOString(), to: to.toISOString() };
-}
-
-export function weekRange(monday: Date) {
-  const from = new Date(monday); from.setHours(0, 0, 0, 0);
-  return { from: from.toISOString(), to: addDays(from, 7).toISOString() };
-}
-
-export function toLocalInput(iso: string) {
-  const value = new Date(iso);
-  const offset = value.getTimezoneOffset() * 60000;
-  return new Date(value.getTime() - offset).toISOString().slice(0, 16);
-}
-
 export function calculateAge(birthDate: string, at = new Date()) {
   const birth = new Date(`${birthDate}T12:00:00`);
   let months = (at.getFullYear() - birth.getFullYear()) * 12 + at.getMonth() - birth.getMonth();

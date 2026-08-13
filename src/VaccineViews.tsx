@@ -95,7 +95,7 @@ export function VaccineEditor({ state, profile, catalog, records, onClose, onSav
   const initialDose = source?.dose || state.item?.dose || availableDoses(fallbackName)[0] || 1;
   const [vaccineName, setVaccineName] = useState(source?.vaccineName || state.item?.vaccineName || fallbackName);
   const [dose, setDose] = useState(String(initialDose));
-  const [plannedOn, setPlannedOn] = useState(source?.plannedOn || state.item?.plannedOn || localDay(new Date()));
+  const [plannedOn] = useState(source?.plannedOn || state.item?.plannedOn || localDay(new Date()));
   const [administeredOn, setAdministeredOn] = useState(source?.administeredOn || (state.mode === 'complete' || state.mode === 'add' ? localDay(new Date()) : ''));
   const [appointmentOn, setAppointmentOn] = useState(source?.appointmentOn || '');
   const [appointmentTime, setAppointmentTime] = useState(source?.appointmentTime || '');

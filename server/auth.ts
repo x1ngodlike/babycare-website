@@ -1,9 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { getFamilyRole } from './db.js';
+import type { FamilyId, UserRole } from './types.js';
 
-export type FamilyId = 'father' | 'mother' | 'grandfather' | 'grandmother';
-export type UserRole = 'superadmin' | 'admin' | 'member';
 export interface SessionUser { id: FamilyId; name: string; role: UserRole }
 
 const cookieName = 'baby_session';

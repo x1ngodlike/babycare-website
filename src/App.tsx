@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, createElement } from 'react';
-import { Baby, Bell, Bot, LogOut, Pencil, Pill, Save, Syringe, Users } from 'lucide-react';
+import { Baby, Bell, Bot, LogOut, Pill, Save, Syringe, Users } from 'lucide-react';
 import { api, ApiError } from './api';
 import { addDays, calculateAge, isoDay, startOfWeek } from './date';
 import { isCareItemDue, nextCareItemDueDate } from './careSchedule';
@@ -10,6 +10,7 @@ import { VaccineArchiveSummary, VaccineEditor, VaccineHistory, VaccineReminderCa
 import { buildVaccinePlan, type VaccinePlanItem } from './vaccines';
 import { ActionMenu, confirmAction, EmptyState, SegmentedControl, Switch, useDialogFocus } from './ui';
 import { DateField, DateTimeField, TimeField } from './DateField';
+import { usePullToRefresh } from './usePullToRefresh';
 
 type Tab = 'today' | 'history' | 'trends' | 'archive' | 'settings';
 type TrendMode = 'seven' | 'month' | 'total';
@@ -74,26 +75,10 @@ function recentRecordLabel(record: CareRecord) {
   return '其他';
 }
 
-function recordMomentLabel(occurredAt: string, now = new Date()) {
-  const occurred = new Date(occurredAt);
-  const time = occurred.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
-  if (isoDay(occurred) === isoDay(now)) return `今日 ${time}`;
-  if (isoDay(occurred) === isoDay(addDays(now, -1))) return `昨日 ${time}`;
-  return `${occurred.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })} ${time}`;
-}
-
 function FeedingSummary({ record }: { record: CareRecord | DraftRecord }) {
   if (record.type !== 'feeding') return <>{summary(record)}</>;
   const parts = [record.breastMilkMl ? `母乳 ${record.breastMilkMl}ml` : '', record.formulaMl ? `奶粉 ${record.formulaMl}ml` : ''].filter(Boolean);
   return <span className="feeding-summary">{parts.length ? parts.map(part => <span key={part}>{part}</span>) : <span>待补充奶量</span>}</span>;
-}
-
-function draftIssue(value: DraftRecord) {
-  if (value.type === 'feeding' && !value.breastMilkMl && !value.formulaMl) return '请补充母乳量或奶粉量';
-  if (value.type === 'supplement' && !value.supplement) return '请选择用药或照护项目';
-  if (value.type === 'bowel' && !value.bowelSize) return '请选择排便量';
-  if (value.type === 'note' && !value.note?.trim()) return '请填写情况说明';
-  return '';
 }
 
 function optimisticRecord(value: DraftRecord, user: SessionUser, previous?: CareRecord): CareRecord {
@@ -109,57 +94,6 @@ function optimisticRecord(value: DraftRecord, user: SessionUser, previous?: Care
     createdBy: previous?.createdBy || user.id, updatedBy: user.id,
     deletedAt: null, deletedBy: null
   };
-}
-
-type PullPhase = 'idle' | 'pulling' | 'ready' | 'refreshing' | 'done';
-
-function usePullToRefresh(enabled: boolean, onRefresh: () => Promise<void>) {
-  const [distance, setDistance] = useState(0);
-  const [phase, setPhase] = useState<PullPhase>('idle');
-  const distanceRef = useRef(0);
-  const busyRef = useRef(false);
-  const refreshRef = useRef(onRefresh);
-  refreshRef.current = onRefresh;
-
-  useEffect(() => {
-    if (!enabled) { busyRef.current = false; distanceRef.current = 0; setDistance(0); setPhase('idle'); return; }
-    let startY: number | null = null;
-    let doneTimer: number | null = null;
-    const updateDistance = (next: number) => { distanceRef.current = next; setDistance(next); setPhase(next >= 64 ? 'ready' : next > 4 ? 'pulling' : 'idle'); };
-    const touchStart = (event: TouchEvent) => {
-      if (busyRef.current || window.scrollY > 0 || event.touches.length !== 1) return;
-      startY = event.touches[0]?.clientY ?? null;
-    };
-    const touchMove = (event: TouchEvent) => {
-      if (startY === null || busyRef.current) return;
-      const currentY = event.touches[0]?.clientY ?? startY;
-      const next = Math.min(92, Math.max(0, (currentY - startY) * .52));
-      if (next > 4) event.preventDefault();
-      updateDistance(next);
-    };
-    const touchEnd = async () => {
-      startY = null;
-      if (busyRef.current) return;
-      if (distanceRef.current < 64) { updateDistance(0); return; }
-      busyRef.current = true; setPhase('refreshing'); setDistance(52);
-      try { await refreshRef.current(); setPhase('done'); }
-      finally {
-        doneTimer = window.setTimeout(() => { distanceRef.current = 0; setDistance(0); setPhase('idle'); busyRef.current = false; }, 700);
-      }
-    };
-    window.addEventListener('touchstart', touchStart, { passive: true });
-    window.addEventListener('touchmove', touchMove, { passive: false });
-    window.addEventListener('touchend', touchEnd, { passive: true });
-    window.addEventListener('touchcancel', touchEnd, { passive: true });
-    return () => {
-      if (doneTimer) clearTimeout(doneTimer);
-      window.removeEventListener('touchstart', touchStart);
-      window.removeEventListener('touchmove', touchMove);
-      window.removeEventListener('touchend', touchEnd);
-      window.removeEventListener('touchcancel', touchEnd);
-    };
-  }, [enabled]);
-  return { distance, phase };
 }
 
 const caregiverTitles: Record<FamilyId, string> = { father: '爸爸', mother: '妈妈', grandfather: '爷爷', grandmother: '奶奶' };
@@ -910,7 +844,7 @@ function VaccineSettingsCard({ enabled, catalog, manager, onChange, onCatalogCha
   <section className="settings-card vaccine-catalog-card"><div className="section-title"><div><p className="kicker">疫苗目录</p><h2>显示疫苗</h2></div><div className="catalog-head-actions"><span>{catalog.filter(item => item.active).length} 项启用</span>{manager && <button type="button" className="btn secondary" disabled={Boolean(busy)} onClick={() => setEditing('new')}>＋ 新增疫苗</button>}</div></div><p>内置 10 种默认疫苗只能启用或停用；自行新增的疫苗可以修改和删除。</p><div className="vaccine-catalog-list">{catalog.map(item => <article key={item.id} className={`${item.active ? '' : 'inactive'} ${manager ? '' : 'readonly'}`}><div className="catalog-copy"><div className="catalog-title"><b>{item.name}</b><i className={`vaccine-kind ${item.category}`}>{item.category === 'program' ? '规划' : '自费'}</i></div><small>{item.doseCount ? `${item.doseCount} 剂` : '按接种门诊安排'}{item.isSystem ? ' · 系统默认' : ''}</small></div>{manager && !item.isSystem ? <ActionMenu label={`管理${item.name}`} items={[{ label: expanded === item.id ? '收起详情' : '查看详情', onSelect: () => setExpanded(expanded === item.id ? '' : item.id) }, { label: '修改', onSelect: () => setEditing(item) }, { label: '删除', danger: true, onSelect: () => remove(item) }]} /> : <button type="button" className="catalog-detail-toggle" aria-expanded={expanded === item.id} onClick={() => setExpanded(expanded === item.id ? '' : item.id)}>{expanded === item.id ? '收起' : '详情'}</button>}{manager && <Switch checked={item.active} label={`${item.active ? '停用' : '启用'}${item.name}`} disabled={Boolean(busy)} onChange={() => void toggle(item)} />}{expanded === item.id && <div className="catalog-detail"><dl><dt>预防疾病</dt><dd>{item.description || '尚未填写。'}</dd><dt>接种程序</dt><dd>{item.intervalSummary || (item.doseCount ? `共 ${item.doseCount} 剂` : '按接种门诊安排')}</dd></dl></div>}</article>)}</div>{message && <p className={message.error ? 'error-text' : 'success-text'} role="status">{message.text}</p>}</section>{editing && <VaccineCatalogEditor item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSaved={async saved => { await onCatalogChanged(); setMessage({ text: editing === 'new' ? `${saved.name}已新增` : `${saved.name}已修改` }); }} />}</>;
 }
 
-function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingGap, onTestCareItem, onSave }: { pushStatus: PushStatus | null; onRefresh(): Promise<void>; onTestMorning(): Promise<unknown>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<unknown>; onTestCareItem(): Promise<unknown>; onSave(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean }): Promise<PushStatus> }) {
+function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingGap, onTestCareItem, onSave }: { pushStatus: PushStatus | null; onRefresh(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSave(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean }): Promise<PushStatus> }) {
   const [enabled, setEnabled] = useState(false);
   const [pushplusToken, setPushplusToken] = useState('');
   const [showToken, setShowToken] = useState(false);
@@ -1016,8 +950,7 @@ function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingG
     setMessage(null);
     try {
       const result = await onTestMorning();
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const text = (result as unknown as { message?: string })?.message || '早报测试消息已发送，请查收';
+      const text = result.message || '早报测试消息已发送，请查收';
       setMessage({ text, error: false });
     } catch (error) {
       const text = error instanceof ApiError ? error.message : '发送失败，请检查配置';
@@ -1032,8 +965,7 @@ function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingG
     setMessage(null);
     try {
       const result = await onTestFeedingGap(level);
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const text = (result as unknown as { message?: string })?.message || '喂奶间隔测试消息已发送，请查收';
+      const text = result.message || '喂奶间隔测试消息已发送，请查收';
       setMessage({ text, error: false });
     } catch (error) {
       const text = error instanceof ApiError ? error.message : '发送失败，请检查配置';
@@ -1048,8 +980,7 @@ function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingG
     setMessage(null);
     try {
       const result = await onTestCareItem();
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const text = (result as unknown as { message?: string })?.message || '用药与照护测试消息已发送，请查收';
+      const text = result.message || '用药与照护测试消息已发送，请查收';
       setMessage({ text, error: false });
     } catch (error) {
       const text = error instanceof ApiError ? error.message : '发送失败，请检查配置';
@@ -1256,7 +1187,7 @@ function SettingsEntry({ icon, title, description, status, danger = false, showC
   return <button type="button" className={`settings-entry${danger ? ' danger' : ''}`} onClick={onClick}><span className="settings-entry-icon"><SettingsIcon name={icon} /></span><span><b>{title}</b><small>{description}</small></span><em>{status || ''}</em><i aria-hidden="true">{showChevron ? '›' : ''}</i></button>;
 }
 
-function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, vaccineRemindersEnabled, pushStatus, onProfileSaved, onVaccineRemindersChanged, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; vaccineRemindersEnabled: boolean; pushStatus: PushStatus | null; onProfileSaved(value: Profile): void; onVaccineRemindersChanged(value: boolean): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<unknown>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<unknown>; onTestCareItem(): Promise<unknown>; onSavePush(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number }): Promise<PushStatus> }) {
+function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, vaccineRemindersEnabled, pushStatus, onProfileSaved, onVaccineRemindersChanged, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; vaccineRemindersEnabled: boolean; pushStatus: PushStatus | null; onProfileSaved(value: Profile): void; onVaccineRemindersChanged(value: boolean): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSavePush(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number }): Promise<PushStatus> }) {
   const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false);
   useEffect(() => { const pop = () => { pushedRef.current = false; setSection('root'); }; window.addEventListener('popstate', pop); return () => { window.removeEventListener('popstate', pop); if (pushedRef.current) window.history.back(); }; }, []);
   const member = familyMembers.find(item => item.id === user.id)!;

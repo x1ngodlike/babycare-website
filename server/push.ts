@@ -12,8 +12,10 @@ import {
   type FeedingGapLevel,
   type PushSentFlags
 } from './db.js';
-import { addDaysToDateString, shanghaiDateForInstant, shanghaiDayUtcRange, shanghaiDateString } from './shanghai-date.js';
-import type { CareItem, CareRecord, VaccineRecord } from './types.js';
+import { addDaysToDateString, shanghaiDayUtcRange, shanghaiDateString } from './shanghai-date.js';
+import type { CareItem, CareRecord } from './types.js';
+import { isScheduledCareItemDue } from '../shared/care-schedule.js';
+import { dayNumber } from '../shared/date.js';
 import { buildServerVaccinePlan } from './vaccine-plan.js';
 
 export interface PushStatus {
@@ -45,25 +47,12 @@ type LocalProfile = { name: string; birthDate: string; birthTime?: string | null
 let schedulerTimer: ReturnType<typeof setInterval> | null = null;
 let lastCheckAt: string | null = null;
 const pushedToday = new Set<string>();
+let pushedTodayDate = '';
 
 // -------- Date / time helpers --------
 
-function isoDay(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function isoDayNumber(value: string) {
-  const [year, month, day] = value.split('-').map(Number);
-  return Date.UTC(year, month - 1, day) / 86_400_000;
-}
-
 function isCareItemDue(item: CareItem, date = new Date()) {
-  if (!item.active || item.scheduleType === 'as_needed' || !item.scheduleStartDate) return false;
-  const today = isoDay(date);
-  if (today < item.scheduleStartDate || (item.scheduleEndDate && today > item.scheduleEndDate)) return false;
-  if (item.scheduleType === 'daily') return true;
-  const elapsedDays = isoDayNumber(today) - isoDayNumber(item.scheduleStartDate);
-  return elapsedDays >= 0 && elapsedDays % Math.max(1, item.intervalDays) === 0;
+  return isScheduledCareItemDue(item, date);
 }
 
 function shanghaiHHMM(date = new Date()): string {
@@ -78,11 +67,10 @@ function shanghaiHHMM(date = new Date()): string {
 }
 
 function resetDaily() {
-  const today = new Date().toDateString();
-  const lastReset = (globalThis as any).__pushLastReset;
-  if (lastReset !== today) {
+  const today = shanghaiDateString();
+  if (pushedTodayDate !== today) {
     pushedToday.clear();
-    (globalThis as any).__pushLastReset = today;
+    pushedTodayDate = today;
   }
 }
 
@@ -110,13 +98,6 @@ function babyAgeText(birthDate: string, todayStr = shanghaiDateString()): string
   return `${years} 岁 ${restMonths} 个月`;
 }
 
-function formatDateShort(dateStr: string): string {
-  // 8月12日 周三
-  const d = new Date(`${dateStr}T12:00:00+08:00`);
-  const labels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日 ${labels[d.getUTCDay()]}`;
-}
-
 function formatInstantShort(iso: string): string {
   // HH:MM (Shanghai time)
   const d = new Date(iso);
@@ -130,10 +111,6 @@ function minutesLabel(totalMinutes: number): string {
   if (h === 0) return `${m} 分钟`;
   if (m === 0) return `${h} 小时`;
   return `${h} 小时 ${m} 分`;
-}
-
-function gapMinutesBetween(aIso: string, now = new Date()): number {
-  return Math.floor((now.getTime() - new Date(aIso).getTime()) / 60_000);
 }
 
 // -------- Build data sections --------
@@ -232,7 +209,7 @@ function buildVaccineBrief(todayStr: string): VaccineBrief {
   const todayAppointments: VaccineBrief['todayAppointments'] = [];
   const overdue: VaccineBrief['overdue'] = [];
   const upcoming: VaccineBrief['upcoming'] = [];
-  const todayNum = isoDayNumber(todayStr);
+  const todayNum = dayNumber(todayStr);
   const profile = getProfile();
   if (!profile) return { todayAppointments, overdue, upcoming };
   const plan = buildServerVaccinePlan(profile.birthDate, listVaccineRecords(), listVaccineCatalog(true));
@@ -240,7 +217,7 @@ function buildVaccineBrief(todayStr: string): VaccineBrief {
     const record = item.record;
     if (record?.administeredOn) continue;
     const effectiveOn = record?.appointmentOn || item.plannedOn;
-    const delta = isoDayNumber(effectiveOn) - todayNum;
+    const delta = dayNumber(effectiveOn) - todayNum;
 
     if (effectiveOn === todayStr) {
       todayAppointments.push({ vaccineName: item.vaccineName, dose: item.dose, appointmentTime: record?.appointmentTime || null });
@@ -636,27 +613,23 @@ export async function testCareItemPush() {
       id: 'test-care-item',
       name: '维生素D3',
       icon: 'medicine',
-      dose: null,
       scheduleType: 'daily',
       intervalDays: 1,
-      startDate: shanghaiDateString(new Date()),
-      endDate: null,
+      scheduleStartDate: shanghaiDateString(new Date()),
+      scheduleEndDate: null,
       reminderTime: '08:00',
-      notes: null,
-      orderIndex: 0,
+      sortOrder: 0,
       active: true,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    } as unknown as CareItem;
+      updatedAt: new Date().toISOString()
+    };
   }
-  const reminderTime = item.reminderTime || '08:00';
-  const rendered = buildPushPlusPerItemHtml(item, reminderTime);
+  const rendered = buildPushPlusPerItemHtml(item);
   return dispatchMessage(rendered.title, rendered.html);
 }
 
 export async function testFeedingGapPush(level: 'level1' | 'level2' = 'level1') {
   const now = new Date();
-  const todayStr = shanghaiDateString(now);
   // Use most recent feed record if available; otherwise build a synthetic feed for testing
   let lastFeed = getLastFeedInfo(now).record;
   let gapMinutes = lastFeed ? (() => {
@@ -688,19 +661,21 @@ export async function testFeedingGapPush(level: 'level1' | 'level2' = 'level1') 
         occurredAt: syntheticTime,
         breastMilkMl: 60,
         formulaMl: 60,
-        notes: null,
+        note: null,
         supplement: null,
         bowelSize: null,
-        familyId: null,
-        deleted: false,
         createdAt: syntheticTime,
-        updatedAt: syntheticTime
-      } as unknown as CareRecord;
+        updatedAt: syntheticTime,
+        createdBy: 'legacy',
+        updatedBy: 'legacy',
+        deletedAt: null,
+        deletedBy: null
+      };
     }
     gapMinutes = targetGap;
-    void todayStr;
   }
 
+  if (!lastFeed) throw new Error('无法生成喂奶间隔测试记录');
   const rendered = renderFeedingGapLevel(level, lastFeed, gapMinutes, now);
   return dispatchMessage(rendered.pushplusTitle, rendered.pushplusHtml);
 }
@@ -774,13 +749,12 @@ async function maybeSendFeedingGap(now: Date): Promise<boolean> {
 
 // -------- Original per-item reminder --------
 
-function buildPushPlusPerItemHtml(item: CareItem, reminderTime: string) {
+function buildPushPlusPerItemHtml(item: CareItem) {
   const scheduleLabel = item.scheduleType === 'daily' ? '每天一次' : `每 ${item.intervalDays} 天一次`;
   const title = `🔔 ${item.name} · 提醒`;
   const isMedicine = item.icon === 'medicine';
   const actionEmoji = isMedicine ? '💊' : '🤲';
   const verb = isMedicine ? '服用' : '照护';
-  void reminderTime;
   const html = `
     <div style="padding:0;border-radius:14px;border:1px solid #e0e8e3;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',Arial,sans-serif;font-size:14px;color:#1f2a24;line-height:1.6;overflow:hidden;">
       <div style="padding:16px;background:linear-gradient(180deg,#eaf3ed 0%,#ffffff 100%);">
@@ -819,8 +793,7 @@ async function checkCareItemReminders(now: Date) {
     if (pushedToday.has(dedupKey)) continue;
     pushedToday.add(dedupKey);
 
-    const reminderTime = item.reminderTime!;
-    const { title, html } = buildPushPlusPerItemHtml(item, reminderTime);
+    const { title, html } = buildPushPlusPerItemHtml(item);
     const result = await dispatchMessage(title, html);
     if (!result.ok) {
       console.error('[push] 单项提醒推送失败, item:', item.name, result);

@@ -5,21 +5,19 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, unlinkSync, accessSync, constants as fsConstants, statSync, Stats } from 'node:fs';
 import { tmpdir as osTmpdir } from 'node:os';
 import { resolve, join, dirname, isAbsolute } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import multer from 'multer';
 import sharp from 'sharp';
-import { v4 as uuidv4 } from 'uuid';
 import { testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
-import type { FamilyId } from './auth.js';
 import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
-import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DailyReport, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, restoreVaccineRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
+import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, restoreVaccineRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
-import { getPushStatus, startPushScheduler, stopPushScheduler, testMorningDigestPush, testFeedingGapPush, testCareItemPush, updatePushSettings } from './push.js';
+import { startPushScheduler } from './push.js';
+import { registerPushRoutes } from './routes/push.js';
 import { shanghaiDateString } from './shanghai-date.js';
-import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission, GrowthRecord, VaccineCatalogItem, VaccineRecord } from './types.js';
+import type { AuditEntry, CareItem, CareRecord, FamilyId, FamilyMemberPermission, GrowthRecord, VaccineCatalogItem, VaccineRecord } from './types.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -28,12 +26,6 @@ const production = process.env.NODE_ENV === 'production';
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 const changeHub = createChangeHub();
 const backupDirectory = defaultBackupDirectory();
-// 兼容：ESM 开发环境（tsx + import.meta.url）和 CJS 生产构建（tsc 输出自带模块作用域 __dirname）
-declare const __dirname: string;
-const currentDir: string = (() => {
-  try { if (typeof __dirname === 'string') return __dirname; } catch { /* ESM 下 __dirname 未声明 */ }
-  return dirname(fileURLToPath(import.meta.url));
-})();
 // 数据根：优先显式 DATA_DIR，否则用 DATABASE_PATH 目录（db / backup / avatars 三兄弟共用同一个持久化根）
 const databasePath = process.env.DATABASE_PATH || './data/baby-care.db';
 const inferredDataDir = isAbsolute(databasePath) ? dirname(databasePath) : resolve(dirname(databasePath));
@@ -481,7 +473,7 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
       if (msg.includes('ENOENT')) return res.status(500).json({ error: withTree(`上传目录不存在或无法写入：${avatarDir}`) });
       return res.status(500).json({ error: withTree(`上传目录无法创建：${avatarDir}（${msg || '请查看服务器日志'}）`) });
     }
-    const filename = `avatar_${uuidv4()}.webp`;
+    const filename = `avatar_${randomUUID()}.webp`;
     const filepath = join(avatarDir, filename);
     try {
       try { mkdirSync(dirname(filepath), { recursive: true }); } catch { /* 已存在或外层已处理 */ }
@@ -826,78 +818,7 @@ app.post('/api/import', requireSuperAdmin, (req, res) => {
   res.json(result);
 });
 
-app.get('/api/push/status', (_req, res) => res.json(getPushStatus()));
-
-app.post('/api/push/settings', requireAdmin, express.json(), async (req, res) => {
-  const body = req.body || {};
-  const { enabled, pushplusToken, pushplusTopic, morningDigestEnabled, morningDigestTime, feedingGapEnabled, feedingGapLevel1Minutes, feedingGapLevel2Minutes, careItemEnabled } = body;
-  if (enabled !== undefined && typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled 必须为布尔值' });
-  if (pushplusToken !== undefined && typeof pushplusToken !== 'string') return res.status(400).json({ error: 'pushplusToken 必须为字符串' });
-  if (pushplusTopic !== undefined && typeof pushplusTopic !== 'string') return res.status(400).json({ error: 'pushplusTopic 必须为字符串' });
-  if (morningDigestEnabled !== undefined && typeof morningDigestEnabled !== 'boolean') return res.status(400).json({ error: 'morningDigestEnabled 必须为布尔值' });
-  if (morningDigestTime !== undefined) {
-    if (typeof morningDigestTime !== 'string' || !/^\d{2}:\d{2}$/.test(morningDigestTime.trim())) return res.status(400).json({ error: 'morningDigestTime 必须为 HH:MM 格式（如 08:00）' });
-  }
-  if (feedingGapEnabled !== undefined && typeof feedingGapEnabled !== 'boolean') return res.status(400).json({ error: 'feedingGapEnabled 必须为布尔值' });
-  if (feedingGapLevel1Minutes !== undefined) {
-    if (!Number.isSafeInteger(feedingGapLevel1Minutes) || feedingGapLevel1Minutes < 30) return res.status(400).json({ error: 'feedingGapLevel1Minutes 必须为大于等于 30 分钟的整数' });
-  }
-  if (feedingGapLevel2Minutes !== undefined) {
-    if (!Number.isSafeInteger(feedingGapLevel2Minutes) || feedingGapLevel2Minutes < 30) return res.status(400).json({ error: 'feedingGapLevel2Minutes 必须为大于等于 30 分钟的整数' });
-  }
-  if (careItemEnabled !== undefined && typeof careItemEnabled !== 'boolean') return res.status(400).json({ error: 'careItemEnabled 必须为布尔值' });
-  const l1 = feedingGapLevel1Minutes ?? null;
-  const l2 = feedingGapLevel2Minutes ?? null;
-  if (l1 !== null && l2 !== null && l2 <= l1) {
-    return res.status(400).json({ error: '重点提醒分钟数必须大于轻度提醒' });
-  }
-  try {
-    const result = await updatePushSettings({
-      ...(enabled !== undefined ? { enabled } : {}),
-      ...(pushplusToken !== undefined ? { pushplusToken } : {}),
-      ...(pushplusTopic !== undefined ? { pushplusTopic } : {}),
-      ...(morningDigestEnabled !== undefined ? { morningDigestEnabled } : {}),
-      ...(morningDigestTime !== undefined ? { morningDigestTime } : {}),
-      ...(feedingGapEnabled !== undefined ? { feedingGapEnabled } : {}),
-      ...(feedingGapLevel1Minutes !== undefined ? { feedingGapLevel1Minutes } : {}),
-      ...(feedingGapLevel2Minutes !== undefined ? { feedingGapLevel2Minutes } : {}),
-      ...(careItemEnabled !== undefined ? { careItemEnabled } : {})
-    });
-    return res.json(result);
-  } catch (error) {
-    return res.status(500).json({ error: error instanceof Error ? error.message : '保存失败' });
-  }
-});
-
-app.post('/api/push/test/morning-digest', requireAdmin, async (_req, res) => {
-  const result = await testMorningDigestPush();
-  if (!result.ok) return res.status(502).json({ error: result.error || '早报测试推送失败' });
-  return res.json({ ok: true, message: '早报测试消息已发送，请在微信中查看。' });
-});
-
-app.post('/api/push/test/feeding-gap', requireAdmin, express.json(), async (req, res) => {
-  const level = (req.body?.level === 'level2') ? 'level2' : 'level1';
-  const result = await testFeedingGapPush(level);
-  if (!result.ok) return res.status(502).json({ error: result.error || '喂奶间隔测试推送失败' });
-  const label = level === 'level2' ? '重点' : '轻度';
-  return res.json({ ok: true, message: `喂奶间隔（${label}）测试消息已发送，请在微信中查看。` });
-});
-
-app.post('/api/push/test/care-item', requireAdmin, async (_req, res) => {
-  const result = await testCareItemPush();
-  if (!result.ok) return res.status(502).json({ error: result.error || '用药与照护提醒测试推送失败' });
-  return res.json({ ok: true, message: '用药与照护测试消息已发送，请在微信中查看。' });
-});
-
-app.post('/api/push/enable', requireAdmin, async (_req, res) => {
-  const result = await updatePushSettings({ enabled: true });
-  return res.json(result);
-});
-
-app.post('/api/push/disable', requireAdmin, async (_req, res) => {
-  const result = await updatePushSettings({ enabled: false });
-  return res.json(result);
-});
+registerPushRoutes(app);
 
 if (production) {
   const staticDir = resolve('dist');

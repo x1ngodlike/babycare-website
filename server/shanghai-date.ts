@@ -1,19 +1,10 @@
-const SHANGHAI_TIME_ZONE = 'Asia/Shanghai';
+import { addDaysToDateString, dateStringInTimeZone } from '../shared/date.js';
 
 export function shanghaiDateString(date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: SHANGHAI_TIME_ZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
+  return dateStringInTimeZone(date);
 }
 
-export function addDaysToDateString(date: string, days: number): string {
-  const value = new Date(`${date}T00:00:00Z`);
-  value.setUTCDate(value.getUTCDate() + days);
-  return value.toISOString().slice(0, 10);
-}
+export { addDaysToDateString };
 
 export function shanghaiDayUtcRange(date: string): { from: string; to: string } {
   return {

@@ -22,4 +22,4 @@ RUN test -f /app/dist/index.html \
 USER node
 EXPOSE 3000
 VOLUME ["/data"]
-CMD ["node", "dist-server/index.js"]
+CMD ["node", "dist-server/server/index.js"]

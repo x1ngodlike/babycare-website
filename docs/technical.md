@@ -44,8 +44,9 @@ Express
 src/
   App.tsx              页面、状态和主要交互
   VaccineViews.tsx     疫苗视图与编辑器
-  vaccines.ts          前端疫苗计划
-  careSchedule.ts      用药计划日期计算
+  vaccines.ts          疫苗计划的前端适配
+  careSchedule.ts      照护周期的前端适配
+  usePullToRefresh.ts  移动端下拉刷新 Hook
   date.ts              客户端日期工具
   api.ts               REST API 封装
   offline.ts           本地缓存和离线写队列
@@ -54,7 +55,8 @@ src/
   styles.css           页面样式与设计变量
 
 server/
-  index.ts             Express 入口、路由与输入校验
+  index.ts             Express 入口、通用路由与输入校验
+  routes/push.ts       推送配置与测试接口
   db.ts                表结构、迁移和数据访问
   auth.ts              家庭身份会话与权限中间件
   events.ts            SSE 连接与广播
@@ -62,9 +64,14 @@ server/
   daily-report.ts      昨日报告汇总和调度
   ai.ts                AI 请求与基础报告逻辑
   push.ts              PushPlus 渲染和调度
-  vaccine-plan.ts      服务端疫苗计划
+  vaccine-plan.ts      疫苗计划的服务端适配
   backup.ts            JSON 服务器备份
   types.ts             服务端类型
+
+shared/
+  date.ts              跨端日期字符串与月份计算
+  care-schedule.ts     跨端照护周期判断
+  vaccine-plan.ts      跨端疫苗时间表与计划生成
 
 public/
   sw.js                 PWA 静态缓存
@@ -106,7 +113,7 @@ data/
 
 ### 3.3 疫苗建议日期
 
-前端 `src/vaccines.ts` 和服务端 `server/vaccine-plan.ts` 使用同一业务规则：
+前端 `src/vaccines.ts` 和服务端 `server/vaccine-plan.ts` 共同调用 `shared/vaccine-plan.ts`，避免首页、疫苗安排和推送出现不同计算结果。统一规则为：
 
 1. 以出生日期次日为基准。
 2. 目标月遇到月末时夹到该月最后一天，再加一天；因此可能自然进入下月。

@@ -8,9 +8,13 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "outDir": "dist-server",
-    "rootDir": "server",
+    "rootDir": ".",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
     "types": ["node"]
   },
-  "include": ["server"],
+  "include": ["server", "shared"],
   "exclude": ["server/**/*.test.ts"]
 }
