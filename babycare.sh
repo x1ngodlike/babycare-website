@@ -255,9 +255,9 @@ perform_deploy() {
     perform_backup
   fi
 
-  mkdir -p "$DATA_DIR" "$BACKUP_DIR"
-  chown 1000:1000 "$DATA_DIR"
-  chmod 750 "$DATA_DIR" "$BACKUP_DIR"
+  mkdir -p "$DATA_DIR" "$DATA_DIR/uploads/avatars" "$BACKUP_DIR"
+  chown -R 1000:1000 "$DATA_DIR" "$BACKUP_DIR" 2>/dev/null || true
+  chmod 750 "$DATA_DIR" "$DATA_DIR/uploads" "$DATA_DIR/uploads/avatars" "$BACKUP_DIR" 2>/dev/null || true
 
   info "校验 Compose 配置。"
   compose config --quiet

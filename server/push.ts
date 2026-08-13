@@ -564,8 +564,7 @@ export function getPushStatus(): PushStatus {
   if (info.record && info.gapMinutes !== null) {
     const l1 = settings.feedingGapLevel1Minutes;
     const l2 = settings.feedingGapLevel2Minutes;
-    const fLevel = flags.feedingGapNotifiedLevel;
-    if (info.gapMinutes >= l2) level = fLevel === 'level2' ? 'level2' : 'level2';
+    if (info.gapMinutes >= l2) level = 'level2';
     else if (info.gapMinutes >= l1) level = 'level1';
   }
   return {

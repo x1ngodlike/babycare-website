@@ -10,15 +10,15 @@ RUN npm run build \
   && npm prune --omit=dev
 
 FROM node:22-bookworm-slim AS runtime
-ENV NODE_ENV=production PORT=3000 DATABASE_PATH=/data/baby-care.db
+ENV NODE_ENV=production PORT=3000 DATABASE_PATH=/data/baby-care.db DATA_DIR=/data
 WORKDIR /app
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-server ./dist-server
 RUN test -f /app/dist/index.html \
-  && mkdir -p /data \
-  && chown -R node:node /app /data
+  && mkdir -p /data/uploads/avatars \
+  && chown -R node:node /data /app
 USER node
 EXPOSE 3000
 VOLUME ["/data"]

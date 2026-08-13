@@ -126,11 +126,11 @@ db.exec(`
     feeding_gap_level2_minutes INTEGER NOT NULL DEFAULT 180,
     care_item_enabled INTEGER NOT NULL DEFAULT 1,
     push_sent_flags TEXT NOT NULL DEFAULT '{}',
-    updated_at TEXT NOT NULL DEFAULT ''
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
   INSERT OR IGNORE INTO push_settings
-    (id, updated_at, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags)
-    VALUES (1, '', 0, '', '', 1, '08:00', 1, 150, 180, 1, '{}');
+    (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags)
+    VALUES (1, 0, '', '', 1, '08:00', 1, 150, 180, 1, '{}');
 
   CREATE TABLE IF NOT EXISTS care_items (
     id TEXT PRIMARY KEY,

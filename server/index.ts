@@ -3,7 +3,8 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, unlinkSync, accessSync, constants as fsConstants, statSync, Stats } from 'node:fs';
-import { resolve, join, dirname } from 'node:path';
+import { tmpdir as osTmpdir } from 'node:os';
+import { resolve, join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import multer from 'multer';
@@ -33,9 +34,29 @@ const currentDir: string = (() => {
   try { if (typeof __dirname === 'string') return __dirname; } catch { /* ESM 下 __dirname 未声明 */ }
   return dirname(fileURLToPath(import.meta.url));
 })();
-// 头像上传目录锚定 DATA_DIR：和 db.sqlite、备份文件共享同一个持久化根（默认为 ./data）
-const dataDir = resolve(process.env.DATA_DIR || './data');
-const avatarHintDir = join(dataDir, 'uploads', 'avatars');
+// 数据根：优先显式 DATA_DIR，否则用 DATABASE_PATH 目录（db / backup / avatars 三兄弟共用同一个持久化根）
+const databasePath = process.env.DATABASE_PATH || './data/baby-care.db';
+const inferredDataDir = isAbsolute(databasePath) ? dirname(databasePath) : resolve(dirname(databasePath));
+const configuredDataDir = process.env.DATA_DIR ? resolve(process.env.DATA_DIR) : inferredDataDir;
+function makeAvatarDir(dataRoot: string): { dir: string; isTemporary: boolean } {
+  const dir = join(dataRoot, 'uploads', 'avatars');
+  try {
+    mkdirSync(dir, { recursive: true });
+    accessSync(dir, fsConstants.W_OK);
+    return { dir, isTemporary: false };
+  } catch {
+    const fallback = join(osTmpdir(), 'babycare-avatars');
+    try { mkdirSync(fallback, { recursive: true }); accessSync(fallback, fsConstants.W_OK); return { dir: fallback, isTemporary: true }; }
+    catch { return { dir, isTemporary: false }; }
+  }
+}
+const avatarRoot = makeAvatarDir(configuredDataDir);
+const dataDir = avatarRoot.isTemporary ? dirname(dirname(avatarRoot.dir)) : configuredDataDir;
+if (avatarRoot.isTemporary) {
+  console.warn(`[avatars] ⚠️  DATA_DIR 不可写（${configuredDataDir}），已切换到临时目录 ${avatarRoot.dir}。重启后头像会丢失！请把 volume 挂对：Docker -v <host_data>:/data，或在宿主机 chown -R 1000:1000 <host_data>。`);
+}
+const avatarHintDir = avatarRoot.dir;
+const avatarTemporaryWarn = avatarRoot.isTemporary ? '头像临时模式（重启丢失）' : '';
 function diagnosePathTree(target: string): { path: string; exists: boolean; isDirectory: boolean; writable: boolean; note?: string }[] {
   // 从根到目标逐级诊断：/app → /app/data → /app/data/uploads → /app/data/uploads/avatars
   const parts: string[] = [];
@@ -61,7 +82,10 @@ function diagnosePathTree(target: string): { path: string; exists: boolean; isDi
 }
 function avatarFixHint(dir: string): string {
   const raw = process.env.DATA_DIR || '';
-  return `请在容器启动/更新脚本里加：mkdir -p ${dir} && chmod 755 ${join(dataDir, 'uploads')} ${dir}${raw ? `（环境变量 DATA_DIR=${raw}）` : ''}`;
+  if (avatarRoot.isTemporary) {
+    return `当前为临时模式（${avatarTemporaryWarn}），请给容器挂持久化卷：Docker -v <宿主机数据目录>:/data 且宿主机目录对 UID 1000 可写`;
+  }
+  return `请确保 DATA_DIR volume 挂对 + UID 1000 可写：mkdir -p ${dir} && chown -R 1000:1000 ${join(dataDir, 'uploads')} ${dir}${raw ? `（环境变量 DATA_DIR=${raw}）` : ''}`;
 }
 function resolveAvatarDir(): string {
   const dir = avatarHintDir;
@@ -73,7 +97,7 @@ function resolveAvatarDir(): string {
       const tree = diagnosePathTree(dir);
       diagnose = tree;
       const blocked = tree.reverse().find(item => !item.exists || !item.isDirectory || !item.writable);
-      console.error(`[avatars] 上传目录创建失败：${dir}（DATA_DIR=${process.env.DATA_DIR || '(默认 ./data)'}）。阻断点：${blocked?.path ?? dir}${blocked?.note ? ' ' + blocked.note : ''}（${msg}）。${avatarFixHint(dir)}`);
+      console.error(`[avatars] 上传目录创建失败：${dir}（DATA_DIR=${process.env.DATA_DIR || inferredDataDir}）。阻断点：${blocked?.path ?? dir}${blocked?.note ? ' ' + blocked.note : ''}（${msg}）。${avatarFixHint(dir)}`);
       return dir;
     }
   }
@@ -91,6 +115,19 @@ function resolveAvatarDir(): string {
 }
 function avatarDiagnoseCached(): ReturnType<typeof diagnosePathTree> { return diagnosePathTree(avatarDir); }
 const avatarDir = resolveAvatarDir();
+// 启动期自检日志：帮助快速定位目录/权限问题
+{
+  const tree = diagnosePathTree(avatarDir);
+  const rows = tree.map(item => {
+    const flag = item.note ? item.note : (!item.exists ? '❌不存在' : !item.isDirectory ? '❌不是目录' : !item.writable ? '❌不可写' : '✅正常');
+    return `${flag} ${item.path}`;
+  }).join('； ');
+  const status = avatarRoot.isTemporary ? '[临时模式]' : '[正常]';
+  console.log(`[avatars] 头像目录初始化 ${status}：${avatarDir}。路径诊断：${rows}`);
+  if (avatarRoot.isTemporary) {
+    console.warn(`[avatars] ⚠️ DATA_DIR 不可写（${configuredDataDir}），已切换到临时目录 ${avatarDir}。重启后头像会丢失！请把 volume 挂对：Docker -v <host_data>:/data，或在宿主机 chown -R 1000:1000 <host_data>。`);
+  }
+}
 
 if (production && (!(process.env.FATHER_PASSWORD || process.env.ADMIN_PASSWORD) || !process.env.MOTHER_PASSWORD || !process.env.GRANDFATHER_PASSWORD || !process.env.GRANDMOTHER_PASSWORD || !process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
   throw new Error('生产环境必须设置四位家人的密码和至少 32 位的 SESSION_SECRET');
@@ -425,7 +462,8 @@ app.post('/api/profile/avatar', requireAdmin, upload.single('avatar'), async (re
       const flag = item.note ? item.note : (!item.exists ? '❌不存在' : !item.isDirectory ? '❌不是目录' : !item.writable ? '❌不可写' : '✅正常');
       return `${flag} ${item.path}`;
     }).join('； ');
-    return `${prefix}。路径诊断：${rows}。${hint}`;
+    const warn = avatarRoot.isTemporary ? `[⚠️${avatarTemporaryWarn}] ` : '';
+    return `${warn}${prefix}。路径诊断：${rows}。${hint}`;
   }
   try {
     const file = req.file;
@@ -494,7 +532,8 @@ app.delete('/api/profile/avatar', requireAdmin, (_req, res) => {
       const flag = item.note ? item.note : (!item.exists ? '❌不存在' : !item.isDirectory ? '❌不是目录' : !item.writable ? '❌不可写' : '✅正常');
       return `${flag} ${item.path}`;
     }).join('； ');
-    return `${prefix}。路径诊断：${rows}。${avatarFixHint(avatarDir)}`;
+    const warn = avatarRoot.isTemporary ? `[⚠️${avatarTemporaryWarn}] ` : '';
+    return `${warn}${prefix}。路径诊断：${rows}。${avatarFixHint(avatarDir)}`;
   }
   try {
     const profile = getProfile();
@@ -883,6 +922,6 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 
 startBackupScheduler(exportPayload, backupDirectory);
 startDailyReportScheduler();
-startPushScheduler();
+try { startPushScheduler(); } catch (e) { console.error('[push] 推送调度器启动失败（已忽略，不影响主服务）:', e); }
 const listenHost = production ? '0.0.0.0' : '127.0.0.1';
 app.listen(port, listenHost, () => console.log(`Baby care server listening on http://${listenHost}:${port}`));
