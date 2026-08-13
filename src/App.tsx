@@ -166,10 +166,9 @@ const caregiverTitles: Record<FamilyId, string> = { father: '爸爸', mother: '�
 function getGreeting(profile: Profile, userId: FamilyId): { greeting: string; displayName: string } {
   const hour = new Date().getHours();
   let greeting: string;
-  if (hour >= 5 && hour < 11) greeting = '早安';
-  else if (hour < 13) greeting = '午安';
-  else if (hour < 18) greeting = '下午好';
-  else if (hour < 24) greeting = '晚上好';
+  if (hour >= 6 && hour < 12) greeting = '早上好';
+  else if (hour < 18) greeting = '中午好';
+  else if (hour < 23) greeting = '晚上好';
   else greeting = '夜深了';
   const displayName = profile.nickname?.trim() || profile.name;
   const title = caregiverTitles[userId] || '';
@@ -738,7 +737,7 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
 
   return <div className="page-stack archive-page">
     <header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header>
-    <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像">{profile.avatar ? <img src={profile.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}</div><div className="archive-profile-meta"><h2>{profile.nickname?.trim() ? <>{profile.nickname.trim()}<small className="real-name">· {profile.name}</small></> : profile.name}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div><div className="archive-metrics"><div><span>最新身高</span><strong>{latest?.heightCm ?? '—'}</strong><small>{latest ? 'cm' : '暂无'}</small></div><div><span>最新体重</span><strong>{latest?.weightKg ?? '—'}</strong><small>{latest ? 'kg' : '暂无'}</small></div></div></section>
+    <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像">{profile.avatar ? <img src={profile.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}</div><div className="archive-profile-meta"><h2>{profile.name}{profile.nickname?.trim() ? <small className="nickname"> · {profile.nickname.trim()}</small> : null}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div><div className="archive-metrics"><div><span>最新身高</span><strong>{latest?.heightCm ?? '—'}</strong><small>{latest ? 'cm' : '暂无'}</small></div><div><span>最新体重</span><strong>{latest?.weightKg ?? '—'}</strong><small>{latest ? 'kg' : '暂无'}</small></div></div></section>
     <VaccineArchiveSummary profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onOpen={onOpenVaccines} />
     <section className="growth-history">
       <div className="section-title"><h2>成长记录</h2><div className="growth-head-actions">{canManage(user) && <button className="growth-deleted-toggle" onClick={openDeletedArchive}>已删 {deletedGrowthRecords.length}</button>}<button className="btn secondary" onClick={() => todayGrowth ? onEditGrowth(todayGrowth) : onAddGrowth()}>{todayGrowth ? '修改今日' : '记录今日'}</button></div></div>
