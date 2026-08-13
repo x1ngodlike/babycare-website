@@ -94,3 +94,20 @@ export function buildVaccinePlan(birthDate: string, records: VaccineRecord[], ca
 export function formatVaccineDay(day: string) {
   return new Date(`${day}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
 }
+
+export function vaccineDayDistance(day: string, now = new Date()) {
+  const target = new Date(`${day}T12:00:00`).getTime();
+  const today = new Date(now); today.setHours(12, 0, 0, 0);
+  return Math.round((target - today.getTime()) / 86400000);
+}
+
+export function vaccineTimingStatus(day: string, now = new Date()) {
+  const distance = vaccineDayDistance(day, now);
+  if (distance < 0) return { label: `已过${Math.abs(distance)}天`, tone: 'overdue' as const, distance };
+  if (distance === 0) return { label: '今日', tone: 'soon' as const, distance };
+  return { label: `${distance}天后`, tone: distance <= 7 ? 'soon' as const : 'normal' as const, distance };
+}
+
+export function vaccineDateType(item: VaccinePlanItem) {
+  return item.record?.appointmentOn ? '门诊预约' : '建议接种日';
+}

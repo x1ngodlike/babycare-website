@@ -200,9 +200,9 @@ function buildTodayPlanMedicines(todayStr: string): TodayMedicine[] {
 }
 
 type VaccineBrief = {
-  todayAppointments: { vaccineName: string; dose: number; appointmentTime: string | null }[];
-  overdue: { vaccineName: string; dose: number; overdueDays: number; plannedOn: string }[];
-  upcoming: { vaccineName: string; dose: number; plannedOn: string; category: string }[];
+  todayAppointments: { vaccineName: string; dose: number; appointmentTime: string | null; isAppointment: boolean }[];
+  overdue: { vaccineName: string; dose: number; overdueDays: number; plannedOn: string; isAppointment: boolean }[];
+  upcoming: { vaccineName: string; dose: number; plannedOn: string; category: string; isAppointment: boolean }[];
 };
 
 function buildVaccineBrief(todayStr: string): VaccineBrief {
@@ -220,11 +220,11 @@ function buildVaccineBrief(todayStr: string): VaccineBrief {
     const delta = dayNumber(effectiveOn) - todayNum;
 
     if (effectiveOn === todayStr) {
-      todayAppointments.push({ vaccineName: item.vaccineName, dose: item.dose, appointmentTime: record?.appointmentTime || null });
+      todayAppointments.push({ vaccineName: item.vaccineName, dose: item.dose, appointmentTime: record?.appointmentTime || null, isAppointment: Boolean(record?.appointmentOn) });
     } else if (delta < 0) {
-      overdue.push({ vaccineName: item.vaccineName, dose: item.dose, overdueDays: Math.max(1, -delta), plannedOn: effectiveOn });
+      overdue.push({ vaccineName: item.vaccineName, dose: item.dose, overdueDays: Math.max(1, -delta), plannedOn: effectiveOn, isAppointment: Boolean(record?.appointmentOn) });
     } else if (delta >= 1 && delta <= 7) {
-      upcoming.push({ vaccineName: item.vaccineName, dose: item.dose, plannedOn: effectiveOn, category: item.category });
+      upcoming.push({ vaccineName: item.vaccineName, dose: item.dose, plannedOn: effectiveOn, category: item.category, isAppointment: Boolean(record?.appointmentOn) });
     }
   }
   todayAppointments.sort((a, b) => (a.appointmentTime || '99:99').localeCompare(b.appointmentTime || '99:99'));
@@ -301,12 +301,12 @@ function renderMorningDigestHtml(
         <div style="${STAT_CELL}">
           <div style="${LABEL}">喂奶</div>
           <div style="${VALUE}margin-top:2px;">${stats.feedTimes} 次</div>
-          <div style="${SUB}margin-top:2px;">共 ${stats.totalMl} ml · 间隔 ${stats.avgIntervalText}</div>
+          <div style="${SUB}margin-top:2px;">共 ${stats.totalMl} mL · 间隔 ${stats.avgIntervalText}</div>
         </div>
         <div style="${STAT_CELL}">
           <div style="${LABEL}">奶量</div>
-          <div style="${VALUE}margin-top:4px;">母乳 ${stats.breastMl} ml</div>
-          <div style="${VALUE}margin-top:2px;">奶粉 ${stats.formulaMl} ml</div>
+          <div style="${VALUE}margin-top:4px;">母乳 ${stats.breastMl} mL</div>
+          <div style="${VALUE}margin-top:2px;">奶粉 ${stats.formulaMl} mL</div>
         </div>
         <div style="${STAT_CELL}">
           <div style="${LABEL}">用药</div>
@@ -368,11 +368,11 @@ function renderMorningDigestHtml(
     const VACCINE_DIVIDER = 'margin:10px 0;border:none;border-top:1px solid #d4e2ec;';
     const parts: string[] = [];
     if (vaccines.todayAppointments.length > 0) {
-      const rows = vaccines.todayAppointments.map(v => `<div style="padding:4px 0;font-size:13px;color:#1f2a24;line-height:1.5;"><b style="color:#2b6b3e;">📌 ${v.vaccineName} 第${v.dose}剂</b>${v.appointmentTime ? ` · 门诊预约 ${v.appointmentTime}` : ' · 建议今日接种，待预约'}</div>`).join('');
+      const rows = vaccines.todayAppointments.map(v => `<div style="padding:4px 0;font-size:13px;color:#1f2a24;line-height:1.5;"><b style="color:#2b6b3e;">📌 ${v.vaccineName} 第${v.dose}剂</b> · ${v.isAppointment ? `门诊预约 · 今日${v.appointmentTime ? ` ${v.appointmentTime}` : ''}` : '建议接种日 · 今日 · 待预约'}</div>`).join('');
       parts.push(`<div style="font-size:12px;font-weight:700;color:#2b6b3e;margin-bottom:4px;">今日疫苗</div>${rows}`);
     }
     if (vaccines.overdue.length > 0) {
-      const rows = vaccines.overdue.slice(0, 3).map(v => `<div style="padding:4px 0;font-size:13px;color:#1f2a24;line-height:1.5;"><b style="color:#c4551d;">⚠️ ${v.vaccineName} 第${v.dose}剂</b> · 逾期 ${v.overdueDays} 天</div>`).join('');
+      const rows = vaccines.overdue.slice(0, 3).map(v => `<div style="padding:4px 0;font-size:13px;color:#1f2a24;line-height:1.5;"><b style="color:#c4551d;">⚠️ ${v.vaccineName} 第${v.dose}剂</b> · ${v.isAppointment ? '门诊预约' : '建议接种日'} · 已过${v.overdueDays}天</div>`).join('');
       if (parts.length > 0) parts.push(`<hr style="${VACCINE_DIVIDER}" />`);
       parts.push(`<div style="font-size:12px;font-weight:700;color:#c4551d;margin-bottom:4px;">逾期未接种</div>${rows}`);
     }
@@ -380,7 +380,7 @@ function renderMorningDigestHtml(
       const rows = vaccines.upcoming.map(v => {
         const short = `${v.plannedOn.slice(5).replace('-', '/')}（${weekdayLabel(v.plannedOn)}）`;
         const cat = v.category === 'self_paid' ? ' · 自费' : '';
-        return `<div style="padding:3px 0;font-size:13px;color:#1f2a24;line-height:1.5;">📅 ${short} <b style="color:#3d6b9a;">${v.vaccineName} 第${v.dose}剂</b>${cat}</div>`;
+        return `<div style="padding:3px 0;font-size:13px;color:#1f2a24;line-height:1.5;">📅 ${short} <b style="color:#3d6b9a;">${v.vaccineName} 第${v.dose}剂</b> · ${v.isAppointment ? '门诊预约' : '建议接种日'}${cat}</div>`;
       }).join('');
       if (parts.length > 0) parts.push(`<hr style="${VACCINE_DIVIDER}" />`);
       parts.push(`<div style="font-size:12px;font-weight:700;color:#3d6b9a;margin-bottom:4px;">未来 7 天待安排</div>${rows}`);
@@ -431,8 +431,8 @@ function feedSummary(feed: CareRecord): string {
   const breast = feed.breastMilkMl || 0;
   const formula = feed.formulaMl || 0;
   const parts: string[] = [];
-  if (breast > 0) parts.push(`母乳 ${breast}ml`);
-  if (formula > 0) parts.push(`奶粉 ${formula}ml`);
+  if (breast > 0) parts.push(`母乳 ${breast} mL`);
+  if (formula > 0) parts.push(`奶粉 ${formula} mL`);
   if (parts.length === 0) parts.push('喂奶');
   return parts.join(' + ');
 }

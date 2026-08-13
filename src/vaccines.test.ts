@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { VaccineCatalogItem, VaccineRecord } from './types';
-import { addMonths, buildVaccinePlan, doseOptionLabel } from './vaccines';
+import { addMonths, buildVaccinePlan, doseOptionLabel, vaccineDayDistance, vaccineTimingStatus } from './vaccines';
 
 describe('vaccine reminder plan', () => {
   it('clamps month-end birthdays instead of skipping a month', () => {
@@ -66,5 +66,13 @@ describe('vaccine reminder plan', () => {
     expect(plan.find(item => item.vaccineName === '乙肝疫苗' && item.dose === 1)?.plannedOn).toBe('2026-01-14');
     expect(plan.find(item => item.vaccineName === '乙肝疫苗' && item.dose === 2)?.plannedOn).toBe('2026-02-14');
     expect(plan.find(item => item.vaccineName === '乙肝疫苗' && item.dose === 3)?.plannedOn).toBe('2026-07-14');
+  });
+
+  it('uses one concise timing label for overdue, today and future dates', () => {
+    const now = new Date('2026-08-13T12:00:00+08:00');
+    expect(vaccineDayDistance('2026-08-12', now)).toBe(-1);
+    expect(vaccineTimingStatus('2026-08-12', now)).toMatchObject({ label: '已过1天', tone: 'overdue' });
+    expect(vaccineTimingStatus('2026-08-13', now)).toMatchObject({ label: '今日', tone: 'soon' });
+    expect(vaccineTimingStatus('2026-08-20', now)).toMatchObject({ label: '7天后', tone: 'soon' });
   });
 });

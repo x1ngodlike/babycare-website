@@ -642,23 +642,11 @@ export function saveVaccineRecord(record: VaccineRecord): VaccineRecord {
   return getVaccineRecord(record.id)!;
 }
 
-export function removeVaccineRecord(id: string, actor: AuditIdentity): VaccineRecord | null {
+export function removeVaccineRecord(id: string, _actor: AuditIdentity): VaccineRecord | null {
   const existing = getVaccineRecord(id);
-  if (!existing || existing.deletedAt) return null;
-  const now = new Date().toISOString();
-  db.prepare('UPDATE vaccine_records SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE id = ?').run(now, actor, now, actor, id);
-  return getVaccineRecord(id);
-}
-
-export function restoreVaccineRecord(id: string, actor: AuditIdentity): VaccineRecord {
-  const existing = getVaccineRecord(id);
-  if (!existing) throw new RecordNotFoundError('疫苗记录不存在');
-  const duplicate = db.prepare(`SELECT ${vaccineColumns} FROM vaccine_records WHERE vaccine_name = ? AND dose = ? AND deleted_at IS NULL AND id <> ? LIMIT 1`)
-    .get(existing.vaccineName, existing.dose, id) as VaccineRecord | undefined;
-  if (duplicate) throw new DuplicateVaccineRecordError(duplicate);
-  const now = new Date().toISOString();
-  db.prepare('UPDATE vaccine_records SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ? WHERE id = ?').run(now, actor, id);
-  return getVaccineRecord(id)!;
+  if (!existing) return null;
+  db.prepare('DELETE FROM vaccine_records WHERE id = ?').run(id);
+  return existing;
 }
 
 const vaccineCatalogColumns = `id, name, category, short_name AS shortName, description, dose_count AS doseCount, interval_summary AS intervalSummary, active, sort_order AS sortOrder, is_system AS isSystem`;

@@ -34,16 +34,16 @@ beforeAll(() => expect(db.getProfile()).toMatchObject({ name: '示例宝宝' }))
 afterAll(() => { db.closeDatabaseForTests(); rmSync(directory, { recursive: true, force: true }); });
 
 describe('record reliability', () => {
-  it('stores, protects, soft deletes and restores vaccine records', () => {
+  it('stores, protects and permanently deletes vaccine records', () => {
     const first = db.saveVaccineRecord(vaccine());
     expect(db.listVaccineRecords()).toContainEqual(first);
     const appointed = db.saveVaccineRecord({ ...first, plannedOn: '2026-01-01', appointmentOn: '2026-01-08', appointmentTime: '09:30' });
     expect(appointed).toMatchObject({ plannedOn: '2026-01-01', appointmentOn: '2026-01-08', appointmentTime: '09:30' });
     expect(db.saveVaccineRecord({ ...appointed, appointmentOn: null, appointmentTime: null })).toMatchObject({ plannedOn: '2026-01-01', appointmentOn: null });
     expect(() => db.saveVaccineRecord(vaccine())).toThrow(db.DuplicateVaccineRecordError);
-    expect(db.removeVaccineRecord(first.id, 'mother')?.deletedBy).toBe('mother');
+    expect(db.removeVaccineRecord(first.id, 'mother')?.id).toBe(first.id);
     expect(db.listVaccineRecords()).not.toContainEqual(expect.objectContaining({ id: first.id }));
-    expect(db.restoreVaccineRecord(first.id, 'father').deletedAt).toBeNull();
+    expect(db.listVaccineRecords(true)).not.toContainEqual(expect.objectContaining({ id: first.id }));
   });
 
   it('keeps exactly ten protected defaults and only allows toggling them', () => {

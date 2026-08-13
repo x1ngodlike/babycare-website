@@ -11,7 +11,7 @@ import sharp from 'sharp';
 import { testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
-import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, restoreVaccineRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
+import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
 import { startPushScheduler } from './push.js';
@@ -648,8 +648,6 @@ app.put('/api/vaccine-catalog/order', requireAdmin, (req, res) => {
   catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : '排序失败' }); }
 });
 
-app.get('/api/vaccine-records/deleted', requireAdmin, (_req, res) => res.json(listVaccineRecords(true).filter(record => record.deletedAt)));
-
 app.post('/api/vaccine-records', (req, res) => {
   const parsed = vaccineRecordSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '疫苗记录格式不正确' });
@@ -673,13 +671,6 @@ app.delete('/api/vaccine-records/:id', requireAdmin, (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: '疫苗记录编号不正确' });
   const record = removeVaccineRecord(parsed.data, getSessionUser(req)!.id); changeHub.broadcast('all');
   return res.json({ deleted: Boolean(record), record });
-});
-
-app.post('/api/vaccine-records/:id/restore', requireAdmin, (req, res) => {
-  const parsed = z.string().uuid().safeParse(req.params.id);
-  if (!parsed.success) return res.status(400).json({ error: '疫苗记录编号不正确' });
-  try { const record = restoreVaccineRecord(parsed.data, getSessionUser(req)!.id); changeHub.broadcast('all'); return res.json(record); }
-  catch (error) { if (error instanceof DuplicateVaccineRecordError) return res.status(409).json({ error: '当前已有相同疫苗和剂次的记录' }); throw error; }
 });
 
 app.get('/api/records', (req, res) => {
