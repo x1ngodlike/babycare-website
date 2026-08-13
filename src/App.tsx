@@ -1322,7 +1322,8 @@ export default function App() {
   const loadRecordsToday = useCallback(async () => {
     if (!currentUser) return false;
     const start = new Date(); start.setHours(0, 0, 0, 0);
-    const end = addDays(start, 1);
+    const end = addDays(start, 2);
+    start.setDate(start.getDate() - 1);
     try { const next = await api.records(start.toISOString(), end.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setOnline(true); setOfflineSession(false); return true; }
     catch { setRecords(getCachedRecords(currentUser.id)); setOnline(false); return false; }
   }, [currentUser]);
@@ -1415,12 +1416,12 @@ export default function App() {
     if (!authenticated || !currentUser) return;
     setPendingCount(getOutbox(currentUser.id).length);
     setTodayPlanStatus('loading');
-    loadCapabilities(); loadDeletedGrowthRecords(); loadDeletedVaccineRecords();
+    loadCapabilities(); loadDeletedGrowthRecords(); loadDeletedVaccineRecords(); loadPushStatus();
     const recordsLoad = loadRecordsToday();
     Promise.all([recordsLoad, loadProfile(), loadCareItems(), loadGrowthRecords(), loadVaccineRecords(), loadVaccineCatalog()])
       .then(results => setTodayPlanStatus(results[0] ? 'ready' : 'error'));
     recordsLoad.then(() => { if (navigator.onLine) syncOutbox(); });
-  }, [authenticated, currentUser, loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadDeletedVaccineRecords, loadGrowthRecords, loadProfile, loadRecordsToday, loadVaccineCatalog, loadVaccineRecords, syncOutbox]);
+  }, [authenticated, currentUser, loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadDeletedVaccineRecords, loadGrowthRecords, loadProfile, loadPushStatus, loadRecordsToday, loadVaccineCatalog, loadVaccineRecords, syncOutbox]);
 
   useEffect(() => {
     const onOnline = () => { setOnline(true); syncOutbox(); };

@@ -473,16 +473,22 @@ function renderFeedingGapLevel(
   const summary = feedSummary(lastFeed);
   const ago = minutesLabel(gapMinutes);
 
+  const badgeOk = 'display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:#e8f2ec;color:#2b6b3e;';
+  const badgeTodo = 'display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:#fdf3de;color:#a36b00;';
+  const badgeFree = 'display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:#e6eff5;color:#3a6f8c;';
+  const planRows = plan.length === 0
+    ? `<div style="text-align:center;padding:12px 0;font-size:13px;color:#6c7a72;">今日无计划用药 🎉</div>`
+    : plan.map(med => {
+        if (med.asNeeded) {
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #eef3ef;"><span style="font-size:12px;color:#6c7a72;width:54px;"></span><span style="font-size:13px;font-weight:600;color:#1f2a24;flex:1;">${med.name}</span><span style="${badgeFree}text-align:right;">按需</span></div>`;
+        }
+        const badge = med.done
+          ? `<span style="${badgeOk}">已完成</span>`
+          : `<span style="${badgeTodo}">待记录</span>`;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #eef3ef;"><span style="font-size:12px;color:#6c7a72;font-weight:700;width:54px;">${med.reminderTime || '今日'}</span><span style="font-size:13px;font-weight:600;color:#1f2a24;flex:1;">${med.name}</span>${badge}</div>`;
+      }).join('');
+
   if (level === 'level1') {
-    const pendingItems = plan.filter(p => !p.done && !p.asNeeded);
-    const pendingHtml = pendingItems.length === 0
-      ? `<div style="padding:8px 10px;background:#e8f2ec;border-radius:8px;font-size:12px;font-weight:700;color:#2b6b3e;">今日用药均已完成 🎉</div>`
-      : pendingItems.map(p => `
-          <div style="padding:6px 0;border-bottom:1px dashed #efe3c1;display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:12px;color:#6c7a72;font-weight:700;">${p.reminderTime || '今日'}</span>
-            <span style="font-size:13px;color:#1f2a24;font-weight:600;margin-left:10px;">${p.name}</span>
-          </div>
-        `).join('');
     const html = `
       <div style="padding:0;border-radius:14px;border:1px solid #e0e8e3;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',Arial,sans-serif;font-size:14px;color:#1f2a24;line-height:1.6;overflow:hidden;">
         <div style="padding:16px;background:#fff6df;">
@@ -498,8 +504,10 @@ function renderFeedingGapLevel(
           </div>
           <hr style="margin:12px 0;border:none;border-top:1px solid #e6ebe8;" />
           <div>
-            <div style="font-size:14px;font-weight:700;color:#d98e0b;margin-bottom:8px;line-height:1.4;">⏳ 今日用药计划（未完成）</div>
-            ${pendingHtml}
+            <div style="font-size:14px;font-weight:700;color:#d98e0b;margin-bottom:4px;line-height:1.4;">⏳ 今日用药计划</div>
+            <div style="background:#fafbfc;padding:0 12px;margin-top:4px;">
+              ${planRows}
+            </div>
           </div>
         </div>
       </div>
@@ -508,15 +516,6 @@ function renderFeedingGapLevel(
   }
 
   // level2
-  const pendingItems2 = plan.filter(p => !p.done && !p.asNeeded);
-  const pendingHtml2 = pendingItems2.length === 0
-    ? `<div style="padding:8px 10px;background:#e8f2ec;border-radius:8px;font-size:12px;font-weight:700;color:#2b6b3e;">今日用药均已完成 🎉</div>`
-    : pendingItems2.map(p => `
-        <div style="padding:6px 0;border-bottom:1px dashed #e9c8c2;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:12px;color:#6c7a72;font-weight:700;">${p.reminderTime || '今日'}</span>
-          <span style="font-size:13px;color:#1f2a24;font-weight:600;margin-left:10px;">${p.name}</span>
-        </div>
-      `).join('');
   const html = `
     <div style="padding:0;border-radius:14px;border:1px solid #e0e8e3;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',Arial,sans-serif;font-size:14px;color:#1f2a24;line-height:1.6;overflow:hidden;">
       <div style="padding:16px;background:#fdecea;">
@@ -532,8 +531,10 @@ function renderFeedingGapLevel(
         </div>
         <hr style="margin:12px 0;border:none;border-top:1px solid #e6ebe8;" />
         <div>
-          <div style="font-size:14px;font-weight:700;color:#c44032;margin-bottom:8px;line-height:1.4;">⏳ 今日用药计划（未完成）</div>
-          ${pendingHtml2}
+          <div style="font-size:14px;font-weight:700;color:#c44032;margin-bottom:4px;line-height:1.4;">⏳ 今日用药计划</div>
+          <div style="background:#fafbfc;padding:0 12px;margin-top:4px;">
+            ${planRows}
+          </div>
         </div>
         <div style="margin-top:14px;text-align:center;font-size:13px;color:#c44032;font-weight:700;line-height:1.5;">→ 快去喂一喂吧 🍼</div>
       </div>
