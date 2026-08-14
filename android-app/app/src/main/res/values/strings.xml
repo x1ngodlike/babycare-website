@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">宝宝照护</string>
+    <string name="server_health_hint">会先测试 /api/health，成功后再进入应用。</string>
+</resources>

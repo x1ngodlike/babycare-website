@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, createElement } from 'react';
-import { Baby, Bell, Bot, LogOut, Pill, Save, Search, Syringe, Users } from 'lucide-react';
+import { Baby, Bell, Bot, LogOut, Pill, Save, Search, Server, Syringe, Users } from 'lucide-react';
 import { api, ApiError } from './api';
 import { addDays, calculateAge, isoDay, startOfWeek } from './date';
 import { isCareItemDue, nextCareItemDueDate } from './careSchedule';
@@ -16,6 +16,15 @@ type Tab = 'today' | 'history' | 'trends' | 'archive' | 'settings';
 type TrendMode = 'seven' | 'month' | 'total';
 type ChangeScope = 'records' | 'profile' | 'all';
 type ToastState = { message: string; actionLabel?: string; onAction?: () => void | Promise<void> };
+
+declare global {
+  interface Window {
+    BabyCareNative?: {
+      openServerSettings(): void;
+      getEnvironmentLabel(): string;
+    };
+  }
+}
 
 const typeNames: Record<RecordType, string> = { feeding: '喂奶', supplement: '护理', bowel: '排便', note: '其他' };
 const recordEditorTypeOrder: RecordType[] = ['feeding', 'bowel', 'supplement', 'note'];
@@ -1274,7 +1283,7 @@ function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingG
 }
 
 type SettingsSection = 'root' | 'family' | 'care-items' | 'vaccines' | 'ai' | 'backup' | 'push' | 'baby';
-type SettingsIconName = 'medicine' | 'vaccine' | 'profile' | 'members' | 'ai' | 'backup' | 'bell' | 'logout';
+type SettingsIconName = 'medicine' | 'vaccine' | 'profile' | 'members' | 'ai' | 'backup' | 'bell' | 'server' | 'logout';
 
 function SettingsIcon({ name }: { name: SettingsIconName }) {
   // 使用 Lucide React 线性图标，统一 strokeWidth 1.8，与设计系统的圆角/圆润风格一致
@@ -1286,6 +1295,7 @@ function SettingsIcon({ name }: { name: SettingsIconName }) {
     ai: Bot,
     backup: Save,
     bell: Bell,
+    server: Server,
     logout: LogOut,
   };
   const Component = mapping[name];
@@ -1298,6 +1308,9 @@ function SettingsEntry({ icon, title, description, status, danger = false, showC
 
 function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, pushStatus, onProfileSaved, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; pushStatus: PushStatus | null; onProfileSaved(value: Profile): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSavePush(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number }): Promise<PushStatus> }) {
   const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false);
+  const nativeBridge = window.BabyCareNative;
+  let nativeEnvironment = '';
+  try { nativeEnvironment = nativeBridge?.getEnvironmentLabel() || ''; } catch { nativeEnvironment = ''; }
   useEffect(() => { const pop = () => { pushedRef.current = false; setSection('root'); }; window.addEventListener('popstate', pop); return () => { window.removeEventListener('popstate', pop); if (pushedRef.current) window.history.back(); }; }, []);
   const member = familyMembers.find(item => item.id === user.id)!;
   function open(next: Exclude<SettingsSection, 'root'>) { window.history.pushState({ babycareSettings: next }, ''); pushedRef.current = true; setSection(next); window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -1324,6 +1337,7 @@ function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, 
       {canManage(user) && <section className="settings-menu" aria-label="照护设置"><SettingsEntry icon="medicine" title="用药护理" description="分类、计划与项目管理" status={`${careItems.filter(item => item.active).length} 项`} onClick={() => open('care-items')} /><SettingsEntry icon="vaccine" title="疫苗管理" description="目录与接种计划" status={`${vaccineCatalog.filter(item => item.active).length} 项`} onClick={() => open('vaccines')} /></section>}
       {canManage(user) && <section className="settings-menu" aria-label="家庭设置"><SettingsEntry icon="profile" title="宝宝资料" description="姓名、生日与基础信息" onClick={() => open('baby')} />{user.role === 'superadmin' && <SettingsEntry icon="members" title="成员权限" description="家庭成员与管理权限" status={`${familyMembers.length} 人`} onClick={() => open('family')} />}</section>}
       {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="bell" title="消息推送" description="PushPlus 推送到普通微信" status={pushEntryStatus} onClick={() => open('push')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
+      {nativeBridge && <section className="settings-menu" aria-label="APP 设置"><SettingsEntry icon="server" title="服务器环境" description="切换局域网或外网连接" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} /></section>}
       <section className="settings-menu logout-menu" aria-label="账号操作"><SettingsEntry icon="logout" title="退出登录" description="退出当前家庭身份" danger showChevron={false} onClick={onLogout} /></section>
     </div>
   </div>;
