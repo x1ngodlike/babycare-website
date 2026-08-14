@@ -1283,23 +1283,22 @@ function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingG
     </section>
 
     <section className="settings-card push-runtime-card">
-      <details className="push-runtime-details">
-        <summary>
-          <span>运行状态</span>
-          <small>{pushStatus?.schedulerRunning ? '调度运行中' : '调度未启动'} · 今日已推送 {pushStatus?.todayPushedItems ?? 0} 条</small>
-        </summary>
-        <dl className="push-status-dl">
-          <div><dt>调度器</dt><dd>{pushStatus?.schedulerRunning ? '运行中' : '未启动'}</dd></div>
-          <div><dt>上次检查</dt><dd>{pushStatus?.lastCheckAt ? new Date(pushStatus.lastCheckAt).toLocaleString('zh-CN') : '暂无'}</dd></div>
-          <div><dt>今日已推送</dt><dd>{pushStatus?.todayPushedItems ?? 0} 项</dd></div>
-          <div><dt>距上次喂奶</dt><dd>{feedingGapLabel}</dd></div>
-          <div><dt>微信通道</dt><dd>{pushStatus?.pushplusConfigured ? (pushStatus.enabled ? '已开启' : '已关闭') : '未配置 Token'}</dd></div>
-          <div><dt>最近更新</dt><dd>{pushStatus?.updatedAt ? new Date(pushStatus.updatedAt).toLocaleString('zh-CN') : '未修改过'}</dd></div>
-        </dl>
-        <div className="push-runtime-actions">
-          <button type="button" className="btn secondary" onClick={refresh}>刷新状态</button>
+      <div className="setting-status">
+        <div>
+          <h2>运行状态</h2>
+          <p>今日已推送 {pushStatus?.todayPushedItems ?? 0} 条。</p>
         </div>
-      </details>
+        <span className={pushStatus?.schedulerRunning ? 'on' : ''}>{!pushStatus ? '读取中' : pushStatus.schedulerRunning ? '调度运行中' : '调度未启动'}</span>
+      </div>
+      <dl className="push-status-dl">
+        <div><dt>上次检查</dt><dd>{pushStatus?.lastCheckAt ? new Date(pushStatus.lastCheckAt).toLocaleString('zh-CN') : '暂无'}</dd></div>
+        <div><dt>距上次喂奶</dt><dd>{feedingGapLabel}</dd></div>
+        <div><dt>微信通道</dt><dd>{pushStatus?.pushplusConfigured ? (pushStatus.enabled ? '已开启' : '已关闭') : '未配置 Token'}</dd></div>
+        <div><dt>最近更新</dt><dd>{pushStatus?.updatedAt ? new Date(pushStatus.updatedAt).toLocaleString('zh-CN') : '未修改过'}</dd></div>
+      </dl>
+      <div className="push-runtime-actions">
+        <button type="button" className="btn secondary" onClick={refresh}>刷新状态</button>
+      </div>
     </section>
 
     {message && <p className={message.error ? 'error-text' : 'success-text'} role="status">{message.text}</p>}
