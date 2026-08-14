@@ -31,6 +31,14 @@ describe('daily report prompt', () => {
     expect(messages[1].content).not.toContain('上次');
   });
 
+  it('delegates routine medication reminders to the plan section and focuses on health', () => {
+    const messages = dailyReportMessages(input());
+    expect(messages[0].content).toContain('今日用药护理计划');
+    expect(messages[0].content).toContain('不要输出常规用药或补充剂提醒');
+    expect(messages[0].content).toContain('围绕宝宝健康照护展开');
+    expect(messages[0].content).not.toContain('补充剂执行');
+  });
+
   it('provides age, sex, recent growth context and the AD/VD plan', () => {
     const payload = JSON.parse(dailyReportMessages(input())[1].content) as Record<string, unknown>;
     expect(payload).toMatchObject({
