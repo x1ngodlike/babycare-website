@@ -317,7 +317,7 @@ data/
 
 Service Worker 仅缓存静态壳和最近访问的 GET 资源；`/api/` 请求不进入缓存。生产构建才注册 `/sw.js`。
 
-当前没有 Web Push、`PushManager` 或 `Notification.requestPermission()`。
+当前没有 Web Push、`PushManager` 或浏览器端 `Notification.requestPermission()`。Android 原生壳使用 `POST_NOTIFICATIONS` 和 `AlarmManager` 提供本地疫苗预约提醒。
 
 ## 8. PushPlus 调度
 
@@ -327,7 +327,7 @@ Service Worker 仅缓存静态壳和最近访问的 GET 资源；`/api/` 请求�
 2. 喂奶间隔：按最近喂奶记录和两级阈值去重。
 3. 单项提醒：项目恰好匹配当前 `HH:MM`、当天到期且未在内存中发送。
 
-所有消息只通过 PushPlus。Token 缺失时不发送；请求超时为 15 秒；失败记录日志且不标记成功。
+消息可进入 PushPlus 和 Android APP 队列。PushPlus Token 缺失时仅跳过该通道；存在近 30 天活跃的 APP 设备时，早报、喂奶和照护消息写入保留 7 天的队列。
 
 注意：单项提醒的 `pushedToday` 是进程内集合，服务重启后会清空；早报和喂奶标记保存在数据库中。
 
@@ -409,6 +409,10 @@ Docker Compose 关键约定：
 - 外网地址必须使用 HTTPS；局域网允许可信私网 HTTP/HTTPS。
 - Cookie 由 WebView 持久化，并在 Activity 暂停、停止和销毁时主动落盘。
 - 同一来源沿用服务端 30 天登录会话；协议、域名或端口变化会形成不同的 Cookie 与本地存储空间。
+- `BabyCareNative` 提供通知权限、测试通知、疫苗预约提醒同步和系统日历日程写入界面。
+- 疫苗提醒保存在 Android `SharedPreferences`，通过不精确的 `setAndAllowWhileIdle` 在预约前一天发送，避免申请精确闹钟特殊权限。
+- Android 使用约 15 分钟的不精确后台轮询同步 APP 通知。每台设备本地保存总开关和四个分类开关，关闭的分类在展示前过滤。
+- 日历使用 `CalendarContract` 的 `ACTION_INSERT`，仅预填日程并交由用户确认，不直接读写日历数据。普通浏览器下会下载 `.ics` 作为回退。
 - 网页/API 更新只需重新部署服务器并刷新或重开 App；原生代码、图标、权限和 Android 配置变化必须提高版本号并重新安装 APK。
 - 详细构建步骤见 [`../android-app/README.md`](../android-app/README.md)。
 

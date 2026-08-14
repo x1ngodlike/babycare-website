@@ -51,6 +51,20 @@ beforeAll(() => expect(db.getProfile()).toMatchObject({ name: '示例宝宝' }))
 afterAll(() => { db.closeDatabaseForTests(); rmSync(directory, { recursive: true, force: true }); });
 
 describe('record reliability', () => {
+  it('starts a new APP notification client at the latest message and then returns new messages', () => {
+    const historical = db.enqueueAppNotification({ type: 'morning', title: '历史早报', body: '不应向新设备补发。' });
+    const client = db.touchAppNotificationClient('android-test-client');
+    expect(client).toEqual({ isNew: true, cursor: historical.id });
+    expect(db.listAppNotifications(client.cursor).items).toEqual([]);
+
+    const next = db.enqueueAppNotification({ type: 'feeding', title: '该记录喂奶啦', body: '测试消息', target: 'today' });
+    expect(db.listAppNotifications(client.cursor)).toMatchObject({
+      items: [{ id: next.id, type: 'feeding', title: '该记录喂奶啦', target: 'today' }],
+      cursor: next.id
+    });
+    expect(db.hasRecentAppNotificationClient()).toBe(true);
+  });
+
   it('stores, protects and permanently deletes vaccine records', () => {
     const first = db.saveVaccineRecord(vaccine());
     expect(db.listVaccineRecords()).toContainEqual(first);

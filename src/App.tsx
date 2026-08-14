@@ -11,20 +11,12 @@ import { buildVaccinePlan, vaccineTimingStatus, type VaccinePlanItem } from './v
 import { ActionMenu, confirmAction, EmptyState, SegmentedControl, Switch, useDialogFocus } from './ui';
 import { DateField, DateTimeField, TimeField } from './DateField';
 import { usePullToRefresh } from './usePullToRefresh';
+import { getNativeNotificationPermission, getNativeNotificationSettings, requestNativeNotificationPermission, saveNativeNotificationSettings, showNativeCategoryTestNotification, syncNativeVaccineReminders, type NativeNotificationPermission, type NativeNotificationSettings, type NativeNotificationType } from './native';
 
 type Tab = 'today' | 'history' | 'trends' | 'archive' | 'settings';
 type TrendMode = 'seven' | 'month' | 'total';
 type ChangeScope = 'records' | 'profile' | 'all';
 type ToastState = { message: string; actionLabel?: string; onAction?: () => void | Promise<void> };
-
-declare global {
-  interface Window {
-    BabyCareNative?: {
-      openServerSettings(): void;
-      getEnvironmentLabel(): string;
-    };
-  }
-}
 
 const typeNames: Record<RecordType, string> = { feeding: '喂奶', supplement: '护理', bowel: '排便', note: '其他' };
 const recordEditorTypeOrder: RecordType[] = ['feeding', 'bowel', 'supplement', 'note'];
@@ -1332,7 +1324,51 @@ function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingG
   </section>;
 }
 
-type SettingsSection = 'root' | 'family' | 'care-items' | 'vaccines' | 'ai' | 'backup' | 'push' | 'baby';
+function NativeNotificationSettingsCard({ superadmin }: { superadmin: boolean }) {
+  const [permission, setPermission] = useState<NativeNotificationPermission>(() => getNativeNotificationPermission());
+  const [settings, setSettings] = useState<NativeNotificationSettings>(() => getNativeNotificationSettings());
+  const [message, setMessage] = useState('');
+  useEffect(() => {
+    const update = (event: Event) => {
+      const status = (event as CustomEvent<NativeNotificationPermission>).detail;
+      setPermission(status || getNativeNotificationPermission());
+      setMessage(status === 'granted' ? '通知权限已开启' : '未允许通知，可以稍后在系统设置中开启');
+    };
+    window.addEventListener('babycare:native-notification-permission', update);
+    return () => window.removeEventListener('babycare:native-notification-permission', update);
+  }, []);
+  function requestPermission() {
+    setMessage('');
+    requestNativeNotificationPermission();
+    window.setTimeout(() => setPermission(getNativeNotificationPermission()), 500);
+  }
+  function change(key: keyof NativeNotificationSettings, value: boolean) {
+    const next = { ...settings, [key]: value };
+    setSettings(next);
+    saveNativeNotificationSettings(next);
+    setMessage('已保存到当前手机');
+  }
+  function testNotification(type: NativeNotificationType, label: string) {
+    setMessage(`已发送${label}测试通知，请查看手机通知栏`);
+    showNativeCategoryTestNotification(type);
+  }
+  const rows: Array<{ key: NativeNotificationType; label: string; description: string }> = [
+    { key: 'morning', label: '宝宝早报', description: '昨日喂奶统计、今日待办和疫苗安排' },
+    { key: 'feeding', label: '喂奶提醒', description: '达到设置的喂奶间隔时提醒' },
+    { key: 'care', label: '用药与照护', description: '计划时间到达且尚未完成时提醒' },
+    { key: 'vaccine', label: '疫苗预约', description: '已预约疫苗在接种前一天提醒' }
+  ];
+  return <section className="settings-card native-notification-card">
+    <div className="setting-status"><div><h2>APP 通知</h2><p>每台手机可以独立选择接收的提醒。</p></div><span className={permission === 'granted' ? 'on' : ''}>{permission === 'granted' ? '已允许' : '待开启'}</span></div>
+    {permission !== 'granted' && <button type="button" className="btn primary" onClick={requestPermission}>开启 APP 通知</button>}
+    <div className="form-switch-row"><div><label>接收 APP 通知</label><small>关闭后，当前手机不显示任何照护通知</small></div><Switch checked={settings.all} label="接收 APP 通知" onChange={value => change('all', value)} /></div>
+    <div className="native-notification-list">{rows.map(row => <div className="native-notification-row" key={row.key}><div><b>{row.label}</b><small>{row.description}</small></div><div className="native-notification-controls"><Switch checked={settings[row.key]} label={`${settings[row.key] ? '关闭' : '开启'}${row.label}`} disabled={!settings.all} onChange={value => change(row.key, value)} />{superadmin && <button type="button" className="btn secondary" disabled={permission !== 'granted' || !settings.all || !settings[row.key]} onClick={() => testNotification(row.key, row.label)}>测试</button>}</div></div>)}</div>
+    <div className="native-notification-info"><p>早报、喂奶和照护提醒由 APP 约每 15 分钟同步一次，可能略有延迟；疫苗预约提醒保存在当前手机。设置不影响 PushPlus。</p></div>
+    {message && <p className="success-text" role="status">{message}</p>}
+  </section>;
+}
+
+type SettingsSection = 'root' | 'family' | 'care-items' | 'vaccines' | 'ai' | 'backup' | 'push' | 'baby' | 'app-notifications';
 type SettingsIconName = 'medicine' | 'vaccine' | 'profile' | 'members' | 'ai' | 'backup' | 'bell' | 'server' | 'logout';
 
 function SettingsIcon({ name }: { name: SettingsIconName }) {
@@ -1359,6 +1395,7 @@ function SettingsEntry({ icon, title, description, status, danger = false, showC
 function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, pushStatus, onProfileSaved, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; pushStatus: PushStatus | null; onProfileSaved(value: Profile): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSavePush(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number }): Promise<PushStatus> }) {
   const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false);
   const nativeBridge = window.BabyCareNative;
+  const nativeNotificationsAvailable = Boolean(nativeBridge?.getNotificationPermissionStatus && nativeBridge?.requestNotificationPermission && nativeBridge?.showTestNotification && nativeBridge?.getAppNotificationSettings && nativeBridge?.saveAppNotificationSettings);
   let nativeEnvironment = '';
   try { nativeEnvironment = nativeBridge?.getEnvironmentLabel() || ''; } catch { nativeEnvironment = ''; }
   useEffect(() => { const pop = () => { pushedRef.current = false; setSection('root'); }; window.addEventListener('popstate', pop); return () => { window.removeEventListener('popstate', pop); if (pushedRef.current) window.history.back(); }; }, []);
@@ -1370,7 +1407,8 @@ function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, 
     if (!pushStatus.pushplusConfigured) return '未配置';
     return pushStatus.enabled ? '已开启' : '已关闭';
   })();
-  const subTitles: Record<Exclude<SettingsSection, 'root'>, string> = { baby: '宝宝资料', family: '成员权限', 'care-items': '用药护理', vaccines: '疫苗管理', ai: 'AI 模型', backup: '数据备份', push: '消息推送' };
+  const nativeNotificationPermission = nativeNotificationsAvailable ? getNativeNotificationPermission() : 'unavailable';
+  const subTitles: Record<Exclude<SettingsSection, 'root'>, string> = { baby: '宝宝资料', family: '成员权限', 'care-items': '用药护理', vaccines: '疫苗管理', ai: 'AI 模型', backup: '数据备份', push: '消息推送', 'app-notifications': 'APP 通知' };
   if (section !== 'root') return <div className="page-stack settings-subpage"><header className="subpage-head"><button type="button" onClick={back} aria-label="返回设置">←</button><div><p className="kicker">设置</p><h1>{subTitles[section]}</h1></div></header><div className="settings-grid">
     {section === 'baby' && <ProfileSettingsCard profile={profile} onSaved={onProfileSaved} />}
     {section === 'family' && <FamilyPermissionsCard />}
@@ -1379,6 +1417,7 @@ function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, 
     {section === 'ai' && <AiSettingsCard capabilities={capabilities} onChanged={onCapabilitiesChanged} />}
     {section === 'backup' && <ServerBackupCard onImported={onImported} />}
     {section === 'push' && <PushSettingsCard pushStatus={pushStatus} onRefresh={onRefreshPush} onTestMorning={onTestMorning} onTestFeedingGap={onTestFeedingGap} onTestCareItem={onTestCareItem} onSave={onSavePush} />}
+    {section === 'app-notifications' && nativeNotificationsAvailable && <NativeNotificationSettingsCard superadmin={user.role === 'superadmin'} />}
   </div></div>;
   return <div className="page-stack settings-home"><header className="page-head"><h1>设置</h1><p>{user.role === 'superadmin' ? '管理家庭成员、照护项目和服务器。' : user.role === 'admin' ? '管理宝宝资料、用药项目和已删除记录。' : '查看当前身份和权限。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份与权限</span><h2>{user.name}</h2><p>{roleNames[user.role]}</p></div><i>{canManage(user) ? '管理权限' : '记录权限'}</i></section>
     {user.role === 'admin' && <section className="settings-card permission-note"><p className="kicker">管理权限</p><h2>管理日常照护</h2><p>可编辑宝宝资料、管理用药项目和回收站。家庭权限、AI 模型、消息推送和备份仅超管可操作。</p></section>}
@@ -1387,7 +1426,7 @@ function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, 
       {canManage(user) && <section className="settings-menu" aria-label="照护设置"><SettingsEntry icon="medicine" title="用药护理" description="分类、计划与项目管理" status={`${careItems.filter(item => item.active).length} 项`} onClick={() => open('care-items')} /><SettingsEntry icon="vaccine" title="疫苗管理" description="目录与接种计划" status={`${vaccineCatalog.filter(item => item.active).length} 项`} onClick={() => open('vaccines')} /></section>}
       {canManage(user) && <section className="settings-menu" aria-label="家庭设置"><SettingsEntry icon="profile" title="宝宝资料" description="姓名、生日与基础信息" onClick={() => open('baby')} />{user.role === 'superadmin' && <SettingsEntry icon="members" title="成员权限" description="家庭成员与管理权限" status={`${familyMembers.length} 人`} onClick={() => open('family')} />}</section>}
       {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="bell" title="消息推送" description="PushPlus 推送到普通微信" status={pushEntryStatus} onClick={() => open('push')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
-      {nativeBridge && <section className="settings-menu" aria-label="APP 设置"><SettingsEntry icon="server" title="服务器环境" description="切换局域网或外网连接" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} /></section>}
+      {nativeBridge && <section className="settings-menu" aria-label="APP 设置">{nativeNotificationsAvailable && <SettingsEntry icon="bell" title="APP 通知" description="早报、喂奶、照护与疫苗提醒" status={nativeNotificationPermission === 'granted' ? '已允许' : '待开启'} onClick={() => open('app-notifications')} />}<SettingsEntry icon="server" title="服务器环境" description="切换局域网或外网连接" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} /></section>}
       <section className="settings-menu logout-menu" aria-label="账号操作"><SettingsEntry icon="logout" title="退出登录" description="退出当前家庭身份" danger showChevron={false} onClick={onLogout} /></section>
     </div>
   </div>;
@@ -1402,11 +1441,22 @@ export default function App() {
   const [deletedRecords, setDeletedRecords] = useState<CareRecord[]>([]); const [careItems, setCareItems] = useState<CareItem[]>([]);
   const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([]); const [deletedGrowthRecords, setDeletedGrowthRecords] = useState<GrowthRecord[]>([]);
   const [vaccineRecords, setVaccineRecords] = useState<VaccineRecord[]>([]);
+  const [vaccineRecordsReady, setVaccineRecordsReady] = useState(false);
   const [vaccineCatalog, setVaccineCatalog] = useState<VaccineCatalogItem[]>([]);
   const [pushStatus, setPushStatus] = useState<PushStatus | null>(null);
   const [todayPlanStatus, setTodayPlanStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date()); const [historyMode, setHistoryMode] = useState<'care' | 'vaccine'>('care');
   useEffect(() => { tabRef.current = tab; }, [tab]);
+  useEffect(() => {
+    const openNotification = (event: Event) => {
+      const target = (event as CustomEvent<string>).detail;
+      if (target === 'vaccine') { setHistoryMode('vaccine'); setTab('history'); }
+      else setTab('today');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    window.addEventListener('babycare:native-notification-open', openNotification);
+    return () => window.removeEventListener('babycare:native-notification-open', openNotification);
+  }, []);
   const [editor, setEditor] = useState<DraftRecord | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
   const [growthEditor, setGrowthEditor] = useState<GrowthRecord | 'new' | null>(null);
   const [vaccineEditor, setVaccineEditor] = useState<VaccineEditorState | null>(null);
@@ -1452,7 +1502,7 @@ export default function App() {
   const loadDeletedRecords = useCallback(async () => { if (!canManage(currentUser)) return; try { setDeletedRecords(await api.deletedRecords()); } catch { setDeletedRecords([]); } }, [currentUser]);
   const loadGrowthRecords = useCallback(async () => { try { setGrowthRecords(await api.growthRecords()); return true; } catch { return false; } }, []);
   const loadDeletedGrowthRecords = useCallback(async () => { if (!canManage(currentUser)) return; try { setDeletedGrowthRecords(await api.deletedGrowthRecords()); } catch { setDeletedGrowthRecords([]); } }, [currentUser]);
-  const loadVaccineRecords = useCallback(async () => { try { setVaccineRecords(await api.vaccineRecords()); return true; } catch { return false; } }, []);
+  const loadVaccineRecords = useCallback(async () => { try { const next = await api.vaccineRecords(); setVaccineRecords(next); setVaccineRecordsReady(true); return true; } catch { return false; } }, []);
   const loadVaccineCatalog = useCallback(async () => { try { setVaccineCatalog(await api.vaccineCatalog()); return true; } catch { return false; } }, []);
   const loadPushStatus = useCallback(async () => { try { setPushStatus(await api.pushStatus()); } catch { setPushStatus(null); } }, []);
   const testMorningDigest = useCallback(async () => { const r = await api.testMorningDigestPush(); await loadPushStatus(); return r; }, [loadPushStatus]);
@@ -1526,6 +1576,19 @@ export default function App() {
       .then(results => setTodayPlanStatus(results[0] ? 'ready' : 'error'));
     recordsLoad.then(() => { if (navigator.onLine) syncOutbox(); });
   }, [authenticated, currentUser, loadCapabilities, loadCareItems, loadDeletedGrowthRecords, loadGrowthRecords, loadProfile, loadPushStatus, loadRecordsToday, loadVaccineCatalog, loadVaccineRecords, syncOutbox]);
+
+  useEffect(() => {
+    if (!vaccineRecordsReady || !window.BabyCareNative?.syncVaccineReminders) return;
+    syncNativeVaccineReminders(vaccineRecords
+      .filter(record => Boolean(record.appointmentOn) && !record.administeredOn && !record.deletedAt)
+      .map(record => ({
+        id: record.id,
+        vaccineName: record.vaccineName,
+        dose: record.dose,
+        appointmentOn: record.appointmentOn!,
+        appointmentTime: record.appointmentTime || ''
+      })));
+  }, [vaccineRecords, vaccineRecordsReady]);
 
   useEffect(() => {
     const onOnline = () => { setOnline(true); syncOutbox(); };
@@ -1661,7 +1724,7 @@ export default function App() {
       {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} profile={profile} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} />}
       {tab === 'trends' && <TrendsView records={records} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
-      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
+      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
     </main>
     <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'history' ? 'nav-icon-records' : undefined} src={icon} alt="" /><b>{label}</b></button>)}<button className="nav-add" onClick={() => historyMode === 'vaccine' && tab === 'history' ? setVaccineEditor({ mode: 'add' }) : setEditor(blankDraft())} aria-label={historyMode === 'vaccine' && tab === 'history' ? '添加疫苗记录' : '添加照护记录'}><span aria-hidden="true">＋</span></button>{([['trends', '/icons/nav-trends.png', '趋势'], ['archive', '/icons/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'archive' ? 'nav-icon-archive' : undefined} src={icon} alt="" /><b>{label}</b></button>)}</nav>
     {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor key={growthEditor === 'new' ? 'new' : growthEditor.id} profile={profile} records={growthRecords} initial={growthEditor === 'new' ? undefined : growthEditor} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{vaccineEditor && <VaccineEditor state={vaccineEditor} profile={profile} catalog={vaccineCatalog} records={vaccineRecords} onClose={() => setVaccineEditor(null)} onSave={saveVaccine} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}

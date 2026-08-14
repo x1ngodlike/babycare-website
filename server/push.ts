@@ -1,6 +1,8 @@
 import axios from 'axios';
 import {
   getPushSettings,
+  enqueueAppNotification,
+  hasRecentAppNotificationClient,
   listCareItems,
   listRecords,
   savePushSettings,
@@ -10,6 +12,7 @@ import {
   listVaccineRecords,
   writePushSentFlags,
   type FeedingGapLevel,
+  type AppNotificationType,
   type PushSentFlags
 } from './db.js';
 import { addDaysToDateString, shanghaiDayUtcRange, shanghaiDateString } from './shanghai-date.js';
@@ -40,8 +43,9 @@ export interface PushStatus {
   lastFeedAt: string | null;
 }
 
-type MorningDigestRendered = { pushplusTitle: string; pushplusHtml: string };
-type FeedingGapRendered = { pushplusTitle: string; pushplusHtml: string };
+type AppNotificationPayload = { type: AppNotificationType; title: string; body: string; target: 'today' };
+type MorningDigestRendered = { pushplusTitle: string; pushplusHtml: string; app: AppNotificationPayload };
+type FeedingGapRendered = { pushplusTitle: string; pushplusHtml: string; app: AppNotificationPayload };
 type LocalProfile = { name: string; birthDate: string; birthTime?: string | null; sex?: 'male' | 'female' | 'unspecified' };
 
 let schedulerTimer: ReturnType<typeof setInterval> | null = null;
@@ -422,7 +426,18 @@ function renderMorningDigest(now = new Date()): MorningDigestRendered | null {
   const vaccines = buildVaccineBrief(todayStr);
 
   const { title, html } = renderMorningDigestHtml(profile, todayStr, stats, aiReport, plan, vaccines);
-  return { pushplusTitle: title, pushplusHtml: html };
+  const pendingCare = plan.filter(item => !item.done && !item.asNeeded).length;
+  const vaccineCount = vaccines.todayAppointments.length + vaccines.overdue.length + vaccines.upcoming.length;
+  return {
+    pushplusTitle: title,
+    pushplusHtml: html,
+    app: {
+      type: 'morning',
+      title: `${profile.name}早报 · ${Number(todayStr.slice(5, 7))}月${Number(todayStr.slice(8, 10))}日`,
+      body: `昨日喂奶 ${stats.feedTimes} 次，共 ${stats.totalMl} mL；今日待办 ${pendingCare} 项，疫苗安排 ${vaccineCount} 项。点击查看完整早报。`,
+      target: 'today'
+    }
+  };
 }
 
 // -------- Renderers: feeding gap --------
@@ -488,7 +503,11 @@ function renderFeedingGapLevel(
         </div>
       </div>
     `.trim();
-    return { pushplusTitle: `🟡 ${ago}未喂奶`, pushplusHtml: html };
+    return {
+      pushplusTitle: `🟡 ${ago}未喂奶`,
+      pushplusHtml: html,
+      app: { type: 'feeding', title: '该记录喂奶啦', body: `距上次喂奶已 ${ago}，上次 ${lastTime} · ${summary}。完成后记得及时记录。`, target: 'today' }
+    };
   }
 
   // level2
@@ -516,17 +535,28 @@ function renderFeedingGapLevel(
       </div>
     </div>
   `.trim();
-  return { pushplusTitle: `🔴 ${ago}未喂奶`, pushplusHtml: html };
+  return {
+    pushplusTitle: `🔴 ${ago}未喂奶`,
+    pushplusHtml: html,
+    app: { type: 'feeding', title: '喂奶间隔较长', body: `距上次喂奶已 ${ago}，请确认宝宝情况，完成后及时记录。`, target: 'today' }
+  };
 }
 
 // -------- Dispatch --------
 
-async function dispatchMessage(pushplusTitle: string, pushplusContent: string) {
+async function dispatchMessage(pushplusTitle: string, pushplusContent: string, app?: AppNotificationPayload, options: { forcePushPlus?: boolean; allowPushPlus?: boolean } = {}) {
   const settings = getPushSettings();
-  if (!settings.pushplusToken) return { ok: false, error: 'PushPlus Token 未配置' };
-  const r = await sendPushPlusMessage(pushplusTitle, pushplusContent, 'html');
-  const results = [{ channel: 'pushplus' as const, ...r }];
-  return { ok: r.ok, results };
+  const results: Array<{ channel: 'app' | 'pushplus'; ok: boolean; error?: string }> = [];
+  if (app && hasRecentAppNotificationClient()) {
+    enqueueAppNotification(app);
+    results.push({ channel: 'app', ok: true });
+  }
+  if ((options.forcePushPlus || (settings.enabled && options.allowPushPlus !== false)) && settings.pushplusToken) {
+    const result = await sendPushPlusMessage(pushplusTitle, pushplusContent, 'html');
+    results.push({ channel: 'pushplus', ...result });
+  }
+  if (results.length === 0) return { ok: false, error: '没有可用的推送通道', results };
+  return { ok: results.some(result => result.ok), results };
 }
 
 // -------- Core push functions --------
@@ -569,8 +599,7 @@ export function getPushStatus(): PushStatus {
 
 export async function updatePushSettings(input: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean }) {
   savePushSettings(input);
-  const settings = getPushSettings();
-  if (settings.enabled) startPushScheduler(); else stopPushScheduler();
+  startPushScheduler();
   return getPushStatus();
 }
 
@@ -599,9 +628,11 @@ export async function testMorningDigestPush() {
     const fallbackHtml = profile
       ? `<div style="padding:14px 16px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;"><h3 style="margin:0 0 12px;">☀️ ${profile.name} 早报测试</h3><p>如果看到这条消息，说明早报推送配置正确。</p></div>`
       : '<div style="padding:14px 16px;"><p>🔔 早报推送测试：请先完善宝宝资料。</p></div>';
-    return dispatchMessage(fallbackTitle, fallbackHtml);
+    return dispatchMessage(fallbackTitle, fallbackHtml, {
+      type: 'morning', title: '宝宝早报 · 测试', body: '测试成功。以后每天的宝宝早报会显示在这里。', target: 'today'
+    }, { forcePushPlus: true });
   }
-  return dispatchMessage(rendered.pushplusTitle, rendered.pushplusHtml);
+  return dispatchMessage(rendered.pushplusTitle, rendered.pushplusHtml, rendered.app, { forcePushPlus: true });
 }
 
 export async function testCareItemPush() {
@@ -626,7 +657,7 @@ export async function testCareItemPush() {
     };
   }
   const rendered = buildPushPlusPerItemHtml(item);
-  return dispatchMessage(rendered.title, rendered.html);
+  return dispatchMessage(rendered.title, rendered.html, rendered.app, { forcePushPlus: true });
 }
 
 export async function testFeedingGapPush(level: 'level1' | 'level2' = 'level1') {
@@ -679,24 +710,24 @@ export async function testFeedingGapPush(level: 'level1' | 'level2' = 'level1') 
 
   if (!lastFeed) throw new Error('无法生成喂奶间隔测试记录');
   const rendered = renderFeedingGapLevel(level, lastFeed, gapMinutes, now);
-  return dispatchMessage(rendered.pushplusTitle, rendered.pushplusHtml);
+  return dispatchMessage(rendered.pushplusTitle, rendered.pushplusHtml, rendered.app, { forcePushPlus: true });
 }
 
 // ---------- 2 new triggers ----------
 
 async function maybeSendMorningDigest(now: Date): Promise<boolean> {
   const settings = getPushSettings();
-  if (!settings.enabled || !settings.morningDigestEnabled) return false;
+  const appActive = hasRecentAppNotificationClient(now);
+  if (!appActive && (!settings.enabled || !settings.morningDigestEnabled)) return false;
   const flags: PushSentFlags = settings.pushSentFlags;
   const todayStr = shanghaiDateString(now);
   if (flags.morningDigestDate === todayStr) return false;
   const current = shanghaiHHMM(now);
   if (current < settings.morningDigestTime) return false;
-  if (!settings.pushplusToken) return false;
 
   const rendered = renderMorningDigest(now);
   if (!rendered) return false;
-  const result = await dispatchMessage(rendered.pushplusTitle, rendered.pushplusHtml);
+  const result = await dispatchMessage(rendered.pushplusTitle, rendered.pushplusHtml, rendered.app, { allowPushPlus: settings.morningDigestEnabled });
   if (result.ok) {
     writePushSentFlags({ morningDigestDate: todayStr });
     const okCh = result.results?.filter(r => r.ok).map(r => r.channel).join(',');
@@ -710,7 +741,8 @@ async function maybeSendMorningDigest(now: Date): Promise<boolean> {
 
 async function maybeSendFeedingGap(now: Date): Promise<boolean> {
   const settings = getPushSettings();
-  if (!settings.enabled || !settings.feedingGapEnabled) return false;
+  const appActive = hasRecentAppNotificationClient(now);
+  if (!appActive && (!settings.enabled || !settings.feedingGapEnabled)) return false;
   const info = getLastFeedInfo(now);
   if (!info.record || info.gapMinutes === null) return false;
   const flags: PushSentFlags = getPushSettings().pushSentFlags;
@@ -721,7 +753,6 @@ async function maybeSendFeedingGap(now: Date): Promise<boolean> {
     flags.feedingGapNotifiedLevel = undefined;
   }
 
-  if (!settings.pushplusToken) return false;
 
   const l1 = Math.max(30, settings.feedingGapLevel1Minutes);
   let l2 = settings.feedingGapLevel2Minutes;
@@ -734,7 +765,7 @@ async function maybeSendFeedingGap(now: Date): Promise<boolean> {
   if (!sendLevel) return false;
 
   const rendered = renderFeedingGapLevel(sendLevel, info.record, info.gapMinutes, now);
-  const result = await dispatchMessage(rendered.pushplusTitle, rendered.pushplusHtml);
+  const result = await dispatchMessage(rendered.pushplusTitle, rendered.pushplusHtml, rendered.app, { allowPushPlus: settings.feedingGapEnabled });
   if (result.ok) {
     writePushSentFlags({
       lastFeedRecordId: info.record.id,
@@ -771,14 +802,22 @@ function buildPushPlusPerItemHtml(item: CareItem) {
       </div>
     </div>
   `.trim();
-  return { title, html };
+  return {
+    title,
+    html,
+    app: {
+      type: 'care' as const,
+      title: `${isMedicine ? '用药' : '照护'}提醒：${item.name}`,
+      body: `计划时间 ${item.reminderTime || '今日'} · 今天待完成。`,
+      target: 'today' as const
+    }
+  };
 }
 
 async function checkCareItemReminders(now: Date) {
   const settings = getPushSettings();
-  if (!settings.enabled) return;
-  if (!settings.careItemEnabled) return;
-  if (!settings.pushplusToken) return;
+  const appActive = hasRecentAppNotificationClient(now);
+  if (!appActive && (!settings.enabled || !settings.careItemEnabled)) return;
 
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const todayStr = now.toDateString();
@@ -795,8 +834,8 @@ async function checkCareItemReminders(now: Date) {
     if (pushedToday.has(dedupKey)) continue;
     pushedToday.add(dedupKey);
 
-    const { title, html } = buildPushPlusPerItemHtml(item);
-    const result = await dispatchMessage(title, html);
+    const { title, html, app } = buildPushPlusPerItemHtml(item);
+    const result = await dispatchMessage(title, html, app, { allowPushPlus: settings.careItemEnabled });
     if (!result.ok) {
       console.error('[push] 单项提醒推送失败, item:', item.name, result);
     } else {
@@ -824,11 +863,6 @@ async function checkAndPush() {
 }
 
 export function startPushScheduler() {
-  const settings = getPushSettings();
-  if (!settings.enabled) {
-    console.log('[push] 推送未启用，跳过启动');
-    return;
-  }
   if (schedulerTimer) return;
 
   checkAndPush().catch(error => console.error('[push] 初始检查失败:', error));

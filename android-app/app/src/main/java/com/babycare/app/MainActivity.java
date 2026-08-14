@@ -1,5 +1,6 @@
 package com.babycare.app;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
@@ -13,6 +14,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.CalendarContract;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,12 +45,18 @@ import android.widget.Toast;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 41;
+    private static final int NOTIFICATION_PERMISSION_REQUEST = 42;
 
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
     private WebView webView;
@@ -56,12 +64,16 @@ public final class MainActivity extends Activity {
     private LinearLayout errorView;
     private TextView errorMessage;
     private ValueCallback<Uri[]> fileChooserCallback;
+    private String pendingNotificationTarget;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         createContentView();
         configureSystemBars();
+        NotificationScheduler.createChannel(this);
+        AppNotificationPoller.start(this);
+        captureNotificationTarget(getIntent());
         configureWebView();
 
         if (ServerConfig.selectedUrl(this).isEmpty()) showServerDialog(true);
@@ -181,7 +193,7 @@ public final class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " BabyCareAndroid/1.1.2");
+        settings.setUserAgentString(settings.getUserAgentString() + " BabyCareAndroid/1.3.0");
         webView.addJavascriptInterface(new NativeBridge(), "BabyCareNative");
 
         CookieManager cookieManager = CookieManager.getInstance();
@@ -212,6 +224,8 @@ public final class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 progressBar.setVisibility(View.GONE);
                 CookieManager.getInstance().flush();
+                dispatchNotificationTarget();
+                AppNotificationPoller.pollNow(MainActivity.this);
             }
 
             @Override
@@ -398,6 +412,7 @@ public final class MainActivity extends Activity {
                     lanInput.getText().toString(),
                     selected
                 );
+                AppNotificationPoller.start(this);
                 dialog.dismiss();
                 loadSelectedServer();
             });
@@ -455,6 +470,125 @@ public final class MainActivity extends Activity {
         public String getEnvironmentLabel() {
             return ServerConfig.environment(MainActivity.this).label;
         }
+
+        @JavascriptInterface
+        public String getNotificationPermissionStatus() {
+            return NotificationScheduler.permissionStatus(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void requestNotificationPermission() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    && !NotificationScheduler.canNotify(MainActivity.this)) {
+                    requestPermissions(
+                        new String[] { Manifest.permission.POST_NOTIFICATIONS },
+                        NOTIFICATION_PERMISSION_REQUEST
+                    );
+                } else {
+                    notifyWebPermissionChanged();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void showTestNotification(String type) {
+            runOnUiThread(() -> {
+                if (!NotificationScheduler.showTest(MainActivity.this, type)) {
+                    Toast.makeText(MainActivity.this, "请先允许 APP 发送通知", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getAppNotificationSettings() {
+            return AppNotificationSettings.json(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void saveAppNotificationSettings(String json) {
+            runOnUiThread(() -> AppNotificationSettings.save(MainActivity.this, json));
+        }
+
+        @JavascriptInterface
+        public void syncVaccineReminders(String remindersJson) {
+            runOnUiThread(() -> NotificationScheduler.sync(MainActivity.this, remindersJson));
+        }
+
+        @JavascriptInterface
+        public void addVaccineToCalendar(String title, String appointmentOn, String appointmentTime, String description) {
+            runOnUiThread(() -> openCalendarInsert(title, appointmentOn, appointmentTime, description));
+        }
+    }
+
+    private void openCalendarInsert(String title, String appointmentOn, String appointmentTime, String description) {
+        try {
+            LocalDate date = LocalDate.parse(appointmentOn);
+            boolean allDay = appointmentTime == null || appointmentTime.isBlank();
+            long start;
+            long end;
+            if (allDay) {
+                start = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+                end = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+            } else {
+                LocalTime time = LocalTime.parse(appointmentTime);
+                LocalDateTime localStart = LocalDateTime.of(date, time);
+                start = localStart.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                end = localStart.plusHours(1).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            }
+            Intent intent = new Intent(Intent.ACTION_INSERT)
+                .setData(CalendarContract.Events.CONTENT_URI)
+                .putExtra(CalendarContract.Events.TITLE, title)
+                .putExtra(CalendarContract.Events.DESCRIPTION, description)
+                .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, start)
+                .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, end)
+                .putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, allDay)
+                .putExtra(CalendarContract.Events.AVAILABILITY, CalendarContract.Events.AVAILABILITY_BUSY);
+            startActivity(intent);
+        } catch (ActivityNotFoundException error) {
+            Toast.makeText(this, "手机上没有可用的日历应用", Toast.LENGTH_LONG).show();
+        } catch (Exception error) {
+            Toast.makeText(this, "日程信息不完整，请先检查预约时间", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void notifyWebPermissionChanged() {
+        if (webView == null) return;
+        String status = NotificationScheduler.permissionStatus(this);
+        webView.evaluateJavascript(
+            "window.dispatchEvent(new CustomEvent('babycare:native-notification-permission',{detail:'" + status + "'}))",
+            null
+        );
+    }
+
+    private void captureNotificationTarget(Intent intent) {
+        if (intent == null) return;
+        String target = intent.getStringExtra("notificationTarget");
+        if (target != null && !target.isBlank()) pendingNotificationTarget = target;
+    }
+
+    private void dispatchNotificationTarget() {
+        if (webView == null || pendingNotificationTarget == null) return;
+        String target = pendingNotificationTarget.replace("'", "");
+        pendingNotificationTarget = null;
+        webView.evaluateJavascript(
+            "setTimeout(function(){window.dispatchEvent(new CustomEvent('babycare:native-notification-open',{detail:'" + target + "'}));},500)",
+            null
+        );
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        captureNotificationTarget(intent);
+        dispatchNotificationTarget();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST) notifyWebPermissionChanged();
     }
 
     @Override
@@ -479,7 +613,10 @@ public final class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (webView != null) webView.onResume();
+        if (webView != null) {
+            webView.onResume();
+            notifyWebPermissionChanged();
+        }
     }
 
     @Override

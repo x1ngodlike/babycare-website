@@ -139,6 +139,22 @@ db.exec(`
     (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags)
     VALUES (1, 0, '', '', 1, '08:00', 1, 150, 180, 1, '{}');
 
+  CREATE TABLE IF NOT EXISTS app_notification_clients (
+    client_id TEXT PRIMARY KEY,
+    last_seen_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS app_notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL CHECK (type IN ('morning', 'feeding', 'care')),
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    target TEXT NOT NULL DEFAULT 'today',
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_app_notifications_expires_at ON app_notifications(expires_at);
+
   CREATE TABLE IF NOT EXISTS care_items (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
@@ -854,6 +870,47 @@ export function writePushSentFlags(patch: Partial<PushSentFlags>): PushSentFlags
   const serialized = JSON.stringify(next);
   db.prepare('UPDATE push_settings SET push_sent_flags = ?, updated_at = ? WHERE id = 1').run(serialized, new Date().toISOString());
   return next;
+}
+
+export type AppNotificationType = 'morning' | 'feeding' | 'care';
+export interface AppNotificationMessage {
+  id: number;
+  type: AppNotificationType;
+  title: string;
+  body: string;
+  target: string;
+  createdAt: string;
+}
+
+export function touchAppNotificationClient(clientId: string): { isNew: boolean; cursor: number } {
+  const existing = db.prepare('SELECT client_id FROM app_notification_clients WHERE client_id = ?').get(clientId);
+  const now = new Date().toISOString();
+  db.prepare(`INSERT INTO app_notification_clients (client_id, last_seen_at) VALUES (?, ?)
+    ON CONFLICT(client_id) DO UPDATE SET last_seen_at=excluded.last_seen_at`).run(clientId, now);
+  const latest = db.prepare('SELECT COALESCE(MAX(id), 0) AS cursor FROM app_notifications').get() as { cursor: number };
+  return { isNew: !existing, cursor: latest.cursor };
+}
+
+export function hasRecentAppNotificationClient(now = new Date()): boolean {
+  const cutoff = new Date(now.getTime() - 30 * 86_400_000).toISOString();
+  return Boolean(db.prepare('SELECT 1 FROM app_notification_clients WHERE last_seen_at >= ? LIMIT 1').get(cutoff));
+}
+
+export function enqueueAppNotification(input: { type: AppNotificationType; title: string; body: string; target?: string }): AppNotificationMessage {
+  const createdAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+  db.prepare('DELETE FROM app_notifications WHERE expires_at < ?').run(createdAt);
+  const result = db.prepare('INSERT INTO app_notifications (type, title, body, target, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(input.type, input.title, input.body, input.target || 'today', createdAt, expiresAt);
+  return { id: Number(result.lastInsertRowid), type: input.type, title: input.title, body: input.body, target: input.target || 'today', createdAt };
+}
+
+export function listAppNotifications(after: number, limit = 50): { items: AppNotificationMessage[]; cursor: number } {
+  const now = new Date().toISOString();
+  db.prepare('DELETE FROM app_notifications WHERE expires_at < ?').run(now);
+  const items = db.prepare(`SELECT id, type, title, body, target, created_at AS createdAt
+    FROM app_notifications WHERE id > ? ORDER BY id LIMIT ?`).all(after, limit) as AppNotificationMessage[];
+  return { items, cursor: items.at(-1)?.id || after };
 }
 
 export interface DailyReport {

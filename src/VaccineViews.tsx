@@ -3,6 +3,7 @@ import type { DraftVaccineRecord, Profile, VaccineCatalogItem, VaccineRecord } f
 import { buildVaccinePlan, catalogGroups, doseOptionLabel, formatVaccineDay, vaccineCategory, vaccineCategoryLabels, vaccineDateType, vaccineDayDistance, vaccineTimingStatus, type VaccineCategory, type VaccinePlanItem } from './vaccines';
 import { ActionMenu, confirmAction, EmptyState, useDialogFocus } from './ui';
 import { DateField, TimeField } from './DateField';
+import { addVaccineAppointmentToCalendar, vaccineCalendarActionLabel } from './native';
 
 export type VaccineEditorState = { mode: 'add' | 'complete' | 'appointment'; item?: VaccinePlanItem; record?: VaccineRecord };
 
@@ -17,7 +18,7 @@ function VaccineKind({ category }: { category: VaccineCategory }) {
 }
 
 function UpcomingVaccineActions({ item, onOpenEditor, onCancelAppointment }: { item: VaccinePlanItem; onOpenEditor(state: VaccineEditorState): void; onCancelAppointment(item: VaccinePlanItem): void }) {
-  return <ActionMenu label={`${item.vaccineName}第${item.dose}剂操作`} items={[{ label: item.record?.appointmentOn ? '修改预约' : '设置预约', onSelect: () => onOpenEditor({ mode: 'appointment', item }) }, ...(item.record?.appointmentOn ? [{ label: '取消预约', danger: true, onSelect: () => onCancelAppointment(item) }] : []), { label: '记录已接种', onSelect: () => onOpenEditor({ mode: 'complete', item }) }]} />;
+  return <ActionMenu label={`${item.vaccineName}第${item.dose}剂操作`} items={[{ label: item.record?.appointmentOn ? '修改预约' : '设置预约', onSelect: () => onOpenEditor({ mode: 'appointment', item }) }, ...(item.record?.appointmentOn ? [{ label: vaccineCalendarActionLabel(), onSelect: () => addVaccineAppointmentToCalendar(item) }, { label: '取消预约', danger: true, onSelect: () => onCancelAppointment(item) }] : []), { label: '记录已接种', onSelect: () => onOpenEditor({ mode: 'complete', item }) }]} />;
 }
 
 function localDay(date: Date) {

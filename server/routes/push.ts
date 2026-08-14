@@ -1,9 +1,20 @@
 import express, { type Express } from 'express';
 import { requireAdmin } from '../auth.js';
+import { listAppNotifications, touchAppNotificationClient } from '../db.js';
 import { getPushStatus, testCareItemPush, testFeedingGapPush, testMorningDigestPush, updatePushSettings } from '../push.js';
 
 export function registerPushRoutes(app: Express) {
   app.get('/api/push/status', (_req, res) => res.json(getPushStatus()));
+
+  app.get('/api/app-notifications', (req, res) => {
+    const clientId = typeof req.query.clientId === 'string' ? req.query.clientId.trim() : '';
+    const after = Number(req.query.after || 0);
+    if (!/^[a-zA-Z0-9-]{8,80}$/.test(clientId)) return res.status(400).json({ error: '通知设备编号不正确' });
+    if (!Number.isSafeInteger(after) || after < 0) return res.status(400).json({ error: '通知游标不正确' });
+    const client = touchAppNotificationClient(clientId);
+    if (client.isNew) return res.json({ items: [], cursor: client.cursor });
+    return res.json(listAppNotifications(after));
+  });
 
   app.post('/api/push/settings', requireAdmin, express.json(), async (req, res) => {
     const body = req.body || {};
