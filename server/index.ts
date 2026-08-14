@@ -621,15 +621,15 @@ function ageMonthsAt(birthDate: string, onDate: string): number {
   return (to - from) / (30.4375 * 86400_000);
 }
 
-function parseGrowthEvaluation(raw: string | null, evaluatedAt: string | null): { text: string; suggestions: string[]; evaluatedAt: string | null } | null {
+function parseGrowthEvaluation(raw: string | null, evaluatedAt: string | null): { text: string; evaluatedAt: string | null } | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as { evaluation?: unknown; suggestions?: unknown };
-    if (typeof parsed.evaluation === 'string' && Array.isArray(parsed.suggestions)) {
-      return { text: parsed.evaluation, suggestions: parsed.suggestions.filter((item): item is string => typeof item === 'string'), evaluatedAt };
+    const parsed = JSON.parse(raw) as { evaluation?: unknown };
+    if (typeof parsed.evaluation === 'string' && parsed.evaluation.trim()) {
+      return { text: parsed.evaluation.trim(), evaluatedAt };
     }
   } catch { /* 兼容非 JSON 旧值 */ }
-  return { text: raw, suggestions: [], evaluatedAt };
+  return { text: raw, evaluatedAt };
 }
 
 function recentMilkStats(today: string): { avgDailyMl: number; daysCounted: number } {

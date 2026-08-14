@@ -813,7 +813,6 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
   const [growthPage, setGrowthPage] = useState(1); const [deletedPage, setDeletedPage] = useState(1);
   const previousGrowthCount = useRef(growthRecords.length);
   const deletedArchivePushed = useRef(false);
-  const latest = growthRecords[0];
   const todayGrowth = growthRecords.find(record => record.measuredOn === isoDay(new Date()));
   const growthPages = Math.max(1, Math.ceil(growthRecords.length / 5));
   const deletedPages = Math.max(1, Math.ceil(deletedGrowthRecords.length / 10));
@@ -831,9 +830,9 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
 
   return <div className="page-stack archive-page">
     <header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header>
-    <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像">{profile.avatar ? <img src={profile.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}</div><div className="archive-profile-meta"><h2>{profile.name}{profile.nickname?.trim() ? <small className="nickname"> · {profile.nickname.trim()}</small> : null}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div><div className="archive-metrics"><div><span>最新身高</span><strong>{latest?.heightCm ?? '—'}</strong><small>{latest ? 'cm' : '暂无'}</small></div><div><span>最新体重</span><strong>{latest?.weightKg ?? '—'}</strong><small>{latest ? 'kg' : '暂无'}</small></div></div></section>
-    <VaccineArchiveSummary profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onOpen={onOpenVaccines} />
+    <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像">{profile.avatar ? <img src={profile.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}</div><div className="archive-profile-meta"><h2>{profile.name}{profile.nickname?.trim() ? <small className="nickname"> · {profile.nickname.trim()}</small> : null}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div></section>
     <GrowthAssessmentCard user={user} growthRecords={growthRecords} />
+    <VaccineArchiveSummary profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onOpen={onOpenVaccines} />
     <section className="growth-history">
       <div className="section-title"><h2>成长记录</h2><div className="growth-head-actions">{canManage(user) && <button className="growth-deleted-toggle" onClick={openDeletedArchive}>已删除 {deletedGrowthRecords.length} 条</button>}<button className="btn secondary" onClick={() => todayGrowth ? onEditGrowth(todayGrowth) : onAddGrowth()}>{todayGrowth ? '修改成长' : '记录成长'}</button></div></div>
       {growthRecords.length ? <div className="growth-list">{visibleGrowthRecords.map(record => { const recordIndex = growthRecords.findIndex(item => item.id === record.id); const previous = growthRecords[recordIndex + 1]; return <article key={record.id}><time>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}<small>{calculateAge(profile.birthDate, new Date(`${record.measuredOn}T12:00:00`))}</small><small>{auditNames[record.createdBy]}录入</small></time><div><span>身高</span><b>{record.heightCm} cm</b>{previous && <GrowthDelta value={record.heightCm - previous.heightCm} digits={1} unit="cm" />}</div><div><span>体重</span><b>{record.weightKg} kg</b>{previous && <GrowthDelta value={record.weightKg - previous.weightKg} digits={2} unit="kg" />}</div><ActionMenu label={`${record.measuredOn}成长记录操作`} items={[{ label: '修改记录', onSelect: () => onEditGrowth(record) }, ...(canManage(user) ? [{ label: '删除记录', danger: true, onSelect: () => onDeleteGrowth(record) }] : [])]} /></article>; })}</div> : <EmptyState title="还没有成长记录" description="可以从今日开始记录身高和体重。" image="/illustrations/empty-records.webp" />}
@@ -858,13 +857,14 @@ function growthMarkerPosition(value: number, anchors: GrowthIndicatorAssessment[
 
 function GrowthIndicatorBar({ label, unit, indicator }: { label: string; unit: string; indicator: GrowthIndicatorAssessment }) {
   const position = growthMarkerPosition(indicator.value, indicator.anchors);
+  const anchorLabel = (value: number) => Math.round(value * 10) / 10;
   return <div className="ga-indicator">
     <div className="ga-indicator-head"><span>{label}</span><b>{indicator.value} {unit}</b><em className={`ga-band ${indicator.band}`}>{indicator.bandLabel}</em></div>
     <div className="ga-track" role="img" aria-label={`${label} ${indicator.value} ${unit}，在同龄宝宝中属于${indicator.bandLabel}水平`}>
       <i className="ga-seg edge" /><i className="ga-seg core" /><i className="ga-seg core" /><i className="ga-seg edge" />
       <span className="ga-marker" style={{ left: `${position}%` }} />
     </div>
-    <div className="ga-scale"><span>P3 {indicator.anchors.p3}</span><span>P15 {indicator.anchors.p15}</span><span>P50 {indicator.anchors.p50}</span><span>P85 {indicator.anchors.p85}</span><span>P97 {indicator.anchors.p97}</span></div>
+    <div className="ga-scale"><span>P3 {anchorLabel(indicator.anchors.p3)}</span><span>P15 {anchorLabel(indicator.anchors.p15)}</span><span>P50 {anchorLabel(indicator.anchors.p50)}</span><span>P85 {anchorLabel(indicator.anchors.p85)}</span><span>P97 {anchorLabel(indicator.anchors.p97)}</span></div>
   </div>;
 }
 
@@ -872,13 +872,20 @@ function GrowthMilkBar({ milk }: { milk: NonNullable<GrowthAssessment['milk']> }
   const domain = Math.max(milk.referenceMax * 1.15, milk.avgDailyMl * 1.08, 1);
   const hasData = milk.daysCounted > 0;
   const inRange = milk.avgDailyMl >= milk.referenceMin && milk.avgDailyMl <= milk.referenceMax;
+  const below = hasData && !inRange && milk.avgDailyMl < milk.referenceMin;
+  const above = hasData && !inRange && !below;
+  const zoneLeft = milk.referenceMin / domain * 100;
+  const zoneRight = milk.referenceMax / domain * 100;
+  const zoneLabelLeft = Math.min(78, Math.max(22, (zoneLeft + zoneRight) / 2));
   return <div className="ga-indicator">
-    <div className="ga-indicator-head"><span>奶量 · 近 7 天平均</span><b>{hasData ? `${milk.avgDailyMl} ml/天` : '暂无数据'}</b>{hasData && <em className={`ga-band ${inRange ? 'mid' : milk.avgDailyMl < milk.referenceMin ? 'below' : 'above'}`}>{inRange ? '参考范围内' : milk.avgDailyMl < milk.referenceMin ? '低于参考' : '高于参考'}</em>}</div>
-    <div className="ga-track" role="img" aria-label={`近 7 天平均每天奶量 ${milk.avgDailyMl} 毫升，参考范围 ${milk.referenceMin} 到 ${milk.referenceMax} 毫升`}>
-      <span className="ga-zone" style={{ left: `${milk.referenceMin / domain * 100}%`, width: `${(milk.referenceMax - milk.referenceMin) / domain * 100}%` }} />
-      {hasData && <span className="ga-marker" style={{ left: `${Math.min(98, Math.max(2, milk.avgDailyMl / domain * 100))}%` }} />}
+    <div className="ga-indicator-head"><span>奶量 · 近 7 天平均</span><b>{hasData ? `${milk.avgDailyMl} ml/天` : '暂无数据'}</b>{hasData && <em className={`ga-band ${inRange ? 'mid' : above ? 'high' : 'low'}`}>{inRange ? '参考范围内' : above ? '高于参考' : '低于参考'}</em>}</div>
+    <div className="ga-track ga-track-milk" role="img" aria-label={`近 7 天平均每天奶量 ${milk.avgDailyMl} 毫升，参考范围 ${milk.referenceMin} 到 ${milk.referenceMax} 毫升${hasData ? inRange ? '，处于参考范围内' : above ? '，高于参考范围' : '，低于参考范围' : ''}`}>
+      {above && <span className="ga-danger-zone" style={{ left: `${zoneRight}%`, width: `${100 - zoneRight}%` }} />}
+      {below && <span className="ga-danger-zone" style={{ left: 0, width: `${zoneLeft}%` }} />}
+      <span className="ga-zone" style={{ left: `${zoneLeft}%`, width: `${zoneRight - zoneLeft}%` }} />
+      {hasData && <span className={`ga-marker${inRange ? '' : ' alert'}`} style={{ left: `${Math.min(98, Math.max(2, milk.avgDailyMl / domain * 100))}%` }} />}
     </div>
-    <div className="ga-scale"><span>参考下限 {milk.referenceMin} ml</span><span>参考上限 {milk.referenceMax} ml</span></div>
+    <div className="ga-scale ga-scale-milk"><span className="ga-zone-label" style={{ left: `${zoneLabelLeft}%` }}>参考 {milk.referenceMin}~{milk.referenceMax} ml</span></div>
     <p className="ga-milk-note">{hasData ? `按近 7 天里 ${milk.daysCounted} 天有喂养记录的日总量取平均。` : '今天往前 7 天还没有喂奶记录，记录后会自动对比。'}</p>
   </div>;
 }
@@ -921,11 +928,10 @@ function GrowthAssessmentCard({ user, growthRecords }: { user: SessionUser; grow
     <GrowthIndicatorBar label="体重" unit="kg" indicator={assessment.weight!} />
     {assessment.milk && <GrowthMilkBar milk={assessment.milk} />}
     <div className="ga-evaluation">
-      <div className="ga-eval-head"><h3>AI 生长评价</h3>{canManage(user) && <button className="btn secondary" onClick={() => void generate()} disabled={generating}>{generating ? '生成中…' : evaluation ? '重新生成' : '生成评价'}</button>}</div>
-      <p aria-live="polite">{generateError ? <span className="ga-note error">{generateError}</span> : evaluation ? null : <span className="ga-note">{canManage(user) ? '生成后在这里查看对本次测量的解读和建议。' : '管理员生成后，这里会展示对本次测量的解读和建议。'}</span>}</p>
+      <div className="ga-eval-head"><h3>AI 生长评价</h3>{canManage(user) && <button className="text-button" onClick={() => void generate()} disabled={generating}>{generating ? '生成中…' : evaluation ? '重新生成' : '生成评价'}</button>}</div>
+      <p aria-live="polite">{generateError ? <span className="ga-note error">{generateError}</span> : evaluation ? null : <span className="ga-note">{canManage(user) ? '生成后在这里查看对本次测量的解读。' : '管理员生成后，这里会展示对本次测量的解读。'}</span>}</p>
       {evaluation && <>
         <p className="ga-eval-text">{evaluation.text}</p>
-        {evaluation.suggestions.length > 0 && <ul className="ga-suggestions">{evaluation.suggestions.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>}
         {evaluation.evaluatedAt && <p className="ga-eval-meta">AI 生成 · {new Date(evaluation.evaluatedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>}
       </>}
     </div>

@@ -49,8 +49,7 @@ const dailyReportSchema = z.object({
 });
 
 const growthEvaluationSchema = z.object({
-  evaluation: z.string().trim().min(1).max(160),
-  suggestions: z.array(z.string().trim().min(1).max(30)).min(1).max(2)
+  evaluation: z.string().trim().min(1).max(80)
 });
 
 function completionUrl(baseUrl: string) {
@@ -128,7 +127,7 @@ export function growthEvaluationMessages(input: GrowthEvaluationInput): { role: 
   return [
     {
       role: 'system',
-      content: '你是有儿科保健知识的资深育儿助手，为家长解读宝宝的一次身高体重测量结果。测量位置已由 WHO 儿童生长标准算好（z 值与区间），你只负责温和解读，不制造焦虑。只输出 JSON：{"evaluation":"…","suggestions":["…"]}。\n\n【evaluation】≤160字，口语化、温和。按优先级：\n1. 先说清本次身高、体重各自落在哪个区间（如“身高中等、体重中上”）\n2. 有上次记录时，解读变化幅度是否平稳（间隔天数短时变化小是正常的）\n3. 强调“沿自己的生长曲线稳定增长”比单次位置更重要\n\n【suggestions】1~2条，每条≤30字，与喂养、测量或复查相关的具体行动。\n\n【红线】\n1. 不做医疗诊断，不用“发育迟缓”“肥胖”“营养不良”等吓人词汇；区间偏低/偏高时建议“儿保就诊评估”。\n2. 单次测量有误差，测量间隔太近不解读细微变化。\n3. 不编造输入中没有的事实；月龄、性别、z 值都以输入为准。\n\n只输出 JSON，不要解释或 Markdown。'
+      content: '你是有儿科保健知识的资深育儿助手，为家长解读宝宝的一次身高体重测量结果。测量位置已由 WHO 儿童生长标准算好（z 值与区间），你只负责温和解读，不制造焦虑。只输出 JSON：{"evaluation":"…"}。\n\n【evaluation】50字以内，一句连贯自然的话，不用列表：说清身高、体重各自落在哪个区间（如“身高中等、体重中上”），有上次记录时带一句变化是否平稳。语气温和口语化。\n\n【红线】\n1. 不做医疗诊断，不用“发育迟缓”“肥胖”“营养不良”等吓人词汇；区间偏低/偏高时用“建议儿保评估”表达。\n2. 单次测量有误差，测量间隔太近不解读细微变化。\n3. 不编造输入中没有的事实；月龄、性别、z 值都以输入为准。\n\n【示例】（仅示范写法，数据不同勿照抄）\n{"evaluation":"这次身高中等、体重中上，比上次长得平稳，继续按现在的节奏喂养就好。"}\n\n只输出 JSON，不要解释或 Markdown。'
     },
     {
       role: 'user',
@@ -142,8 +141,8 @@ export function growthEvaluationMessages(input: GrowthEvaluationInput): { role: 
   ];
 }
 
-export async function generateGrowthEvaluation(input: GrowthEvaluationInput, settings: ModelSettings): Promise<{ evaluation: string; suggestions: string[] }> {
-  const content = await requestCompletion(settings, growthEvaluationMessages(input), 300);
+export async function generateGrowthEvaluation(input: GrowthEvaluationInput, settings: ModelSettings): Promise<{ evaluation: string }> {
+  const content = await requestCompletion(settings, growthEvaluationMessages(input), 120);
   const parsedJson = JSON.parse(content) as unknown;
   return growthEvaluationSchema.parse(parsedJson);
 }

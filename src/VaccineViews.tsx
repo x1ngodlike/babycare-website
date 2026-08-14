@@ -73,7 +73,7 @@ export function VaccineArchiveSummary({ profile, records, catalog, onOpen }: { p
   const plan = buildVaccinePlan(profile.birthDate, records, catalog.length ? catalog : undefined);
   const completed = plan.filter(item => item.record?.administeredOn).length;
   const next = plan.filter(item => !item.record?.administeredOn).sort((a, b) => (a.record?.appointmentOn || a.plannedOn).localeCompare(b.record?.appointmentOn || b.plannedOn))[0];
-  return <section className="vaccine-archive-summary"><div className="section-title"><div><p className="kicker">健康记录</p><h2>疫苗记录</h2></div><button className="text-button vaccine-archive-link" onClick={onOpen}>查看记录 <span aria-hidden="true">›</span></button></div>{next ? <p><span className="vaccine-archive-count">已接种 {completed} 针 · </span>待接种：<b>{next.vaccineName} · 第{next.dose}剂</b><small>{vaccinePlanDateCopy(next)}</small></p> : <p><span className="vaccine-archive-count">已接种 {completed} 针 · </span>当前计划中的疫苗均已记录。</p>}</section>;
+  return <section className="vaccine-archive-summary"><div className="section-title"><h2>疫苗记录</h2><button className="text-button vaccine-archive-link" onClick={onOpen}>查看记录 <span aria-hidden="true">›</span></button></div>{next ? <p><span className="vaccine-archive-count">已接种 {completed} 针 · </span>待接种：<b>{next.vaccineName} · 第{next.dose}剂</b><small>{vaccinePlanDateCopy(next)}</small></p> : <p><span className="vaccine-archive-count">已接种 {completed} 针 · </span>当前计划中的疫苗均已记录。</p>}</section>;
 }
 
 export function VaccineEditor({ state, profile, catalog, records, onClose, onSave }: { state: VaccineEditorState; profile: Profile; catalog: VaccineCatalogItem[]; records: VaccineRecord[]; onClose(): void; onSave(value: DraftVaccineRecord): Promise<void> }) {

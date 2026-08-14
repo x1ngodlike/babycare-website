@@ -10,7 +10,6 @@ export interface GrowthIndicatorAssessment {
 
 export interface GrowthAssessmentEvaluation {
   text: string;
-  suggestions: string[];
   evaluatedAt: string | null;
 }
 
