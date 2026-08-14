@@ -3,7 +3,7 @@ import { isCareItemDue, nextCareItemDueDate } from './careSchedule';
 import type { CareItem } from './types';
 
 const item = (overrides: Partial<CareItem> = {}): CareItem => ({
-  id: 'vd', name: 'VD', icon: 'medicine', sortOrder: 10, active: true,
+  id: 'vd', name: 'VD', category: 'medication', icon: 'medicine', sortOrder: 10, active: true,
   scheduleType: 'daily', intervalDays: 1, scheduleStartDate: '2026-08-10',
   reminderTime: null, scheduleEndDate: null, createdAt: '2026-08-10T00:00:00.000Z', updatedAt: '2026-08-10T00:00:00.000Z',
   ...overrides

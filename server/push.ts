@@ -177,8 +177,8 @@ function buildTodayPlanMedicines(todayStr: string): TodayMedicine[] {
   const doneNames = new Set(
     todayRecords.filter(r => r.type === 'supplement' && r.supplement).map(r => r.supplement as string)
   );
-  const items = listCareItems().filter(item => item.icon === 'medicine' && isCareItemDue(item, todayDateObj));
-  const asNeeded = listCareItems().filter(item => item.icon === 'medicine' && item.scheduleType === 'as_needed' && item.active);
+  const items = listCareItems().filter(item => isCareItemDue(item, todayDateObj));
+  const asNeeded = listCareItems().filter(item => item.scheduleType === 'as_needed' && item.active);
   const seen = new Set<string>();
   const result: TodayMedicine[] = [];
   for (const item of [...items, ...asNeeded]) {
@@ -337,7 +337,7 @@ function renderMorningDigestHtml(
     `);
   }
 
-  // 今日用药计划（统一 badge 样式）
+  // 今日用药护理计划（统一 badge 样式）
   const badgeOk = 'display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:#e8f2ec;color:#2b6b3e;';
   const badgeTodo = 'display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:#fdf3de;color:#a36b00;';
   const badgeFree = 'display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:#e6eff5;color:#3a6f8c;';
@@ -355,7 +355,7 @@ function renderMorningDigestHtml(
   blocks.push(`
     <hr style="${DIVIDER}" />
     <div>
-      <div style="${H2}margin-bottom:4px;">✅ 今日用药计划（${todayShort}）</div>
+      <div style="${H2}margin-bottom:4px;">✅ 今日用药护理计划（${todayShort}）</div>
       <div style="${CARD}background:#fafbfc;padding:0 12px;margin-top:4px;">
         ${planRows}
       </div>
@@ -480,7 +480,7 @@ function renderFeedingGapLevel(
           </div>
           <hr style="margin:12px 0;border:none;border-top:1px solid #e6ebe8;" />
           <div>
-            <div style="font-size:14px;font-weight:700;color:#d98e0b;margin-bottom:4px;line-height:1.4;">⏳ 今日用药计划</div>
+            <div style="font-size:14px;font-weight:700;color:#d98e0b;margin-bottom:4px;line-height:1.4;">⏳ 今日用药护理计划</div>
             <div style="background:#fafbfc;padding:0 12px;margin-top:4px;">
               ${planRows}
             </div>
@@ -507,7 +507,7 @@ function renderFeedingGapLevel(
         </div>
         <hr style="margin:12px 0;border:none;border-top:1px solid #e6ebe8;" />
         <div>
-          <div style="font-size:14px;font-weight:700;color:#c44032;margin-bottom:4px;line-height:1.4;">⏳ 今日用药计划</div>
+          <div style="font-size:14px;font-weight:700;color:#c44032;margin-bottom:4px;line-height:1.4;">⏳ 今日用药护理计划</div>
           <div style="background:#fafbfc;padding:0 12px;margin-top:4px;">
             ${planRows}
           </div>
@@ -612,6 +612,7 @@ export async function testCareItemPush() {
     item = {
       id: 'test-care-item',
       name: '维生素D3',
+      category: 'medication',
       icon: 'medicine',
       scheduleType: 'daily',
       intervalDays: 1,
@@ -752,18 +753,18 @@ async function maybeSendFeedingGap(now: Date): Promise<boolean> {
 function buildPushPlusPerItemHtml(item: CareItem) {
   const scheduleLabel = item.scheduleType === 'daily' ? '每天一次' : `每 ${item.intervalDays} 天一次`;
   const title = `🔔 ${item.name} · 提醒`;
-  const isMedicine = item.icon === 'medicine';
+  const isMedicine = item.category === 'medication';
   const actionEmoji = isMedicine ? '💊' : '🤲';
-  const verb = isMedicine ? '服用' : '照护';
+  const verb = isMedicine ? '服用' : '完成';
   const html = `
     <div style="padding:0;border-radius:14px;border:1px solid #e0e8e3;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',Arial,sans-serif;font-size:14px;color:#1f2a24;line-height:1.6;overflow:hidden;">
       <div style="padding:16px;background:linear-gradient(180deg,#eaf3ed 0%,#ffffff 100%);">
-        <div style="margin:0;font-size:17px;font-weight:700;color:#2b6b3e;line-height:1.4;">用药与照护提醒</div>
+        <div style="margin:0;font-size:17px;font-weight:700;color:#2b6b3e;line-height:1.4;">用药护理提醒</div>
       </div>
       <div style="padding:4px 16px 16px;">
         <div style="background:#f7faf8;border-radius:10px;padding:12px 14px;">
           <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">${actionEmoji}</span><b style="font-size:14px;color:#1f2a24;">今天还未${verb} <span style="color:#2b6b3e;">${item.name}</span></b></div>
-          <div style="margin-top:8px;padding-left:28px;font-size:12px;color:#6c7a72;line-height:1.5;">照护频率 · ${scheduleLabel}</div>
+          <div style="margin-top:8px;padding-left:28px;font-size:12px;color:#6c7a72;line-height:1.5;">执行计划 · ${scheduleLabel}</div>
         </div>
         <div style="margin-top:14px;text-align:center;font-size:13px;color:#2b6b3e;font-weight:700;line-height:1.5;">现在去做个照护打卡吧~</div>
       </div>

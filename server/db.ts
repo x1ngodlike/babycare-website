@@ -136,7 +136,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS care_items (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-    icon TEXT NOT NULL CHECK (icon IN ('medicine', 'massage')),
+    category TEXT NOT NULL DEFAULT 'medication' CHECK (category IN ('medication', 'care')),
+    icon TEXT NOT NULL CHECK (icon IN ('medicine', 'massage', 'bath', 'care')),
     sort_order INTEGER NOT NULL,
     active INTEGER NOT NULL DEFAULT 1,
     schedule_type TEXT NOT NULL DEFAULT 'as_needed' CHECK (schedule_type IN ('daily', 'interval', 'as_needed')),
@@ -147,11 +148,12 @@ db.exec(`
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
-  INSERT OR IGNORE INTO care_items (id, name, icon, sort_order, active, created_at, updated_at) VALUES
-    ('ad', 'AD', 'medicine', 10, 1, datetime('now'), datetime('now')),
-    ('vd', 'VD', 'medicine', 20, 1, datetime('now'), datetime('now')),
-    ('probiotic', '益生菌', 'medicine', 30, 1, datetime('now'), datetime('now')),
-    ('massage', '推拿', 'massage', 40, 1, datetime('now'), datetime('now'));
+  INSERT OR IGNORE INTO care_items (id, name, category, icon, sort_order, active, created_at, updated_at) VALUES
+    ('ad', 'AD', 'medication', 'medicine', 10, 1, datetime('now'), datetime('now')),
+    ('vd', 'VD', 'medication', 'medicine', 20, 1, datetime('now'), datetime('now')),
+    ('probiotic', '益生菌', 'medication', 'medicine', 30, 1, datetime('now'), datetime('now')),
+    ('massage', '推拿', 'care', 'massage', 40, 1, datetime('now'), datetime('now')),
+    ('bath', '洗澡', 'care', 'bath', 50, 1, datetime('now'), datetime('now'));
 
   CREATE TABLE IF NOT EXISTS family_permissions (
     id TEXT PRIMARY KEY CHECK (id IN ('father', 'mother', 'grandfather', 'grandmother')),
@@ -218,6 +220,32 @@ if (!careItemTableColumns.some(column => column.name === 'interval_days')) db.ex
 if (!careItemTableColumns.some(column => column.name === 'schedule_start_date')) db.exec('ALTER TABLE care_items ADD COLUMN schedule_start_date TEXT');
 if (!careItemTableColumns.some(column => column.name === 'reminder_time')) db.exec('ALTER TABLE care_items ADD COLUMN reminder_time TEXT');
 if (!careItemTableColumns.some(column => column.name === 'schedule_end_date')) db.exec('ALTER TABLE care_items ADD COLUMN schedule_end_date TEXT');
+const careItemTableSql = (db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'care_items'").get() as { sql: string }).sql;
+if (!careItemTableColumns.some(column => column.name === 'category') || !careItemTableSql.includes("'bath'")) db.transaction(() => {
+  const hasCategory = careItemTableColumns.some(column => column.name === 'category');
+  db.exec(`
+    CREATE TABLE care_items_new (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      category TEXT NOT NULL DEFAULT 'medication' CHECK (category IN ('medication', 'care')),
+      icon TEXT NOT NULL CHECK (icon IN ('medicine', 'massage', 'bath', 'care')),
+      sort_order INTEGER NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1,
+      schedule_type TEXT NOT NULL DEFAULT 'as_needed' CHECK (schedule_type IN ('daily', 'interval', 'as_needed')),
+      interval_days INTEGER NOT NULL DEFAULT 1,
+      schedule_start_date TEXT,
+      reminder_time TEXT,
+      schedule_end_date TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    INSERT INTO care_items_new (id, name, category, icon, sort_order, active, schedule_type, interval_days, schedule_start_date, reminder_time, schedule_end_date, created_at, updated_at)
+    SELECT id, name, ${hasCategory ? "category" : "CASE WHEN icon = 'massage' THEN 'care' ELSE 'medication' END"}, icon, sort_order, active, schedule_type, interval_days, schedule_start_date, reminder_time, schedule_end_date, created_at, updated_at
+    FROM care_items;
+    DROP TABLE care_items;
+    ALTER TABLE care_items_new RENAME TO care_items;
+  `);
+})();
 
 const vaccineTableColumns = db.prepare('PRAGMA table_info(vaccine_records)').all() as { name: string }[];
 if (!vaccineTableColumns.some(column => column.name === 'category')) db.exec("ALTER TABLE vaccine_records ADD COLUMN category TEXT NOT NULL DEFAULT 'program' CHECK (category IN ('program', 'self_paid'))");
@@ -478,7 +506,7 @@ export function saveProfile(first: SaveProfileObject | string, birthDate?: strin
   return { name, birthDate: bd, birthTime, sex: sx, nickname, caregiverTitle, avatar, updatedAt };
 }
 
-const careItemColumns = `id, name, icon, sort_order AS sortOrder, active,
+const careItemColumns = `id, name, category, icon, sort_order AS sortOrder, active,
   schedule_type AS scheduleType, interval_days AS intervalDays, schedule_start_date AS scheduleStartDate,
   reminder_time AS reminderTime, schedule_end_date AS scheduleEndDate,
   created_at AS createdAt, updated_at AS updatedAt`;
@@ -487,7 +515,7 @@ export function listCareItems(includeInactive = false): CareItem[] {
   const rows = db.prepare(`SELECT ${careItemColumns} FROM care_items ${includeInactive ? '' : 'WHERE active = 1'} ORDER BY sort_order, created_at`).all() as (Omit<CareItem, 'active'> & { active: number })[];
   return rows.map(normalizeCareItem);
 }
-type CareItemInput = Pick<CareItem, 'id' | 'name' | 'icon' | 'sortOrder'> & Partial<Pick<CareItem, 'scheduleType' | 'intervalDays' | 'scheduleStartDate' | 'reminderTime' | 'scheduleEndDate'>>;
+type CareItemInput = Pick<CareItem, 'id' | 'name' | 'category' | 'icon' | 'sortOrder'> & Partial<Pick<CareItem, 'scheduleType' | 'intervalDays' | 'scheduleStartDate' | 'reminderTime' | 'scheduleEndDate'>>;
 export function saveCareItem(input: CareItemInput): CareItem {
   const existingByName = db.prepare('SELECT id FROM care_items WHERE name = ? AND id <> ?').get(input.name, input.id) as { id: string } | undefined;
   if (existingByName) throw new CareItemConflictError('已经存在同名项目');
@@ -505,13 +533,13 @@ export function saveCareItem(input: CareItemInput): CareItem {
   db.transaction(() => {
     if (existing) {
       if (existing.name !== input.name) db.prepare('UPDATE care_records SET supplement = ? WHERE supplement = ?').run(input.name, existing.name);
-      db.prepare(`UPDATE care_items SET name = ?, icon = ?, sort_order = ?, schedule_type = ?, interval_days = ?,
+      db.prepare(`UPDATE care_items SET name = ?, category = ?, icon = ?, sort_order = ?, schedule_type = ?, interval_days = ?,
         schedule_start_date = ?, reminder_time = ?, schedule_end_date = ?, updated_at = ? WHERE id = ?`)
-        .run(input.name, input.icon, input.sortOrder, plan.scheduleType, plan.intervalDays, plan.scheduleStartDate, plan.reminderTime, plan.scheduleEndDate, now, input.id);
+        .run(input.name, input.category, input.icon, input.sortOrder, plan.scheduleType, plan.intervalDays, plan.scheduleStartDate, plan.reminderTime, plan.scheduleEndDate, now, input.id);
     } else {
-      db.prepare(`INSERT INTO care_items (id, name, icon, sort_order, active, schedule_type, interval_days,
-        schedule_start_date, reminder_time, schedule_end_date, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`)
-        .run(input.id, input.name, input.icon, input.sortOrder, plan.scheduleType, plan.intervalDays, plan.scheduleStartDate, plan.reminderTime, plan.scheduleEndDate, now, now);
+      db.prepare(`INSERT INTO care_items (id, name, category, icon, sort_order, active, schedule_type, interval_days,
+        schedule_start_date, reminder_time, schedule_end_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`)
+        .run(input.id, input.name, input.category, input.icon, input.sortOrder, plan.scheduleType, plan.intervalDays, plan.scheduleStartDate, plan.reminderTime, plan.scheduleEndDate, now, now);
     }
   })();
   return listCareItems(true).find(item => item.id === input.id)!;
@@ -855,12 +883,12 @@ type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
   if (payload.profile) saveProfile({ name: payload.profile.name, birthDate: payload.profile.birthDate, birthTime: payload.profile.birthTime, sex: payload.profile.sex ?? 'unspecified', nickname: payload.profile.nickname, caregiverTitle: payload.profile.caregiverTitle, avatar: payload.profile.avatar });
   if (payload.careItems?.length) for (const item of payload.careItems) {
-    db.prepare(`INSERT INTO care_items (id, name, icon, sort_order, active, schedule_type, interval_days, schedule_start_date, reminder_time, schedule_end_date, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET name=excluded.name, icon=excluded.icon, sort_order=excluded.sort_order, active=excluded.active,
+    db.prepare(`INSERT INTO care_items (id, name, category, icon, sort_order, active, schedule_type, interval_days, schedule_start_date, reminder_time, schedule_end_date, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, icon=excluded.icon, sort_order=excluded.sort_order, active=excluded.active,
         schedule_type=excluded.schedule_type, interval_days=excluded.interval_days, schedule_start_date=excluded.schedule_start_date,
         reminder_time=excluded.reminder_time, schedule_end_date=excluded.schedule_end_date, updated_at=excluded.updated_at`)
-      .run(item.id, item.name, item.icon, item.sortOrder, item.active ? 1 : 0, item.scheduleType || 'as_needed', item.intervalDays || 1, item.scheduleStartDate || null, item.reminderTime || null, item.scheduleEndDate || null, item.createdAt, item.updatedAt);
+      .run(item.id, item.name, item.category || (item.icon === 'medicine' ? 'medication' : 'care'), item.icon, item.sortOrder, item.active ? 1 : 0, item.scheduleType || 'as_needed', item.intervalDays || 1, item.scheduleStartDate || null, item.reminderTime || null, item.scheduleEndDate || null, item.createdAt, item.updatedAt);
   }
   if (payload.familyMembers?.length) replaceFamilyRoles(payload.familyMembers);
   if (payload.growthRecords?.length) {
@@ -916,9 +944,9 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
   saveProfile({ name: payload.profile.name, birthDate: payload.profile.birthDate, birthTime: payload.profile.birthTime, sex: payload.profile.sex ?? 'unspecified', nickname: payload.profile.nickname, caregiverTitle: payload.profile.caregiverTitle, avatar: payload.profile.avatar });
   if (payload.careItems?.length) {
     db.prepare('DELETE FROM care_items').run();
-    const insertItem = db.prepare(`INSERT INTO care_items (id, name, icon, sort_order, active, schedule_type, interval_days,
-      schedule_start_date, reminder_time, schedule_end_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-    for (const item of payload.careItems) insertItem.run(item.id, item.name, item.icon, item.sortOrder, item.active ? 1 : 0, item.scheduleType || 'as_needed', item.intervalDays || 1, item.scheduleStartDate || null, item.reminderTime || null, item.scheduleEndDate || null, item.createdAt, item.updatedAt);
+    const insertItem = db.prepare(`INSERT INTO care_items (id, name, category, icon, sort_order, active, schedule_type, interval_days,
+      schedule_start_date, reminder_time, schedule_end_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    for (const item of payload.careItems) insertItem.run(item.id, item.name, item.category || (item.icon === 'medicine' ? 'medication' : 'care'), item.icon, item.sortOrder, item.active ? 1 : 0, item.scheduleType || 'as_needed', item.intervalDays || 1, item.scheduleStartDate || null, item.reminderTime || null, item.scheduleEndDate || null, item.createdAt, item.updatedAt);
   }
   if (payload.familyMembers?.length) replaceFamilyRoles(payload.familyMembers);
   db.prepare('DELETE FROM growth_records').run();

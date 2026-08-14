@@ -180,7 +180,7 @@ const auditEntrySchema = z.object({
 
 const careItemSchema = z.object({
   id: z.string().min(1).max(50), name: z.string().trim().min(1, '请填写项目名称').max(12, '项目名称不能超过 12 个字'),
-  icon: z.enum(['medicine', 'massage']), sortOrder: z.number().int().min(0).max(999), active: z.boolean(),
+  category: z.enum(['medication', 'care']).optional(), icon: z.enum(['medicine', 'massage', 'bath', 'care']), sortOrder: z.number().int().min(0).max(999), active: z.boolean(),
   scheduleType: z.enum(['daily', 'interval', 'as_needed']).default('as_needed'), intervalDays: z.number().int().min(1).max(365).default(1),
   scheduleStartDate: z.string().date().nullable().default(null), reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().default(null),
   scheduleEndDate: z.string().date().nullable().default(null),
@@ -188,7 +188,7 @@ const careItemSchema = z.object({
 });
 
 const careItemInputSchema = z.object({
-  name: z.string().trim().min(1).max(12), icon: z.enum(['medicine', 'massage']).default('medicine'),
+  name: z.string().trim().min(1).max(12), category: z.enum(['medication', 'care']), icon: z.enum(['medicine', 'massage', 'bath', 'care']),
   sortOrder: z.number().int().min(0).max(999), scheduleType: z.enum(['daily', 'interval', 'as_needed']),
   intervalDays: z.number().int().min(1).max(365), scheduleStartDate: z.string().date().nullable(),
   reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable(), scheduleEndDate: z.string().date().nullable()
@@ -679,9 +679,8 @@ app.get('/api/records', (req, res) => {
   return res.json(listRecords(parsed.data.from, parsed.data.to));
 });
 
-app.get('/api/care-items', (req, res) => {
-  const role = getSessionUser(req)!.role;
-  return res.json(listCareItems(role === 'superadmin' || role === 'admin'));
+app.get('/api/care-items', (_req, res) => {
+  return res.json(listCareItems(true));
 });
 
 app.post('/api/care-items', requireAdmin, (req, res) => {

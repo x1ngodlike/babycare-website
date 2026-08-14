@@ -96,7 +96,8 @@ export interface DraftRecord {
 export interface CareItem {
   id: string;
   name: string;
-  icon: 'medicine' | 'massage';
+  category: 'medication' | 'care';
+  icon: 'medicine' | 'massage' | 'bath' | 'care';
   sortOrder: number;
   active: boolean;
   scheduleType: 'daily' | 'interval' | 'as_needed';

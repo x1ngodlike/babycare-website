@@ -149,8 +149,10 @@ describe('record reliability', () => {
   });
 
   it('manages configurable care items and keeps history when an item is renamed or disabled', () => {
-    expect(db.listCareItems().map((item: { name: string }) => item.name)).toEqual(expect.arrayContaining(['AD', 'VD', '益生菌', '推拿']));
-    const item = db.saveCareItem({ id: 'touch', name: '抚触', icon: 'massage', sortOrder: 50, scheduleType: 'interval', intervalDays: 2, scheduleStartDate: '2026-08-10', reminderTime: '20:00', scheduleEndDate: null });
+    expect(db.listCareItems().map((item: { name: string }) => item.name)).toEqual(expect.arrayContaining(['AD', 'VD', '益生菌', '推拿', '洗澡']));
+    expect(db.listCareItems().map((item: { name: string }) => item.name)).not.toContain('其他');
+    const item = db.saveCareItem({ id: 'touch', name: '抚触', category: 'care', icon: 'massage', sortOrder: 50, scheduleType: 'interval', intervalDays: 2, scheduleStartDate: '2026-08-10', reminderTime: '20:00', scheduleEndDate: null });
+    expect(item.category).toBe('care');
     expect(item).toEqual(expect.objectContaining({ scheduleType: 'interval', intervalDays: 2, scheduleStartDate: '2026-08-10', reminderTime: '20:00' }));
     const saved = db.saveRecord(record({ id: '66666666-6666-4666-8666-666666666666', supplement: item.name, occurredAt: '2026-08-10T08:00:00.000Z' }));
     db.saveCareItem({ ...item, name: '全身抚触' });

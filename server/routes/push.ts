@@ -51,7 +51,7 @@ export function registerPushRoutes(app: Express) {
   });
   app.post('/api/push/test/care-item', requireAdmin, async (_req, res) => {
     const result = await testCareItemPush();
-    return result.ok ? res.json({ ok: true, message: '用药与照护测试消息已发送，请在微信中查看。' }) : res.status(502).json({ error: result.error || '用药与照护提醒测试推送失败' });
+    return result.ok ? res.json({ ok: true, message: '用药护理测试消息已发送，请在微信中查看。' }) : res.status(502).json({ error: result.error || '用药护理提醒测试推送失败' });
   });
   app.post('/api/push/enable', requireAdmin, async (_req, res) => res.json(await updatePushSettings({ enabled: true })));
   app.post('/api/push/disable', requireAdmin, async (_req, res) => res.json(await updatePushSettings({ enabled: false })));
