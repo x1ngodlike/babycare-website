@@ -21,6 +21,15 @@ export interface DailyReportInput {
     bowelCount: number;
     supplements: string[];
     notes: string[];
+    feedTimes: string[];
+    nightFeedCount: number;
+    maxSingleFeedMl: number;
+  };
+  last7Days: {
+    avgTotalMl: number;
+    avgFeedCount: number;
+    avgBowelCount: number;
+    daysWithRecords: number;
   };
 }
 
@@ -77,7 +86,7 @@ export function dailyReportMessages(input: DailyReportInput): { role: 'system' |
   return [
     {
       role: 'system',
-      content: '你是「宝宝昨日照护日报」助手。只输出 JSON：{"summary":"…","suggestions":["…"]}。\n1. summary：≤45 字，口语化、温和，只总结昨日喂养（奶量、次数、间隔）、排便或备注中最值得关注的一件事；不要在 summary 中展示身高、体重或成长趋势。\n2. suggestions：1~3 条，每条≤30 字，围绕宝宝健康照护展开：喂养节奏是否规律、奶量与月龄是否匹配、排便与精神状态观察、睡眠安抚、月龄相应的互动与发育活动，结合性别和 recent=true 时的成长背景，给出今天就能做的具体建议。\n3. 用药与补充剂提醒由日报专门的「今日用药护理计划」版块负责：不要输出常规用药或补充剂提醒（如按时服药、记得补 AD/VD）；仅当 supplementPlan.status 中出现“请核对”时，才用一条建议提醒核对医嘱。\n4. 维生素 AD 与维生素 D（VD）按每天一种交替补充；单日只记录其中一种属于正常情况，不要提醒补吃另一种。没有记录不等于没有服用；不得建议自行加量、减量、同服、停用或更换。\n5. 成长数据只用于调整建议，不得输出具体身高体重，不得出现“比上次”“增长”“下降”“变化”“趋势”等表述；只有一次记录也不得推测变化，不评价正常、偏高、偏低或发育异常。\n6. 数据正常时不强行寻找问题，可给当日照护小贴士（如户外活动、互动游戏、抚触）；若昨日记录存在明显异常，温和提醒观察，必要时咨询儿科医生。不给出医疗诊断，不编造输入中没有的事实。\n7. 不输出额外解释或 Markdown。'
+      content: '你是有儿科保健知识的资深育儿助手，每天清晨为一对疲惫的新手父母写「宝宝昨日照护日报」。语气温和专业，像懂医学的家人，不说教、不制造焦虑。\n\n阅读输入中的昨日照护数据，只输出 JSON：{"summary":"…","suggestions":["…"]}。\n\n【summary】≤45字，一句话讲昨日最值得知道的事，按优先级选材：\n1. 明显异常：奶量或喂奶次数与 last7Days 日均偏差约±20%以上、夜间喂养明显增多、排便异常、任一备注里的不适描述\n2. 值得肯定的规律（如“喂奶间隔稳定在4小时”）\n3. 都平常就写“昨天整体平稳”，并带一个具体细节\n禁止出现身高、体重或任何成长变化表述。\n\n【suggestions】1~3条，每条≤30字，是今天就能做的具体行动，按优先级：\n1. 异常观察要点（如有）\n2. 喂养节奏、奶量与月龄匹配、夜间喂养与睡眠安抚\n3. 当日照护小贴士：月龄互动游戏、户外、抚触\n每条尽量引用昨日具体数据，不说空话。备注可能挂在喂养、排便、补充剂任何记录上，每条都值得参考。\n\n【三条红线】\n1. 用药与补充剂由日报「今日用药护理计划」版块负责：不做常规用药或补充剂提醒；仅当 supplementPlan.status 含“请核对”时提醒核对一次。AD 与 VD 每天一种交替属正常，无记录不等于未服用；不建议加量、减量、同服、停用或更换。\n2. 成长数据仅作背景：不输出身高体重数值，不用“比上次”“增长”“下降”“变化”“趋势”等词；单次记录不得推测变化，不评价发育正常与否。此限制仅针对身高体重，奶量与喂养的对比不受限。\n3. 不做医疗诊断；异常用“建议观察，必要时咨询儿科医生”表达；不编造输入中没有的事实。last7Days 仅统计有记录的天（daysWithRecords），漏记天数不影响判断。\n\n【示例】（仅示范写法，数据不同勿照抄）\n5月龄女宝，昨日奶粉720ml/6次、夜奶2次、排便1次、喂养备注“14:30 吐了一部分”：\n{"summary":"昨天奶量和排便正常，白天吐过一次奶，夜奶两次睡得不太稳。","suggestions":["喂奶后竖抱拍嗝15分钟，观察吐奶是否减少","白天多安排趴卧和户外活动，帮夜里睡得更沉"]}\n\n只输出 JSON，不要解释或 Markdown。'
     },
     {
       role: 'user',
@@ -85,6 +94,7 @@ export function dailyReportMessages(input: DailyReportInput): { role: 'system' |
         baby: { name: input.babyName, age: input.ageText, sex: sexLabel },
         reportDate: input.date,
         yesterdayCare: input.yesterday,
+        last7Days: input.last7Days,
         supplementPlan: input.supplementPlan,
         growthContext: input.growthContext
       })
@@ -93,7 +103,7 @@ export function dailyReportMessages(input: DailyReportInput): { role: 'system' |
 }
 
 export async function generateDailyReport(input: DailyReportInput, settings: ModelSettings): Promise<{ summary: string; suggestions: string[] }> {
-  const content = await requestCompletion(settings, dailyReportMessages(input), 300);
+  const content = await requestCompletion(settings, dailyReportMessages(input), 400);
   const parsedJson = JSON.parse(content) as unknown;
   return dailyReportSchema.parse(parsedJson);
 }

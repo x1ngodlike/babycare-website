@@ -10,7 +10,8 @@ function input(overrides: Partial<DailyReportInput> = {}): DailyReportInput {
     babyName: '安安', ageText: '5个月12天', sex: 'female', date: '2026-08-10',
     growthContext: { heightCm: 65, weightKg: 7.2, measuredOn: '2026-08-08', daysSinceMeasurement: 2, recordCount: 1, recent: true },
     supplementPlan: { rule: 'AD 与 VD 每天一种、交替补充', previousDay: ['VD'], status: '昨日 AD 与前一日 VD 交替，符合计划' },
-    yesterday: { breastMl: 0, formulaMl: 720, feedCount: 6, bowelCount: 1, supplements: ['AD'], notes: [] },
+    yesterday: { breastMl: 0, formulaMl: 720, feedCount: 6, bowelCount: 1, supplements: ['AD'], notes: [], feedTimes: ['06:30', '10:00', '13:30', '17:00', '20:30', '23:30'], nightFeedCount: 1, maxSingleFeedMl: 150 },
+    last7Days: { avgTotalMl: 850, avgFeedCount: 6, avgBowelCount: 1.4, daysWithRecords: 6 },
     ...overrides
   };
 }
@@ -25,8 +26,8 @@ describe('daily report prompt', () => {
 
   it('keeps growth out of the daily summary and forbids invented trends', () => {
     const messages = dailyReportMessages(input());
-    expect(messages[0].content).toContain('不要在 summary 中展示身高、体重或成长趋势');
-    expect(messages[0].content).toContain('不得出现“比上次”');
+    expect(messages[0].content).toContain('禁止出现身高、体重或任何成长变化表述');
+    expect(messages[0].content).toContain('不用“比上次”');
     expect(messages[1].content).not.toContain('prevGrowth');
     expect(messages[1].content).not.toContain('上次');
   });
@@ -34,9 +35,17 @@ describe('daily report prompt', () => {
   it('delegates routine medication reminders to the plan section and focuses on health', () => {
     const messages = dailyReportMessages(input());
     expect(messages[0].content).toContain('今日用药护理计划');
-    expect(messages[0].content).toContain('不要输出常规用药或补充剂提醒');
-    expect(messages[0].content).toContain('围绕宝宝健康照护展开');
+    expect(messages[0].content).toContain('不做常规用药或补充剂提醒');
+    expect(messages[0].content).toContain('今天就能做的具体行动');
     expect(messages[0].content).not.toContain('补充剂执行');
+  });
+
+  it('feeds feeding details and 7-day baseline for deviation judgment', () => {
+    const payload = JSON.parse(dailyReportMessages(input())[1].content) as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      yesterdayCare: { nightFeedCount: 1, maxSingleFeedMl: 150, feedTimes: expect.arrayContaining(['06:30']) },
+      last7Days: { avgTotalMl: 850, daysWithRecords: 6 }
+    });
   });
 
   it('provides age, sex, recent growth context and the AD/VD plan', () => {
