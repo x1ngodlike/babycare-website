@@ -60,8 +60,8 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        configureSystemBars();
         createContentView();
+        configureSystemBars();
         configureWebView();
 
         if (ServerConfig.selectedUrl(this).isEmpty()) showServerDialog(true);
@@ -81,7 +81,7 @@ public final class MainActivity extends Activity {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.setDecorFitsSystemWindows(true);
-            WindowInsetsController controller = window.getInsetsController();
+            WindowInsetsController controller = window.getDecorView().getWindowInsetsController();
             if (controller != null) {
                 int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
                     | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
@@ -181,7 +181,7 @@ public final class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " BabyCareAndroid/1.1");
+        settings.setUserAgentString(settings.getUserAgentString() + " BabyCareAndroid/1.1.2");
         webView.addJavascriptInterface(new NativeBridge(), "BabyCareNative");
 
         CookieManager cookieManager = CookieManager.getInstance();
@@ -477,10 +477,30 @@ public final class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) webView.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        if (webView != null) webView.onPause();
+        CookieManager.getInstance().flush();
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        CookieManager.getInstance().flush();
+        super.onStop();
+    }
+
+    @Override
     protected void onDestroy() {
         if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
         fileChooserCallback = null;
         networkExecutor.shutdownNow();
+        CookieManager.getInstance().flush();
         if (webView != null) {
             webView.stopLoading();
             webView.setWebChromeClient(null);
