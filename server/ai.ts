@@ -1,7 +1,17 @@
 import { z } from 'zod';
 import type { BabySex } from './types.js';
+import type { IndicatorAssessment } from './growth-standards.js';
 
 export type ModelSettings = { baseUrl: string; model: string; apiKey: string };
+
+export interface GrowthEvaluationInput {
+  babyName: string;
+  ageText: string;
+  sex: BabySex;
+  height: IndicatorAssessment;
+  weight: IndicatorAssessment;
+  previous: { measuredOn: string; heightCm: number; weightKg: number; daysSince: number } | null;
+}
 
 export interface DailyReportInput {
   babyName: string;
@@ -36,6 +46,11 @@ export interface DailyReportInput {
 const dailyReportSchema = z.object({
   summary: z.string().trim().min(1).max(120),
   suggestions: z.array(z.string().trim().min(1).max(30)).min(1).max(3)
+});
+
+const growthEvaluationSchema = z.object({
+  evaluation: z.string().trim().min(1).max(160),
+  suggestions: z.array(z.string().trim().min(1).max(30)).min(1).max(2)
 });
 
 function completionUrl(baseUrl: string) {
@@ -106,4 +121,29 @@ export async function generateDailyReport(input: DailyReportInput, settings: Mod
   const content = await requestCompletion(settings, dailyReportMessages(input), 400);
   const parsedJson = JSON.parse(content) as unknown;
   return dailyReportSchema.parse(parsedJson);
+}
+
+export function growthEvaluationMessages(input: GrowthEvaluationInput): { role: 'system' | 'user'; content: string }[] {
+  const sexLabel = input.sex === 'male' ? '男宝宝' : input.sex === 'female' ? '女宝宝' : '宝宝';
+  return [
+    {
+      role: 'system',
+      content: '你是有儿科保健知识的资深育儿助手，为家长解读宝宝的一次身高体重测量结果。测量位置已由 WHO 儿童生长标准算好（z 值与区间），你只负责温和解读，不制造焦虑。只输出 JSON：{"evaluation":"…","suggestions":["…"]}。\n\n【evaluation】≤160字，口语化、温和。按优先级：\n1. 先说清本次身高、体重各自落在哪个区间（如“身高中等、体重中上”）\n2. 有上次记录时，解读变化幅度是否平稳（间隔天数短时变化小是正常的）\n3. 强调“沿自己的生长曲线稳定增长”比单次位置更重要\n\n【suggestions】1~2条，每条≤30字，与喂养、测量或复查相关的具体行动。\n\n【红线】\n1. 不做医疗诊断，不用“发育迟缓”“肥胖”“营养不良”等吓人词汇；区间偏低/偏高时建议“儿保就诊评估”。\n2. 单次测量有误差，测量间隔太近不解读细微变化。\n3. 不编造输入中没有的事实；月龄、性别、z 值都以输入为准。\n\n只输出 JSON，不要解释或 Markdown。'
+    },
+    {
+      role: 'user',
+      content: JSON.stringify({
+        baby: { name: input.babyName, age: input.ageText, sex: sexLabel },
+        height: { valueCm: input.height.value, z: input.height.z, band: input.height.bandLabel, range: `${input.height.anchors.p3}~${input.height.anchors.p97}cm` },
+        weight: { valueKg: input.weight.value, z: input.weight.z, band: input.weight.bandLabel, range: `${input.weight.anchors.p3}~${input.weight.anchors.p97}kg` },
+        previous: input.previous ? { measuredOn: input.previous.measuredOn, daysSince: input.previous.daysSince, heightCm: input.previous.heightCm, weightKg: input.previous.weightKg, heightDeltaCm: Math.round((input.height.value - input.previous.heightCm) * 10) / 10, weightDeltaKg: Math.round((input.weight.value - input.previous.weightKg) * 100) / 100 } : null
+      })
+    }
+  ];
+}
+
+export async function generateGrowthEvaluation(input: GrowthEvaluationInput, settings: ModelSettings): Promise<{ evaluation: string; suggestions: string[] }> {
+  const content = await requestCompletion(settings, growthEvaluationMessages(input), 300);
+  const parsedJson = JSON.parse(content) as unknown;
+  return growthEvaluationSchema.parse(parsedJson);
 }

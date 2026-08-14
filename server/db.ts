@@ -230,6 +230,10 @@ db.exec(`
   );
 `);
 
+const growthTableColumns = db.prepare('PRAGMA table_info(growth_records)').all() as { name: string }[];
+if (!growthTableColumns.some(column => column.name === 'evaluation')) db.exec('ALTER TABLE growth_records ADD COLUMN evaluation TEXT');
+if (!growthTableColumns.some(column => column.name === 'evaluated_at')) db.exec('ALTER TABLE growth_records ADD COLUMN evaluated_at TEXT');
+
 const careItemTableColumns = db.prepare('PRAGMA table_info(care_items)').all() as { name: string }[];
 if (!careItemTableColumns.some(column => column.name === 'schedule_type')) db.exec("ALTER TABLE care_items ADD COLUMN schedule_type TEXT NOT NULL DEFAULT 'as_needed' CHECK (schedule_type IN ('daily', 'interval', 'as_needed'))");
 if (!careItemTableColumns.some(column => column.name === 'interval_days')) db.exec('ALTER TABLE care_items ADD COLUMN interval_days INTEGER NOT NULL DEFAULT 1');
@@ -617,7 +621,7 @@ export function replaceFamilyRoles(items: Pick<FamilyMemberPermission, 'id' | 'r
 
 const growthColumns = `id, measured_on AS measuredOn, height_cm AS heightCm, weight_kg AS weightKg,
   created_at AS createdAt, updated_at AS updatedAt, created_by AS createdBy, updated_by AS updatedBy,
-  deleted_at AS deletedAt, deleted_by AS deletedBy`;
+  deleted_at AS deletedAt, deleted_by AS deletedBy, evaluation, evaluated_at AS evaluatedAt`;
 function getGrowthRecord(id: string): GrowthRecord | null {
   return db.prepare(`SELECT ${growthColumns} FROM growth_records WHERE id = ?`).get(id) as GrowthRecord | undefined || null;
 }
@@ -661,6 +665,12 @@ export function restoreGrowthRecord(id: string, actor: AuditIdentity): GrowthRec
 }
 export function purgeGrowthRecord(id: string): boolean {
   return db.prepare('DELETE FROM growth_records WHERE id = ? AND deleted_at IS NOT NULL').run(id).changes > 0;
+}
+
+export function saveGrowthEvaluation(id: string, evaluation: string): GrowthRecord | null {
+  const now = new Date().toISOString();
+  const result = db.prepare('UPDATE growth_records SET evaluation = ?, evaluated_at = ? WHERE id = ? AND deleted_at IS NULL').run(evaluation, now, id);
+  return result.changes ? getGrowthRecord(id) : null;
 }
 
 const vaccineColumns = `id, vaccine_name AS vaccineName, category, dose, planned_on AS plannedOn,

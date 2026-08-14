@@ -24,6 +24,8 @@ export interface GrowthRecord {
   updatedBy: AuditIdentity;
   deletedAt: string | null;
   deletedBy: AuditIdentity | null;
+  evaluation: string | null;
+  evaluatedAt: string | null;
 }
 
 export interface VaccineRecord {

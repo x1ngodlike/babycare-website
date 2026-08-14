@@ -1,5 +1,32 @@
 import type { AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 
+export interface GrowthIndicatorAssessment {
+  value: number;
+  z: number;
+  band: 'low' | 'below' | 'mid' | 'above' | 'high';
+  bandLabel: string;
+  anchors: { p3: number; p15: number; p50: number; p85: number; p97: number };
+}
+
+export interface GrowthAssessmentEvaluation {
+  text: string;
+  suggestions: string[];
+  evaluatedAt: string | null;
+}
+
+export interface GrowthAssessment {
+  available: boolean;
+  reason?: 'no_sex' | 'no_records' | 'out_of_range';
+  maxMonths?: number;
+  latestRecordId?: string;
+  measuredOn?: string;
+  ageMonths?: number;
+  height?: GrowthIndicatorAssessment;
+  weight?: GrowthIndicatorAssessment;
+  milk?: { avgDailyMl: number; daysCounted: number; referenceMin: number; referenceMax: number } | null;
+  evaluation?: GrowthAssessmentEvaluation | null;
+}
+
 export class ApiError extends Error {
   status: number;
   code?: string;
@@ -44,6 +71,8 @@ export const api = {
   deleteGrowthRecord: (id: string) => request<{ deleted: boolean; record: GrowthRecord }>(`/api/growth-records/${id}`, { method: 'DELETE' }),
   restoreGrowthRecord: (id: string) => request<GrowthRecord>(`/api/growth-records/${id}/restore`, { method: 'POST' }),
   purgeGrowthRecord: (id: string) => request<{ deleted: boolean }>(`/api/growth-records/${id}/permanent`, { method: 'DELETE' }),
+  growthAssessment: () => request<GrowthAssessment>('/api/growth-assessment'),
+  generateGrowthEvaluation: (id: string) => request<{ evaluation: GrowthAssessmentEvaluation }>(`/api/growth-records/${id}/evaluation`, { method: 'POST' }),
   vaccineRecords: () => request<VaccineRecord[]>('/api/vaccine-records'),
   vaccineCatalog: () => request<VaccineCatalogItem[]>('/api/vaccine-catalog'),
   createVaccineCatalogItem: (item: DraftVaccineCatalogItem) => request<VaccineCatalogItem>('/api/vaccine-catalog', { method: 'POST', body: JSON.stringify(item) }),
