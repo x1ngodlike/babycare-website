@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, createElement } from 'react';
-import { Baby, Bell, Bot, LogOut, Pill, Save, Search, Server, Syringe, Users } from 'lucide-react';
+import { Baby, Bell, Bot, LogOut, Pill, Save, Search, Send, Server, Syringe, Users } from 'lucide-react';
 import { api, ApiError } from './api';
 import { addDays, calculateAge, isoDay, startOfWeek } from './date';
 import { isCareItemDue, nextCareItemDueDate } from './careSchedule';
@@ -1004,37 +1004,25 @@ function VaccineSettingsCard({ catalog, manager, onCatalogChanged }: { catalog: 
   <section className="settings-card vaccine-catalog-card"><div className="section-title"><div><p className="kicker">疫苗目录</p><h2>显示疫苗</h2></div><div className="catalog-head-actions"><span>{catalog.filter(item => item.active).length} 项启用</span>{manager && <button type="button" className="btn secondary" disabled={Boolean(busy)} onClick={() => setEditing('new')}>＋ 新增疫苗</button>}</div></div><p>内置 10 种默认疫苗只能启用或停用；自行新增的疫苗可以修改和删除。</p><div className="vaccine-catalog-list">{catalog.map(item => <article key={item.id} className={`${item.active ? '' : 'inactive'} ${manager ? '' : 'readonly'}`}><div className="catalog-copy"><div className="catalog-title"><b>{item.name}</b><i className={`vaccine-kind ${item.category}`}>{item.category === 'program' ? '规划' : '自费'}</i></div><small>{item.doseCount ? `${item.doseCount} 剂` : '按接种门诊安排'}{item.isSystem ? ' · 系统默认' : ''}</small></div>{manager && !item.isSystem ? <ActionMenu label={`管理${item.name}`} items={[{ label: expanded === item.id ? '收起详情' : '查看详情', onSelect: () => setExpanded(expanded === item.id ? '' : item.id) }, { label: '修改', onSelect: () => setEditing(item) }, { label: '删除', danger: true, onSelect: () => remove(item) }]} /> : <button type="button" className="catalog-detail-toggle" aria-expanded={expanded === item.id} onClick={() => setExpanded(expanded === item.id ? '' : item.id)}>{expanded === item.id ? '收起' : '详情'}</button>}{manager && <Switch checked={item.active} label={`${item.active ? '停用' : '启用'}${item.name}`} disabled={Boolean(busy)} onChange={() => void toggle(item)} />}{expanded === item.id && <div className="catalog-detail"><dl><dt>预防疾病</dt><dd>{item.description || '尚未填写。'}</dd><dt>接种程序</dt><dd>{item.intervalSummary || (item.doseCount ? `共 ${item.doseCount} 剂` : '按接种门诊安排')}</dd></dl></div>}</article>)}</div>{message && <p className={message.error ? 'error-text' : 'success-text'} role="status">{message.text}</p>}</section>{editing && <VaccineCatalogEditor item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSaved={async saved => { await onCatalogChanged(); setMessage({ text: editing === 'new' ? `${saved.name}已新增` : `${saved.name}已修改` }); }} />}</>;
 }
 
-function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingGap, onTestCareItem, onSave }: { pushStatus: PushStatus | null; onRefresh(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSave(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean }): Promise<PushStatus> }) {
-  const [enabled, setEnabled] = useState(false);
-  const [pushplusToken, setPushplusToken] = useState('');
+type PushSettingsPatch = { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean };
+
+function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingGap, onTestCareItem, onSave, onOpenAppNotifications }: { pushStatus: PushStatus | null; onRefresh(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSave(data: PushSettingsPatch): Promise<PushStatus>; onOpenAppNotifications?(): void }) {
+  const [digestTime, setDigestTime] = useState('08:00');
+  const [gapLevel1, setGapLevel1] = useState(150);
+  const [gapLevel2, setGapLevel2] = useState(180);
+  const [token, setToken] = useState('');
+  const [topic, setTopic] = useState('');
   const [showToken, setShowToken] = useState(false);
-  const [pushplusTopic, setPushplusTopic] = useState('');
-
-  const [morningDigestEnabled, setMorningDigestEnabled] = useState(true);
-  const [morningDigestTime, setMorningDigestTime] = useState('08:00');
-
-  const [feedingGapEnabled, setFeedingGapEnabled] = useState(true);
-  const [feedingGapLevel1Minutes, setFeedingGapLevel1Minutes] = useState(150);
-  const [feedingGapLevel2Minutes, setFeedingGapLevel2Minutes] = useState(180);
-
-  const [careItemEnabled, setCareItemEnabled] = useState(true);
-
-  const [saving, setSaving] = useState(false);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
   const [testingKey, setTestingKey] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const initialized = useRef(false);
 
   useEffect(() => {
     if (!pushStatus || initialized.current) return;
-    setEnabled(pushStatus.enabled);
-    setPushplusToken('');
-    setPushplusTopic('');
-    setMorningDigestEnabled(pushStatus.morningDigestEnabled ?? true);
-    setMorningDigestTime(pushStatus.morningDigestTime || '08:00');
-    setFeedingGapEnabled(pushStatus.feedingGapEnabled ?? true);
-    setFeedingGapLevel1Minutes(pushStatus.feedingGapLevel1Minutes || 150);
-    setFeedingGapLevel2Minutes(pushStatus.feedingGapLevel2Minutes || 180);
-    setCareItemEnabled(pushStatus.careItemEnabled ?? true);
+    setDigestTime(pushStatus.morningDigestTime || '08:00');
+    setGapLevel1(pushStatus.feedingGapLevel1Minutes || 150);
+    setGapLevel2(pushStatus.feedingGapLevel2Minutes || 180);
     initialized.current = true;
   }, [pushStatus]);
 
@@ -1047,61 +1035,61 @@ function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingG
     return `${h} 小时 ${r} 分`;
   }
 
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
-    setSaving(true);
+  async function persist(key: string, patch: PushSettingsPatch, successText = '已保存'): Promise<boolean> {
+    setSavingKey(key);
     setMessage(null);
-    const l1 = Number(feedingGapLevel1Minutes);
-    const l2 = Number(feedingGapLevel2Minutes);
+    try {
+      await onSave(patch);
+      setMessage({ text: successText, error: false });
+      return true;
+    } catch (error) {
+      const text = error instanceof ApiError ? error.message : '保存失败';
+      setMessage({ text, error: true });
+      return false;
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function saveDigestTime() {
+    const value = digestTime.trim();
+    if (!/^\d{2}:\d{2}$/.test(value)) {
+      setMessage({ text: '发送时间必须为 HH:MM 格式（如 08:00）', error: true });
+      return;
+    }
+    await persist('digest-time', { morningDigestTime: value });
+  }
+
+  async function saveGapLevels() {
+    const l1 = Number(gapLevel1);
+    const l2 = Number(gapLevel2);
     if (!Number.isSafeInteger(l1) || l1 < 30) {
       setMessage({ text: '轻度提醒至少 30 分钟', error: true });
-      setSaving(false);
       return;
     }
     if (!Number.isSafeInteger(l2) || l2 < 30) {
       setMessage({ text: '重点提醒至少 30 分钟', error: true });
-      setSaving(false);
       return;
     }
     if (l2 <= l1) {
-      setMessage({ text: '重点提醒分钟数必须大于轻度提醒', error: true });
-      setSaving(false);
+      setMessage({ text: '重点提醒必须大于轻度提醒', error: true });
       return;
     }
-    if (!/^\d{2}:\d{2}$/.test(morningDigestTime)) {
-      setMessage({ text: '早报时间必须为 HH:MM 格式（如 08:00）', error: true });
-      setSaving(false);
-      return;
-    }
-    const payload = {
-      enabled,
-      morningDigestEnabled,
-      morningDigestTime: morningDigestTime.trim(),
-      feedingGapEnabled,
-      feedingGapLevel1Minutes: l1,
-      feedingGapLevel2Minutes: l2,
-      careItemEnabled
-    } as const;
-    const extras: { pushplusToken?: string; pushplusTopic?: string } = {};
-    if (pushplusToken.trim()) extras.pushplusToken = pushplusToken.trim();
-    if (pushplusTopic.trim()) extras.pushplusTopic = pushplusTopic.trim();
-    try {
-      const next = await onSave({ ...payload, ...extras });
-      setEnabled(next.enabled);
-      setPushplusToken('');
-      setPushplusTopic('');
-      setMorningDigestEnabled(next.morningDigestEnabled);
-      setMorningDigestTime(next.morningDigestTime || '08:00');
-      setFeedingGapEnabled(next.feedingGapEnabled);
-      setFeedingGapLevel1Minutes(next.feedingGapLevel1Minutes || 150);
-      setFeedingGapLevel2Minutes(next.feedingGapLevel2Minutes || 180);
-      setCareItemEnabled(next.careItemEnabled);
-      setMessage({ text: '配置已保存', error: false });
-    } catch (error) {
-      const text = error instanceof ApiError ? error.message : '保存失败';
-      setMessage({ text, error: true });
-    } finally {
-      setSaving(false);
+    await persist('gap-levels', { feedingGapLevel1Minutes: l1, feedingGapLevel2Minutes: l2 });
+  }
+
+  async function saveChannel(clear: boolean) {
+    if (clear && !await confirmAction({ title: '清除微信推送配置？', description: 'Token 与话题编码将一并清除，微信将不再收到推送；APP 通知不受影响。', confirmLabel: '清除配置', danger: true })) return;
+    const trimmedToken = token.trim();
+    const trimmedTopic = topic.trim();
+    if (!clear && !trimmedToken && !trimmedTopic) return;
+    const saved = await persist('channel', clear
+      ? { pushplusToken: '', pushplusTopic: '' }
+      : { ...(trimmedToken ? { pushplusToken: trimmedToken } : {}), ...(trimmedTopic ? { pushplusTopic: trimmedTopic } : {}) },
+      clear ? '微信推送配置已清除' : '微信推送配置已保存');
+    if (saved) {
+      setToken('');
+      setTopic('');
     }
   }
 
@@ -1170,158 +1158,152 @@ function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingG
     return `${minutesLabel(gap)}（${new Date(pushStatus.lastFeedAt).toLocaleString('zh-CN')}）${tag}`;
   })();
 
-  return <section className="settings-card push-settings-card">
-    <div className="setting-status">
+  const digestDirty = digestTime.trim() !== (pushStatus?.morningDigestTime || '08:00');
+  const gapDirty = Number(gapLevel1) !== (pushStatus?.feedingGapLevel1Minutes || 150) || Number(gapLevel2) !== (pushStatus?.feedingGapLevel2Minutes || 180);
+  const channelDirty = Boolean(token.trim() || topic.trim());
+
+  return <>
+    <section className="settings-card push-rules-card">
       <div>
-        <h2>消息推送</h2>
-        <p>通过 PushPlus 推送到普通微信：早间日报 + 喂奶间隔提醒 + 单项照护提醒。</p>
+        <h2>提醒规则</h2>
+        <p>规则对全家生效：关闭某类提醒后，微信推送和 APP 通知都会停止该类消息。</p>
       </div>
-      <span className={pushStatus?.enabled ? 'on' : ''}>
-        {!pushStatus ? '读取中' : pushStatus.enabled ? '已开启' : pushStatus.pushplusConfigured ? '已关闭' : '未配置'}
-      </span>
-    </div>
+      <div className="push-rule-list">
+        <article className="push-rule-row">
+          <header className="push-rule-head">
+            <div><b>早间日报</b><small>昨日汇总与今日计划，每天一条</small></div>
+            <Switch checked={pushStatus?.morningDigestEnabled ?? true} label="早间日报提醒开关" disabled={savingKey !== null} onChange={value => void persist('rule-digest', { morningDigestEnabled: value }, value ? '早间日报已开启' : '早间日报已关闭')} />
+          </header>
+          <form className="push-rule-fields" onSubmit={event => { event.preventDefault(); void saveDigestTime(); }}>
+            <label>
+              发送时间
+              <input type="time" value={digestTime} onChange={event => setDigestTime(event.target.value)} />
+            </label>
+            <button type="submit" className="btn secondary" disabled={savingKey !== null || !digestDirty}>{savingKey === 'digest-time' ? '保存中…' : '保存时间'}</button>
+          </form>
+          <p className="push-rule-meta">{pushStatus?.morningDigestEnabled
+            ? (pushStatus.morningDigestTodaySent ? '今日早报已发送' : `今日未发送，到 ${pushStatus.morningDigestTime || '08:00'} 自动触发`)
+            : '规则已关闭，时间仅作预设'}</p>
+          <footer className="push-rule-actions">
+            <button type="button" className="btn secondary" disabled={testingKey === 'morning'} onClick={handleTestMorning}>{testingKey === 'morning' ? '发送中…' : '发送测试'}</button>
+          </footer>
+        </article>
 
-    <form onSubmit={save}>
-      <div className="form-switch-row">
-        <label>启用推送</label>
-        <Switch checked={enabled} label="启用推送" onChange={value => setEnabled(value)} />
+        <article className="push-rule-row">
+          <header className="push-rule-head">
+            <div><b>喂奶间隔</b><small>超过轻度先提醒一次，超过重点再提醒一次</small></div>
+            <Switch checked={pushStatus?.feedingGapEnabled ?? true} label="喂奶间隔提醒开关" disabled={savingKey !== null} onChange={value => void persist('rule-gap', { feedingGapEnabled: value }, value ? '喂奶间隔提醒已开启' : '喂奶间隔提醒已关闭')} />
+          </header>
+          <form className="push-rule-fields push-rule-fields-gap" onSubmit={event => { event.preventDefault(); void saveGapLevels(); }}>
+            <label>
+              轻度（分钟）
+              <input type="number" min={30} step={1} value={gapLevel1} onChange={event => setGapLevel1(Number(event.target.value))} />
+            </label>
+            <label>
+              重点（分钟）
+              <input type="number" min={30} step={1} value={gapLevel2} onChange={event => setGapLevel2(Number(event.target.value))} />
+            </label>
+            <button type="submit" className="btn secondary" disabled={savingKey !== null || !gapDirty}>{savingKey === 'gap-levels' ? '保存中…' : '保存阈值'}</button>
+          </form>
+          <p className="push-rule-meta">当前约轻度 {minutesLabel(gapLevel1)}、重点 {minutesLabel(gapLevel2)}；有新喂奶记录会自动重置。{pushStatus?.lastFeedAt ? `距上次喂奶：${feedingGapLabel}。` : '暂无喂奶记录，记录后自动按间隔提醒。'}</p>
+          <footer className="push-rule-actions">
+            <button type="button" className="btn secondary" disabled={testingKey === 'level1'} onClick={() => handleTestFeedingGap('level1')}>{testingKey === 'level1' ? '发送中…' : '🟡 轻度测试'}</button>
+            <button type="button" className="btn secondary" disabled={testingKey === 'level2'} onClick={() => handleTestFeedingGap('level2')}>{testingKey === 'level2' ? '发送中…' : '🔴 重点测试'}</button>
+          </footer>
+        </article>
+
+        <article className="push-rule-row">
+          <header className="push-rule-head">
+            <div><b>用药护理</b><small>到点提醒吃药、推拿等定时照护</small></div>
+            <Switch checked={pushStatus?.careItemEnabled ?? true} label="用药护理提醒开关" disabled={savingKey !== null} onChange={value => void persist('rule-care', { careItemEnabled: value }, value ? '用药护理提醒已开启' : '用药护理提醒已关闭')} />
+          </header>
+          <footer className="push-rule-actions">
+            <button type="button" className="btn secondary" disabled={testingKey === 'care-item'} onClick={handleTestCareItem}>{testingKey === 'care-item' ? '发送中…' : '发送测试'}</button>
+          </footer>
+        </article>
+      </div>
+    </section>
+
+    <section className="settings-card push-channels-card">
+      <div>
+        <h2>接收通道</h2>
+        <p>提醒规则触发后按通道送达；各通道独立开关，互不影响。</p>
       </div>
 
-      <fieldset className="push-channel-fieldset">
-        <legend>PushPlus · 普通微信</legend>
-        <label>
-          用户 Token
-          <div className="secret-field">
+      <article className="push-channel-row">
+        <header className="push-channel-head">
+          <div><b>微信推送</b><small>PushPlus 服务号消息，需配置 Token</small></div>
+          {pushStatus?.pushplusConfigured
+            ? <Switch checked={pushStatus.enabled} label="微信推送通道开关" disabled={savingKey !== null} onChange={value => void persist('channel-toggle', { enabled: value }, value ? '微信推送已开启' : '微信推送已关闭')} />
+            : <span className="push-channel-badge">未配置</span>}
+        </header>
+        <form className="push-channel-fields" onSubmit={event => { event.preventDefault(); void saveChannel(false); }}>
+          <label>
+            用户 Token
+            <div className="secret-field">
+              <input
+                type={showToken ? 'text' : 'password'}
+                value={token}
+                onChange={event => setToken(event.target.value)}
+                placeholder={pushStatus?.pushplusConfigured ? `已保存 ${pushStatus.pushplusTokenMasked || 'Token'}，留空不修改` : '从 pushplus.plus 复制的用户 Token'}
+                autoComplete="off"
+              />
+              <button type="button" onClick={() => setShowToken(value => !value)}>{showToken ? '隐藏' : '显示'}</button>
+            </div>
+          </label>
+          <label>
+            话题编码 <span>选填</span>
             <input
-              type={showToken ? 'text' : 'password'}
-              value={pushplusToken}
-              onChange={e => setPushplusToken(e.target.value)}
-              placeholder={pushStatus?.pushplusConfigured ? `已保存 ${pushStatus.pushplusTokenMasked || 'Token'}，留空不修改` : '从 pushplus.plus 复制的用户 Token'}
+              type="text"
+              value={topic}
+              onChange={event => setTopic(event.target.value)}
+              placeholder={pushStatus?.pushplusTopic ? `已保存：${pushStatus.pushplusTopic}，留空不修改` : '填写后，订阅该话题的家人都会收到'}
               autoComplete="off"
             />
-            <button type="button" onClick={() => setShowToken(value => !value)}>{showToken ? '隐藏' : '显示'}</button>
+          </label>
+          <div className="push-channel-actions">
+            <button type="submit" className="btn secondary" disabled={savingKey !== null || !channelDirty}>{savingKey === 'channel' ? '保存中…' : '保存配置'}</button>
+            {pushStatus?.pushplusConfigured && <button type="button" className="btn secondary" disabled={savingKey !== null} onClick={() => void saveChannel(true)}>清除配置</button>}
           </div>
-        </label>
-        <label>
-          一对多话题编码（可选）
-          <input
-            type="text"
-            value={pushplusTopic}
-            onChange={e => setPushplusTopic(e.target.value)}
-            placeholder={pushStatus?.pushplusTopic ? `已保存：${pushStatus.pushplusTopic}，留空不修改` : '不填时只发送到自己；填写后所有订阅此话题的家人都会收到'}
-            autoComplete="off"
-          />
-        </label>
+        </form>
         <small className="field-help">
           在 <a href="https://www.pushplus.plus" target="_blank" rel="noreferrer">pushplus.plus</a> 扫码登录拿 Token；进入「一对多消息」新建 topic，家人扫话题二维码加入即可在普通微信里收到提醒。
         </small>
-      </fieldset>
+      </article>
 
-      <fieldset className="push-digest-fieldset">
-        <legend>早间综合日报</legend>
-        <div className="form-switch-row">
-          <label>启用早报</label>
-          <Switch checked={morningDigestEnabled} label="启用早间日报" onChange={value => setMorningDigestEnabled(value)} />
-        </div>
-        <label>
-          发送时间（北京时间）
-          <input
-            type="time"
-            value={morningDigestTime}
-            onChange={e => setMorningDigestTime(e.target.value)}
-            disabled={!morningDigestEnabled}
-          />
-        </label>
-        <small className="field-help">
-          每天到点发送一次：包含昨日数据概括（喂奶/用药护理/排便）+ AI 总结（若已配置）+ 今日用药护理计划 + 疫苗安排（今日/逾期/未来7天）。
-          {pushStatus?.morningDigestTodaySent
-            ? <><br /><span style={{ color: '#2b6b3e', fontWeight: 600 }}>今日早报已发送 ✅</span></>
-            : <><br /><span style={{ color: '#4a6152' }}>今日早报：未发送（到 {morningDigestTime || '08:00'} 自动触发）</span></>}
-        </small>
-        <div className="push-inline-actions">
-          <button type="button" className="btn secondary" disabled={testingKey === 'morning'} onClick={handleTestMorning}>{testingKey === 'morning' ? '发送中…' : '发送早报测试消息'}</button>
-        </div>
-      </fieldset>
+      <article className="push-channel-row">
+        <header className="push-channel-head">
+          <div><b>APP 通知</b><small>推送到本机通知栏，免服务器配置</small></div>
+          {onOpenAppNotifications
+            ? <button type="button" className="btn secondary" onClick={onOpenAppNotifications}>本机设置</button>
+            : <span className="push-channel-badge">仅 APP 内</span>}
+        </header>
+        <p className="push-rule-meta">提醒类型可在每台手机上单独开关，不影响其他家人。</p>
+      </article>
+    </section>
 
-      <fieldset className="push-feeding-gap-fieldset">
-        <legend>喂奶间隔提醒（两级）</legend>
-        <div className="form-switch-row">
-          <label>启用喂奶间隔提醒</label>
-          <Switch checked={feedingGapEnabled} label="启用喂奶间隔提醒" onChange={value => setFeedingGapEnabled(value)} />
+    <section className="settings-card push-runtime-card">
+      <details className="push-runtime-details">
+        <summary>
+          <span>运行状态</span>
+          <small>{pushStatus?.schedulerRunning ? '调度运行中' : '调度未启动'} · 今日已推送 {pushStatus?.todayPushedItems ?? 0} 条</small>
+        </summary>
+        <dl className="push-status-dl">
+          <div><dt>调度器</dt><dd>{pushStatus?.schedulerRunning ? '运行中' : '未启动'}</dd></div>
+          <div><dt>上次检查</dt><dd>{pushStatus?.lastCheckAt ? new Date(pushStatus.lastCheckAt).toLocaleString('zh-CN') : '暂无'}</dd></div>
+          <div><dt>今日已推送</dt><dd>{pushStatus?.todayPushedItems ?? 0} 项</dd></div>
+          <div><dt>距上次喂奶</dt><dd>{feedingGapLabel}</dd></div>
+          <div><dt>微信通道</dt><dd>{pushStatus?.pushplusConfigured ? (pushStatus.enabled ? '已开启' : '已关闭') : '未配置 Token'}</dd></div>
+          <div><dt>最近更新</dt><dd>{pushStatus?.updatedAt ? new Date(pushStatus.updatedAt).toLocaleString('zh-CN') : '未修改过'}</dd></div>
+        </dl>
+        <div className="push-runtime-actions">
+          <button type="button" className="btn secondary" onClick={refresh}>刷新状态</button>
         </div>
-        <div className="feeding-gap-grid">
-          <label>
-            🟡 轻度提醒（分钟）
-            <input
-              type="number"
-              min={30}
-              step={1}
-              value={feedingGapLevel1Minutes}
-              onChange={e => setFeedingGapLevel1Minutes(Number(e.target.value))}
-              disabled={!feedingGapEnabled}
-            />
-            <small className="field-help">建议：120~180；当前约等于 <b>{minutesLabel(feedingGapLevel1Minutes)}</b></small>
-          </label>
-          <label>
-            🔴 重点提醒（分钟）
-            <input
-              type="number"
-              min={30}
-              step={1}
-              value={feedingGapLevel2Minutes}
-              onChange={e => setFeedingGapLevel2Minutes(Number(e.target.value))}
-              disabled={!feedingGapEnabled}
-            />
-            <small className="field-help">必须大于轻度；当前约等于 <b>{minutesLabel(feedingGapLevel2Minutes)}</b></small>
-          </label>
-        </div>
-        <small className="field-help">
-          距上次喂奶超过轻度阈值就先推一条提醒；仍无新记录且超过重点阈值再推第二条；有新喂奶记录会自动重置计数。
-          {pushStatus?.lastFeedAt
-            ? <><br />当前距上次喂奶：<b>{feedingGapLabel}</b></>
-            : <><br />暂无喂奶记录；记录后会自动按设定间隔推送。</>}
-        </small>
-        <div className="push-inline-actions">
-          <button type="button" className="btn secondary" disabled={testingKey === 'level1'} onClick={() => handleTestFeedingGap('level1')}>{testingKey === 'level1' ? '发送中…' : '🟡 发送轻度测试'}</button>
-          <button type="button" className="btn secondary" disabled={testingKey === 'level2'} onClick={() => handleTestFeedingGap('level2')}>{testingKey === 'level2' ? '发送中…' : '🔴 发送重点测试'}</button>
-        </div>
-      </fieldset>
+      </details>
+    </section>
 
-      <fieldset className="push-feeding-gap-fieldset">
-        <legend>用药护理提醒</legend>
-        <div className="form-switch-row">
-          <div>
-            <label>启用用药护理提醒</label>
-            <small className="field-help">到点推送用药、推拿等定时照护</small>
-          </div>
-          <Switch checked={careItemEnabled} label="启用用药护理提醒" onChange={value => setCareItemEnabled(value)} />
-        </div>
-        <div className="push-inline-actions">
-          <button type="button" className="btn secondary" disabled={testingKey === 'care-item'} onClick={handleTestCareItem}>{testingKey === 'care-item' ? '发送中…' : '发送照护测试消息'}</button>
-        </div>
-      </fieldset>
-
-      <dl className="push-status-dl">
-        <div><dt>推送通道</dt><dd>PushPlus（微信服务号）</dd></div>
-        <div><dt>调度器</dt><dd>{pushStatus?.schedulerRunning ? '运行中' : '未启动'}</dd></div>
-        <div><dt>上次检查</dt><dd>{pushStatus?.lastCheckAt ? new Date(pushStatus.lastCheckAt).toLocaleString('zh-CN') : '暂无'}</dd></div>
-        <div><dt>今日已推送</dt><dd>{pushStatus?.todayPushedItems ?? 0} 项</dd></div>
-        <div><dt>早报状态</dt><dd>{pushStatus?.morningDigestEnabled ? `每日 ${pushStatus.morningDigestTime || '08:00'} 发送` : '已关闭'}{pushStatus?.morningDigestTodaySent ? ' · 今日已发 ✅' : ''}</dd></div>
-        <div><dt>喂奶阈值</dt><dd>{pushStatus?.feedingGapEnabled ? `🟡 ${minutesLabel(pushStatus.feedingGapLevel1Minutes)} / 🔴 ${minutesLabel(pushStatus.feedingGapLevel2Minutes)}` : '已关闭'}</dd></div>
-        <div><dt>用药护理提醒</dt><dd>{pushStatus?.careItemEnabled ? '已开启' : '已关闭'}</dd></div>
-        <div><dt>距上次喂奶</dt><dd>{feedingGapLabel}</dd></div>
-        <div><dt>配置状态</dt><dd>{pushStatus?.pushplusConfigured ? 'Token 已配置' : '未配置 Token'}</dd></div>
-        <div><dt>最近更新</dt><dd>{pushStatus?.updatedAt ? new Date(pushStatus.updatedAt).toLocaleString('zh-CN') : '未修改过'}</dd></div>
-      </dl>
-
-      <div className="push-actions">
-        <button type="button" className="btn secondary" onClick={refresh}>刷新状态</button>
-        <button type="submit" className="btn primary" disabled={Boolean(saving)}>{saving ? '保存中…' : '保存配置'}</button>
-      </div>
-
-      {message && <p className={message.error ? 'error-text' : 'success-text'} role="status">{message.text}</p>}
-    </form>
-  </section>;
+    {message && <p className={message.error ? 'error-text' : 'success-text'} role="status">{message.text}</p>}
+  </>;
 }
 
 function NativeNotificationSettingsCard({ superadmin }: { superadmin: boolean }) {
@@ -1369,7 +1351,7 @@ function NativeNotificationSettingsCard({ superadmin }: { superadmin: boolean })
 }
 
 type SettingsSection = 'root' | 'family' | 'care-items' | 'vaccines' | 'ai' | 'backup' | 'push' | 'baby' | 'app-notifications';
-type SettingsIconName = 'medicine' | 'vaccine' | 'profile' | 'members' | 'ai' | 'backup' | 'bell' | 'server' | 'logout';
+type SettingsIconName = 'medicine' | 'vaccine' | 'profile' | 'members' | 'ai' | 'backup' | 'bell' | 'send' | 'server' | 'logout';
 
 function SettingsIcon({ name }: { name: SettingsIconName }) {
   // 使用 Lucide React 线性图标，统一 strokeWidth 1.8，与设计系统的圆角/圆润风格一致
@@ -1381,6 +1363,7 @@ function SettingsIcon({ name }: { name: SettingsIconName }) {
     ai: Bot,
     backup: Save,
     bell: Bell,
+    send: Send,
     server: Server,
     logout: LogOut,
   };
@@ -1392,7 +1375,7 @@ function SettingsEntry({ icon, title, description, status, danger = false, showC
   return <button type="button" className={`settings-entry${danger ? ' danger' : ''}`} onClick={onClick}><span className="settings-entry-icon"><SettingsIcon name={icon} /></span><span><b>{title}</b><small>{description}</small></span><em>{status || ''}</em><i aria-hidden="true">{showChevron ? '›' : ''}</i></button>;
 }
 
-function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, pushStatus, onProfileSaved, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; pushStatus: PushStatus | null; onProfileSaved(value: Profile): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSavePush(data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number }): Promise<PushStatus> }) {
+function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, pushStatus, onProfileSaved, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; pushStatus: PushStatus | null; onProfileSaved(value: Profile): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSavePush(data: PushSettingsPatch): Promise<PushStatus> }) {
   const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false);
   const nativeBridge = window.BabyCareNative;
   const nativeNotificationsAvailable = Boolean(nativeBridge?.getNotificationPermissionStatus && nativeBridge?.requestNotificationPermission && nativeBridge?.showTestNotification && nativeBridge?.getAppNotificationSettings && nativeBridge?.saveAppNotificationSettings);
@@ -1416,17 +1399,18 @@ function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, 
     {section === 'vaccines' && canManage(user) && <VaccineSettingsCard catalog={vaccineCatalog} manager onCatalogChanged={onVaccineCatalogChanged} />}
     {section === 'ai' && <AiSettingsCard capabilities={capabilities} onChanged={onCapabilitiesChanged} />}
     {section === 'backup' && <ServerBackupCard onImported={onImported} />}
-    {section === 'push' && <PushSettingsCard pushStatus={pushStatus} onRefresh={onRefreshPush} onTestMorning={onTestMorning} onTestFeedingGap={onTestFeedingGap} onTestCareItem={onTestCareItem} onSave={onSavePush} />}
+    {section === 'push' && <PushSettingsCard pushStatus={pushStatus} onRefresh={onRefreshPush} onTestMorning={onTestMorning} onTestFeedingGap={onTestFeedingGap} onTestCareItem={onTestCareItem} onSave={onSavePush} onOpenAppNotifications={nativeNotificationsAvailable ? () => open('app-notifications') : undefined} />}
     {section === 'app-notifications' && nativeNotificationsAvailable && <NativeNotificationSettingsCard superadmin={user.role === 'superadmin'} />}
   </div></div>;
   return <div className="page-stack settings-home"><header className="page-head"><h1>设置</h1><p>{user.role === 'superadmin' ? '管理家庭成员、照护项目和服务器。' : user.role === 'admin' ? '管理宝宝资料、用药项目和已删除记录。' : '查看当前身份和权限。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份与权限</span><h2>{user.name}</h2><p>{roleNames[user.role]}</p></div><i>{canManage(user) ? '管理权限' : '记录权限'}</i></section>
-    {user.role === 'admin' && <section className="settings-card permission-note"><p className="kicker">管理权限</p><h2>管理日常照护</h2><p>可编辑宝宝资料、管理用药项目和回收站。家庭权限、AI 模型、消息推送和备份仅超管可操作。</p></section>}
+    {user.role === 'admin' && <section className="settings-card permission-note"><p className="kicker">管理权限</p><h2>管理日常照护</h2><p>可编辑宝宝资料、管理用药项目和回收站，也可管理消息推送。家庭权限、AI 模型和备份仅超管可操作。</p></section>}
     {user.role === 'member' && <section className="settings-card permission-note"><p className="kicker">普通权限</p><h2>可以记录和修改</h2><p>可查看、添加和修改照护记录；不能删除记录或查看操作历史。</p></section>}
     <div className="settings-menu-stack">
-      {canManage(user) && <section className="settings-menu" aria-label="照护设置"><SettingsEntry icon="medicine" title="用药护理" description="分类、计划与项目管理" status={`${careItems.filter(item => item.active).length} 项`} onClick={() => open('care-items')} /><SettingsEntry icon="vaccine" title="疫苗管理" description="目录与接种计划" status={`${vaccineCatalog.filter(item => item.active).length} 项`} onClick={() => open('vaccines')} /></section>}
       {canManage(user) && <section className="settings-menu" aria-label="家庭设置"><SettingsEntry icon="profile" title="宝宝资料" description="姓名、生日与基础信息" onClick={() => open('baby')} />{user.role === 'superadmin' && <SettingsEntry icon="members" title="成员权限" description="家庭成员与管理权限" status={`${familyMembers.length} 人`} onClick={() => open('family')} />}</section>}
-      {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="bell" title="消息推送" description="PushPlus 推送到普通微信" status={pushEntryStatus} onClick={() => open('push')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
-      {nativeBridge && <section className="settings-menu" aria-label="APP 设置">{nativeNotificationsAvailable && <SettingsEntry icon="bell" title="APP 通知" description="早报、喂奶、照护与疫苗提醒" status={nativeNotificationPermission === 'granted' ? '已允许' : '待开启'} onClick={() => open('app-notifications')} />}<SettingsEntry icon="server" title="服务器环境" description="切换局域网或外网连接" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} /></section>}
+      {(canManage(user) || nativeNotificationsAvailable) && <section className="settings-menu" aria-label="提醒通知">{canManage(user) && <SettingsEntry icon="send" title="消息推送" description="提醒规则与接收通道" status={pushEntryStatus} onClick={() => open('push')} />}{nativeNotificationsAvailable && <SettingsEntry icon="bell" title="APP 通知" description="早报、喂奶、照护与疫苗提醒" status={nativeNotificationPermission === 'granted' ? '已允许' : '待开启'} onClick={() => open('app-notifications')} />}</section>}
+      {canManage(user) && <section className="settings-menu" aria-label="照护设置"><SettingsEntry icon="medicine" title="用药护理" description="分类、计划与项目管理" status={`${careItems.filter(item => item.active).length} 项`} onClick={() => open('care-items')} /><SettingsEntry icon="vaccine" title="疫苗管理" description="目录与接种计划" status={`${vaccineCatalog.filter(item => item.active).length} 项`} onClick={() => open('vaccines')} /></section>}
+      {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
+      {nativeBridge && <section className="settings-menu" aria-label="APP 设置"><SettingsEntry icon="server" title="服务器环境" description="切换局域网或外网连接" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} /></section>}
       <section className="settings-menu logout-menu" aria-label="账号操作"><SettingsEntry icon="logout" title="退出登录" description="退出当前家庭身份" danger showChevron={false} onClick={onLogout} /></section>
     </div>
   </div>;

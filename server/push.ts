@@ -491,7 +491,7 @@ function renderFeedingGapLevel(
               <span style="font-size:12px;color:#6c7a72;">上次 · ${lastTime}</span>
               <span style="font-size:13px;color:#1f2a24;font-weight:600;">${summary}</span>
             </div>
-            <div style="margin-top:6px;font-size:12px;color:#d98e0b;">距现在：<b style="font-size:15px;">${ago}</b></div>
+            <div style="margin-top:12px;font-size:12px;color:#d98e0b;">距现在：<b style="font-size:15px;">${ago}</b></div>
           </div>
           <hr style="margin:12px 0;border:none;border-top:1px solid #e6ebe8;" />
           <div>
@@ -522,7 +522,7 @@ function renderFeedingGapLevel(
             <span style="font-size:12px;color:#6c7a72;">上次 · ${lastTime}</span>
             <span style="font-size:13px;color:#1f2a24;font-weight:600;">${summary}</span>
           </div>
-          <div style="margin-top:6px;font-size:12px;color:#c44032;">距现在：<b style="font-size:15px;">${ago}</b> · 宝宝可能饿了哦~</div>
+          <div style="margin-top:12px;font-size:12px;color:#c44032;">距现在：<b style="font-size:15px;">${ago}</b> · 宝宝可能饿了哦~</div>
         </div>
         <hr style="margin:12px 0;border:none;border-top:1px solid #e6ebe8;" />
         <div>
@@ -717,8 +717,7 @@ export async function testFeedingGapPush(level: 'level1' | 'level2' = 'level1') 
 
 async function maybeSendMorningDigest(now: Date): Promise<boolean> {
   const settings = getPushSettings();
-  const appActive = hasRecentAppNotificationClient(now);
-  if (!appActive && (!settings.enabled || !settings.morningDigestEnabled)) return false;
+  if (!settings.morningDigestEnabled) return false;
   const flags: PushSentFlags = settings.pushSentFlags;
   const todayStr = shanghaiDateString(now);
   if (flags.morningDigestDate === todayStr) return false;
@@ -741,8 +740,7 @@ async function maybeSendMorningDigest(now: Date): Promise<boolean> {
 
 async function maybeSendFeedingGap(now: Date): Promise<boolean> {
   const settings = getPushSettings();
-  const appActive = hasRecentAppNotificationClient(now);
-  if (!appActive && (!settings.enabled || !settings.feedingGapEnabled)) return false;
+  if (!settings.feedingGapEnabled) return false;
   const info = getLastFeedInfo(now);
   if (!info.record || info.gapMinutes === null) return false;
   const flags: PushSentFlags = getPushSettings().pushSentFlags;
@@ -816,8 +814,7 @@ function buildPushPlusPerItemHtml(item: CareItem) {
 
 async function checkCareItemReminders(now: Date) {
   const settings = getPushSettings();
-  const appActive = hasRecentAppNotificationClient(now);
-  if (!appActive && (!settings.enabled || !settings.careItemEnabled)) return;
+  if (!settings.careItemEnabled) return;
 
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const todayStr = now.toDateString();
