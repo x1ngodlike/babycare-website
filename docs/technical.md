@@ -1,6 +1,6 @@
 # 宝宝照护记录：技术文档
 
-> 本文以当前代码为准，描述架构、数据、接口和运维约定。产品规则见 [product.md](./product.md)，UI 规范见 [ui-guidelines.md](./ui-guidelines.md)。
+> 本文以当前代码为准，描述架构、数据、接口和运维约定。文档导航见 [README.md](./README.md)，产品规则见 [product.md](./product.md)，UI 规范见 [ui-guidelines.md](./ui-guidelines.md)。
 
 ## 1. 技术概览
 
@@ -17,10 +17,14 @@
 | 图片 | Multer、Sharp | 头像接收、压缩和 WebP 输出 |
 | 外部请求 | Axios | AI 和 PushPlus 请求 |
 | 测试 | Vitest | 前后端单元测试 |
+| Android | Java、WebView、Gradle | 内部 App 原生壳与服务器环境切换 |
 
 ### 1.2 架构
 
 ```text
+浏览器 / Android WebView
+        │
+        ▼
 React SPA
   ├─ REST API ───────────────┐
   ├─ EventSource /api/events │
@@ -78,6 +82,15 @@ public/
   manifest.webmanifest  PWA 元数据
   icons/                图标
   illustrations/        空状态插画
+
+scripts/
+  check-css.mjs          CSS 基础结构检查
+  optimize-images.py     默认只读的图片检查与可选批量优化
+
+android-app/
+  app/src/main/         WebView 壳、服务器配置和 Android 资源
+  design/               App 图标设计源文件
+  gradle/               Gradle Wrapper
 ```
 
 ## 3. 数据与时间
@@ -369,13 +382,15 @@ npm install
 npm run dev
 ```
 
-质量检查：
+统一质量检查：
 
 ```bash
-npm run typecheck
-npm test
-npm run build
+npm run check
 ```
+
+该命令依次执行单元测试、严格类型检查、生产构建和 CSS 结构检查。单项排查可使用 `npm test`、`npm run typecheck`、`npm run build` 或 `npm run check:css`。
+
+图片维护工具依赖 Python 3 和 Pillow。`npm run images:check` 只列出受管图片，不写入；`npm run images:optimize` 才会创建 `public/.image-backup-*` 备份并原地优化。它不接入 `npm run check` 或生产构建，避免常规检查意外改写资源。
 
 Docker Compose 关键约定：
 
@@ -386,6 +401,16 @@ Docker Compose 关键约定：
 - 健康检查同时验证 API 和生产前端文件。
 
 生产环境建议置于 HTTPS 反向代理后并设置 `COOKIE_SECURE=true`，不要直接暴露服务端口到公网。
+
+### 12.1 Android 壳
+
+`android-app/` 独立构建，不进入 Web 的 Vite 或 Docker 流程。WebView 加载完整服务器根地址，并通过 `/api/health` 验证连接：
+
+- 外网地址必须使用 HTTPS；局域网允许可信私网 HTTP/HTTPS。
+- Cookie 由 WebView 持久化，并在 Activity 暂停、停止和销毁时主动落盘。
+- 同一来源沿用服务端 30 天登录会话；协议、域名或端口变化会形成不同的 Cookie 与本地存储空间。
+- 网页/API 更新只需重新部署服务器并刷新或重开 App；原生代码、图标、权限和 Android 配置变化必须提高版本号并重新安装 APK。
+- 详细构建步骤见 [`../android-app/README.md`](../android-app/README.md)。
 
 ## 13. 安全与输入校验
 
@@ -436,3 +461,4 @@ PushPlus 失败不会降级为浏览器通知。
 - 数据、接口、目录或调度变化同步本文。
 - 视觉、组件和响应式变化同步 `ui-guidelines.md`。
 - 未实现能力必须明确标注为规划，不得写成现有功能。
+- README、产品、技术、UI 和 Android 文档的职责及更新条件以 [文档导航](./README.md) 为准。

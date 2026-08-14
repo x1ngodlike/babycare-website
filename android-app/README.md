@@ -1,6 +1,8 @@
 # 宝宝照护 Android App
 
-这是与网页部署并行的原生 Android 壳工程。App 不复制服务端，也不改变现有网页构建；它会加载用户选择的完整网站地址，从而继续使用现有同源 Cookie、实时更新和离线缓存。
+这是与网页部署并行的原生 Android 壳工程。App 不复制服务端，也不改变现有网页构建；它会加载用户选择的完整网站地址，从而继续使用网页已有的登录、实时更新和离线缓存能力。
+
+当前应用版本为 `1.1.2`（`versionCode 4`）。
 
 ## 功能
 
@@ -8,7 +10,7 @@
 - 外网地址强制使用 HTTPS
 - 局域网允许私网 HTTP/HTTPS 地址
 - 切换前测试 `/api/health`
-- 局域网和外网的 Cookie、缓存、离线队列相互隔离
+- 同一来源保留登录 Cookie；不同协议、域名或端口的 Cookie、缓存和离线队列相互隔离
 - 支持头像和 JSON 备份文件选择
 - 支持携带当前登录 Cookie 下载备份
 - 证书错误直接阻止，不允许忽略继续
@@ -23,10 +25,16 @@
 - Android SDK 36 / Build Tools 36.0.0
 - Android Gradle Plugin 9.2.0 / Gradle 9.4.1
 
-本机当前没有 Java 和 Android SDK，因此工程创建后尚未在本机编译。安装 Android Studio 后直接打开本目录并等待同步，或在具备 JDK 17 和 SDK 36 的环境运行：
+工程已经通过本机构建验证。可直接用 Android Studio 打开本目录并等待同步，然后运行 `app`；也可以在具备 JDK 17 和 SDK 36 的终端运行：
 
 ```bash
 ./gradlew assembleDebug
+```
+
+如果终端没有单独安装 Java，可使用 Android Studio 自带的 JDK：
+
+```bash
+JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug
 ```
 
 生成文件位于：
@@ -47,6 +55,15 @@ app/build/outputs/apk/debug/app-debug.apk
 
 ## 使用说明
 
-首次启动必须通过连接测试才能进入。之后可从右上角菜单选择“切换服务器”。切换到不同地址后可能需要重新登录，这是两个网站来源的安全隔离结果。
+首次启动必须通过连接测试才能进入。之后可从网页的“设置 → 服务器环境”切换地址。服务器选择会保存在 App 中；切换到不同协议、域名或端口后可能需要重新登录，这是网站来源隔离的正常结果。
+
+登录 Cookie 由 WebView 持久化，服务端会话有效期为 30 天。主动退出登录、服务端会话密钥变化、Cookie 到期，或切换到另一个来源时，需要重新登录。
 
 备份导出文件由 Android 下载管理器保存到 App 专属下载目录，并在完成后显示系统通知。头像上传和备份导入使用系统文件选择器。
+
+## 更新规则
+
+- 仅网页或服务端代码变化：部署服务器后，刷新网页或完全退出并重新打开 App 即可。已在前台打开的页面不会自动替换整套前端代码。
+- 如果仍显示旧页面：先再次打开 App 或刷新；只有在确认 Service Worker 缓存异常时，才清除该服务器对应的网站数据。
+- 原生壳、图标、权限、启动行为或 Android 配置变化：提高 `versionCode` 和 `versionName`，重新构建并安装 APK。
+- 更换服务器地址不需要重新打包 APK。
