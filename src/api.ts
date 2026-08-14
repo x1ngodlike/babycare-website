@@ -5,7 +5,7 @@ export interface GrowthIndicatorAssessment {
   z: number;
   band: 'low' | 'below' | 'mid' | 'above' | 'high';
   bandLabel: string;
-  anchors: { p3: number; p15: number; p50: number; p85: number; p97: number };
+  anchors: { minus2sd: number; minus1sd: number; median: number; plus1sd: number; plus2sd: number };
 }
 
 export interface GrowthAssessmentEvaluation {

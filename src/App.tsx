@@ -843,7 +843,7 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
 }
 
 function growthMarkerPosition(value: number, anchors: GrowthIndicatorAssessment['anchors']): number {
-  const stops: [number, number][] = [[anchors.p3, 0], [anchors.p15, 25], [anchors.p50, 50], [anchors.p85, 75], [anchors.p97, 100]];
+  const stops: [number, number][] = [[anchors.minus2sd, 0], [anchors.minus1sd, 25], [anchors.median, 50], [anchors.plus1sd, 75], [anchors.plus2sd, 100]];
   if (value <= stops[0][0]) return 1;
   for (let index = 1; index < stops.length; index += 1) {
     const [limit, percent] = stops[index];
@@ -864,7 +864,7 @@ function GrowthIndicatorBar({ label, unit, indicator }: { label: string; unit: s
       <i className="ga-seg edge" /><i className="ga-seg core" /><i className="ga-seg core" /><i className="ga-seg edge" />
       <span className="ga-marker" style={{ left: `${position}%` }} />
     </div>
-    <div className="ga-scale"><span>P3 {anchorLabel(indicator.anchors.p3)}</span><span>P15 {anchorLabel(indicator.anchors.p15)}</span><span>P50 {anchorLabel(indicator.anchors.p50)}</span><span>P85 {anchorLabel(indicator.anchors.p85)}</span><span>P97 {anchorLabel(indicator.anchors.p97)}</span></div>
+    <div className="ga-scale"><span>-2SD {anchorLabel(indicator.anchors.minus2sd)}</span><span>-1SD {anchorLabel(indicator.anchors.minus1sd)}</span><span>中位 {anchorLabel(indicator.anchors.median)}</span><span>+1SD {anchorLabel(indicator.anchors.plus1sd)}</span><span>+2SD {anchorLabel(indicator.anchors.plus2sd)}</span></div>
   </div>;
 }
 
@@ -917,7 +917,7 @@ function GrowthAssessmentCard({ user, growthRecords }: { user: SessionUser; grow
   if (loadError) return <section className="growth-assessment-card"><div className="section-title"><h2>生长对比</h2></div><p className="ga-note error">{loadError}</p></section>;
   if (assessment && !assessment.available) {
     if (assessment.reason === 'no_records') return null;
-    const hint = assessment.reason === 'no_sex' ? '在宝宝资料里设置性别后，这里会展示身高体重与 WHO 儿童生长标准的对比。' : `月龄超过 ${assessment.maxMonths} 个月，暂不支持 WHO 生长标准对比。`;
+    const hint = assessment.reason === 'no_sex' ? '在宝宝资料里设置性别后，这里会展示身高体重与中国《7岁以下儿童生长标准》的对比。' : `月龄超过 ${assessment.maxMonths} 个月（6 岁 9 月），暂不支持生长标准对比。`;
     return <section className="growth-assessment-card"><div className="section-title"><h2>生长对比</h2></div><p className="ga-note">{hint}</p></section>;
   }
   if (!assessment) return null;
@@ -935,7 +935,7 @@ function GrowthAssessmentCard({ user, growthRecords }: { user: SessionUser; grow
         {evaluation.evaluatedAt && <p className="ga-eval-meta">AI 生成 · {new Date(evaluation.evaluatedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>}
       </>}
     </div>
-    <p className="ga-disclaimer">区间基于 WHO 儿童生长标准（2006）和常见喂养参考，仅供参考，不能替代儿保医生评估。</p>
+    <p className="ga-disclaimer">区间基于国家卫生行业标准《7岁以下儿童生长标准》（WS/T 423-2022）和常见喂养参考，仅供参考，不能替代儿保医生评估。</p>
   </section>;
 }
 
