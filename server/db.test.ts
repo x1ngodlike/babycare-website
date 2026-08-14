@@ -31,7 +31,7 @@ function record(overrides: Partial<CareRecord> = {}): CareRecord {
   const now = '2026-08-09T08:00:00.000Z';
   return {
     id: crypto.randomUUID(), type: 'supplement', occurredAt: now,
-    breastMilkMl: null, formulaMl: null, supplement: 'AD', bowelSize: null, note: null,
+    breastMilkMl: null, formulaMl: null, supplement: 'AD', bowelSize: null, subject: null, note: null,
     createdAt: now, updatedAt: now, createdBy: 'father', updatedBy: 'father',
     deletedAt: null, deletedBy: null, ...overrides
   };

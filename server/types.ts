@@ -65,6 +65,7 @@ export interface CareRecord {
   formulaMl: number | null;
   supplement: Supplement | null;
   bowelSize: BowelSize | null;
+  subject: string | null;
   note: string | null;
   createdAt: string;
   updatedAt: string;
@@ -90,6 +91,7 @@ export interface DraftRecord {
   formulaMl?: number | null;
   supplement?: Supplement | null;
   bowelSize?: BowelSize | null;
+  subject?: string | null;
   note?: string | null;
 }
 

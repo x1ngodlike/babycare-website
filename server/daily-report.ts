@@ -63,7 +63,7 @@ function buildReportInput(date: string): ReportInput {
   const previousRange = shanghaiDayUtcRange(previousDate);
   const previousDayRecords = listRecords(previousRange.from, previousRange.to);
   const previousDaySupplements = [...new Set(previousDayRecords.filter(record => record.type === 'supplement' && record.supplement).map(record => record.supplement!))];
-  const notes = records.filter(record => record.type === 'note' && record.note).map(record => record.note!);
+  const notes = records.filter(record => record.type === 'note' && record.subject).map(record => record.note ? `${record.subject}（${record.note}）` : record.subject!);
 
   const hasData = breastMl + formulaMl > 0 || feedings.length > 0 || bowelCount > 0 || supplements.length > 0 || notes.length > 0;
 

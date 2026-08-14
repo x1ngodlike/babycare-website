@@ -157,6 +157,7 @@ const recordSchema = z.object({
   formulaMl: z.number().int().min(0).max(500).nullable().optional(),
   supplement: z.string().trim().min(1).max(30).nullable().optional(),
   bowelSize: z.enum(['大', '中', '小']).nullable().optional(),
+  subject: z.string().trim().max(100).nullable().optional(),
   note: z.string().trim().max(200).nullable().optional(),
   createdAt: z.string().datetime({ offset: true }).optional(),
   updatedAt: z.string().datetime({ offset: true }).optional(),
@@ -168,7 +169,7 @@ const recordSchema = z.object({
   if (value.type === 'feeding' && !value.breastMilkMl && !value.formulaMl) ctx.addIssue({ code: 'custom', message: '请填写母乳量或奶粉量' });
   if (value.type === 'supplement' && !value.supplement) ctx.addIssue({ code: 'custom', message: '请选择营养补充剂' });
   if (value.type === 'bowel' && !value.bowelSize) ctx.addIssue({ code: 'custom', message: '请选择排便量' });
-  if (value.type === 'note' && !value.note) ctx.addIssue({ code: 'custom', message: '请填写备注内容' });
+  if (value.type === 'note' && !value.subject && !value.note) ctx.addIssue({ code: 'custom', message: '请填写事项内容' });
 });
 
 const auditEntrySchema = z.object({
@@ -301,7 +302,8 @@ function normalizeRecord(input: z.infer<typeof recordSchema>, actor: FamilyId, p
     formulaMl: input.type === 'feeding' ? input.formulaMl ?? null : null,
     supplement: input.type === 'supplement' ? input.supplement ?? null : null,
     bowelSize: input.type === 'bowel' ? input.bowelSize ?? null : null,
-    note: input.note ?? null,
+    subject: input.type === 'note' ? input.subject || input.note || null : null,
+    note: input.type === 'note' && !input.subject ? null : input.note ?? null,
     createdAt: input.createdAt || now,
     updatedAt: preserveAudit && input.updatedAt ? input.updatedAt : now,
     createdBy: preserveAudit ? input.createdBy || 'legacy' : actor,

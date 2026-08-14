@@ -43,6 +43,7 @@ db.exec(`
     formula_ml INTEGER,
     supplement TEXT CHECK (supplement IN ('AD', 'VD', '益生菌')),
     bowel_size TEXT CHECK (bowel_size IN ('大', '中', '小')),
+    subject TEXT,
     note TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -67,6 +68,7 @@ if (recordTableSql.includes("supplement IN ('AD', 'VD', '益生菌')")) db.trans
       formula_ml INTEGER,
       supplement TEXT,
       bowel_size TEXT CHECK (bowel_size IN ('大', '中', '小')),
+      subject TEXT,
       note TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -76,13 +78,17 @@ if (recordTableSql.includes("supplement IN ('AD', 'VD', '益生菌')")) db.trans
       deleted_by TEXT
     );
     INSERT INTO care_records_unrestricted
-      SELECT id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note,
+      SELECT id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, ${recordColumns.some(column => column.name === 'subject') ? 'subject' : 'NULL'}, note,
         created_at, updated_at, created_by, updated_by, deleted_at, deleted_by FROM care_records;
     DROP TABLE care_records;
     ALTER TABLE care_records_unrestricted RENAME TO care_records;
     CREATE INDEX idx_care_records_occurred_at ON care_records(occurred_at);
   `);
 })();
+
+const currentRecordColumns = db.prepare('PRAGMA table_info(care_records)').all() as { name: string }[];
+if (!currentRecordColumns.some(column => column.name === 'subject')) db.exec('ALTER TABLE care_records ADD COLUMN subject TEXT');
+db.prepare("UPDATE care_records SET subject = note, note = NULL WHERE type = 'note' AND subject IS NULL AND note IS NOT NULL").run();
 
 db.transaction(() => {
   const rows = db.prepare('SELECT id, occurred_at AS occurredAt FROM care_records').all() as { id: string; occurredAt: string }[];
@@ -346,7 +352,7 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE name = ?').get(dailyRepor
 
 const columns = `
   id, type, occurred_at AS occurredAt, breast_milk_ml AS breastMilkMl,
-  formula_ml AS formulaMl, supplement, bowel_size AS bowelSize, note,
+  formula_ml AS formulaMl, supplement, bowel_size AS bowelSize, subject, note,
   created_at AS createdAt, updated_at AS updatedAt, created_by AS createdBy, updated_by AS updatedBy,
   deleted_at AS deletedAt, deleted_by AS deletedBy
 `;
@@ -419,13 +425,13 @@ const saveRecordTransaction = db.transaction((record: CareRecord): CareRecord =>
     db.prepare(`
       UPDATE care_records SET
         type=@type, occurred_at=@occurredAt, breast_milk_ml=@breastMilkMl, formula_ml=@formulaMl,
-        supplement=@supplement, bowel_size=@bowelSize, note=@note, updated_at=@updatedAt, updated_by=@updatedBy
+        supplement=@supplement, bowel_size=@bowelSize, subject=@subject, note=@note, updated_at=@updatedAt, updated_by=@updatedBy
       WHERE id=@id AND deleted_at IS NULL
     `).run(record);
   } else {
     db.prepare(`
-      INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
-      VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, NULL, NULL)
+      INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, subject, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+      VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @subject, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, NULL, NULL)
     `).run(record);
   }
   const saved = getRecord(record.id)!;
@@ -918,12 +924,12 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
     for (const report of payload.dailyReports) upsertReport.run({ ...report, suggestions: JSON.stringify(report.suggestions) });
   }
   const upsert = db.prepare(`
-    INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
-    VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
+    INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, subject, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+    VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @subject, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
     ON CONFLICT(id) DO UPDATE SET
       type=excluded.type, occurred_at=excluded.occurred_at, breast_milk_ml=excluded.breast_milk_ml,
       formula_ml=excluded.formula_ml, supplement=excluded.supplement, bowel_size=excluded.bowel_size,
-      note=excluded.note, updated_at=excluded.updated_at, updated_by=excluded.updated_by,
+      subject=excluded.subject, note=excluded.note, updated_at=excluded.updated_at, updated_by=excluded.updated_by,
       deleted_at=excluded.deleted_at, deleted_by=excluded.deleted_by
   `);
   for (const record of payload.records) upsert.run({ ...record, occurredAt: canonicalInstant(record.occurredAt) });
@@ -975,8 +981,8 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     for (const report of payload.dailyReports) insertReport.run({ ...report, suggestions: JSON.stringify(report.suggestions) });
   }
   const insertRecord = db.prepare(`
-    INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
-    VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
+    INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, subject, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+    VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @subject, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
   `);
   for (const record of payload.records) insertRecord.run({ ...record, occurredAt: canonicalInstant(record.occurredAt) });
   if (payload.audits?.length) {

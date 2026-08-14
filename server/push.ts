@@ -662,6 +662,7 @@ export async function testFeedingGapPush(level: 'level1' | 'level2' = 'level1') 
         occurredAt: syntheticTime,
         breastMilkMl: 60,
         formulaMl: 60,
+        subject: null,
         note: null,
         supplement: null,
         bowelSize: null,

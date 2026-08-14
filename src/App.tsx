@@ -50,7 +50,7 @@ function summary(record: CareRecord | DraftRecord, careItems: CareItem[] = []) {
   if (record.type === 'feeding') return [record.breastMilkMl ? `母乳 ${record.breastMilkMl} mL` : '', record.formulaMl ? `奶粉 ${record.formulaMl} mL` : ''].filter(Boolean).join('，') || '待补充奶量';
   if (record.type === 'supplement') return careItemCategory(record.supplement, careItems) === 'care' ? `${record.supplement || '护理项目'}已完成` : `${record.supplement || '用药项目'}已服用`;
   if (record.type === 'bowel') return `排便量：${record.bowelSize || '中'}`;
-  return record.note || '其他';
+  return record.subject || '其他事项';
 }
 
 function getAgeProfileLine(birthDate: string, realName: string, now = new Date()): string {
@@ -94,6 +94,7 @@ function optimisticRecord(value: DraftRecord, user: SessionUser, previous?: Care
     formulaMl: value.type === 'feeding' ? value.formulaMl ?? null : null,
     supplement: value.type === 'supplement' ? value.supplement ?? null : null,
     bowelSize: value.type === 'bowel' ? value.bowelSize ?? null : null,
+    subject: value.type === 'note' ? value.subject?.trim() || null : null,
     note: value.note ?? null,
     createdAt: previous?.createdAt || now, updatedAt: now,
     createdBy: previous?.createdBy || user.id, updatedBy: user.id,
@@ -251,7 +252,7 @@ function Login({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
 }
 
 function hasEnteredContent(value: DraftRecord) {
-  return Boolean(value.breastMilkMl || value.formulaMl || value.supplement || value.bowelSize || value.note?.trim());
+  return Boolean(value.breastMilkMl || value.formulaMl || value.supplement || value.bowelSize || value.subject?.trim() || value.note?.trim());
 }
 
 function RecordEditor({ initial, careItems, onClose, onSave }: { initial: DraftRecord; careItems: CareItem[]; onClose(): void; onSave(value: DraftRecord): Promise<void> }) {
@@ -273,6 +274,10 @@ function RecordEditor({ initial, careItems, onClose, onSave }: { initial: DraftR
       setError('请填写母乳或奶粉量，至少一项');
       return;
     }
+    if (value.type === 'note' && !value.subject?.trim()) {
+      setError('请填写事项内容');
+      return;
+    }
     setBusy(true);
     try { await onSave(value); onClose(); }
     catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); }
@@ -286,7 +291,8 @@ function RecordEditor({ initial, careItems, onClose, onSave }: { initial: DraftR
         {value.type === 'feeding' && <div className="input-pair"><label>母乳量（mL）<input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 90" value={value.breastMilkMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, breastMilkMl: e.target.value ? Number(e.target.value) : null }); }} /></label><label>奶粉量（mL）<input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 120" value={value.formulaMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, formulaMl: e.target.value ? Number(e.target.value) : null }); }} /></label></div>}
         {value.type === 'supplement' && <CareItemChoiceField items={selectableCareItems(careItems, value.supplement)} selected={value.supplement} onSelect={supplement => setValue({ ...value, supplement })} />}
         {value.type === 'bowel' && <ChoiceField label="排便量" values={['大', '中', '小'] as BowelSize[]} selected={value.bowelSize} onSelect={bowelSize => setValue({ ...value, bowelSize })} />}
-        {(value.type === 'note' || value.type === 'feeding' || value.type === 'bowel') && <label>{value.type === 'note' ? '情况说明' : '补充说明（选填）'}<textarea rows={3} maxLength={200} placeholder={value.type === 'note' ? '例如：今日有点吐奶' : '可留空'} value={value.note ?? ''} onChange={e => setValue({ ...value, note: e.target.value })} /></label>}
+        {value.type === 'note' && <label>事项内容<input maxLength={100} placeholder="例如：换床单、剪指甲" value={value.subject ?? ''} aria-invalid={error.includes('事项内容') || undefined} onChange={e => { setError(''); setValue({ ...value, subject: e.target.value }); }} /></label>}
+        <label>补充说明（选填）<textarea rows={3} maxLength={200} placeholder={value.type === 'supplement' ? '可记录服用或护理后的情况' : value.type === 'note' ? '可补充事项细节' : '可留空'} value={value.note ?? ''} onChange={e => setValue({ ...value, note: e.target.value })} /></label>
         {error && <p className="error-text" role="alert">{error}</p>}
         <footer className="editor-actions"><button type="button" className="btn secondary" onClick={requestClose}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '确认保存'}</button></footer>
       </form>
@@ -317,9 +323,72 @@ function AuditDialog({ record, onClose }: { record: CareRecord; onClose(): void 
   </section></div>;
 }
 
+function RecordNotePreview({ note }: { note: string }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const measureRef = useRef<HTMLDivElement | null>(null);
+  const measureTextRef = useRef<HTMLSpanElement | null>(null);
+  const measureButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [preview, setPreview] = useState(note);
+  const [truncated, setTruncated] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => setExpanded(false), [note]);
+  useEffect(() => {
+    if (expanded) return;
+    const container = containerRef.current;
+    const measureBox = measureRef.current;
+    const measureText = measureTextRef.current;
+    const measureButton = measureButtonRef.current;
+    if (!container || !measureBox || !measureText || !measureButton) return;
+    const measure = () => {
+      const width = container.clientWidth;
+      if (!width) return;
+      measureBox.style.width = `${width}px`;
+      const lineHeight = Number.parseFloat(getComputedStyle(measureBox).lineHeight);
+      const twoLines = lineHeight * 2 + 1;
+      measureButton.hidden = true;
+      measureText.textContent = note;
+      if (measureBox.scrollHeight <= twoLines) {
+        setPreview(note);
+        setTruncated(false);
+        return;
+      }
+      measureButton.hidden = false;
+      let low = 0;
+      let high = note.length;
+      while (low < high) {
+        const middle = Math.ceil((low + high) / 2);
+        measureText.textContent = note.slice(0, middle);
+        if (measureBox.scrollHeight <= twoLines) low = middle;
+        else high = middle - 1;
+      }
+      const nextPreview = note.slice(0, low).trimEnd();
+      setPreview(nextPreview);
+      setTruncated(nextPreview.length < note.length);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [expanded, note]);
+  return <div ref={containerRef} className={`record-note-preview${expanded ? ' expanded' : ''}`}><span>{expanded ? note : preview}</span>{truncated && <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? '收起' : '…展开'}</button>}<div ref={measureRef} className="record-note-measure" aria-hidden="true"><span ref={measureTextRef} /><button ref={measureButtonRef} type="button" tabIndex={-1}>…展开</button></div></div>;
+}
+
 function Timeline({ records, careItems, manager, emptyText = '这一天还没有记录', emptyAction, onEdit, onDelete, onAudit, searchMode = false, compactMetadata = false, hideMetadata = false }: { records: CareRecord[]; careItems: CareItem[]; manager: boolean; emptyText?: string; emptyAction?: ReactNode; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void; searchMode?: boolean; compactMetadata?: boolean; hideMetadata?: boolean }) {
   if (!records.length) return <EmptyState title={emptyText} description="记录后会按时间排列在这里。" image={emptyText.includes('找到') ? '/illustrations/empty-search.webp' : '/illustrations/empty-records.webp'} action={emptyAction} />;
-  return <div className="timeline">{records.map(record => { const created = auditNames[record.createdBy || 'legacy']; const updated = auditNames[record.updatedBy || record.createdBy || 'legacy']; const changed = record.updatedBy && record.updatedBy !== record.createdBy; const items = [...(manager ? [{ label: '查看操作记录', onSelect: () => onAudit(record) }] : []), { label: '修改记录', onSelect: () => onEdit(record) }, ...(manager ? [{ label: '删除记录', danger: true, onSelect: () => onDelete(record) }] : [])]; const timeDisplay = searchMode ? new Date(record.occurredAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : new Date(record.occurredAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }); const recordTypeName = record.type === 'supplement' ? (careItemCategory(record.supplement, careItems) === 'care' ? '护理' : '用药') : typeNames[record.type]; const auditLabel = `${created === '历史数据' ? '历史数据' : `${created}录入`}${changed ? ` · ${updated}修改` : ''}`; const hasExtraNote = Boolean(record.note && record.type !== 'note'); const typeWithCreator = <>{recordTypeName}<span className="record-creator"> · {created}</span></>; return <article className={`timeline-item ${record.type}${hasExtraNote ? ' has-note' : ''}`} key={record.id}><div className="time-col"><time><span>{timeDisplay}</span></time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy">{compactMetadata && !hideMetadata ? <div className="record-meta-row"><small>{typeWithCreator}</small><em>{auditLabel}</em></div> : <small>{typeWithCreator}</small>}<strong><FeedingSummary record={record} careItems={careItems} /></strong>{hasExtraNote && <p>{record.note}</p>}{!compactMetadata && !hideMetadata && <em>{auditLabel}</em>}</div><ActionMenu label={`${summary(record, careItems)}的操作菜单`} items={items} /></article>; })}</div>;
+  return <div className="timeline">{records.map(record => {
+    const created = auditNames[record.createdBy || 'legacy'];
+    const updated = auditNames[record.updatedBy || record.createdBy || 'legacy'];
+    const changed = record.updatedBy && record.updatedBy !== record.createdBy;
+    const items = [...(manager ? [{ label: '查看操作记录', onSelect: () => onAudit(record) }] : []), { label: '修改记录', onSelect: () => onEdit(record) }, ...(manager ? [{ label: '删除记录', danger: true, onSelect: () => onDelete(record) }] : [])];
+    const occurredAt = new Date(record.occurredAt);
+    const time = occurredAt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const date = occurredAt.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+    const recordTypeName = record.type === 'supplement' ? (careItemCategory(record.supplement, careItems) === 'care' ? '护理' : '用药') : typeNames[record.type];
+    const auditLabel = `${created === '历史数据' ? '历史数据' : `${created}录入`}${changed ? ` · ${updated}修改` : ''}`;
+    const hasExtraNote = Boolean(record.note);
+    const typeWithCreator = <>{recordTypeName}<span className="record-creator"> · {created}</span></>;
+    return <article className={`timeline-item ${record.type}${hasExtraNote ? ' has-note' : ''}`} key={record.id}><div className={`time-col${searchMode ? ' search-time' : ''}`}><time>{searchMode && <span className="record-date">{date}</span>}<span>{time}</span></time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy">{compactMetadata && !hideMetadata ? <div className="record-meta-row"><small>{typeWithCreator}</small><em>{auditLabel}</em></div> : <small>{typeWithCreator}</small>}<strong><FeedingSummary record={record} careItems={careItems} /></strong>{record.note && <RecordNotePreview note={record.note} />}{!compactMetadata && !hideMetadata && <em>{auditLabel}</em>}</div><ActionMenu label={`${summary(record, careItems)}的操作菜单`} items={items} /></article>;
+  })}</div>;
 }
 
 function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId, allowAutoOpen }: { capabilities: Capabilities; online: boolean; onOpenSettings(): void; superadmin: boolean; userId: FamilyId; allowAutoOpen: boolean }) {
@@ -368,11 +437,12 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId,
 
 function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCatalog, careItems, todayPlanStatus, capabilities, online, onOpenSettings, onCompleteVaccine, onAppointmentVaccine, manager, superadmin, userId, allowReportAutoOpen, weeklyGrowth, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; recentRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; careItems: CareItem[]; todayPlanStatus: 'loading' | 'ready' | 'error'; capabilities: Capabilities; online: boolean; onOpenSettings(): void; onCompleteVaccine(item: VaccinePlanItem): void; onAppointmentVaccine(item: VaccinePlanItem): void; manager: boolean; superadmin: boolean; userId: FamilyId; allowReportAutoOpen: boolean; weeklyGrowth?: GrowthRecord; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [savingSupplement, setSavingSupplement] = useState<Supplement | null>(null);
-  const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   useEffect(() => {
-    const timer = window.setInterval(() => setCurrentHour(new Date().getHours()), 60_000);
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
+  const currentHour = currentTime.getHours();
   const heroPeriod = getHeroPeriod(currentHour);
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r]));
   const recentSorted = [...recentRecords].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
@@ -414,8 +484,9 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
     <div className="today-profile-strip" aria-label={`宝宝信息，${getAgeProfileLine(profile.birthDate, profile.name)}`}>
       <div className="today-baby-summary">{profile.avatar ? <img src={profile.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}<span>{getAgeProfileLine(profile.birthDate, profile.name)}</span></div>
     </div>
+    <div className="today-main-column">
     <div className="today-workbench">
-      <section className={`baby-hero hero-${heroPeriod}`}><div>{(() => { const { greeting, displayName } = getGreeting(profile, userId, currentHour); return <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<p className="kicker hero-date-line">{(() => { const d = new Date(); return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p><div className="hero-status">{(() => { const hhmm = (at: string) => new Date(at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }); if (!latestRecord && !lastFeed) return <p>开始记录宝宝今天的第一笔吧</p>; const text = lastFeed && latestRecord && lastFeed.id !== latestRecord.id ? `上次喂奶 ${hhmm(lastFeed.occurredAt)} · 最近记录 ${hhmm(latestRecord.occurredAt)} ${recentRecordLabel(latestRecord)}` : latestRecord ? `最近记录 ${hhmm(latestRecord.occurredAt)} ${recentRecordLabel(latestRecord)}` : `上次喂奶 ${hhmm(lastFeed!.occurredAt)}`; return <p title={text} aria-label={text}>{text}</p>; })()}</div></div></section>
+      <section className={`baby-hero hero-${heroPeriod}`}><div>{(() => { const { greeting, displayName } = getGreeting(profile, userId, currentHour); return <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<p className="kicker hero-date-line">{(() => { const d = new Date(); return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p><div className="hero-status">{(() => { const hhmm = (at: string) => new Date(at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }); const elapsed = (at: string) => { const minutes = Math.max(0, Math.floor((currentTime.getTime() - new Date(at).getTime()) / 60_000)); if (minutes < 1) return '刚刚'; if (minutes < 60) return `${minutes}分钟`; const hours = Math.floor(minutes / 60); const remainder = minutes % 60; return `${hours}小时${remainder ? `${remainder}分钟` : ''}`; }; if (!latestRecord && !lastFeed) return <p>今日暂无喂奶记录</p>; const feedText = lastFeed ? `距上次喂奶 ${elapsed(lastFeed.occurredAt)}` : '今日暂无喂奶记录'; const recentText = latestRecord ? `最近记录 ${hhmm(latestRecord.occurredAt)} ${recentRecordLabel(latestRecord)}` : ''; const text = [feedText, recentText].filter(Boolean).join(' · '); return <p title={text} aria-label={text}>{text}</p>; })()}</div></div></section>
       <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>mL</small></div><div><span>奶粉</span><strong>{formula}</strong><small>mL</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
       <section className="quick-section" aria-label="快捷记录"><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>喂奶</b></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>排便</b></button><button onClick={() => onAdd('supplement')}><img className="quick-icon" src="/icons/record-care.png" alt="" /><b>护理</b></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他</b></button></div></section>
     </div>
@@ -425,6 +496,7 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
     <div className="today-insights" aria-label="今日信息">
       {todayPlanStatus === 'ready' && <VaccineReminderCard profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onComplete={onCompleteVaccine} onAppointment={onAppointmentVaccine} />}
       <DailyReport capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} superadmin={superadmin} userId={userId} allowAutoOpen={allowReportAutoOpen} />
+    </div>
     </div>
     <div className="today-timeline"><div className="section-title"><h2>今日记录</h2><span>{records.length} 条</span></div><Timeline records={[...records].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))} careItems={careItems} manager={manager} emptyText="今日还没有记录" emptyAction={<button className="btn secondary" onClick={() => onAdd('feeding')}>记录喂奶</button>} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} hideMetadata /></div>
   </div>;
@@ -440,7 +512,7 @@ function HistoryView({ records, deletedRecords, vaccineRecords, vaccineCatalog, 
   const days = Array.from({ length: 7 }, (_, index) => addDays(selected, index - 3));
   const filtered = records.filter(record => {
     const dayMatches = query.trim() ? true : isoDay(new Date(record.occurredAt)) === isoDay(selected);
-    const queryMatches = !query.trim() || `${typeNames[record.type]} ${summary(record, careItems)} ${record.note || ''} ${auditNames[record.createdBy]}`.toLowerCase().includes(query.trim().toLowerCase());
+    const queryMatches = !query.trim() || `${typeNames[record.type]} ${summary(record, careItems)} ${record.subject || ''} ${record.note || ''} ${auditNames[record.createdBy]}`.toLowerCase().includes(query.trim().toLowerCase());
     return dayMatches && queryMatches && (typeFilter === 'all' || record.type === typeFilter) && (actorFilter === 'all' || record.createdBy === actorFilter);
   });
   return <div className="page-stack"><header className="page-head"><h1>历史记录</h1><p>{historyMode === 'care' ? '按日期查看，或搜索全部照护信息。' : '简单记录接种情况，及时查看下一针。'}</p></header>
