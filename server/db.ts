@@ -148,12 +148,6 @@ db.exec(`
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
-  INSERT OR IGNORE INTO care_items (id, name, category, icon, sort_order, active, created_at, updated_at) VALUES
-    ('ad', 'AD', 'medication', 'medicine', 10, 1, datetime('now'), datetime('now')),
-    ('vd', 'VD', 'medication', 'medicine', 20, 1, datetime('now'), datetime('now')),
-    ('probiotic', '益生菌', 'medication', 'medicine', 30, 1, datetime('now'), datetime('now')),
-    ('massage', '推拿', 'care', 'massage', 40, 1, datetime('now'), datetime('now')),
-    ('bath', '洗澡', 'care', 'bath', 50, 1, datetime('now'), datetime('now'));
 
   CREATE TABLE IF NOT EXISTS family_permissions (
     id TEXT PRIMARY KEY CHECK (id IN ('father', 'mother', 'grandfather', 'grandmother')),
@@ -246,6 +240,15 @@ if (!careItemTableColumns.some(column => column.name === 'category') || !careIte
     ALTER TABLE care_items_new RENAME TO care_items;
   `);
 })();
+
+db.exec(`
+  INSERT OR IGNORE INTO care_items (id, name, category, icon, sort_order, active, created_at, updated_at) VALUES
+    ('ad', 'AD', 'medication', 'medicine', 10, 1, datetime('now'), datetime('now')),
+    ('vd', 'VD', 'medication', 'medicine', 20, 1, datetime('now'), datetime('now')),
+    ('probiotic', '益生菌', 'medication', 'medicine', 30, 1, datetime('now'), datetime('now')),
+    ('massage', '推拿', 'care', 'massage', 40, 1, datetime('now'), datetime('now')),
+    ('bath', '洗澡', 'care', 'bath', 50, 1, datetime('now'), datetime('now'));
+`);
 
 const vaccineTableColumns = db.prepare('PRAGMA table_info(vaccine_records)').all() as { name: string }[];
 if (!vaccineTableColumns.some(column => column.name === 'category')) db.exec("ALTER TABLE vaccine_records ADD COLUMN category TEXT NOT NULL DEFAULT 'program' CHECK (category IN ('program', 'self_paid'))");

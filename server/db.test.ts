@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import Database from 'better-sqlite3';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,6 +8,22 @@ import type { AuditEntry, CareRecord, GrowthRecord, VaccineRecord } from './type
 
 const directory = mkdtempSync(join(tmpdir(), 'baby-care-db-test-'));
 process.env.DATABASE_PATH = join(directory, 'test.db');
+
+const legacyDb = new Database(process.env.DATABASE_PATH);
+legacyDb.exec(`
+  CREATE TABLE care_items (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    icon TEXT NOT NULL CHECK (icon IN ('medicine', 'massage')),
+    sort_order INTEGER NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  INSERT INTO care_items (id, name, icon, sort_order, active, created_at, updated_at)
+  VALUES ('legacy-massage', '旧版推拿', 'massage', 5, 1, datetime('now'), datetime('now'));
+`);
+legacyDb.close();
 
 const db = await import('./db.js');
 
@@ -150,6 +167,7 @@ describe('record reliability', () => {
 
   it('manages configurable care items and keeps history when an item is renamed or disabled', () => {
     expect(db.listCareItems().map((item: { name: string }) => item.name)).toEqual(expect.arrayContaining(['AD', 'VD', '益生菌', '推拿', '洗澡']));
+    expect(db.listCareItems()).toContainEqual(expect.objectContaining({ id: 'legacy-massage', name: '旧版推拿', category: 'care' }));
     expect(db.listCareItems().map((item: { name: string }) => item.name)).not.toContain('其他');
     const item = db.saveCareItem({ id: 'touch', name: '抚触', category: 'care', icon: 'massage', sortOrder: 50, scheduleType: 'interval', intervalDays: 2, scheduleStartDate: '2026-08-10', reminderTime: '20:00', scheduleEndDate: null });
     expect(item.category).toBe('care');
