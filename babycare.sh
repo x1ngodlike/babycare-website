@@ -40,8 +40,9 @@ read_env_value() {
 }
 
 # 统一调用 Compose，固定项目名，避免不同目录产生重复容器。
+# BUILDKIT_PROGRESS=plain：关闭构建动画进度条（非交互终端里逐帧刷屏），改为每步骤一行日志。
 compose() {
-  HOST_PORT="$HOST_PORT" DATA_DIR="$DATA_DIR" "${COMPOSE_CMD[@]}" \
+  HOST_PORT="$HOST_PORT" DATA_DIR="$DATA_DIR" BUILDKIT_PROGRESS=plain "${COMPOSE_CMD[@]}" \
     --project-name "$PROJECT_NAME" \
     --project-directory "$SCRIPT_DIR" \
     --env-file "$ENV_FILE" "$@"

@@ -42,6 +42,17 @@ export default function HistoryOverview({ records, careItems, selected, onShiftW
   const total = days.reduce((sum, day) => sum + (byDay.get(isoDay(day))?.length || 0), 0);
   const activeDays = days.filter(day => (byDay.get(isoDay(day))?.length || 0) > 0).length;
   const rangeLabel = `${days[0].toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} – ${days[6].toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}`;
+  // 选中标记的详情（展示在图表下方固定区域，避免浮层遮挡相邻图标与表头）
+  const tipCluster = useMemo(() => {
+    if (!tipId) return null;
+    for (const day of days) {
+      const dayLabel = day.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' });
+      for (const cluster of clusterRecords(byDay.get(isoDay(day)) || [])) {
+        if (cluster.records[0].id === tipId) return { dayLabel, records: cluster.records };
+      }
+    }
+    return null;
+  }, [tipId, days, byDay]);
   return <section className="overview-panel" aria-label="七日照护总览">
     <div className="calendar-nav"><button onClick={() => onShiftWeek(-7)} aria-label="向前七天">‹</button><strong>{rangeLabel}</strong><button onClick={() => onShiftWeek(7)} aria-label="向后七天">›</button></div>
     <div className="overview-days">
@@ -50,6 +61,7 @@ export default function HistoryOverview({ records, careItems, selected, onShiftW
     </div>
     <div className="overview-chart" onClick={() => setTipId(null)}>
       <div className="overview-night" aria-hidden="true" />
+      {tipCluster && <div className="overview-detail" role="status"><div className="overview-detail-head">{tipCluster.dayLabel}</div>{tipCluster.records.map(record => <div key={record.id} className="overview-detail-row"><span className="overview-detail-time">{hhmm(record.occurredAt)}</span><span>{typeNames[record.type]} · {summary(record, careItems)}</span></div>)}</div>}
       {HOUR_LINES.map(hour => <div key={hour} className="overview-gridline" style={{ top: `calc(${hour / 24 * 100}% - ${hour === 0 ? 1 : hour === 24 ? -1 : 0}px)` }} aria-hidden="true" />)}
       {HOUR_LINES.map(hour => <span key={hour} className={`overview-hour ${hour === 0 ? 'edge-top' : hour === 24 ? 'edge-bottom' : ''}`} style={{ top: `${hour / 24 * 100}%` }}>{hour}时</span>)}
       {days.map((day, index) => {
@@ -62,10 +74,9 @@ export default function HistoryOverview({ records, careItems, selected, onShiftW
             const head = cluster.records[0];
             const open = tipId === head.id;
             const label = cluster.records.map(record => `${hhmm(record.occurredAt)} ${typeNames[record.type]} ${summary(record, careItems)}`).join('；');
-            return <button type="button" key={head.id} className={`overview-mark-btn ${cluster.topMinutes < 60 || cluster.topMinutes > 1380 ? 'near-edge' : ''}`} style={{ top: `${cluster.topPct}%`, left: '50%', ['--overview-top' as string]: `${cluster.topPct}%` }} aria-label={label} aria-expanded={open} onClick={event => { event.stopPropagation(); setTipId(open ? null : head.id); }}>
+            return <button type="button" key={head.id} className={`overview-mark-btn ${cluster.topMinutes < 60 || cluster.topMinutes > 1380 ? 'near-edge' : ''} ${open ? 'active' : ''}`} style={{ top: `${cluster.topPct}%`, left: '50%', ['--overview-top' as string]: `${cluster.topPct}%` }} aria-label={label} aria-expanded={open} onClick={event => { event.stopPropagation(); setTipId(open ? null : head.id); }}>
               <img className="overview-mark" src={careItemIcon(head, careItems)} alt="" />
               {cluster.records.length > 1 && <span className="overview-badge">×{cluster.records.length}</span>}
-              {open && <span className="overview-tip" role="status">{cluster.records.map(record => <span key={record.id} className="overview-tip-row">{hhmm(record.occurredAt)} {typeNames[record.type]} · {summary(record, careItems)}</span>)}</span>}
             </button>;
           })}
         </div>;
