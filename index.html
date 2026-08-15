@@ -8,6 +8,40 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icon-192.png" />
     <title>宝宝照护记录</title>
+    <script>
+      (function () {
+        try {
+          var mql = window.matchMedia('(prefers-color-scheme: dark)');
+          var resolveTheme = function() {
+            var stored = localStorage.getItem('babycare-theme');
+            if (stored === 'dark' || stored === 'light') return stored;
+            if (stored === 'system') return mql.matches ? 'dark' : 'light';
+            return mql.matches ? 'dark' : 'light';
+          };
+          var enforceTheme = function() {
+            var desired = resolveTheme();
+            var current = document.documentElement.getAttribute('data-theme');
+            if (current !== desired) {
+              document.documentElement.setAttribute('data-theme', desired);
+            }
+          };
+          var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(m) {
+              if (m.type === 'attributes' && m.attributeName === 'data-theme') {
+                var desired = resolveTheme();
+                var current = document.documentElement.getAttribute('data-theme');
+                if (current !== desired) {
+                  document.documentElement.setAttribute('data-theme', desired);
+                }
+              }
+            });
+          });
+          observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+          enforceTheme();
+          mql.addEventListener('change', enforceTheme);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
