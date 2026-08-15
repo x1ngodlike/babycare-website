@@ -80,3 +80,28 @@
   .picker-quick button { min-height: 38px; }
   .picker-actions { margin-top: 12px; }
 }
+
+/* Dark mode overrides */
+html[data-theme="dark"] .ui-switch { background: #3a423d; }
+html[data-theme="dark"] .ui-switch span { background: #e2e6df; }
+html[data-theme="dark"] .picker-trigger { background: var(--surface-card); border-color: var(--line-strong); color: var(--ink); }
+html[data-theme="dark"] .picker-trigger:hover { border-color: var(--green-deep); }
+html[data-theme="dark"] .picker-day { color: var(--ink); }
+html[data-theme="dark"] .picker-day:hover:not(:disabled) { background: var(--surface-subtle); }
+html[data-theme="dark"] .picker-day.today { color: var(--orange); }
+html[data-theme="dark"] .picker-day.selected { background: var(--green); border-color: var(--green); color: var(--white); }
+html[data-theme="dark"] .picker-day:disabled { color: var(--text-tertiary); }
+html[data-theme="dark"] .picker-quick button { background: var(--surface-card); border-color: var(--line-strong); color: var(--green-deep); }
+html[data-theme="dark"] .picker-quick button:hover { background: var(--surface-subtle); }
+html[data-theme="dark"] .picker-time-column { background: var(--surface-card); }
+html[data-theme="dark"] .picker-time-column button { color: var(--ink); }
+html[data-theme="dark"] .picker-time-column button.selected { background: var(--green); color: var(--white); }
+html[data-theme="dark"] .picker-calendar-nav strong { color: var(--ink); }
+html[data-theme="dark"] .picker-weekdays { color: var(--muted); }
+html[data-theme="dark"] .ui-segmented { background: var(--surface-muted); border-color: var(--line); }
+html[data-theme="dark"] .ui-segmented button { color: var(--text-secondary); }
+html[data-theme="dark"] .ui-segmented button.active { background: var(--surface-card); color: var(--green-deep); box-shadow: 0 0 0 1px var(--line); }
+html[data-theme="dark"] .ui-action-trigger { color: var(--muted); }
+html[data-theme="dark"] .ui-action-trigger:hover,
+html[data-theme="dark"] .ui-action-trigger[aria-expanded="true"] { background: var(--surface-subtle); color: var(--green-deep); }
+html[data-theme="dark"] .ui-action-popover { background: var(--surface-card); border-color: var(--line); }
