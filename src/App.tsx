@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, createElement } from 'react';
-import { Baby, Bell, Bot, LogOut, Pill, Save, Search, Send, Server, Syringe, Users } from 'lucide-react';
+import { Baby, Bell, Bot, LogOut, Monitor, Pill, RefreshCw, Save, Search, Send, Server, Syringe, Users } from 'lucide-react';
 import { api, ApiError, type GrowthAssessment, type GrowthIndicatorAssessment } from './api';
 import { addDays, calculateAge, isoDay, startOfWeek } from './date';
 import { isCareItemDue, nextCareItemDueDate } from './careSchedule';
@@ -1451,8 +1451,8 @@ function NativeNotificationSettingsCard({ superadmin }: { superadmin: boolean })
   </section>;
 }
 
-type SettingsSection = 'root' | 'family' | 'care-items' | 'vaccines' | 'ai' | 'backup' | 'push' | 'baby' | 'app-notifications';
-type SettingsIconName = 'medicine' | 'vaccine' | 'profile' | 'members' | 'ai' | 'backup' | 'bell' | 'send' | 'server' | 'logout';
+type SettingsSection = 'root' | 'family' | 'care-items' | 'vaccines' | 'ai' | 'backup' | 'push' | 'baby' | 'app-notifications' | 'appearance';
+type SettingsIconName = 'medicine' | 'vaccine' | 'profile' | 'members' | 'ai' | 'backup' | 'bell' | 'send' | 'server' | 'logout' | 'monitor' | 'refresh';
 
 function SettingsIcon({ name }: { name: SettingsIconName }) {
   // 使用 Lucide React 线性图标，统一 strokeWidth 1.8，与设计系统的圆角/圆润风格一致
@@ -1467,6 +1467,8 @@ function SettingsIcon({ name }: { name: SettingsIconName }) {
     send: Send,
     server: Server,
     logout: LogOut,
+    monitor: Monitor,
+    refresh: RefreshCw,
   };
   const Component = mapping[name];
   return createElement(Component, { size: 22, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true });
@@ -1476,7 +1478,7 @@ function SettingsEntry({ icon, title, description, status, danger = false, showC
   return <button type="button" className={`settings-entry${danger ? ' danger' : ''}`} onClick={onClick}><span className="settings-entry-icon"><SettingsIcon name={icon} /></span><span><b>{title}</b><small>{description}</small></span><em>{status || ''}</em><i aria-hidden="true">{showChevron ? '›' : ''}</i></button>;
 }
 
-function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, pushStatus, onProfileSaved, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; pushStatus: PushStatus | null; onProfileSaved(value: Profile): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSavePush(data: PushSettingsPatch): Promise<PushStatus> }) {
+function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, pushStatus, theme, onThemeChange, onProfileSaved, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; pushStatus: PushStatus | null; theme: ThemeMode; onThemeChange(value: ThemeMode): void; onProfileSaved(value: Profile): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSavePush(data: PushSettingsPatch): Promise<PushStatus> }) {
   const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false);
   const nativeBridge = window.BabyCareNative;
   const nativeNotificationsAvailable = Boolean(nativeBridge?.getNotificationPermissionStatus && nativeBridge?.requestNotificationPermission && nativeBridge?.showTestNotification && nativeBridge?.getAppNotificationSettings && nativeBridge?.saveAppNotificationSettings);
@@ -1492,7 +1494,7 @@ function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, 
     return pushStatus.enabled ? '已开启' : '已关闭';
   })();
   const nativeNotificationPermission = nativeNotificationsAvailable ? getNativeNotificationPermission() : 'unavailable';
-  const subTitles: Record<Exclude<SettingsSection, 'root'>, string> = { baby: '宝宝资料', family: '成员权限', 'care-items': '用药护理', vaccines: '疫苗管理', ai: 'AI 模型', backup: '数据备份', push: '消息推送', 'app-notifications': 'APP 通知' };
+  const subTitles: Record<Exclude<SettingsSection, 'root'>, string> = { baby: '宝宝资料', family: '成员权限', 'care-items': '用药护理', vaccines: '疫苗管理', ai: 'AI 模型', backup: '数据备份', push: '消息推送', 'app-notifications': 'APP 通知', appearance: '外观主题' };
   if (section !== 'root') return <div className="page-stack settings-subpage"><header className="subpage-head"><button type="button" onClick={back} aria-label="返回设置">←</button><div><p className="kicker">设置</p><h1>{subTitles[section]}</h1></div></header><div className="settings-grid">
     {section === 'baby' && <ProfileSettingsCard profile={profile} onSaved={onProfileSaved} />}
     {section === 'family' && <FamilyPermissionsCard />}
@@ -1502,6 +1504,7 @@ function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, 
     {section === 'backup' && <ServerBackupCard onImported={onImported} />}
     {section === 'push' && <PushSettingsCard pushStatus={pushStatus} onRefresh={onRefreshPush} onTestMorning={onTestMorning} onTestFeedingGap={onTestFeedingGap} onTestCareItem={onTestCareItem} onSave={onSavePush} onOpenAppNotifications={nativeNotificationsAvailable ? () => open('app-notifications') : undefined} />}
     {section === 'app-notifications' && nativeNotificationsAvailable && <NativeNotificationSettingsCard superadmin={user.role === 'superadmin'} />}
+    {section === 'appearance' && <AppearanceSettingsCard theme={theme} onChange={onThemeChange} />}
   </div></div>;
   return <div className="page-stack settings-home"><header className="page-head"><h1>设置</h1><p>{user.role === 'superadmin' ? '管理家庭成员、照护项目和服务器。' : user.role === 'admin' ? '管理宝宝资料、用药项目和已删除记录。' : '查看当前身份和权限。'}</p></header><section className="account-card"><img src={member.icon} alt="" /><div><span>当前身份与权限</span><h2>{user.name}</h2><p>{roleNames[user.role]}</p></div><i>{canManage(user) ? '管理权限' : '记录权限'}</i></section>
     {user.role === 'admin' && <section className="settings-card permission-note"><p className="kicker">管理权限</p><h2>管理日常照护</h2><p>可编辑宝宝资料、管理用药项目和回收站，也可管理消息推送。家庭权限、AI 模型和备份仅超管可操作。</p></section>}
@@ -1511,10 +1514,35 @@ function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, 
       {(canManage(user) || nativeNotificationsAvailable) && <section className="settings-menu" aria-label="提醒通知">{canManage(user) && <SettingsEntry icon="send" title="消息推送" description="提醒规则与接收通道" status={pushEntryStatus} onClick={() => open('push')} />}{nativeNotificationsAvailable && <SettingsEntry icon="bell" title="APP 通知" description="早报、喂奶、照护与疫苗提醒" status={nativeNotificationPermission === 'granted' ? '已允许' : '待开启'} onClick={() => open('app-notifications')} />}</section>}
       {canManage(user) && <section className="settings-menu" aria-label="照护设置"><SettingsEntry icon="medicine" title="用药护理" description="分类、计划与项目管理" status={`${careItems.filter(item => item.active).length} 项`} onClick={() => open('care-items')} /><SettingsEntry icon="vaccine" title="疫苗管理" description="目录与接种计划" status={`${vaccineCatalog.filter(item => item.active).length} 项`} onClick={() => open('vaccines')} /></section>}
       {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
-      {nativeBridge && <section className="settings-menu" aria-label="APP 设置"><SettingsEntry icon="server" title="服务器环境" description="切换局域网或外网连接" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} /></section>}
+      <section className="settings-menu" aria-label="APP 设置">
+        {nativeBridge && <SettingsEntry icon="server" title="服务器环境" description="切换局域网或外网连接" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} />}
+        <SettingsEntry icon="refresh" title="清除缓存" description="清除本地缓存并刷新页面" showChevron={false} onClick={() => {
+          try { caches.keys().then(keys => Promise.all(keys.filter(k => !k.includes('babycare-offline')).map(k => caches.delete(k)))); } catch { /* ignore */ }
+          window.location.reload();
+        }} />
+      </section>
+      <section className="settings-menu" aria-label="外观设置"><SettingsEntry icon="monitor" title="外观主题" description="浅色 / 深色 / 跟随系统" status={theme === 'light' ? '浅色' : theme === 'dark' ? '深色' : '跟随系统'} onClick={() => open('appearance')} /></section>
       <section className="settings-menu logout-menu" aria-label="账号操作"><SettingsEntry icon="logout" title="退出登录" description="退出当前家庭身份" danger showChevron={false} onClick={onLogout} /></section>
     </div>
   </div>;
+}
+
+
+type ThemeMode = 'light' | 'dark' | 'system';
+
+function AppearanceSettingsCard({ theme, onChange }: { theme: ThemeMode; onChange(value: ThemeMode): void }) {
+  const options: { value: ThemeMode; label: string }[] = [
+    { value: 'light', label: '浅色' },
+    { value: 'dark', label: '深色' },
+    { value: 'system', label: '跟随系统' },
+  ];
+  return <section className="settings-card">
+    <h2>外观主题</h2>
+    <p>选择浅色或深色模式，也可以跟随系统自动切换。</p>
+    <div style={{ marginTop: 14 }}>
+      <SegmentedControl label="主题模式" value={theme} options={options} onChange={onChange} />
+    </div>
+  </section>;
 }
 
 export default function App() {
@@ -1546,6 +1574,7 @@ export default function App() {
   const [growthEditor, setGrowthEditor] = useState<GrowthRecord | 'new' | null>(null);
   const [vaccineEditor, setVaccineEditor] = useState<VaccineEditorState | null>(null);
   const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(false); const [pendingCount, setPendingCount] = useState(0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
+  const [theme, setTheme] = useState<ThemeMode>(() => { try { return (localStorage.getItem('babycare-theme') as ThemeMode) || 'system'; } catch { return 'system'; } });
   const refreshingRef = useRef(false);
 
   const updateLocalRecords = useCallback((userId: string, updater: (items: CareRecord[]) => CareRecord[]) => {
@@ -1650,6 +1679,21 @@ export default function App() {
     api.session().then(value => { setAuthenticated(value.authenticated); setCurrentUser(value.user); if (value.user) { rememberUser(value.user); setRecords(getCachedRecords(value.user.id)); } })
       .catch(() => { const remembered = getRememberedUser(); if (remembered) { setCurrentUser(remembered); setAuthenticated(true); setOfflineSession(true); setOnline(false); setRecords(getCachedRecords(remembered.id)); setPendingCount(getOutbox(remembered.id).length); } else { setAuthenticated(false); setCurrentUser(null); } });
   }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem('babycare-theme', theme); } catch { /* ignore */ }
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => {
+      const resolved = theme === 'system' ? (mql.matches ? 'dark' : 'light') : theme;
+      document.documentElement.setAttribute('data-theme', resolved);
+    };
+    apply();
+    if (theme === 'system') {
+      mql.addEventListener('change', apply);
+      return () => mql.removeEventListener('change', apply);
+    }
+    return undefined;
+  }, [theme]);
 
   useEffect(() => {
     if (!authenticated || !currentUser) return;
@@ -1820,7 +1864,7 @@ export default function App() {
       {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} profile={profile} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} />}
       {tab === 'trends' && <TrendsView records={records} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
-      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
+      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
     </main>
     <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'history' ? 'nav-icon-records' : undefined} src={icon} alt="" /><b>{label}</b></button>)}<button className="nav-add" onClick={() => historyMode === 'vaccine' && tab === 'history' ? setVaccineEditor({ mode: 'add' }) : setEditor(blankDraft())} aria-label={historyMode === 'vaccine' && tab === 'history' ? '添加疫苗记录' : '添加照护记录'}><span aria-hidden="true">＋</span></button>{([['trends', '/icons/nav-trends.png', '趋势'], ['archive', '/icons/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'archive' ? 'nav-icon-archive' : undefined} src={icon} alt="" /><b>{label}</b></button>)}</nav>
     {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor key={growthEditor === 'new' ? 'new' : growthEditor.id} profile={profile} records={growthRecords} initial={growthEditor === 'new' ? undefined : growthEditor} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{vaccineEditor && <VaccineEditor state={vaccineEditor} profile={profile} catalog={vaccineCatalog} records={vaccineRecords} onClose={() => setVaccineEditor(null)} onSave={saveVaccine} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
