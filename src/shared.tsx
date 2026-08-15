@@ -42,6 +42,13 @@ export const careItemIcon = (value: CareRecord | DraftRecord, items: CareItem[])
 
 export const selectableCareItems = (items: CareItem[], current?: string | null) => items.filter(item => item.active || item.name === current);
 
+export function summary(record: CareRecord | DraftRecord, careItems: CareItem[] = []) {
+  if (record.type === 'feeding') return [record.breastMilkMl ? `母乳 ${record.breastMilkMl} mL` : '', record.formulaMl ? `奶粉 ${record.formulaMl} mL` : ''].filter(Boolean).join('，') || '待补充奶量';
+  if (record.type === 'supplement') return careItemCategory(record.supplement, careItems) === 'care' ? `${record.supplement || '护理项目'}已完成` : `${record.supplement || '用药项目'}已服用`;
+  if (record.type === 'bowel') return `排便量：${record.bowelSize || '中'}`;
+  return record.subject || '其他事项';
+}
+
 export function ChoiceField<T extends string>({ label, values, selected, onSelect, getLabel = value => value }: { label: string; values: T[]; selected?: T | null; onSelect(value: T): void; getLabel?(value: T): string }) {
   return <fieldset><legend>{label}</legend><div className="choice-group">{values.map(value => <button type="button" key={value} aria-pressed={selected === value} className={selected === value ? 'selected' : ''} onClick={() => onSelect(value)}>{selected === value && '✓ '}{getLabel(value)}</button>)}</div></fieldset>;
 }

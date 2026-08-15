@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { addDays, isoDay, startOfWeek } from '../date';
 import { SegmentedControl } from '../ui';
+import FeedingRhythmChart from './FeedingRhythmChart';
 import type { CareRecord } from '../types';
 
 type TrendMode = 'seven' | 'month' | 'total';
@@ -16,6 +17,13 @@ function summarizeTrendRecords(items: CareRecord[]) {
     bowel: items.filter(record => record.type === 'bowel').length,
     supplements: items.filter(record => record.type === 'supplement').length
   };
+}
+
+// 平均喂奶间隔：(末次 − 首次) ÷ (次数 − 1)；不足 2 次返回 null
+function avgFeedingGapHours(items: CareRecord[]): number | null {
+  const times = items.filter(record => record.type === 'feeding').map(record => new Date(record.occurredAt).getTime()).sort((a, b) => a - b);
+  if (times.length < 2) return null;
+  return (times[times.length - 1] - times[0]) / (times.length - 1) / 3600000;
 }
 
 export default function TrendsView({ records }: { records: CareRecord[] }) {
@@ -81,13 +89,19 @@ export default function TrendsView({ records }: { records: CareRecord[] }) {
       sevenSummary: { ...sevenSummary, activeDays: sevenActiveDays },
       monthSummary: { ...monthSummary, activeDays: monthActiveDays },
       totalSummary: { ...totalSummary, activeDays: totalActiveDays },
+      sevenGap: avgFeedingGapHours(sevenCompleteRecords),
+      monthGap: avgFeedingGapHours(monthRecords),
+      totalGap: avgFeedingGapHours(totalRecords),
     };
   }, [records, sevenDays, selectedMonth, todayYear, todayMon, todayIso]);
   const buckets = mode === 'seven' ? aggregated.sevenData : mode === 'month' ? aggregated.monthData : aggregated.totalData.slice(-6);
+  // 节奏图时间桶：与奶量图共用 buckets（月=周桶起始；总=月桶起始，节奏图内按整月聚合）
+  const weekStarts = mode === 'month' ? aggregated.monthData.map(bucket => new Date(`${bucket.key}T00:00:00`)) : mode === 'total' ? aggregated.totalData.slice(-6).map(bucket => { const [year, month] = bucket.key.split('-').map(Number); return new Date(year, month - 1, 1); }) : [];
   const chartData = buckets;
   const detailData = [...buckets].reverse();
   const maxMilk = Math.max(1, ...chartData.map(item => item.breast + item.formula));
   const scopeSummary = mode === 'seven' ? aggregated.sevenSummary : mode === 'month' ? aggregated.monthSummary : aggregated.totalSummary;
+  const scopeGap = mode === 'seven' ? aggregated.sevenGap : mode === 'month' ? aggregated.monthGap : aggregated.totalGap;
   const activeSummary = { breast: scopeSummary.breast, formula: scopeSummary.formula, feeds: scopeSummary.feeds, bowel: scopeSummary.bowel, supplements: scopeSummary.supplements };
   const totalMilk = activeSummary.breast + activeSummary.formula;
   const activeDays = scopeSummary.activeDays;
@@ -99,9 +113,10 @@ export default function TrendsView({ records }: { records: CareRecord[] }) {
   return <div className="page-stack trends-page"><header className="page-head"><h1>趋势统计</h1><p>{description}</p></header>
     <SegmentedControl<TrendMode> className="trend-tabs" label="趋势统计范围" value={mode} options={[{ value: 'seven', label: '七日' }, { value: 'month', label: '月数据' }, { value: 'total', label: '总数据' }]} onChange={setMode} />
     {mode === 'month' && <div className="trend-period-nav"><button onClick={() => shiftMonth(-1)} aria-label="上一个月">‹</button><strong>{selectedMonth.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</strong><button onClick={() => shiftMonth(1)} disabled={selectedMonth >= todayMonth} aria-label="下一个月">›</button></div>}
-    <section className="trend-summary"><div><span>{totalLabel}</span><strong>{totalMilk}</strong><small>mL</small></div><div><span>喂奶日均</span><strong>{activeDays ? Math.round(totalMilk / activeDays) : 0}</strong><small>mL</small></div><div><span>喂奶次数</span><strong>{activeSummary.feeds}</strong><small>次</small></div></section>
+    <section className="trend-summary"><div><span>{totalLabel}</span><strong>{totalMilk}</strong><small>mL</small></div><div><span>喂奶日均</span><strong>{activeDays ? Math.round(totalMilk / activeDays) : 0}</strong><small>mL</small></div><div><span>喂奶间隔</span><strong>{scopeGap === null ? '—' : scopeGap.toFixed(1)}</strong><small>小时</small></div></section>
     {mode === 'total' && <section className="trend-total-details" aria-label="累计分类数据"><div><span>母乳</span><b>{activeSummary.breast}</b><small>mL</small></div><div><span>奶粉</span><b>{activeSummary.formula}</b><small>mL</small></div><div><span>排便</span><b>{activeSummary.bowel}</b><small>次</small></div><div><span>用药</span><b>{activeSummary.supplements}</b><small>次</small></div></section>}
     <section className="chart-card"><div className="section-title"><h2>{chartTitle}</h2><div className="legend"><i className="breast" />母乳<i className="formula" />奶粉</div></div><div className="bar-chart" style={{ gridTemplateColumns: `repeat(${Math.max(1, chartData.length)}, minmax(30px, 1fr))` }}>{chartData.map(item => { const hasFeedingRecord = item.feeds > 0; return <div className={`bar-day ${hasFeedingRecord ? '' : 'no-data'}`} key={item.key} aria-label={hasFeedingRecord ? `${item.label}，母乳${item.breast} mL，奶粉${item.formula} mL` : `${item.label}，无喂奶记录`}><div className="bar-value">{hasFeedingRecord ? item.breast + item.formula : '—'}</div><div className="bar-track"><i className="formula" style={{ height: `${item.formula / maxMilk * 100}%` }} /><i className="breast" style={{ height: `${item.breast / maxMilk * 100}%` }} /></div><span>{item.axis}</span></div>; })}</div><details className="chart-details"><summary>{detailLabel}</summary><div className="chart-values">{detailData.map(item => <div key={item.key}><time>{item.label}</time><span>母乳 {item.breast} mL</span><span>奶粉 {item.formula} mL</span></div>)}</div></details></section>
-    <section className="rhythm-list"><div className="section-title"><h2>{mode === 'seven' ? '次数概览' : mode === 'month' ? '每周次数' : '月度次数'}</h2></div>{detailData.map(item => <div key={item.key}><time>{item.label}</time><span>喂奶 <b>{item.feeds}</b> 次</span><span>排便 <b>{item.bowel}</b> 次</span></div>)}</section>
+    <FeedingRhythmChart records={records} mode={mode} weekStarts={weekStarts} />
+    <section className="rhythm-list"><div className="section-title"><h2>{mode === 'seven' ? '次数概览' : mode === 'month' ? '每周次数' : '月度次数'}</h2></div>{detailData.map(item => <div key={item.key}><time>{item.label}</time><span>喂奶 <b>{item.feeds}</b> 次</span><span>排便 <b>{item.bowel}</b> 次</span></div>)}<div className="rhythm-total"><time>合计</time><span>喂奶 <b>{detailData.reduce((sum, item) => sum + item.feeds, 0)}</b> 次</span><span>排便 <b>{detailData.reduce((sum, item) => sum + item.bowel, 0)}</b> 次</span></div></section>
   </div>;
 }

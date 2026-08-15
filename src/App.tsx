@@ -7,12 +7,13 @@ import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
 import type { AuditEntry, BowelSize, Capabilities, CareItem, CareItemCategory, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineRecord, FamilyId, GrowthRecord, Profile, PushStatus, RecordType, SessionUser, Supplement, VaccineCatalogItem, VaccineRecord } from './types';
 import { VaccineEditor, VaccineHistory, VaccineReminderCard, type VaccineEditorState } from './VaccineViews';
+import HistoryOverview from './views/HistoryOverview';
 import { buildVaccinePlan, vaccineTimingStatus, type VaccinePlanItem } from './vaccines';
 import { ActionMenu, confirmAction, EmptyState, SegmentedControl, useDialogFocus } from './ui';
 import { DateField, DateTimeField } from './DateField';
 import { usePullToRefresh } from './usePullToRefresh';
 import { syncNativeVaccineReminders } from './native';
-import { auditNames, canManage, careItemCategory, careItemIcon, careItemIconSources, familyMembers, roleNames, selectableCareItems, type ThemeMode, typeNames } from './shared';
+import { auditNames, canManage, careItemCategory, careItemIcon, careItemIconSources, familyMembers, roleNames, selectableCareItems, summary, type ThemeMode, typeNames } from './shared';
 
 // 低频页面按需加载，配合 main.tsx 空闲预取与 Service Worker 运行时缓存
 const TrendsView = lazy(() => import('./views/Trends'));
@@ -32,13 +33,6 @@ const weekContains = (record: GrowthRecord, date = new Date()) => {
 };
 
 const blankDraft = (type: RecordType = 'feeding'): DraftRecord => ({ id: createUuid(), type, occurredAt: new Date().toISOString(), breastMilkMl: null, formulaMl: null });
-
-function summary(record: CareRecord | DraftRecord, careItems: CareItem[] = []) {
-  if (record.type === 'feeding') return [record.breastMilkMl ? `母乳 ${record.breastMilkMl} mL` : '', record.formulaMl ? `奶粉 ${record.formulaMl} mL` : ''].filter(Boolean).join('，') || '待补充奶量';
-  if (record.type === 'supplement') return careItemCategory(record.supplement, careItems) === 'care' ? `${record.supplement || '护理项目'}已完成` : `${record.supplement || '用药项目'}已服用`;
-  if (record.type === 'bowel') return `排便量：${record.bowelSize || '中'}`;
-  return record.subject || '其他事项';
-}
 
 function getAgeProfileLine(birthDate: string, realName: string, now = new Date()): string {
   const birth = new Date(`${birthDate}T12:00:00`);
@@ -390,7 +384,7 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
 }
 
 function HistoryView({ records, deletedRecords, vaccineRecords, vaccineCatalog, profile, historyMode, setHistoryMode, careItems, manager, selected, setSelected, onEdit, onDelete, onAudit, onLoadDeleted, onRestore, onPurge, onOpenVaccineEditor, onCancelVaccineAppointment, onDeleteVaccine }: { records: CareRecord[]; deletedRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; profile: Profile; historyMode: 'care' | 'vaccine'; setHistoryMode(value: 'care' | 'vaccine'): void; careItems: CareItem[]; manager: boolean; selected: Date; setSelected(value: Date): void; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void; onLoadDeleted(): Promise<void>; onRestore(record: CareRecord): Promise<void>; onPurge(record: CareRecord): Promise<void>; onOpenVaccineEditor(state: VaccineEditorState): void; onCancelVaccineAppointment(item: VaccinePlanItem): void; onDeleteVaccine(record: VaccineRecord): void }) {
-  const [query, setQuery] = useState(''); const [typeFilter, setTypeFilter] = useState<'all' | RecordType>('all'); const [actorFilter, setActorFilter] = useState<'all' | FamilyId>('all'); const [view, setView] = useState<'active' | 'deleted'>('active');
+  const [query, setQuery] = useState(''); const [typeFilter, setTypeFilter] = useState<'all' | RecordType>('all'); const [actorFilter, setActorFilter] = useState<'all' | FamilyId>('all'); const [view, setView] = useState<'active' | 'deleted'>('active'); const [layout, setLayout] = useState<'day' | 'overview'>('overview');
   const deletedHistoryPushed = useRef(false);
   useEffect(() => { if (view === 'deleted' && manager) void onLoadDeleted(); }, [manager, onLoadDeleted, view]);
   useEffect(() => { const pop = () => { deletedHistoryPushed.current = false; setView('active'); }; window.addEventListener('popstate', pop); return () => { window.removeEventListener('popstate', pop); if (deletedHistoryPushed.current) window.history.back(); }; }, []);
@@ -402,13 +396,25 @@ function HistoryView({ records, deletedRecords, vaccineRecords, vaccineCatalog, 
     const queryMatches = !query.trim() || `${typeNames[record.type]} ${summary(record, careItems)} ${record.subject || ''} ${record.note || ''} ${auditNames[record.createdBy]}`.toLowerCase().includes(query.trim().toLowerCase());
     return dayMatches && queryMatches && (typeFilter === 'all' || record.type === typeFilter) && (actorFilter === 'all' || record.createdBy === actorFilter);
   });
+  const overviewFiltered = records.filter(record => {
+    const key = isoDay(new Date(record.occurredAt));
+    const inWindow = key >= isoDay(addDays(selected, -6)) && key <= isoDay(selected);
+    const queryMatches = !query.trim() || `${typeNames[record.type]} ${summary(record, careItems)} ${record.subject || ''} ${record.note || ''} ${auditNames[record.createdBy]}`.toLowerCase().includes(query.trim().toLowerCase());
+    return inWindow && queryMatches && (typeFilter === 'all' || record.type === typeFilter) && (actorFilter === 'all' || record.createdBy === actorFilter);
+  });
+  const toolbar = <div className="record-toolbar"><label className="search-field"><span aria-hidden="true"><Search size={16} strokeWidth={2} /></span><span className="sr-only">搜索全部记录</span><input aria-label="搜索全部记录" value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索记录" /></label><label className="filter-field"><span className="sr-only">记录类型</span><select aria-label="记录类型" value={typeFilter} onChange={e => setTypeFilter(e.target.value as 'all' | RecordType)}><option value="all">类型</option>{(Object.keys(typeNames) as RecordType[]).map(type => <option key={type} value={type}>{typeNames[type]}</option>)}</select></label><label className="filter-field"><span className="sr-only">录入人</span><select aria-label="录入人" value={actorFilter} onChange={e => setActorFilter(e.target.value as 'all' | FamilyId)}><option value="all">家人</option>{familyMembers.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label></div>;
   return <div className="page-stack"><header className="page-head"><h1>历史记录</h1><p>{historyMode === 'care' ? '按日期查看，或搜索全部照护信息。' : '简单记录接种情况，及时查看下一针。'}</p></header>
+    <div className="record-view-row">
     <SegmentedControl className="record-view-tabs" label="记录类型" value={historyMode} options={[{ value: 'care', label: '照护记录' }, { value: 'vaccine', label: '疫苗记录' }]} onChange={value => { setHistoryMode(value); if (value === 'care') setView('active'); }} />
+    {historyMode === 'care' && view === 'active' && <SegmentedControl<'day' | 'overview'> className="record-view-tabs overview-toggle" label="查看方式" value={layout} options={[{ value: 'overview', label: '七日' }, { value: 'day', label: '按天' }]} onChange={setLayout} />}
+    </div>
     {historyMode === 'vaccine' ? <VaccineHistory profile={profile} records={vaccineRecords} catalog={vaccineCatalog} manager={manager} onOpenEditor={onOpenVaccineEditor} onCancelAppointment={onCancelVaccineAppointment} onDelete={onDeleteVaccine} /> :
     view === 'deleted' ? <section className="deleted-records"><button className="inline-back" onClick={closeDeleted}>← 返回照护记录</button><div className="section-title"><h2>已删除记录</h2><span>{deletedRecords.length} 条</span></div>{deletedRecords.length ? deletedRecords.map(record => <article className="deleted-record" key={record.id}><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div><small>{new Date(record.occurredAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} · {record.type === 'supplement' && careItemCategory(record.supplement, careItems) === 'care' ? '护理' : typeNames[record.type]}</small><strong>{summary(record, careItems)}</strong><p>{auditNames[record.deletedBy || 'legacy']}删除 · {record.deletedAt ? new Date(record.deletedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : ''}</p></div><div className="deleted-actions"><button className="btn secondary" onClick={() => onRestore(record)}>恢复</button><button className="btn danger-button" onClick={() => onPurge(record)}>彻底删除</button></div></article>) : <EmptyState title="没有已删除记录" description="管理身份删除的记录会暂存在这里。" />}</section> : <>
+    {toolbar}
+    {layout === 'day' ? <>
     <section className="calendar-panel"><div className="calendar-nav"><button onClick={() => setSelected(addDays(selected, -7))} aria-label="向前七天">‹</button><strong>{selected.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</strong><button onClick={() => setSelected(addDays(selected, 7))} aria-label="向后七天">›</button></div><div className="week-strip">{days.map(day => <button key={isoDay(day)} aria-pressed={isoDay(day) === isoDay(selected)} className={`${isoDay(day) === isoDay(selected) ? 'selected' : ''} ${isoDay(day) === isoDay(new Date()) ? 'today' : ''}`} onClick={() => setSelected(day)}><span>{day.toLocaleDateString('zh-CN', { weekday: 'short' })}</span><b>{day.getDate()}</b></button>)}</div></section>
-    <div className="record-toolbar"><label className="search-field"><span aria-hidden="true"><Search size={16} strokeWidth={2} /></span><span className="sr-only">搜索全部记录</span><input aria-label="搜索全部记录" value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索记录" /></label><label className="filter-field"><span className="sr-only">记录类型</span><select aria-label="记录类型" value={typeFilter} onChange={e => setTypeFilter(e.target.value as 'all' | RecordType)}><option value="all">类型</option>{(Object.keys(typeNames) as RecordType[]).map(type => <option key={type} value={type}>{typeNames[type]}</option>)}</select></label><label className="filter-field"><span className="sr-only">录入人</span><select aria-label="录入人" value={actorFilter} onChange={e => setActorFilter(e.target.value as 'all' | FamilyId)}><option value="all">家人</option>{familyMembers.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label></div>
-    <div className="section-title history-record-heading"><h2>{query.trim() ? '全部搜索结果' : selected.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</h2><div className="section-title-actions"><span>{filtered.length} 条</span>{manager && <button className="text-button" onClick={openDeleted}>已删除</button>}</div></div><div className="history-timeline"><Timeline records={filtered} careItems={careItems} manager={manager} emptyText={query.trim() ? '没有找到匹配记录' : undefined} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} searchMode={!!query.trim()} /></div></>}
+    <div className="section-title history-record-heading"><h2>{query.trim() ? '全部搜索结果' : selected.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</h2><div className="section-title-actions"><span>{filtered.length} 条</span>{manager && <button className="text-button" onClick={openDeleted}>已删除</button>}</div></div><div className="history-timeline"><Timeline records={filtered} careItems={careItems} manager={manager} emptyText={query.trim() ? '没有找到匹配记录' : undefined} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} searchMode={!!query.trim()} /></div>
+    </> : <HistoryOverview records={overviewFiltered} careItems={careItems} selected={selected} onShiftWeek={offset => setSelected(addDays(selected, offset))} />}</>}
   </div>;
 }
 
