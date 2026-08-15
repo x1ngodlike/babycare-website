@@ -329,7 +329,7 @@ label, fieldset { display: grid; gap: 7px; color: var(--ink); font-size: 14px; f
   margin-left: 36px;
   padding: 8px 4px 8px 10px;
   border: 0;
-  border-bottom: 1px solid rgba(211, 218, 207, .78);
+  border-bottom: 1px solid var(--line);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
