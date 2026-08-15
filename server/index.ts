@@ -28,6 +28,13 @@ app.set('trust proxy', 1);
 const port = Number(process.env.PORT || 3000);
 const production = process.env.NODE_ENV === 'production';
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+// 定期清理已过期的登录失败记录，防止长期运行时 Map 无限增长
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, state] of loginAttempts) {
+    if (state.resetAt <= now) loginAttempts.delete(key);
+  }
+}, 60 * 60 * 1000).unref();
 const changeHub = createChangeHub();
 const backupDirectory = defaultBackupDirectory();
 // 数据根：优先显式 DATA_DIR，否则用 DATABASE_PATH 目录（db / backup / avatars 三兄弟共用同一个持久化根）
