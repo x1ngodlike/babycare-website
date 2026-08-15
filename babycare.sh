@@ -4,28 +4,39 @@ set -Eeuo pipefail
 # babycare Unraid 统一管理脚本。
 # 无参数运行时显示中文菜单，直接命令使用 deploy、update、backup 等英文名称。
 
-PROJECT_NAME="babycare-website"
-SERVICE_NAME="babycare-website"
-CONTAINER_NAME="babycare-website"
-LEGACY_CONTAINERS=("baby-care")
-DEFAULT_HOST_PORT="5937"
-DEFAULT_DATA_DIR="/mnt/user/appdata/baby-care/data"
-BACKUP_DIR="/mnt/user/appdata/baby-care/backups"
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env}"
+# ===== 基础常量 =====
+PROJECT_NAME="babycare-website"                    # Compose 项目名（决定容器/网络/卷的命名前缀）
+SERVICE_NAME="babycare-website"                    # docker-compose.yml 里的服务名
+CONTAINER_NAME="babycare-website"                  # 运行中的容器名（唯一）
+LEGACY_CONTAINERS=("baby-care")                    # 历史旧容器名，清理和备份时都要兼顾
+DEFAULT_HOST_PORT="5937"                           # .env 未配置时的默认 Web 端口
+DEFAULT_DATA_DIR="/mnt/user/appdata/baby-care/data"  # 默认数据目录（SQLite 数据库 + 头像上传）
+BACKUP_DIR="/mnt/user/appdata/baby-care/backups"   # 备份归档目录
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"  # 脚本所在目录（即项目根目录）
+ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env}"         # 环境配置文件路径，可用环境变量覆盖
 
-HOST_PORT=""
-DATA_DIR=""
-COMPOSE_CMD=()
-STOPPED_FOR_BACKUP=()
-OLD_PROJECT_IMAGE_IDS=()
+# ===== 运行时状态（每次调用时重新填充） =====
+HOST_PORT=""                    # 实际使用的端口（来自 .env 或默认值）
+DATA_DIR=""                     # 实际使用的数据目录（来自 .env 或默认值）
+COMPOSE_CMD=()                  # Compose 命令（docker compose 或 docker-compose）
+STOPPED_FOR_BACKUP=()           # 备份期间被暂停的容器列表，结束后按此恢复
+OLD_PROJECT_IMAGE_IDS=()        # 部署前记住的旧镜像 ID，新版健康检查通过后再清理
 
+# 终端输出颜色：仅在交互式终端启用；输出重定向到文件时自动禁用，避免日志里出现转义乱码。
+if [[ -t 1 ]]; then
+  RED=$'\e[31m'; GREEN=$'\e[32m'; YELLOW=$'\e[33m'; CYAN=$'\e[36m'; BOLD=$'\e[1m'; RESET=$'\e[0m'
+else
+  RED=''; GREEN=''; YELLOW=''; CYAN=''; BOLD=''; RESET=''
+fi
+
+# 输出一行带前缀的提示信息（正常流程信息，前缀青色）。
 info() {
-  printf '\n[babycare] %s\n' "$1"
+  printf '\n%s[babycare]%s %s\n' "$CYAN" "$RESET" "$1"
 }
 
+# 输出错误信息（红色）并以非零码退出，终止脚本。
 fail() {
-  printf '\n[错误] %s\n' "$1" >&2
+  printf '\n%s[错误] %s%s\n' "$RED" "$1" "$RESET" >&2
   exit 1
 }
 
@@ -113,6 +124,7 @@ load_config() {
   [[ "$BACKUP_DIR" == /mnt/user/appdata/baby-care/backups ]] || fail "备份目录配置不符合安全限制。"
 }
 
+# 三步初始化：检查运行环境 → 准备 .env → 校验配置，所有子命令的公共入口。
 initialize() {
   prepare_runtime
   ensure_env
@@ -128,6 +140,7 @@ restart_after_backup() {
   STOPPED_FOR_BACKUP=()
 }
 
+# 按容器名停止单个容器并登记到 STOPPED_FOR_BACKUP；已在列表中则跳过，避免重复停止。
 stop_for_backup() {
   local name="$1"
   local stopped_name
@@ -141,6 +154,7 @@ stop_for_backup() {
   fi
 }
 
+# 备份全流程：暂停本项目容器（保证 SQLite 一致）→ 打包数据目录和配置 → 恢复容器运行。
 perform_backup() {
   initialize
   [[ -d "$DATA_DIR" ]] || fail "数据目录不存在：${DATA_DIR}"
@@ -153,6 +167,7 @@ perform_backup() {
   while IFS= read -r name; do
     [[ -n "$name" ]] && stop_for_backup "$name"
   done < <(docker ps -a --filter "label=com.docker.compose.project.working_dir=${SCRIPT_DIR}" --format '{{.Names}}')
+  # 兜底：无论备份正常结束、失败退出还是收到 Ctrl+C/终止信号，都恢复容器运行。
   trap restart_after_backup EXIT
   trap 'exit 130' INT TERM
 
@@ -162,6 +177,7 @@ perform_backup() {
   timestamp="$(date '+%Y%m%d-%H%M%S')"
   archive="${BACKUP_DIR}/babycare-website-${timestamp}.tar.gz"
 
+  # 两段 -C 分别切换目录：先打包整个数据目录（含数据库名），再打包项目里的 .env 和 Compose 配置。
   if ! tar -czf "$archive" \
     -C "$(dirname "$DATA_DIR")" "$(basename "$DATA_DIR")" \
     -C "$SCRIPT_DIR" .env docker-compose.yml; then
@@ -173,7 +189,7 @@ perform_backup() {
   restart_after_backup
   trap - EXIT INT TERM
 
-  info "备份完成：${archive}"
+  info "${GREEN}备份完成：${archive}${RESET}"
   printf '备份内容：完整数据库目录、环境配置和 Compose 配置。\n'
 }
 
@@ -210,13 +226,13 @@ cleanup_previous_project_images() {
     docker image inspect "$old_image" >/dev/null 2>&1 || continue
     used_by="$(docker ps -aq --filter "ancestor=${old_image}")"
     if [[ -n "$used_by" ]]; then
-      printf '保留仍被其他容器使用的旧镜像：%s\n' "$old_image"
+      printf '%s保留仍被其他容器使用的旧镜像：%s%s\n' "$YELLOW" "$old_image" "$RESET"
       continue
     fi
     if docker image rm "$old_image" >/dev/null 2>&1; then
-      printf '已删除本项目上一版旧镜像：%s\n' "$old_image"
+      printf '%s已删除本项目上一版旧镜像：%s%s\n' "$GREEN" "$old_image" "$RESET"
     else
-      printf '警告：旧镜像 %s 暂时无法删除，不影响新版运行。\n' "$old_image" >&2
+      printf '%s警告：旧镜像 %s 暂时无法删除，不影响新版运行。%s\n' "$YELLOW" "$old_image" "$RESET" >&2
     fi
   done
 }
@@ -230,7 +246,7 @@ remove_project_containers() {
   for name in "$CONTAINER_NAME" "${LEGACY_CONTAINERS[@]}"; do
     if docker inspect "$name" >/dev/null 2>&1; then
       if docker rm -f "$name" >/dev/null 2>&1; then
-        printf '已删除旧容器：%s\n' "$name"
+        printf '%s已删除旧容器：%s%s\n' "$GREEN" "$name" "$RESET"
       elif docker inspect "$name" >/dev/null 2>&1; then
         fail "无法删除旧容器：${name}"
       fi
@@ -243,10 +259,11 @@ remove_project_containers() {
   done < <(docker ps -aq --filter "label=com.docker.compose.project.working_dir=${SCRIPT_DIR}")
   if (( ${#project_ids[@]} > 0 )); then
     docker rm -f "${project_ids[@]}" >/dev/null
-    printf '已删除同一项目目录产生的孤立容器。\n'
+    printf '%s已删除同一项目目录产生的孤立容器。%s\n' "$GREEN" "$RESET"
   fi
 }
 
+# 部署全流程：预备份 → 准备目录 → 清理旧容器 → 构建镜像 → 启动 → 健康检查 → 清理旧镜像。
 perform_deploy() {
   initialize
 
@@ -257,6 +274,7 @@ perform_deploy() {
   fi
 
   mkdir -p "$DATA_DIR" "$DATA_DIR/uploads/avatars" "$BACKUP_DIR"
+  # 1000:1000 与容器内运行用户的 UID/GID 一致，保证数据库和头像目录可读写。
   chown -R 1000:1000 "$DATA_DIR" "$BACKUP_DIR" 2>/dev/null || true
   chmod 750 "$DATA_DIR" "$DATA_DIR/uploads" "$DATA_DIR/uploads/avatars" "$BACKUP_DIR" 2>/dev/null || true
 
@@ -275,6 +293,8 @@ perform_deploy() {
   compose up -d --remove-orphans "$SERVICE_NAME"
 
   info "检查前端文件、网页首页和后端接口。"
+  # 健康检查：最多重试 30 次、每次间隔 2 秒（约 60 秒）。
+  # 三项全过才算健康：容器内前端产物存在、首页可访问、/api/health 返回正常。
   local healthy="false"
   local attempt
   for attempt in $(seq 1 30); do
@@ -298,24 +318,28 @@ perform_deploy() {
   server_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
   server_ip="${server_ip:-你的-Unraid-IP}"
   compose ps
-  info "部署完成。"
+  info "${GREEN}部署完成。${RESET}"
   printf '访问地址：http://%s:%s\n' "$server_ip" "$HOST_PORT"
 }
 
+# 更新流程：先备份 → 校验 Git 工作区干净 → 拉取 main 最新代码 → 用新脚本重新部署。
 perform_update() {
   initialize
   perform_backup
   command -v git >/dev/null 2>&1 || fail "未找到 Git，无法拉取更新。"
   [[ -d "${SCRIPT_DIR}/.git" ]] || fail "当前目录不是 Git 仓库。"
+  # 工作区有未提交修改时拒绝更新，避免 pull 冲突覆盖本地改动。
   [[ -z "$(git -C "$SCRIPT_DIR" status --porcelain --untracked-files=no)" ]] \
     || fail "仓库存在未提交修改，请先处理后再更新。"
 
   info "从 GitHub 拉取 main 分支最新代码。"
   git -C "$SCRIPT_DIR" pull --ff-only origin main
   info "使用更新后的脚本重新部署。"
+  # exec 替换当前进程运行新脚本；刚已备份过，用环境变量跳过 deploy 里的重复备份。
   BABYCARE_SKIP_BACKUP=true exec "${SCRIPT_DIR}/babycare.sh" deploy
 }
 
+# 查看本项目容器运行状态（Compose 视图 + 容器明细）。
 show_status() {
   initialize
   compose ps
@@ -323,23 +347,27 @@ show_status() {
   docker ps -a --filter "name=^/${CONTAINER_NAME}$" --format '名称：{{.Names}}　状态：{{.Status}}　镜像：{{.Image}}'
 }
 
+# 跟踪查看服务最近 100 行日志并持续输出（Ctrl+C 退出）。
 show_logs() {
   initialize
   compose logs --tail=100 -f "$SERVICE_NAME"
 }
 
+# 停止服务容器（不删除，数据不受影响）。
 stop_service() {
   initialize
   compose stop "$SERVICE_NAME"
   info "服务已停止。"
 }
 
+# 启动已停止的服务容器。
 start_service() {
   initialize
   compose up -d "$SERVICE_NAME"
   info "服务已启动。"
 }
 
+# 无参数运行时的中文交互菜单。
 show_menu() {
   printf '\nbabycare管理\n\n'
   printf '1. 首次部署或重新构建\n'
@@ -364,8 +392,9 @@ show_menu() {
   esac
 }
 
+# 显示命令行帮助（./babycare.sh help）。
 show_help() {
-  printf '\nbabycare管理命令\n\n'
+  printf '\n%sbabycare管理命令%s\n\n' "$BOLD" "$RESET"
   printf '  ./babycare.sh deploy   首次部署或重新构建\n'
   printf '  ./babycare.sh update   备份后更新到 GitHub 最新版本\n'
   printf '  ./babycare.sh backup   备份数据和环境配置\n'
@@ -377,6 +406,7 @@ show_help() {
   printf '无参数运行 ./babycare.sh 可打开中文菜单。\n'
 }
 
+# 命令分发：无参数进入菜单；每个命令同时支持英文原名和中文别名。
 case "${1:-菜单}" in
   菜单|menu) show_menu ;;
   deploy|部署) perform_deploy ;;
