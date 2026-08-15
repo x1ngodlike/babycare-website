@@ -634,7 +634,7 @@ function parseGrowthEvaluation(raw: string | null, evaluatedAt: string | null): 
 
 function recentMilkStats(today: string): { avgDailyMl: number; daysCounted: number } {
   let total = 0; let days = 0;
-  for (let offset = 0; offset < 7; offset += 1) {
+  for (let offset = 1; offset <= 7; offset += 1) {
     const range = shanghaiDayUtcRange(addDaysToDateString(today, -offset));
     const dayFeedings = listRecords(range.from, range.to).filter(record => record.type === 'feeding');
     if (!dayFeedings.length) continue;

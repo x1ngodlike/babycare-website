@@ -622,24 +622,29 @@ function TrendsView({ records }: { records: CareRecord[] }) {
     });
 
     // ===== 汇总统计：严格按语义化时间范围（与图表 buckets 解耦） =====
-    // 七日：最近 7 天
-    const sevenIsoSet = new Set(sevenDays.map(d => isoDay(d)));
-    const sevenRecords = records.filter(r => sevenIsoSet.has(isoDay(new Date(r.occurredAt))));
-    const sevenSummary = summarizeTrendRecords(sevenRecords);
-    const sevenActiveDays = new Set(sevenRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
+    // 日均统计排除今天（今日未完成不可作为完整日均值分母），仅用于汇总行；图表 buckets 仍保留今天的数据条
+    // 七日：昨天往前 7 天（共 7 个完整自然日）
+    const sevenCompleteIsoSet = new Set(Array.from({ length: 7 }, (_, index) => isoDay(addDays(now, index - 7))));
+    const sevenCompleteRecords = records.filter(r => sevenCompleteIsoSet.has(isoDay(new Date(r.occurredAt))));
+    const sevenSummary = summarizeTrendRecords(sevenCompleteRecords);
+    const sevenActiveDays = new Set(sevenCompleteRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
 
-    // 月数据：自然月（1 日 → 月末/今日）
+    // 月数据：自然月（1 日 → 月末/今日），但日均统计仅取当月里今天之前的完整日
     const naturalMonthStart = new Date(monthYear, monthIndex, 1);
     const naturalMonthEnd = isCurrentMonth
       ? new Date(`${todayIso}T23:59:59.999`)
       : new Date(monthYear, monthIndex + 1, 0, 23, 59, 59, 999);
-    const monthRecords = records.filter(r => { const d = new Date(r.occurredAt); return d >= naturalMonthStart && d <= naturalMonthEnd; });
+    const monthCompleteEnd = isCurrentMonth
+      ? new Date(`${isoDay(addDays(now, -1))}T23:59:59.999`)
+      : naturalMonthEnd;
+    const monthRecords = records.filter(r => { const d = new Date(r.occurredAt); return d >= naturalMonthStart && d <= monthCompleteEnd; });
     const monthSummary = summarizeTrendRecords(monthRecords);
     const monthActiveDays = new Set(monthRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
 
-    // 总数据：全部历史记录（累计）
-    const totalSummary = summarizeTrendRecords(records);
-    const totalActiveDays = new Set(records.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
+    // 总数据：全部历史记录（累计），排除今天的记录
+    const totalRecords = records.filter(r => isoDay(new Date(r.occurredAt)) !== todayIso);
+    const totalSummary = summarizeTrendRecords(totalRecords);
+    const totalActiveDays = new Set(totalRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
 
     return {
       sevenData, monthData, totalData,
