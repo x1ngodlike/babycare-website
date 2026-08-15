@@ -479,7 +479,8 @@ export default function App() {
     if (!currentUser) return false;
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const end = addDays(start, 2);
-    start.setDate(start.getDate() - 1);
+    // 往前取 7 天（含今天），供今日页"预计喂奶"计算近 7 天平均喂奶间隔
+    start.setDate(start.getDate() - 7);
     try { const next = await api.records(start.toISOString(), end.toISOString()); setRecords(next); cacheRecords(currentUser.id, next); setOnline(true); setOfflineSession(false); return true; }
     catch { setRecords(getCachedRecords(currentUser.id)); setOnline(false); return false; }
   }, [currentUser]);
