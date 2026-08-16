@@ -26,6 +26,38 @@ export interface GrowthAssessment {
   evaluation?: GrowthAssessmentEvaluation | null;
 }
 
+export interface FeedingPredictionUpcoming {
+  index: number;
+  predictedAt: string;
+  earliest: string;
+  latest: string;
+  estimatedMl: number | null;
+  period: string;
+}
+
+export interface FeedingPrediction {
+  available: boolean;
+  reason?: 'no_records' | 'insufficient_data';
+  lastFeedAt: string | null;
+  nextFeedAt: string | null;
+  nextFeedEarliest: string | null;
+  nextFeedLatest: string | null;
+  gapMinutes: number | null;
+  volumeMl: number | null;
+  confidence: number;
+  upcomingFeeds: FeedingPredictionUpcoming[];
+  periodGaps: { period: string; count: number; medianMinutes: number | null; minMinutes: number | null; maxMinutes: number | null }[];
+  periodVolumes: { period: string; count: number; medianMl: number | null }[];
+  overallMedianGapMinutes: number | null;
+  dataDays: number;
+  dataFeeds: number;
+  aiInsights?: {
+    summary: string;
+    insights: string[];
+    alert?: 'none' | 'pattern_change' | 'low_confidence' | 'growth_spurt';
+  };
+}
+
 export class ApiError extends Error {
   status: number;
   code?: string;
@@ -85,6 +117,7 @@ export const api = {
   familyMembers: () => request<FamilyMemberPermission[]>('/api/family-members'),
   updateFamilyRole: (id: Exclude<FamilyId, 'father'>, role: Exclude<UserRole, 'superadmin'>) => request<FamilyMemberPermission>(`/api/family-members/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
   records: (from: string, to: string) => request<CareRecord[]>(`/api/records?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+  feedingPrediction: () => request<FeedingPrediction>('/api/feeding-prediction'),
   deletedRecords: () => request<CareRecord[]>('/api/records/deleted'),
   createRecord: (record: DraftRecord & { id?: string }) => request<CareRecord>('/api/records', { method: 'POST', body: JSON.stringify(record) }),
   updateRecord: (id: string, record: DraftRecord) => request<CareRecord>(`/api/records/${id}`, { method: 'PUT', body: JSON.stringify(record) }),
