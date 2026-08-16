@@ -69,7 +69,7 @@ server/
   ai.ts                AI 请求与基础报告逻辑
   push.ts              PushPlus 渲染和调度
   vaccine-plan.ts      疫苗计划的服务端适配
-  backup.ts            JSON 服务器备份
+  backup.ts            JSON 服务器备份（保留 30 份、手动/自动类型、删除）
   types.ts             服务端类型
 
 shared/
@@ -150,7 +150,7 @@ data/
 - `id`：UUID 文本主键。
 - `type`：`feeding | supplement | bowel | note`。
 - `occurred_at`：标准瞬时时间。
-- `breast_milk_ml`、`formula_ml`、`supplement`、`bowel_size`、`note`。
+- `breast_milk_ml`、`formula_ml`、`supplement`、`bowel_size`、`subject`、`note`。
 - `created_by`、`updated_by`、`deleted_at`、`deleted_by`。
 
 删除为软删除；永久删除只允许处理已软删除记录。
@@ -161,16 +161,17 @@ data/
 
 ### 4.4 `care_items`
 
-包含名称、`medicine | massage` 图标、排序、启用状态，以及：
+包含名称、`category`（`medication | care` 分类）、`icon`（`medicine | massage | bath | care`）、排序、启用状态，以及：
 
 - `schedule_type`：`daily | interval | as_needed`。
 - `interval_days`。
 - `schedule_start_date`、`schedule_end_date`。
 - `reminder_time`。
+- `created_at`、`updated_at`。
 
 ### 4.5 `growth_records`
 
-保存测量日期、身高、体重、创建/修改人和软删除信息。同一自然日有重复保护。
+保存测量日期、身高、体重、AI 评估（`evaluation`）与评估时间（`evaluated_at`）、创建/修改人和软删除信息。同一自然日有重复保护。
 
 ### 4.6 `vaccine_records`
 
@@ -178,9 +179,9 @@ data/
 
 ### 4.7 `vaccine_catalog`
 
-保存疫苗目录、类型、简称、说明、剂次数、程序摘要、启用状态、排序、系统标记和删除状态。
+保存疫苗目录、类型、简称、说明、剂次数、程序摘要、启用状态、排序、系统标记（`is_system`）和软删除（`deleted_at`）。
 
-系统维护 10 个默认项目；系统项目不能修改内容或删除，只能启停。
+系统维护 10 个默认项目；系统项目（`is_system=1`）不能修改内容或删除，只能启停。
 
 ### 4.8 配置和派生数据
 
@@ -263,11 +264,13 @@ data/
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/api/export` | 导出 JSON |
-| POST | `/api/import` | 合并导入 |
-| GET | `/api/backups/status` | 自动备份状态 |
-| GET/POST | `/api/backups` | 列表/立即备份 |
-| POST | `/api/backups/:name/restore` | 完整恢复 |
+| GET | `/api/export` | 导出 JSON（版本 10） |
+| POST | `/api/import` | 导入 JSON；body 带 `mode: 'replace'` 全量替换（清除并覆盖）或 `mode: 'merge'` 增量合并（默认），操作前先保存当前快照 |
+| GET | `/api/backups/status` | 自动备份状态（目录、保留 30 份、间隔 6 小时等） |
+| GET | `/api/backups` | 服务器备份列表（含 `type: manual\|auto` 类型标签） |
+| POST | `/api/backups` | 立即备份；body 可带 `type: 'manual'`（默认）或 `'auto'` |
+| DELETE | `/api/backups/:name` | 删除指定服务器备份（仅超管） |
+| POST | `/api/backups/:name/restore` | 完整恢复（替换核心数据，恢复前先保存当前状态） |
 | GET | `/api/push/status` | 推送状态 |
 | POST | `/api/push/settings` | 保存推送设置 |
 | POST | `/api/push/test/morning-digest` | 测试早报 |
@@ -360,12 +363,12 @@ Service Worker 仅缓存静态壳和最近访问的 GET 资源；`/api/` 请求�
 ### 11.1 应用内 JSON 备份
 
 - 每 6 小时自动生成。
-- 默认保留最近 28 份。
+- 默认保留最近 30 份（`server/backup.ts backupRetention = 30`）。
 - 写入临时文件后原子改名。
 - 导出版本当前为 10。
 - 包含资料（含出生时间）、照护/成长/疫苗记录、审计、目录、家庭权限和日报。
-
-“导入”执行合并；“服务器恢复”替换核心数据。恢复前先自动保存当前状态。
+- 备份区分 `type = manual | auto`，列表 UI 显示"手动"或"自动"类型标签，可单独删除某条备份。
+- "导入"支持两种模式：`replace` 全量替换（清除当前数据完整恢复）和 `merge` 增量合并。导入前、服务器恢复前均会先自动保存一份当前状态快照。
 
 头像二进制文件不嵌入 JSON；备份中的头像字段只是 URL。因此完整灾难恢复必须同时备份整个 `DATA_DIR`。
 
@@ -415,6 +418,34 @@ Docker Compose 关键约定：
 - 日历使用 `CalendarContract` 的 `ACTION_INSERT`，仅预填日程并交由用户确认，不直接读写日历数据。普通浏览器下会下载 `.ics` 作为回退。
 - 网页/API 更新只需重新部署服务器并刷新或重开 App；原生代码、图标、权限和 Android 配置变化必须提高版本号并重新安装 APK。
 - 详细构建步骤见 [`../android-app/README.md`](../android-app/README.md)。
+
+### 12.2 Unraid 部署脚本
+
+项目根目录提供 `babycare.sh`，支持中文交互菜单和命令行两种模式，无需 Docker Compose 手动拼接参数。
+
+无参数运行进入中文菜单：
+
+```bash
+./babycare.sh
+```
+
+菜单输出使用 `━━━━━━━━` 标题框、`──` 摘要面板和 `────────` 阶段分割线；步骤以 `[当前/总数]` 编号，状态符号统一为 `✓ ✗ ⚠ ℹ`。
+
+命令行调用：
+
+| 命令 | 别名 | 作用 |
+|---|---|---|
+| `./babycare.sh deploy` | `部署` | 首次部署或重新构建（含构建前自动备份、6 步流程：目录准备→配置校验→清理旧容器→构建镜像→启动健康检查→清理旧镜像） |
+| `./babycare.sh update` | `更新` | 拉取 Git 最新代码后重新部署（执行前先备份，skip 重复备份） |
+| `./babycare.sh backup` | `备份` | 停止容器→打包数据目录、`.env`、`docker-compose.yml`→恢复服务 |
+| `./babycare.sh status` | `状态` | `docker compose ps` + 当前容器状态摘要 |
+| `./babycare.sh logs` | `日志` | `compose logs --tail 100 -f` |
+| `./babycare.sh stop` | `停止` | 停止项目服务 |
+| `./babycare.sh start` | `启动` | 启动项目服务 |
+| `./babycare.sh menu` | `菜单` | 打开中文交互菜单（无参数时默认行为） |
+| `./babycare.sh help` | `-h --help` | 显示命令清单 |
+
+部署脚本使用的关键约定：`HOST_PORT=5937`、`DATA_DIR` 指向 `.env` 配置的宿主机目录，Docker compose 项目名固定为 `babycare-website`。部署完成后输出摘要面板（容器名、端口、数据目录、备份目录、访问地址）。
 
 ## 13. 安全与输入校验
 
