@@ -164,8 +164,23 @@ export interface FeedingInsightsInput {
 const feedingInsightsSchema = z.object({
   summary: z.string().trim().min(1).max(80),
   insights: z.array(z.string().trim().min(1).max(40)).min(1).max(3),
-  alert: z.enum(['none', 'pattern_change', 'low_confidence', 'growth_spurt']).default('none')
+  alert: z.enum(['none', 'pattern_change', 'low_confidence', 'growth_spurt']).default('none'),
+  aiNextFeedAt: z.string().nullable().optional(),
+  aiGapMinutes: z.number().int().nullable().optional()
 });
+
+function normalizeAiDatetime(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const normalized = value.includes('T') ? value : value.replace(' ', 'T');
+    const withZ = /[Zz]$/.test(normalized) ? normalized : normalized.replace(/([+-]\d{2}:?\d{2})$/, 'Z');
+    const date = new Date(withZ);
+    if (isNaN(date.getTime())) return null;
+    return date.toISOString();
+  } catch {
+    return null;
+  }
+}
 
 export function feedingInsightsMessages(input: FeedingInsightsInput): { role: 'system' | 'user'; content: string }[] {
   const sexLabel = input.sex === 'male' ? '男宝宝' : input.sex === 'female' ? '女宝宝' : '宝宝';
@@ -180,12 +195,13 @@ export function feedingInsightsMessages(input: FeedingInsightsInput): { role: 's
   return [
     {
       role: 'system',
-      content: '你是有儿科保健知识的资深育儿助手，根据宝宝的历史喂奶数据和预测结果，为父母提供简明的喂养洞察。只输出 JSON：{"summary":"…","insights":["…"],"alert":"none|pattern_change|low_confidence|growth_spurt"}。\n\n【summary】≤40字，一句话说清喂奶模式的核心特征，如"喂奶间隔稳定在3小时，节奏良好"或"下午奶量偏少，注意观察"。\n\n【insights】1~3条，每条≤20字，具体行动建议或观察要点，如"下午时段可适当提前喂奶"、"注意监测尿量判断奶量是否充足"。\n\n【alert】可选值：\n- none：无异常\n- pattern_change：近期喂养模式有明显变化\n- low_confidence：数据不足，预测仅供参考\n- growth_spurt：奶量或频率呈增加趋势，可能处于猛长期\n\n【红线】\n1. 不做医疗诊断，异常时用"建议观察，必要时咨询儿科医生"\n2. 不编造输入中没有的事实\n3. 语气温和，不制造焦虑\n4. 结合月龄给出适龄建议\n\n只输出 JSON，不要解释或 Markdown。'
+      content: '你是有儿科保健知识的资深育儿助手，根据宝宝的历史喂奶数据和预测结果，为父母提供简明的喂养洞察，并预测下次喂奶时间。只输出 JSON：{"summary":"…","insights":["…"],"alert":"none|pattern_change|low_confidence|growth_spurt","aiNextFeedAt":"ISO时间戳或null","aiGapMinutes":数字或null}。\n\n【summary】≤40字，一句话说清喂奶模式的核心特征，如"喂奶间隔稳定在3小时，节奏良好"或"下午奶量偏少，注意观察"。\n\n【insights】1~3条，每条≤20字，具体行动建议或观察要点，如"下午时段可适当提前喂奶"、"注意监测尿量判断奶量是否充足"。\n\n【alert】可选值：\n- none：无异常\n- pattern_change：近期喂养模式有明显变化\n- low_confidence：数据不足，预测仅供参考\n- growth_spurt：奶量或频率呈增加趋势，可能处于猛长期\n\n【aiNextFeedAt】基于历史数据和当前时间，预测的下次喂奶具体时间（ISO 8601 格式，如 "2026-08-17T15:30:00+08:00"）。如果数据不足以做出可靠预测，填 null。\n\n【aiGapMinutes】从现在到预测下次喂奶的分钟数（整数）。如果无法预测，填 null。\n\n【红线】\n1. 不做医疗诊断，异常时用"建议观察，必要时咨询儿科医生"\n2. 不编造输入中没有的事实\n3. 语气温和，不制造焦虑\n4. 结合月龄给出适龄建议\n5. 预测时间需考虑当前所处时段和近期喂奶规律\n\n只输出 JSON，不要解释或 Markdown。'
     },
     {
       role: 'user',
       content: JSON.stringify({
         baby: { name: input.babyName, age: input.ageText, sex: sexLabel },
+        currentTime: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
         prediction: {
           gapMinutes: input.prediction.gapMinutes ? Math.round(input.prediction.gapMinutes) : null,
           gapHours: input.prediction.gapMinutes ? Math.round(input.prediction.gapMinutes / 60 * 10) / 10 : null,
@@ -211,10 +227,17 @@ export function feedingInsightsMessages(input: FeedingInsightsInput): { role: 's
   ];
 }
 
-export async function generateFeedingInsights(input: FeedingInsightsInput, settings: ModelSettings): Promise<{ summary: string; insights: string[]; alert: 'none' | 'pattern_change' | 'low_confidence' | 'growth_spurt' }> {
+export async function generateFeedingInsights(input: FeedingInsightsInput, settings: ModelSettings): Promise<{ summary: string; insights: string[]; alert: 'none' | 'pattern_change' | 'low_confidence' | 'growth_spurt'; aiNextFeedAt: string | null; aiGapMinutes: number | null }> {
   const content = await requestCompletion(settings, feedingInsightsMessages(input), 400);
   const parsedJson = JSON.parse(content) as unknown;
-  return feedingInsightsSchema.parse(parsedJson);
+  const parsed = feedingInsightsSchema.parse(parsedJson);
+  return {
+    summary: parsed.summary,
+    insights: parsed.insights,
+    alert: parsed.alert,
+    aiNextFeedAt: normalizeAiDatetime(parsed.aiNextFeedAt),
+    aiGapMinutes: parsed.aiGapMinutes ?? null
+  };
 }
 
 export async function generateGrowthEvaluation(input: GrowthEvaluationInput, settings: ModelSettings): Promise<{ evaluation: string }> {

@@ -56,6 +56,9 @@ export interface FeedingPrediction {
     insights: string[];
     alert?: 'none' | 'pattern_change' | 'low_confidence' | 'growth_spurt';
   };
+  aiPredicted?: boolean;
+  aiNextFeedAt?: string | null;
+  aiGapMinutes?: number | null;
 }
 
 export class ApiError extends Error {

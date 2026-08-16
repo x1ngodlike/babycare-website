@@ -36,6 +36,7 @@ export interface FeedingPrediction {
   overallMedianGapMinutes: number | null;
   dataDays: number;
   dataFeeds: number;
+  aiPredicted?: boolean;
 }
 
 export interface UpcomingFeed {
@@ -207,11 +208,18 @@ export function predictFeeding(
   const upcomingFeeds: UpcomingFeed[] = [];
   let lastPredicted = lastFeed.date;
   for (let i = 0; i < upcomingCount; i++) {
-    const gapForThisPeriod = getGapForPrediction(lastPredicted, periodGaps, overallMedianGap);
-    const thisPeriod = getPeriod(lastPredicted);
-    const volForThisPeriod = periodVolumes.find(v => v.period === thisPeriod)?.medianMl
-      ?? (periodVolumes.length > 0 ? median(periodVolumes.flatMap(v => v.medianMl ? [v.medianMl] : [])) : null)
-      ?? 120;
+    let gapForThisPeriod: number;
+    let volForThisPeriod: number | null;
+    if (i === 0) {
+      gapForThisPeriod = gapMinutes;
+      volForThisPeriod = volumeMl;
+    } else {
+      const period = getPeriod(lastPredicted);
+      gapForThisPeriod = getGapForPrediction(lastPredicted, periodGaps, overallMedianGap);
+      volForThisPeriod = periodVolumes.find(v => v.period === period)?.medianMl
+        ?? (periodVolumes.length > 0 ? median(periodVolumes.flatMap(v => v.medianMl ? [v.medianMl] : [])) : null)
+        ?? 120;
+    }
     const predictedAt = new Date(lastPredicted.getTime() + gapForThisPeriod * 60000);
     const earliest = new Date(lastPredicted.getTime() + Math.max(30, Math.round(gapForThisPeriod * 0.75)) * 60000);
     const latest = new Date(lastPredicted.getTime() + Math.round(gapForThisPeriod * 1.25) * 60000);
@@ -278,6 +286,18 @@ export function formatDurationFromNow(targetIso: string, now: Date = new Date())
   const days = Math.floor(hours / 24);
   const remainH = hours % 24;
   return days > 0 ? `约 ${days} 天${remainH}小时后` : `约 ${hours} 小时后`;
+}
+
+export function formatElapsed(fromIso: string, now: Date = new Date()): string {
+  const from = new Date(fromIso);
+  const diffMinutes = Math.max(0, Math.floor((now.getTime() - from.getTime()) / 60000));
+  if (diffMinutes < 1) return '刚刚';
+  if (diffMinutes < 60) return `${diffMinutes}分钟`;
+  const hours = Math.floor(diffMinutes / 60);
+  const minutes = diffMinutes % 60;
+  if (hours < 24) return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`;
+  const days = Math.floor(hours / 24);
+  return `${days}天${hours % 24}小时`;
 }
 
 export function formatTimeShort(iso: string): string {

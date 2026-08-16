@@ -15,6 +15,7 @@ import { usePullToRefresh } from './usePullToRefresh';
 import { syncNativeVaccineReminders } from './native';
 import { PredictionBanner } from './PredictionBanner';
 import { auditNames, canManage, careItemCategory, careItemIcon, careItemIconSources, familyMembers, roleNames, selectableCareItems, summary, type ThemeMode, typeNames } from './shared';
+import { formatTimeShort } from '../shared/feeding-prediction';
 
 // 低频页面按需加载，配合 main.tsx 空闲预取与 Service Worker 运行时缓存
 const TrendsView = lazy(() => import('./views/Trends'));
@@ -321,11 +322,7 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
   const heroPeriod = getHeroPeriod(currentHour);
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r]));
   const recentSorted = [...recentRecords].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
-  const lastFeed = recentSorted.find(record => record.type === 'feeding');
-  // 近 7 天（含今天）喂奶平均间隔：(末次 − 首次) ÷ (次数 − 1)，与趋势页喂奶间隔同一公式
-  const sevenDayStart = new Date(`${isoDay(addDays(new Date(), -6))}T00:00:00`);
-  const sevenDayFeedTimes = recentRecords.filter(record => record.type === 'feeding' && new Date(record.occurredAt) >= sevenDayStart).map(record => new Date(record.occurredAt).getTime()).sort((a, b) => a - b);
-  const avgFeedGapMs = sevenDayFeedTimes.length >= 2 ? (sevenDayFeedTimes[sevenDayFeedTimes.length - 1] - sevenDayFeedTimes[0]) / (sevenDayFeedTimes.length - 1) : null;
+  const lastRecord = recentSorted[0] || null;
   const pendingCareItems = todayPlanStatus === 'ready' ? careItems
     .filter(item => item.active && isCareItemDue(item) && !done.has(item.name))
     .sort((a, b) => (a.reminderTime || '').localeCompare(b.reminderTime || '')) : [];
@@ -365,7 +362,7 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
     </div>
     <div className="today-main-column">
     <div className="today-workbench">
-      <section className={`baby-hero hero-${heroPeriod}`}><div>{(() => { const { greeting, displayName } = getGreeting(profile, userId, currentHour); return <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<p className="kicker hero-date-line">{(() => { const d = new Date(); return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p><div className="hero-status">{(() => { const hhmm = (at: Date) => at.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }); const elapsed = (at: string) => { const minutes = Math.max(0, Math.floor((currentTime.getTime() - new Date(at).getTime()) / 60_000)); if (minutes < 1) return '刚刚'; if (minutes < 60) return `${minutes}分钟`; const hours = Math.floor(minutes / 60); const remainder = minutes % 60; return `${hours}小时${remainder ? `${remainder}分钟` : ''}`; }; if (!lastFeed) return <p>今日暂无喂奶记录</p>; const feedText = `距上次喂奶 ${elapsed(lastFeed.occurredAt)}`; const expectedText = avgFeedGapMs !== null ? `预计喂奶 ${hhmm(new Date(new Date(lastFeed.occurredAt).getTime() + avgFeedGapMs))}` : ''; const text = [feedText, expectedText].filter(Boolean).join(' · '); return <p title={text} aria-label={text}>{text}</p>; })()}</div></div></section>
+      <section className={`baby-hero hero-${heroPeriod}`}><div>{(() => { const { greeting, displayName } = getGreeting(profile, userId, currentHour); return <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<p className="kicker hero-date-line">{(() => { const d = new Date(); return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p><div className="hero-status">{(() => { if (!lastRecord) return <p>今日暂无记录</p>; const time = formatTimeShort(lastRecord.occurredAt); let detail = ''; if (lastRecord.type === 'feeding') { const breast = lastRecord.breastMilkMl ?? 0; const formula = lastRecord.formulaMl ?? 0; const totalMl = breast + formula; let mode = ''; if (breast > 0 && formula > 0) mode = '混合'; else if (breast > 0) mode = '母乳'; else if (formula > 0) mode = '奶粉'; detail = `喂奶${mode ? ' · ' + mode : ''}${totalMl ? ' ' + totalMl + 'ml' : ''}`; } else if (lastRecord.type === 'supplement') { const category = careItemCategory(lastRecord.supplement, careItems); detail = `${category === 'care' ? '护理' : '用药'} · ${lastRecord.supplement || ''}`; } else if (lastRecord.type === 'bowel') { detail = `排便 · ${lastRecord.bowelSize || '中'}`; } else { detail = lastRecord.subject ? `事项 · ${lastRecord.subject}` : '其他'; } const text = `上次记录 ${time} ${detail}`; return <p title={text} aria-label={text}>{text}</p>; })()}</div></div></section>
       <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>mL</small></div><div><span>奶粉</span><strong>{formula}</strong><small>mL</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
       <section className="quick-section" aria-label="快捷记录"><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>喂奶</b></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>排便</b></button><button onClick={() => onAdd('supplement')}><img className="quick-icon" src="/icons/record-care.png" alt="" /><b>护理</b></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他</b></button></div></section>
       <PredictionBanner records={recentRecords} online={online} />

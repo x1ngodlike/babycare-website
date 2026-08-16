@@ -886,8 +886,35 @@ app.get('/api/feeding-prediction', async (_req, res) => {
           note: r.note || undefined
         }))
       }, settings);
-      return res.json({ ...prediction, aiInsights: insights });
-    } catch {
+
+      let mergedPrediction = { ...prediction };
+
+      if (insights.aiGapMinutes !== null && insights.aiGapMinutes !== undefined && insights.aiGapMinutes >= 1) {
+        const nextAtMs = Date.now() + insights.aiGapMinutes * 60000;
+        mergedPrediction.nextFeedAt = new Date(nextAtMs).toISOString();
+        mergedPrediction.gapMinutes = insights.aiGapMinutes;
+        mergedPrediction.aiPredicted = true;
+      } else if (insights.aiNextFeedAt) {
+        const aiDate = new Date(insights.aiNextFeedAt);
+        if (!isNaN(aiDate.getTime())) {
+          mergedPrediction.nextFeedAt = insights.aiNextFeedAt;
+          mergedPrediction.gapMinutes = Math.max(1, Math.round((aiDate.getTime() - Date.now()) / 60000));
+          mergedPrediction.aiPredicted = true;
+        }
+      }
+
+      return res.json({
+        ...mergedPrediction,
+        aiInsights: {
+          summary: insights.summary,
+          insights: insights.insights,
+          alert: insights.alert
+        },
+        aiNextFeedAt: insights.aiNextFeedAt,
+        aiGapMinutes: insights.aiGapMinutes
+      });
+    } catch (e) {
+      console.error('[feeding-prediction] AI error:', e instanceof Error ? e.message : e);
       return res.json(prediction);
     }
   }

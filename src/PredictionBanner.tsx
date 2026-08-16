@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Bot, Clock, ChevronDown, ChevronUp, Droplets, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Droplets, Sparkles, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
 import { api, type FeedingPrediction, type FeedingPredictionUpcoming } from './api';
-import { formatTimeShort } from '../shared/feeding-prediction';
+import { formatTimeShort, formatElapsed } from '../shared/feeding-prediction';
 
 function formatDurationFromNow(targetIso: string, now: Date = new Date()): string {
   const target = new Date(targetIso);
@@ -108,6 +108,7 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
   const [expanded, setExpanded] = useState(false);
   const [aiPrediction, setAiPrediction] = useState<FeedingPrediction | null>(null);
   const aiInsights = aiPrediction?.aiInsights;
+  const aiPredicted = aiPrediction?.aiPredicted ?? false;
 
   const localPrediction = predictionFromRecords(records.filter(r => r.type === 'feeding'));
   const prediction = aiPrediction ?? localPrediction;
@@ -132,11 +133,15 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
   const soon = minutesUntil >= 0 && minutesUntil <= 30;
   const statusClass = overdue ? 'overdue' : soon ? 'soon' : 'upcoming';
 
+  const lastFeedElapsed = prediction.lastFeedAt
+    ? formatElapsed(prediction.lastFeedAt, now)
+    : null;
+
   const confidencePercent = Math.round(prediction.confidence * 100);
   const upcomingCount = prediction.upcomingFeeds.length;
 
   return (
-    <section className={`prediction-banner ${statusClass}${aiInsights ? ' has-ai' : ''}`} aria-label="喂奶周期预测">
+    <section className={`prediction-banner ${statusClass}${aiInsights ? ' has-ai' : ''}${aiPredicted ? ' ai-predicted' : ''}`} aria-label="喂奶周期预测">
       <button
         type="button"
         className="prediction-main"
@@ -148,7 +153,11 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
             <Droplets size={18} strokeWidth={2} />
           </div>
           <div className="prediction-text">
-            <span className="prediction-label">{overdue ? '下次喂奶' : '预计下次喂奶'}</span>
+            <span className="prediction-label">
+              {lastFeedElapsed ? `距上次 ${lastFeedElapsed} · ` : ''}
+              {overdue ? '下次喂奶' : '预计下次喂奶'}
+              {aiPredicted && <Sparkles size={12} className="prediction-ai-badge" aria-label="AI 预测" />}
+            </span>
             <strong className="prediction-time">
               {formatTimeShort(prediction.nextFeedAt!)}
               <span className="prediction-duration">
@@ -162,11 +171,6 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
             {prediction.gapMinutes !== null && <span>间隔 {Math.round(prediction.gapMinutes / 60 * 10) / 10}h</span>}
             {prediction.volumeMl !== null && <span>{prediction.volumeMl} mL</span>}
           </div>
-          {upcomingCount > 0 && (
-            <div className="prediction-upcoming-count" aria-label={`未来 ${upcomingCount} 次喂奶预测`}>
-              <Clock size={14} /> {upcomingCount}
-            </div>
-          )}
           {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
       </button>
