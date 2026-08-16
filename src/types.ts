@@ -94,7 +94,8 @@ export interface AuditEntry {
 
 export interface Profile { name: string; birthDate: string; birthTime?: string; sex: BabySex; nickname: string; caregiverTitle: string; avatar: string | null; updatedAt?: string }
 export interface ServerBackupStatus { directory: string; intervalHours: number; retention: number; count: number; lastBackupAt: string | null; nextBackupAt: string }
-export interface ServerBackupFile { name: string; createdAt: string; size: number }
+export type BackupType = 'manual' | 'auto';
+export interface ServerBackupFile { name: string; createdAt: string; size: number; type: BackupType }
 export type CareScheduleType = 'daily' | 'interval' | 'as_needed';
 export type CareItemCategory = 'medication' | 'care';
 export type CareItemIcon = 'medicine' | 'massage' | 'bath' | 'care';

@@ -10,7 +10,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import { testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
-import { BackupFileNotFoundError, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup } from './backup.js';
+import { BackupFileNotFoundError, deleteServerBackup, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup, type BackupType } from './backup.js';
 import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
@@ -143,7 +143,7 @@ app.use(helmet({
   } : false,
   crossOriginEmbedderPolicy: false
 }));
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 app.use((req, res, next) => {
@@ -161,7 +161,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 *
 app.use('/avatars', express.static(avatarDir, { maxAge: '30d' }));
 
 const recordSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.string().optional(),
   type: z.enum(['feeding', 'supplement', 'bowel', 'note']),
   occurredAt: z.string().datetime({ offset: true }),
   breastMilkMl: z.number().int().min(0).max(500).nullable().optional(),
@@ -184,7 +184,7 @@ const recordSchema = z.object({
 });
 
 const auditEntrySchema = z.object({
-  id: z.number().int().optional(), recordId: z.string().uuid(),
+  id: z.number().int().optional(), recordId: z.string(),
   action: z.enum(['create', 'update', 'delete', 'restore', 'import']),
   actor: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']),
   occurredAt: z.string().datetime({ offset: true }), snapshot: z.record(z.string(), z.unknown()).nullable()
@@ -216,7 +216,7 @@ const familyMemberSchema = z.object({
 });
 
 const growthRecordSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.string().optional(),
   measuredOn: z.string().date(),
   heightCm: z.number().min(20).max(150),
   weightKg: z.number().min(0.5).max(50),
@@ -231,7 +231,7 @@ const growthRecordSchema = z.object({
 });
 
 const vaccineRecordSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.string().optional(),
   vaccineName: z.string().trim().min(1).max(40),
   category: z.enum(['program', 'self_paid']).optional(),
   dose: z.number().int().min(1).max(9),
@@ -259,7 +259,7 @@ const vaccineCatalogInputSchema = z.object({
 
 const backupPayloadSchema = z.object({
   version: z.number().int().optional(),
-  profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), birthTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(), sex: z.enum(['male', 'female', 'unspecified']).optional(), nickname: z.string().trim().max(20).optional(), caregiverTitle: z.string().trim().max(10).optional(), avatar: z.string().max(200).nullable().optional() }).optional(),
+  profile: z.object({ name: z.string().trim().min(1).max(30), birthDate: z.string().date(), birthTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(), sex: z.enum(['male', 'female', 'unspecified']).optional(), nickname: z.string().trim().max(20).optional(), caregiverTitle: z.string().trim().max(10).optional(), avatar: z.string().max(200).nullable().optional() }).passthrough().optional(),
   records: z.array(recordSchema).max(10000),
   audits: z.array(auditEntrySchema).max(50000).optional(),
   careItems: z.array(careItemSchema).max(100).optional(),
@@ -354,8 +354,47 @@ function normalizeVaccineRecord(input: z.infer<typeof vaccineRecordSchema>, acto
   };
 }
 
+function normalizeDateTime(value: string | null | undefined): string | null {
+  if (!value) return null;
+  // 将 "2026-08-10 11:15:47" 格式转换为 ISO 格式
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {
+    return value.replace(' ', 'T') + 'Z';
+  }
+  return value;
+}
+
 function exportPayload() {
-  return { version: 10, exportedAt: new Date().toISOString(), profile: getProfile(), records: allRecords(true), audits: allAudit(), careItems: listCareItems(true), familyMembers: listFamilyMembers(), growthRecords: listGrowthRecords(true), vaccineRecords: listVaccineRecords(true), vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports() };
+  const records = allRecords(true).map(record => {
+    if (record.type === 'feeding') {
+      if (record.breastMilkMl == null && record.formulaMl == null) record.breastMilkMl = 0;
+    } else if (record.type === 'supplement') {
+      if (!record.supplement) record.supplement = '未记录';
+    } else if (record.type === 'bowel') {
+      if (!record.bowelSize) record.bowelSize = '中';
+    } else if (record.type === 'note') {
+      if (!record.subject && !record.note) record.note = '无备注';
+    }
+    return record;
+  });
+  const careItems = listCareItems(true).map(item => ({
+    ...item,
+    createdAt: normalizeDateTime(item.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeDateTime(item.updatedAt) || new Date().toISOString()
+  }));
+  const growthRecords = listGrowthRecords(true).map(record => ({
+    ...record,
+    createdAt: normalizeDateTime(record.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeDateTime(record.updatedAt) || new Date().toISOString(),
+    evaluatedAt: normalizeDateTime(record.evaluatedAt)
+  }));
+  const vaccineRecords = listVaccineRecords(true).map(record => ({
+    ...record,
+    createdAt: normalizeDateTime(record.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeDateTime(record.updatedAt) || new Date().toISOString(),
+    administeredOn: record.administeredOn || null
+  }));
+  const profile = getProfile();
+  return { version: 10, exportedAt: new Date().toISOString(), profile: profile || { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null }, records, audits: allAudit(), careItems, familyMembers: listFamilyMembers(), growthRecords, vaccineRecords, vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports() };
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -897,9 +936,22 @@ app.get('/api/export', requireSuperAdmin, (_req, res) => {
 app.get('/api/backups/status', requireSuperAdmin, (_req, res) => res.json(serverBackupStatus(backupDirectory)));
 app.get('/api/backups', requireSuperAdmin, (_req, res) => res.json(listServerBackups(backupDirectory)));
 
-app.post('/api/backups', requireSuperAdmin, (_req, res) => {
-  const result = writeServerBackup(exportPayload(), { directory: backupDirectory });
+app.post('/api/backups', requireSuperAdmin, (req, res) => {
+  const type = (req.body?.type === 'manual' || req.body?.type === 'auto') ? req.body.type : 'manual';
+  const result = writeServerBackup(exportPayload(), { directory: backupDirectory, type: type as BackupType });
   res.status(201).json(result);
+});
+
+app.delete('/api/backups/:name', requireSuperAdmin, (req, res) => {
+  const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+  try {
+    deleteServerBackup(name, backupDirectory);
+    res.json({ deleted: true, status: serverBackupStatus(backupDirectory) });
+  } catch (error) {
+    if (error instanceof InvalidBackupNameError) return res.status(400).json({ error: error.message });
+    if (error instanceof BackupFileNotFoundError) return res.status(404).json({ error: error.message });
+    res.status(500).json({ error: '删除备份失败' });
+  }
 });
 
 app.post('/api/backups/:name/restore', requireSuperAdmin, (req, res) => {
@@ -911,7 +963,7 @@ app.post('/api/backups/:name/restore', requireSuperAdmin, (req, res) => {
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
   const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
   const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, 'father', true));
-  const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined });
+  const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports });
   changeHub.broadcast('all');
   res.json({ ...result, restoredFrom: name, status: serverBackupStatus(backupDirectory) });
 });
@@ -924,7 +976,7 @@ app.post('/api/import', requireSuperAdmin, (req, res) => {
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
   const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
   const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, 'father', true));
-  const result = importBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined });
+  const result = importBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports });
   changeHub.broadcast('all');
   res.json(result);
 });

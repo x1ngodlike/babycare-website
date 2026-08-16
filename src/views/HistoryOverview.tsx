@@ -61,7 +61,7 @@ export default function HistoryOverview({ records, careItems, selected, onShiftW
     </div>
     <div className="overview-chart" onClick={() => setTipId(null)}>
       <div className="overview-night" aria-hidden="true" />
-      {tipCluster && <div className="overview-detail" role="status"><div className="overview-detail-head">{tipCluster.dayLabel}</div>{tipCluster.records.map(record => <div key={record.id} className="overview-detail-row"><span className="overview-detail-time">{hhmm(record.occurredAt)}</span><span>{typeNames[record.type]} · {summary(record, careItems)}</span></div>)}</div>}
+      {tipCluster && <div className="overview-detail" role="status"><div className="overview-detail-head">{tipCluster.dayLabel}</div>{tipCluster.records.map(record => <div key={record.id} className="overview-detail-row"><span className="overview-detail-time">{hhmm(record.occurredAt)}</span><span>{typeNames[record.type]} · {summary(record, careItems)}{record.note ? ` · ${record.note}` : ''}</span></div>)}</div>}
       {HOUR_LINES.map(hour => <div key={hour} className="overview-gridline" style={{ top: `calc(${hour / 24 * 100}% - ${hour === 0 ? 1 : hour === 24 ? -1 : 0}px)` }} aria-hidden="true" />)}
       {HOUR_LINES.map(hour => <span key={hour} className={`overview-hour ${hour === 0 ? 'edge-top' : hour === 24 ? 'edge-bottom' : ''}`} style={{ top: `${hour / 24 * 100}%` }}>{hour}时</span>)}
       {days.map((day, index) => {
