@@ -82,17 +82,26 @@ h1, h2, h3, p { margin-top: 0; }
 .prediction-detail { border-top: 1px solid var(--line); padding: 12px 14px 14px; background: #fafbf9; }
 .prediction-upcoming h3 { margin: 0 0 8px; font-size: 13px; color: var(--green-deep); font-weight: 700; }
 .prediction-upcoming ol { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 6px; }
-.prediction-upcoming li { display: grid; grid-template-columns: 22px 60px 1fr auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #fff; border: 1px solid var(--line); }
+.prediction-upcoming li { display: grid; grid-template-columns: 22px 54px minmax(0, 1fr) auto auto; gap: 6px; align-items: center; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #fff; border: 1px solid var(--line); white-space: nowrap; }
 .feed-index { width: 22px; height: 22px; border-radius: 50%; background: var(--sage); color: var(--green-deep); font-size: 11px; font-weight: 800; display: grid; place-content: center; }
-.feed-time { font-weight: 700; color: var(--ink); }
-.feed-range { color: var(--muted); font-size: 12px; }
-.feed-vol { color: var(--green); font-weight: 600; font-size: 12px; }
+.feed-time { font-weight: 700; color: var(--ink); white-space: nowrap; }
+.feed-range { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed-vol { color: var(--green); font-weight: 600; font-size: 12px; white-space: nowrap; }
 .feed-duration { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .prediction-meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
 .prediction-meta span:first-child { flex: 1; }
 .confidence-bar { width: 60px; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .confidence-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width .4s ease; }
 .confidence-label { white-space: nowrap; }
+@media (max-width: 520px) {
+  .prediction-upcoming li { grid-template-columns: 20px 48px minmax(0, 1fr) auto; gap: 5px; font-size: 12px; padding: 5px 6px; }
+  .prediction-upcoming li .feed-range { display: none; }
+  .prediction-upcoming li .feed-vol { font-size: 11px; }
+  .prediction-upcoming li .feed-duration { font-size: 11px; }
+  .prediction-upcoming li .feed-index { width: 20px; height: 20px; font-size: 10px; }
+  .prediction-meta { gap: 6px; font-size: 11px; }
+  .confidence-bar { width: 44px; }
+}
 .dr-footer small { color: var(--green-deep); font-size: 13px; line-height: 1.55; white-space: nowrap; }
 .daily-report.collapsed { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; padding: 12px 16px; border-style: dashed; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .daily-report.collapsed:hover { border-color: #aebfac; background: #f2f5ef; }
