@@ -102,7 +102,7 @@ export const api = {
   createServerBackup: (type: 'manual' | 'auto' = 'manual') => request<{ name: string; createdAt: string; status: ServerBackupStatus }>('/api/backups', { method: 'POST', body: JSON.stringify({ type }) }),
   deleteServerBackup: (name: string) => request<{ deleted: boolean; status: ServerBackupStatus }>(`/api/backups/${encodeURIComponent(name)}`, { method: 'DELETE' }),
   restoreServerBackup: (name: string) => request<{ imported: number; profileRestored: boolean; restoredFrom: string; status: ServerBackupStatus }>(`/api/backups/${encodeURIComponent(name)}/restore`, { method: 'POST' }),
-  importData: (data: unknown) => request<{ imported: number; profileRestored: boolean }>('/api/import', { method: 'POST', body: JSON.stringify(data) }),
+  importData: (data: unknown, mode: 'replace' | 'merge' = 'merge') => request<{ imported: number; profileRestored: boolean; mode: 'replace' | 'merge' }>('/api/import', { method: 'POST', body: JSON.stringify({ ...(data as object), mode }) }),
   pushStatus: () => request<PushStatus>('/api/push/status'),
   savePushSettings: (data: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean }) => request<PushStatus>('/api/push/settings', { method: 'POST', body: JSON.stringify(data) }),
   testMorningDigestPush: () => request<{ ok: boolean; message: string }>('/api/push/test/morning-digest', { method: 'POST' }),

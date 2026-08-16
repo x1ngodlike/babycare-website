@@ -969,16 +969,19 @@ app.post('/api/backups/:name/restore', requireSuperAdmin, (req, res) => {
 });
 
 app.post('/api/import', requireSuperAdmin, (req, res) => {
-  const parsed = backupPayloadSchema.safeParse(req.body);
+  const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
+  const { mode: _ignored, ...payload } = req.body;
+  const parsed = backupPayloadSchema.safeParse(payload);
   if (!parsed.success) return res.status(400).json({ error: '导入文件格式不正确' });
   writeServerBackup(exportPayload(), { directory: backupDirectory });
   const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
   const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
   const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, 'father', true));
-  const result = importBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports });
+  const importPayload = { profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports };
+  const result = mode === 'replace' ? replaceBackup(importPayload) : importBackup(importPayload);
   changeHub.broadcast('all');
-  res.json(result);
+  res.json({ ...result, mode });
 });
 
 registerPushRoutes(app);

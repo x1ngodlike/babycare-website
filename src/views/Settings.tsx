@@ -12,6 +12,56 @@ import { AvatarCropperModal } from '../AvatarCropper';
 import { canManage, careItemIconSources, ChoiceField, familyMembers, roleNames, sexLabels, type ThemeMode } from '../shared';
 import type { AiSettingsPublic, BabySex, Capabilities, CareItem, CareItemCategory, CareItemIcon, DraftVaccineCatalogItem, FamilyId, FamilyMemberPermission, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, VaccineCatalogItem } from '../types';
 
+function Feedback({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose?: () => void }) {
+  const [displayMessage, setDisplayMessage] = useState(message);
+  const [leaving, setLeaving] = useState(false);
+  
+  useEffect(() => {
+    if (message) {
+      setDisplayMessage(message);
+      setLeaving(false);
+      if (type === 'success') {
+        const timer = setTimeout(() => {
+          handleClose();
+        }, 4000);
+        return () => clearTimeout(timer);
+      }
+    } else if (displayMessage) {
+      setLeaving(true);
+      const timer = setTimeout(() => {
+        setDisplayMessage('');
+        setLeaving(false);
+      }, 220);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+  
+  const handleClose = () => {
+    setLeaving(true);
+    setTimeout(() => {
+      setDisplayMessage('');
+      setLeaving(false);
+      onClose?.();
+    }, 220);
+  };
+  
+  if (!displayMessage) return null;
+  
+  const className = `${type === 'success' ? 'success-text' : 'error-text'} ${leaving ? 'leaving' : 'show'}`;
+  
+  return (
+    <p className={className} role={type === 'error' ? 'alert' : 'status'} onClick={handleClose}>
+      <span>{displayMessage}</span>
+      <button
+        type="button"
+        className="feedback-close"
+        aria-label="关闭"
+        onClick={e => { e.stopPropagation(); handleClose(); }}
+      >×</button>
+    </p>
+  );
+}
+
 function ProfileSettingsCard({ profile, onSaved }: { profile: Profile; onSaved(value: Profile): void }) {
   const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null, birthTime: profile.birthTime || '' });
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [saved, setSaved] = useState('');
@@ -57,8 +107,8 @@ function ProfileSettingsCard({ profile, onSaved }: { profile: Profile; onSaved(v
       <ChoiceField label="宝宝性别" values={['male', 'female', 'unspecified'] as BabySex[]} selected={form.sex} onSelect={sex => setForm({ ...form, sex })} getLabel={sex => sex === 'unspecified' ? '未设置' : sexLabels[sex]} />
       <DateField label="出生日期" max={isoDay(new Date())} value={form.birthDate} onChange={birthDate => setForm({ ...form, birthDate })} />
       <TimeField label="出生时间" value={form.birthTime ?? ''} onChange={birthTime => setForm({ ...form, birthTime })} required={false} />
-      {error && <p className="error-text" role="alert">{error}</p>}
-      {saved && <p className="success-text" role="status">{saved}</p>}
+      <Feedback message={error} type="error" onClose={() => setError('')} />
+      <Feedback message={saved} type="success" onClose={() => setSaved('')} />
       <footer className="editor-actions" style={{ marginTop: 16 }}><button className="btn primary" disabled={busy || avatarBusy}>{busy ? '保存中…' : '保存资料'}</button></footer>
     </form>
     {cropperSrc && <AvatarCropperModal imageSrc={cropperSrc} onClose={() => setCropperSrc(null)} onConfirm={file => void onCropperConfirm(file)} />}
@@ -106,7 +156,7 @@ function AiSettingsCard({ capabilities, onChanged }: { capabilities: Capabilitie
       <label>API 密钥<div className="secret-field"><input type={showKey ? 'text' : 'password'} value={apiKey} onChange={e => setApiKey(e.target.value)} autoComplete="off" placeholder={settings?.configured ? `已保存 ${settings.keyHint}，留空不修改` : '请输入 DeepSeek API 密钥'} /><button type="button" onClick={() => setShowKey(value => !value)}>{showKey ? '隐藏' : '显示'}</button></div></label>
       <div className="model-actions"><button type="button" className="btn secondary" disabled={Boolean(busy)} onClick={test}>{busy === 'test' ? '正在测试…' : '测试连接'}</button><button className="btn primary" disabled={Boolean(busy)}>{busy === 'save' ? '正在保存…' : '保存配置'}</button></div>
       {settings?.configured && <button type="button" className="text-danger" disabled={Boolean(busy)} onClick={clearKey}>{busy === 'clear' ? '正在移除…' : '移除已保存的密钥'}</button>}
-      {status && <p className={status.error ? 'error-text' : 'success-text'} role="status">{status.text}</p>}
+      <Feedback message={status?.text || ''} type={status?.error ? 'error' : 'success'} onClose={() => setStatus(null)} />
     </form>
   </section>;
 }
@@ -138,12 +188,40 @@ function BackupRestoreDialog({ onClose, onRestored }: { onClose(): void; onResto
     <p className="dialog-description">恢复前会自动备份当前数据。恢复后，宝宝资料、记录和操作历史将与所选备份完全一致。</p>
     {loading && <p className="loading-copy">正在读取备份…</p>}{!loading && !files.length && <div className="empty-state compact"><h3>暂无服务器备份</h3><p>请先返回并立即备份一次。</p></div>}
     <div className="backup-file-list" role="radiogroup" aria-label="服务器备份">{files.map(file => <div key={file.name} className={`backup-file-item ${selected === file.name ? 'selected' : ''}`}><button type="button" role="radio" aria-checked={selected === file.name} className="backup-file-select" onClick={() => setSelected(file.name)}><span className="backup-file-meta"><b>{new Date(file.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</b><small className={`backup-type-tag ${file.type}`}>{file.type === 'manual' ? '手动' : '自动'}</small><small>{formatSize(file.size)}</small></span><i aria-hidden="true" /></button><button type="button" className="backup-file-delete" disabled={busy || deletingName === file.name} onClick={event => { event.stopPropagation(); void removeBackup(file.name); }} aria-label={`删除 ${file.name}`} title="删除此备份">{deletingName === file.name ? '…' : '×'}</button></div>)}</div>
-    {error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button className="btn secondary" disabled={busy} onClick={onClose}>取消</button><button className="btn danger-button" disabled={busy || !selected} onClick={restore}>{busy ? '正在恢复…' : '确认完整恢复'}</button></footer>
+    <Feedback message={error} type="error" onClose={() => setError('')} /><footer className="editor-actions"><button className="btn secondary" disabled={busy} onClick={onClose}>取消</button><button className="btn danger-button" disabled={busy || !selected} onClick={restore}>{busy ? '正在恢复…' : '确认完整恢复'}</button></footer>
+  </section></div>;
+}
+
+function ImportModeDialog({ onClose, onConfirm, busy }: { onClose(): void; onConfirm(mode: 'replace' | 'merge'): Promise<void> | void; busy: boolean }) {
+  const [mode, setMode] = useState<'replace' | 'merge'>('merge');
+  const dialogRef = useRef<HTMLElement | null>(null);
+  useDialogFocus(dialogRef, onClose);
+  async function handleConfirm() {
+    await onConfirm(mode);
+  }
+  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor" role="dialog" aria-modal="true" aria-labelledby="import-mode-title"><header className="editor-head"><div><p className="kicker">选择导入方式</p><h2 id="import-mode-title">导入备份文件</h2></div><button className="close-btn" disabled={busy} onClick={onClose} aria-label="关闭">×</button></header>
+    <fieldset className="import-mode-group">
+      <button type="button" className={`import-mode-option ${mode === 'replace' ? 'selected' : ''}`} onClick={() => setMode('replace')}>
+        <span className="import-mode-radio">{mode === 'replace' ? '●' : '○'}</span>
+        <div className="import-mode-content">
+          <b>全量替换</b>
+          <p>清除当前所有数据，完整恢复备份内容。当前宝宝资料、记录和操作历史将被覆盖。</p>
+        </div>
+      </button>
+      <button type="button" className={`import-mode-option ${mode === 'merge' ? 'selected' : ''}`} onClick={() => setMode('merge')}>
+        <span className="import-mode-radio">{mode === 'merge' ? '●' : '○'}</span>
+        <div className="import-mode-content">
+          <b>增量合并</b>
+          <p>保留现有数据，合并备份中的记录。已存在的记录会被备份版本覆盖，备份中没有的记录会保留。</p>
+        </div>
+      </button>
+    </fieldset>
+    <footer className="editor-actions"><button className="btn secondary" disabled={busy} onClick={onClose}>取消</button><button className={`btn ${mode === 'replace' ? 'danger-button' : 'primary'}`} disabled={busy} onClick={handleConfirm}>{busy ? '正在导入…' : '确认导入'}</button></footer>
   </section></div>;
 }
 
 function ServerBackupCard({ onImported }: { onImported(): void | Promise<void> }) {
-  const [status, setStatus] = useState<ServerBackupStatus | null>(null); const [busy, setBusy] = useState<'backup' | 'import' | 'export' | ''>(''); const [message, setMessage] = useState(''); const [showRestore, setShowRestore] = useState(false);
+  const [status, setStatus] = useState<ServerBackupStatus | null>(null); const [busy, setBusy] = useState<'backup' | 'import' | 'export' | ''>(''); const [message, setMessage] = useState(''); const [showRestore, setShowRestore] = useState(false); const [pendingFile, setPendingFile] = useState<File | null>(null); const [showImportDialog, setShowImportDialog] = useState(false);
   const loadStatus = useCallback(async () => { const next = await api.backupStatus(); setStatus(next); }, []);
   useEffect(() => { loadStatus().catch(() => setMessage('暂时无法读取服务器备份状态')); }, [loadStatus]);
   const formatTime = (value: string | null) => value ? new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '等待首次备份';
@@ -153,12 +231,18 @@ function ServerBackupCard({ onImported }: { onImported(): void | Promise<void> }
     catch (error) { setMessage(error instanceof Error ? error.message : '服务器备份失败'); }
     finally { setBusy(''); }
   }
-  async function importFile(file?: File) {
-    if (!file || !await confirmAction({ title: '导入这个备份文件？', description: '导入前会先在服务器保存当前数据，随后使用文件中的内容替换当前数据。', confirmLabel: '确认导入', danger: true })) return;
+  function selectFile(file?: File) {
+    if (!file) return;
+    setPendingFile(file);
+    setShowImportDialog(true);
+  }
+  async function confirmImport(mode: 'replace' | 'merge') {
+    if (!pendingFile) return;
+    setShowImportDialog(false);
     setBusy('import'); setMessage('');
-    try { const result = await api.importData(JSON.parse(await file.text())); await loadStatus(); await onImported(); setMessage(`已导入 ${result.imported} 条记录${result.profileRestored ? '，宝宝资料已恢复' : ''}`); }
+    try { const result = await api.importData(JSON.parse(await pendingFile.text()), mode); await loadStatus(); await onImported(); const modeLabel = mode === 'replace' ? '全量替换' : '增量合并'; setMessage(`${modeLabel}完成：${result.imported} 条记录${result.profileRestored ? '，宝宝资料已恢复' : ''}`); }
     catch (error) { setMessage(error instanceof Error ? error.message : '导入失败，请选择本应用导出的备份文件'); }
-    finally { setBusy(''); }
+    finally { setBusy(''); setPendingFile(null); }
   }
   return <><section className="settings-card backup-card"><div className="setting-status"><h2>备份状态与恢复</h2><span className="on">每 6 小时</span></div>
     <p>自动保存完整照护数据，最多保留最近 {status?.retention ?? 30} 份。可选择服务器备份进行完整恢复，操作前会先保存当前数据。</p>
@@ -169,11 +253,11 @@ function ServerBackupCard({ onImported }: { onImported(): void | Promise<void> }
       <div className="backup-actions-divider" role="separator" aria-hidden="true" />
       <div className="backup-actions-row">
         <button className="btn secondary wide" disabled={Boolean(busy)} onClick={async () => { setBusy('export'); setMessage(''); try { const res = await fetch('/api/export', { credentials: 'same-origin' }); if (!res.ok) throw new ApiError((await res.json()).error || '导出失败', res.status); const blob = new Blob([await res.text()], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `babycare-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url); setMessage('备份文件已下载'); } catch (error) { setMessage(error instanceof Error ? error.message : '导出失败'); } finally { setBusy(''); } }}>{busy === 'export' ? '正在导出…' : '下载备份文件'}</button>
-        <label className={`btn secondary wide ${busy ? 'disabled' : ''}`}>导入备份文件<input className="sr-only" type="file" accept=".json" disabled={Boolean(busy)} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; importFile(file); }} /></label>
+        <label className={`btn secondary wide ${busy ? 'disabled' : ''}`}>导入备份文件<input className="sr-only" type="file" accept=".json" disabled={Boolean(busy)} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; selectFile(file); }} /></label>
       </div>
     </div>
-    {message && <p className={message.includes('失败') || message.includes('无法') ? 'error-text' : 'success-text'} role="status">{message}</p>}
-  </section>{showRestore && <BackupRestoreDialog onClose={() => setShowRestore(false)} onRestored={async (nextStatus, nextMessage) => { setStatus(nextStatus); await onImported(); setMessage(nextMessage); }} />}</>;
+    <Feedback message={message} type={message.includes('失败') || message.includes('无法') ? 'error' : 'success'} onClose={() => setMessage('')} />
+  </section>{showRestore && <BackupRestoreDialog onClose={() => setShowRestore(false)} onRestored={async (nextStatus, nextMessage) => { setStatus(nextStatus); await onImported(); setMessage(nextMessage); }} />}{showImportDialog && <ImportModeDialog onClose={() => { setShowImportDialog(false); setPendingFile(null); }} onConfirm={confirmImport} busy={busy === 'import'} />}</>;
 }
 
 function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem; nextOrder: number; onClose(): void; onSaved(item: CareItem): void }) {
@@ -185,7 +269,7 @@ function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem
   const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, () => void requestClose());
   async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(''); const sortOrder = item?.sortOrder ?? nextOrder; const payload = { ...draft, name: draft.name.trim(), sortOrder, intervalDays: draft.scheduleType === 'interval' ? draft.intervalDays : 1, scheduleStartDate: draft.scheduleType === 'as_needed' ? null : draft.scheduleStartDate, reminderTime: draft.scheduleType === 'as_needed' ? null : draft.reminderTime || null, scheduleEndDate: draft.scheduleType === 'as_needed' ? null : draft.scheduleEndDate || null }; try { const saved = item ? await api.updateCareItem(item.id, payload) : await api.createCareItem(payload); onSaved(saved); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
   const iconOptions: { value: CareItemIcon; label: string }[] = [{ value: 'medicine', label: '药物' }, { value: 'massage', label: '推拿' }, { value: 'bath', label: '洗澡' }, { value: 'care', label: '其他' }];
-  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && void requestClose()}><section ref={dialogRef} className="editor care-item-editor" role="dialog" aria-modal="true" aria-labelledby="care-item-title"><header className="editor-head"><div><p className="kicker">用药护理</p><h2 id="care-item-title">{item ? '修改项目' : '新增项目'}</h2></div><button className="close-btn" disabled={busy} onClick={() => void requestClose()} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><SegmentedControl<CareItemCategory> label="项目分类" value={draft.category} options={[{ value: 'medication', label: '用药' }, { value: 'care', label: '护理' }]} onChange={category => setDraft(value => ({ ...value, category, icon: category === 'medication' && value.icon !== 'medicine' ? 'medicine' : category === 'care' && value.icon === 'medicine' ? 'care' : value.icon }))} /><label>项目名称<input maxLength={12} value={draft.name} onChange={event => setDraft(value => ({ ...value, name: event.target.value }))} placeholder={draft.category === 'medication' ? '例如：维生素 D' : '例如：洗澡'} autoFocus required /></label><fieldset><legend>记录图标</legend><div className="choice-group care-icon-choice">{iconOptions.map(option => <button type="button" key={option.value} className={draft.icon === option.value ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, icon: option.value }))}><img src={careItemIconSources[option.value]} alt="" />{option.label}</button>)}</div></fieldset><fieldset><legend>执行计划</legend><div className="choice-group schedule-choice"><button type="button" className={draft.scheduleType === 'daily' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'daily' }))}>每天一次</button><button type="button" className={draft.scheduleType === 'interval' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'interval' }))}>间隔执行</button><button type="button" className={draft.scheduleType === 'as_needed' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'as_needed' }))}>按需记录</button></div><p className="field-help">按需项目不会自动进入首页今日计划，仍可随时手动记录。</p></fieldset>{draft.scheduleType !== 'as_needed' && <><div className="schedule-fields">{draft.scheduleType === 'interval' && <label>间隔天数<input type="number" inputMode="numeric" min="2" max="365" value={draft.intervalDays} onChange={event => setDraft(value => ({ ...value, intervalDays: Number(event.target.value) || 2 }))} required /></label>}<DateField label="开始日期" value={draft.scheduleStartDate} onChange={scheduleStartDate => setDraft(value => ({ ...value, scheduleStartDate }))} /><TimeField label="提醒时间" required={false} value={draft.reminderTime} onChange={reminderTime => setDraft(value => ({ ...value, reminderTime }))} /><DateField label="结束日期" required={false} min={draft.scheduleStartDate} value={draft.scheduleEndDate} onChange={scheduleEndDate => setDraft(value => ({ ...value, scheduleEndDate }))} /></div>{!draft.reminderTime && <p className="field-help schedule-warning">未设置时间仍会进入今日计划，但不会显示具体时间。</p>}</>}{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" disabled={busy} onClick={() => void requestClose()}>取消</button><button className="btn primary" disabled={busy || !draft.name.trim()}>{busy ? '保存中…' : '保存项目'}</button></footer></form></section></div>;
+  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && void requestClose()}><section ref={dialogRef} className="editor care-item-editor" role="dialog" aria-modal="true" aria-labelledby="care-item-title"><header className="editor-head"><div><p className="kicker">用药护理</p><h2 id="care-item-title">{item ? '修改项目' : '新增项目'}</h2></div><button className="close-btn" disabled={busy} onClick={() => void requestClose()} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><SegmentedControl<CareItemCategory> label="项目分类" value={draft.category} options={[{ value: 'medication', label: '用药' }, { value: 'care', label: '护理' }]} onChange={category => setDraft(value => ({ ...value, category, icon: category === 'medication' && value.icon !== 'medicine' ? 'medicine' : category === 'care' && value.icon === 'medicine' ? 'care' : value.icon }))} /><label>项目名称<input maxLength={12} value={draft.name} onChange={event => setDraft(value => ({ ...value, name: event.target.value }))} placeholder={draft.category === 'medication' ? '例如：维生素 D' : '例如：洗澡'} autoFocus required /></label><fieldset><legend>记录图标</legend><div className="choice-group care-icon-choice">{iconOptions.map(option => <button type="button" key={option.value} className={draft.icon === option.value ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, icon: option.value }))}><img src={careItemIconSources[option.value]} alt="" />{option.label}</button>)}</div></fieldset><fieldset><legend>执行计划</legend><div className="choice-group schedule-choice"><button type="button" className={draft.scheduleType === 'daily' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'daily' }))}>每天一次</button><button type="button" className={draft.scheduleType === 'interval' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'interval' }))}>间隔执行</button><button type="button" className={draft.scheduleType === 'as_needed' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'as_needed' }))}>按需记录</button></div><p className="field-help">按需项目不会自动进入首页今日计划，仍可随时手动记录。</p></fieldset>{draft.scheduleType !== 'as_needed' && <><div className="schedule-fields">{draft.scheduleType === 'interval' && <label>间隔天数<input type="number" inputMode="numeric" min="2" max="365" value={draft.intervalDays} onChange={event => setDraft(value => ({ ...value, intervalDays: Number(event.target.value) || 2 }))} required /></label>}<DateField label="开始日期" value={draft.scheduleStartDate} onChange={scheduleStartDate => setDraft(value => ({ ...value, scheduleStartDate }))} /><TimeField label="提醒时间" required={false} value={draft.reminderTime} onChange={reminderTime => setDraft(value => ({ ...value, reminderTime }))} /><DateField label="结束日期" required={false} min={draft.scheduleStartDate} value={draft.scheduleEndDate} onChange={scheduleEndDate => setDraft(value => ({ ...value, scheduleEndDate }))} /></div>{!draft.reminderTime && <p className="field-help schedule-warning">未设置时间仍会进入今日计划，但不会显示具体时间。</p>}</>}{error && <Feedback message={error} type="error" onClose={() => setError('')} />}<footer className="editor-actions"><button type="button" className="btn secondary" disabled={busy} onClick={() => void requestClose()}>取消</button><button className="btn primary" disabled={busy || !draft.name.trim()}>{busy ? '保存中…' : '保存项目'}</button></footer></form></section></div>;
 }
 
 function careItemHomeStatus(item: CareItem) {
@@ -211,14 +295,14 @@ function CareItemsCard({ items, onChanged }: { items: CareItem[]; onChanged(): P
   function cancelDrag() { const state = dragRef.current; if (!state) return; orderedRef.current = state.original; setOrdered(state.original); dragRef.current = null; setDraggingId(''); }
   const groups: { category: CareItemCategory; label: string }[] = [{ category: 'medication', label: '用药' }, { category: 'care', label: '护理' }];
   const renderItem = (item: CareItem) => <article data-care-item-id={item.id} className={`${item.active ? '' : 'inactive'} ${draggingId === item.id ? 'dragging' : ''}`} key={item.id}><button type="button" className="care-drag-handle" aria-label={`调整${item.name}在${item.category === 'medication' ? '用药' : '护理'}分组中的顺序，可拖动或按上下方向键`} aria-keyshortcuts="ArrowUp ArrowDown" onPointerDown={event => startDrag(event, item)} onPointerMove={drag} onPointerUp={endDrag} onPointerCancel={cancelDrag} onKeyDown={event => { if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { event.preventDefault(); void moveByKeyboard(item, event.key === 'ArrowUp' ? -1 : 1); } }}><span aria-hidden="true">⠇⠇</span></button><img src={careItemIconSources[item.icon]} alt="" /><div><b>{item.name}</b><small>{careItemHomeStatus(item)}</small></div><button className="btn secondary" onClick={() => setEditing(item)}>修改</button><button className={`btn ${item.active ? 'secondary' : 'primary'}`} disabled={Boolean(busyId)} onClick={() => void toggle(item)}>{item.active ? '停用' : '启用'}</button></article>;
-  return <><section className="settings-card care-items-card"><div className="setting-status"><h2>用药护理</h2><span className="on">管理</span></div><p>定时或间隔项目会进入首页今日计划；护理项目统一用“完成”记录。按需项目仅在手动添加记录时显示。</p>{groups.map(group => <section className="care-item-group" key={group.category}><h3>{group.label}</h3><div className="care-item-list">{ordered.filter(item => item.category === group.category).map(renderItem)}</div></section>)}<button className="btn primary full" disabled={Boolean(busyId)} onClick={() => setEditing('new')}>新增项目</button>{message && <p className={message.includes('失败') || message.includes('变化') ? 'error-text' : 'success-text'} role="status">{message}</p>}</section>{editing && <CareItemEditor item={editing === 'new' ? undefined : editing} nextOrder={Math.max(0, ...items.map(item => item.sortOrder)) + 10} onClose={() => setEditing(null)} onSaved={async () => { await onChanged(); setMessage(editing === 'new' ? '项目已新增' : '项目已修改'); }} />}</>;
+  return <><section className="settings-card care-items-card"><div className="setting-status"><h2>用药护理</h2><span className="on">管理</span></div><p>定时或间隔项目会进入首页今日计划；护理项目统一用“完成”记录。按需项目仅在手动添加记录时显示。</p>{groups.map(group => <section className="care-item-group" key={group.category}><h3>{group.label}</h3><div className="care-item-list">{ordered.filter(item => item.category === group.category).map(renderItem)}</div></section>)}<button className="btn primary full" disabled={Boolean(busyId)} onClick={() => setEditing('new')}>新增项目</button><Feedback message={message} type={message.includes('失败') || message.includes('变化') ? 'error' : 'success'} onClose={() => setMessage('')} /></section>{editing && <CareItemEditor item={editing === 'new' ? undefined : editing} nextOrder={Math.max(0, ...items.map(item => item.sortOrder)) + 10} onClose={() => setEditing(null)} onSaved={async () => { await onChanged(); setMessage(editing === 'new' ? '项目已新增' : '项目已修改'); }} />}</>;
 }
 
 function FamilyPermissionsCard() {
   const [members, setMembers] = useState<FamilyMemberPermission[]>([]); const [busyId, setBusyId] = useState(''); const [message, setMessage] = useState('');
   useEffect(() => { api.familyMembers().then(setMembers).catch(err => setMessage(err instanceof Error ? err.message : '无法读取家庭成员')); }, []);
   async function changeRole(member: FamilyMemberPermission, role: 'admin' | 'member') { if (member.role === role || !await confirmAction({ title: `将${member.name}设为“${roleNames[role]}”？`, description: role === 'admin' ? '管理身份可以管理用药项目和已删除记录。' : '普通身份可以查看、添加和修改照护记录。', confirmLabel: '确认修改' })) return; setBusyId(member.id); setMessage(''); try { const updated = await api.updateFamilyRole(member.id as Exclude<FamilyId, 'father'>, role); setMembers(items => items.map(item => item.id === updated.id ? updated : item)); setMessage(`${member.name}已设为${roleNames[role]}`); } catch (err) { setMessage(err instanceof Error ? err.message : '权限修改失败'); } finally { setBusyId(''); } }
-  return <section className="settings-card family-permissions-card"><div className="setting-status"><h2>成员与权限</h2><span className="on">超管</span></div><p>管理身份可管理用药项目和回收站；普通身份可记录和修改照护信息。</p><div className="family-permission-list">{members.map(member => { const visual = familyMembers.find(item => item.id === member.id)!; return <article key={member.id}><img src={visual.icon} alt="" /><div><b>{member.name}</b><small>{member.id === 'father' ? '最高管理权限' : roleNames[member.role]}</small></div>{member.id === 'father' ? <span className="fixed-role">超管·不可修改</span> : <div className="role-switch" role="group" aria-label={`${member.name}的权限`}><button type="button" aria-pressed={member.role === 'admin'} className={member.role === 'admin' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => void changeRole(member, 'admin')}>管理</button><button type="button" aria-pressed={member.role === 'member'} className={member.role === 'member' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => void changeRole(member, 'member')}>普通</button></div>}</article>; })}</div>{message && <p className={message.includes('失败') || message.includes('无法') ? 'error-text' : 'success-text'} role="status">{message}</p>}</section>;
+  return <section className="settings-card family-permissions-card"><div className="setting-status"><h2>成员与权限</h2><span className="on">超管</span></div><p>管理身份可管理用药项目和回收站；普通身份可记录和修改照护信息。</p><div className="family-permission-list">{members.map(member => { const visual = familyMembers.find(item => item.id === member.id)!; return <article key={member.id}><img src={visual.icon} alt="" /><div><b>{member.name}</b><small>{member.id === 'father' ? '最高管理权限' : roleNames[member.role]}</small></div>{member.id === 'father' ? <span className="fixed-role">超管·不可修改</span> : <div className="role-switch" role="group" aria-label={`${member.name}的权限`}><button type="button" aria-pressed={member.role === 'admin'} className={member.role === 'admin' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => void changeRole(member, 'admin')}>管理</button><button type="button" aria-pressed={member.role === 'member'} className={member.role === 'member' ? 'active' : ''} disabled={Boolean(busyId)} onClick={() => void changeRole(member, 'member')}>普通</button></div>}</article>; })}</div><Feedback message={message} type={message.includes('失败') || message.includes('无法') ? 'error' : 'success'} onClose={() => setMessage('')} /></section>;
 }
 
 function VaccineCatalogEditor({ item, onClose, onSaved }: { item?: VaccineCatalogItem; onClose(): void; onSaved(item: VaccineCatalogItem): void }) {
@@ -234,7 +318,7 @@ function VaccineCatalogEditor({ item, onClose, onSaved }: { item?: VaccineCatalo
     try { const saved = item ? await api.updateVaccineCatalogItem(item.id, payload) : await api.createVaccineCatalogItem(payload); onSaved(saved); onClose(); }
     catch (err) { setError(err instanceof Error ? err.message : '保存疫苗失败'); setBusy(false); }
   }
-  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && void requestClose()}><section ref={dialogRef} className="editor vaccine-catalog-editor" role="dialog" aria-modal="true" aria-labelledby="vaccine-catalog-editor-title"><header className="editor-head"><div><p className="kicker">疫苗目录</p><h2 id="vaccine-catalog-editor-title">{item ? '修改疫苗' : '新增疫苗'}</h2></div><button type="button" className="close-btn" disabled={busy} onClick={() => void requestClose()} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>疫苗名称<input value={draft.name} maxLength={50} required autoFocus={!item} placeholder="例如：水痘疫苗" onChange={event => setDraft(value => ({ ...value, name: event.target.value }))} /></label><fieldset><legend>疫苗类型</legend><SegmentedControl label="疫苗类型" value={draft.category} options={[{ value: 'program', label: '规划' }, { value: 'self_paid', label: '自费' }]} onChange={category => setDraft(value => ({ ...value, category }))} /></fieldset><label>常规剂次<select value={draft.doseCount ?? ''} onChange={event => setDraft(value => ({ ...value, doseCount: event.target.value ? Number(event.target.value) : null }))}><option value="">按接种门诊安排</option>{Array.from({ length: 9 }, (_, index) => <option value={index + 1} key={index + 1}>{index + 1} 剂</option>)}</select></label><label>预防疾病 <span>选填</span><textarea rows={3} maxLength={300} value={draft.description} placeholder="例如：用于预防水痘。" onChange={event => setDraft(value => ({ ...value, description: event.target.value }))} /></label><label>接种程序 <span>选填</span><textarea rows={2} maxLength={200} value={draft.intervalSummary} placeholder="例如：共 2 剂，每剂至少间隔 3 个月" onChange={event => setDraft(value => ({ ...value, intervalSummary: event.target.value }))} /></label>{error && <p className="error-text" role="alert">{error}</p>}<footer className="editor-actions"><button type="button" className="btn secondary" disabled={busy} onClick={() => void requestClose()}>取消</button><button className="btn primary" disabled={busy || !draft.name.trim()}>{busy ? '保存中…' : '保存疫苗'}</button></footer></form></section></div>;
+  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && void requestClose()}><section ref={dialogRef} className="editor vaccine-catalog-editor" role="dialog" aria-modal="true" aria-labelledby="vaccine-catalog-editor-title"><header className="editor-head"><div><p className="kicker">疫苗目录</p><h2 id="vaccine-catalog-editor-title">{item ? '修改疫苗' : '新增疫苗'}</h2></div><button type="button" className="close-btn" disabled={busy} onClick={() => void requestClose()} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}><label>疫苗名称<input value={draft.name} maxLength={50} required autoFocus={!item} placeholder="例如：水痘疫苗" onChange={event => setDraft(value => ({ ...value, name: event.target.value }))} /></label><fieldset><legend>疫苗类型</legend><SegmentedControl label="疫苗类型" value={draft.category} options={[{ value: 'program', label: '规划' }, { value: 'self_paid', label: '自费' }]} onChange={category => setDraft(value => ({ ...value, category }))} /></fieldset><label>常规剂次<select value={draft.doseCount ?? ''} onChange={event => setDraft(value => ({ ...value, doseCount: event.target.value ? Number(event.target.value) : null }))}><option value="">按接种门诊安排</option>{Array.from({ length: 9 }, (_, index) => <option value={index + 1} key={index + 1}>{index + 1} 剂</option>)}</select></label><label>预防疾病 <span>选填</span><textarea rows={3} maxLength={300} value={draft.description} placeholder="例如：用于预防水痘。" onChange={event => setDraft(value => ({ ...value, description: event.target.value }))} /></label><label>接种程序 <span>选填</span><textarea rows={2} maxLength={200} value={draft.intervalSummary} placeholder="例如：共 2 剂，每剂至少间隔 3 个月" onChange={event => setDraft(value => ({ ...value, intervalSummary: event.target.value }))} /></label>{error && <Feedback message={error} type="error" onClose={() => setError('')} />}<footer className="editor-actions"><button type="button" className="btn secondary" disabled={busy} onClick={() => void requestClose()}>取消</button><button className="btn primary" disabled={busy || !draft.name.trim()}>{busy ? '保存中…' : '保存疫苗'}</button></footer></form></section></div>;
 }
 
 function VaccineSettingsCard({ catalog, manager, onCatalogChanged }: { catalog: VaccineCatalogItem[]; manager: boolean; onCatalogChanged(): Promise<void> }) {
@@ -242,7 +326,7 @@ function VaccineSettingsCard({ catalog, manager, onCatalogChanged }: { catalog: 
   async function toggle(item: VaccineCatalogItem) { setBusy(item.id); setMessage(null); try { await api.setVaccineCatalogActive(item.id, !item.active); await onCatalogChanged(); setMessage({ text: item.active ? `${item.name}已停用` : `${item.name}已启用` }); } catch (error) { setMessage({ text: error instanceof Error ? error.message : '更新疫苗目录失败', error: true }); } finally { setBusy(''); } }
   async function remove(item: VaccineCatalogItem) { if (!await confirmAction({ title: `删除“${item.name}”？`, description: '将从疫苗目录和未来接种安排中移除；已接种历史记录仍会保留。', confirmLabel: '删除疫苗', danger: true })) return; setBusy(item.id); setMessage(null); try { await api.deleteVaccineCatalogItem(item.id); await onCatalogChanged(); setExpanded(current => current === item.id ? '' : current); setMessage({ text: `${item.name}已删除` }); } catch (error) { setMessage({ text: error instanceof Error ? error.message : '删除疫苗失败', error: true }); } finally { setBusy(''); } }
   return <><section className="settings-card vaccine-settings-card"><div><h2>疫苗安排</h2><p>首页自动显示近期建议接种与门诊预约，无需单独开启。</p></div><dl><div><dt>接种地区</dt><dd>浙江省杭州市</dd></div><div><dt>提醒依据</dt><dd>预约日期优先</dd></div><div><dt>参考规则</dt><dd>国家免疫规划（2021年版）</dd></div></dl><p className="vaccine-safety-note">门诊没有给出预约时无需设置。系统建议日期仅供参考。</p></section>
-  <section className="settings-card vaccine-catalog-card"><div className="section-title"><div><p className="kicker">疫苗目录</p><h2>显示疫苗</h2></div><div className="catalog-head-actions"><span>{catalog.filter(item => item.active).length} 项启用</span>{manager && <button type="button" className="btn secondary" disabled={Boolean(busy)} onClick={() => setEditing('new')}>＋ 新增疫苗</button>}</div></div><p>内置 10 种默认疫苗只能启用或停用；自行新增的疫苗可以修改和删除。</p><div className="vaccine-catalog-list">{catalog.map(item => <article key={item.id} className={`${item.active ? '' : 'inactive'} ${manager ? '' : 'readonly'}`}><div className="catalog-copy"><div className="catalog-title"><b>{item.name}</b><i className={`vaccine-kind ${item.category}`}>{item.category === 'program' ? '规划' : '自费'}</i></div><small>{item.doseCount ? `${item.doseCount} 剂` : '按接种门诊安排'}{item.isSystem ? ' · 系统默认' : ''}</small></div>{manager && !item.isSystem ? <ActionMenu label={`管理${item.name}`} items={[{ label: expanded === item.id ? '收起详情' : '查看详情', onSelect: () => setExpanded(expanded === item.id ? '' : item.id) }, { label: '修改', onSelect: () => setEditing(item) }, { label: '删除', danger: true, onSelect: () => remove(item) }]} /> : <button type="button" className="catalog-detail-toggle" aria-expanded={expanded === item.id} onClick={() => setExpanded(expanded === item.id ? '' : item.id)}>{expanded === item.id ? '收起' : '详情'}</button>}{manager && <Switch checked={item.active} label={`${item.active ? '停用' : '启用'}${item.name}`} disabled={Boolean(busy)} onChange={() => void toggle(item)} />}{expanded === item.id && <div className="catalog-detail"><dl><dt>预防疾病</dt><dd>{item.description || '尚未填写。'}</dd><dt>接种程序</dt><dd>{item.intervalSummary || (item.doseCount ? `共 ${item.doseCount} 剂` : '按接种门诊安排')}</dd></dl></div>}</article>)}</div>{message && <p className={message.error ? 'error-text' : 'success-text'} role="status">{message.text}</p>}</section>{editing && <VaccineCatalogEditor item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSaved={async saved => { await onCatalogChanged(); setMessage({ text: editing === 'new' ? `${saved.name}已新增` : `${saved.name}已修改` }); }} />}</>;
+  <section className="settings-card vaccine-catalog-card"><div className="section-title"><div><p className="kicker">疫苗目录</p><h2>显示疫苗</h2></div><div className="catalog-head-actions"><span>{catalog.filter(item => item.active).length} 项启用</span>{manager && <button type="button" className="btn secondary" disabled={Boolean(busy)} onClick={() => setEditing('new')}>＋ 新增疫苗</button>}</div></div><p>内置 10 种默认疫苗只能启用或停用；自行新增的疫苗可以修改和删除。</p><div className="vaccine-catalog-list">{catalog.map(item => <article key={item.id} className={`${item.active ? '' : 'inactive'} ${manager ? '' : 'readonly'}`}><div className="catalog-copy"><div className="catalog-title"><b>{item.name}</b><i className={`vaccine-kind ${item.category}`}>{item.category === 'program' ? '规划' : '自费'}</i></div><small>{item.doseCount ? `${item.doseCount} 剂` : '按接种门诊安排'}{item.isSystem ? ' · 系统默认' : ''}</small></div>{manager && !item.isSystem ? <ActionMenu label={`管理${item.name}`} items={[{ label: expanded === item.id ? '收起详情' : '查看详情', onSelect: () => setExpanded(expanded === item.id ? '' : item.id) }, { label: '修改', onSelect: () => setEditing(item) }, { label: '删除', danger: true, onSelect: () => remove(item) }]} /> : <button type="button" className="catalog-detail-toggle" aria-expanded={expanded === item.id} onClick={() => setExpanded(expanded === item.id ? '' : item.id)}>{expanded === item.id ? '收起' : '详情'}</button>}{manager && <Switch checked={item.active} label={`${item.active ? '停用' : '启用'}${item.name}`} disabled={Boolean(busy)} onChange={() => void toggle(item)} />}{expanded === item.id && <div className="catalog-detail"><dl><dt>预防疾病</dt><dd>{item.description || '尚未填写。'}</dd><dt>接种程序</dt><dd>{item.intervalSummary || (item.doseCount ? `共 ${item.doseCount} 剂` : '按接种门诊安排')}</dd></dl></div>}</article>)}</div><Feedback message={message?.text || ''} type={message?.error ? 'error' : 'success'} onClose={() => setMessage(null)} /></section>{editing && <VaccineCatalogEditor item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSaved={async saved => { await onCatalogChanged(); setMessage({ text: editing === 'new' ? `${saved.name}已新增` : `${saved.name}已修改` }); }} />}</>;
 }
 
 type PushSettingsPatch = { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean };
@@ -542,7 +626,7 @@ function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestFeedingG
       </div>
     </section>
 
-    {message && <p className={message.error ? 'error-text' : 'success-text'} role="status">{message.text}</p>}
+    <Feedback message={message?.text || ''} type={message?.error ? 'error' : 'success'} onClose={() => setMessage(null)} />
   </>;
 }
 
@@ -586,7 +670,7 @@ function NativeNotificationSettingsCard({ superadmin }: { superadmin: boolean })
     <div className="form-switch-row"><div><label>接收 APP 通知</label><small>关闭后，当前手机不显示任何照护通知</small></div><Switch checked={settings.all} label="接收 APP 通知" onChange={value => change('all', value)} /></div>
     <div className="native-notification-list">{rows.map(row => <div className="native-notification-row" key={row.key}><div><b>{row.label}</b><small>{row.description}</small></div><div className="native-notification-controls"><Switch checked={settings[row.key]} label={`${settings[row.key] ? '关闭' : '开启'}${row.label}`} disabled={!settings.all} onChange={value => change(row.key, value)} />{superadmin && <button type="button" className="btn secondary" disabled={permission !== 'granted' || !settings.all || !settings[row.key]} onClick={() => testNotification(row.key, row.label)}>测试</button>}</div></div>)}</div>
     <div className="native-notification-info"><p>早报、喂奶和照护提醒由 APP 约每 15 分钟同步一次，可能略有延迟；疫苗预约提醒保存在当前手机。设置不影响 PushPlus。</p></div>
-    {message && <p className="success-text" role="status">{message}</p>}
+    <Feedback message={message} type="success" onClose={() => setMessage('')} />
   </section>;
 }
 
