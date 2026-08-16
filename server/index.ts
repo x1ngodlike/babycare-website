@@ -11,7 +11,7 @@ import sharp from 'sharp';
 import { testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import { BackupFileNotFoundError, deleteServerBackup, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup, type BackupType } from './backup.js';
-import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
+import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, computeFeedingRecordsHash, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiFeedingInsights, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiFeedingInsights, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
 import { generateFeedingInsights, generateGrowthEvaluation } from './ai.js';
@@ -852,74 +852,86 @@ app.get('/api/feeding-prediction', async (_req, res) => {
   })));
 
   const settings = getAiSettings();
-  if (settings.apiKey && prediction.available) {
-    try {
-      const profile = getProfile();
-      const ageText = calculateAgeText(profile.birthDate, today);
-      const insights = await generateFeedingInsights({
-        babyName: profile.name || '宝宝',
-        ageText,
-        sex: profile.sex,
-        prediction: {
-          available: prediction.available,
-          gapMinutes: prediction.gapMinutes,
-          volumeMl: prediction.volumeMl,
-          confidence: prediction.confidence,
-          nextFeedAt: prediction.nextFeedAt,
-          upcomingFeeds: prediction.upcomingFeeds.map(f => ({
-            predictedAt: f.predictedAt,
-            earliest: f.earliest,
-            latest: f.latest,
-            estimatedMl: f.estimatedMl,
-            period: f.period
-          })),
-          periodGaps: prediction.periodGaps.map(g => ({ period: g.period, count: g.count, medianMinutes: g.medianMinutes })),
-          periodVolumes: prediction.periodVolumes.map(v => ({ period: v.period, count: v.count, medianMl: v.medianMl })),
-          overallMedianGapMinutes: prediction.overallMedianGapMinutes,
-          dataDays: prediction.dataDays,
-          dataFeeds: prediction.dataFeeds
-        },
-        recentFeedings: records.slice(-7).map(r => ({
-          occurredAt: r.occurredAt,
-          breastMilkMl: r.breastMilkMl,
-          formulaMl: r.formulaMl,
-          note: r.note || undefined
-        }))
-      }, settings);
+  const feedingRecords = records.filter(r => r.type === 'feeding');
 
-      let mergedPrediction = { ...prediction };
-
-      if (insights.aiGapMinutes !== null && insights.aiGapMinutes !== undefined && insights.aiGapMinutes >= 1) {
-        const nextAtMs = Date.now() + insights.aiGapMinutes * 60000;
-        mergedPrediction.nextFeedAt = new Date(nextAtMs).toISOString();
-        mergedPrediction.gapMinutes = insights.aiGapMinutes;
-        mergedPrediction.aiPredicted = true;
-      } else if (insights.aiNextFeedAt) {
-        const aiDate = new Date(insights.aiNextFeedAt);
-        if (!isNaN(aiDate.getTime())) {
-          mergedPrediction.nextFeedAt = insights.aiNextFeedAt;
-          mergedPrediction.gapMinutes = Math.max(1, Math.round((aiDate.getTime() - Date.now()) / 60000));
-          mergedPrediction.aiPredicted = true;
-        }
-      }
-
-      return res.json({
-        ...mergedPrediction,
-        aiInsights: {
-          summary: insights.summary,
-          insights: insights.insights,
-          alert: insights.alert
-        },
-        aiNextFeedAt: insights.aiNextFeedAt,
-        aiGapMinutes: insights.aiGapMinutes
-      });
-    } catch (e) {
-      console.error('[feeding-prediction] AI error:', e instanceof Error ? e.message : e);
-      return res.json(prediction);
-    }
+  if (!settings.apiKey || !prediction.available || feedingRecords.length < 2) {
+    return res.json(prediction);
   }
 
-  return res.json(prediction);
+  const recordsHash = computeFeedingRecordsHash(records);
+  const cached = getAiFeedingInsights();
+  const now = Date.now();
+  const cacheFresh = cached &&
+    cached.recordsHash === recordsHash &&
+    (now - new Date(cached.updatedAt).getTime()) < 3600_000;
+
+  if (cacheFresh && cached) {
+    return res.json({
+      ...prediction,
+      aiInsights: {
+        summary: cached.summary,
+        insights: cached.insights,
+        alert: cached.alert
+      },
+      cached: true
+    });
+  }
+
+  try {
+    const profile = getProfile();
+    const ageText = calculateAgeText(profile.birthDate, today);
+    const insights = await generateFeedingInsights({
+      babyName: profile.name || '宝宝',
+      ageText,
+      sex: profile.sex,
+      prediction: {
+        available: prediction.available,
+        gapMinutes: prediction.gapMinutes,
+        volumeMl: prediction.volumeMl,
+        confidence: prediction.confidence,
+        nextFeedAt: prediction.nextFeedAt,
+        upcomingFeeds: prediction.upcomingFeeds.map(f => ({
+          predictedAt: f.predictedAt,
+          earliest: f.earliest,
+          latest: f.latest,
+          estimatedMl: f.estimatedMl,
+          period: f.period
+        })),
+        periodGaps: prediction.periodGaps.map(g => ({ period: g.period, count: g.count, medianMinutes: g.medianMinutes })),
+        periodVolumes: prediction.periodVolumes.map(v => ({ period: v.period, count: v.count, medianMl: v.medianMl })),
+        overallMedianGapMinutes: prediction.overallMedianGapMinutes,
+        dataDays: prediction.dataDays,
+        dataFeeds: prediction.dataFeeds
+      },
+      recentFeedings: records.slice(-7).map(r => ({
+        occurredAt: r.occurredAt,
+        breastMilkMl: r.breastMilkMl,
+        formulaMl: r.formulaMl,
+        note: r.note || undefined
+      }))
+    }, settings);
+
+    saveAiFeedingInsights({
+      summary: insights.summary,
+      insights: insights.insights,
+      alert: insights.alert,
+      gapMinutes: null,
+      nextFeedAt: null,
+      recordsHash
+    });
+
+    return res.json({
+      ...prediction,
+      aiInsights: {
+        summary: insights.summary,
+        insights: insights.insights,
+        alert: insights.alert
+      }
+    });
+  } catch (e) {
+    console.error('[feeding-prediction] AI error:', e instanceof Error ? e.message : e);
+    return res.json(prediction);
+  }
 });
 
 app.get('/api/care-items', (_req, res) => {
