@@ -21,6 +21,7 @@ import { addDaysToDateString, shanghaiDayUtcRange } from './shanghai-date.js';
 import { startPushScheduler } from './push.js';
 import { registerPushRoutes } from './routes/push.js';
 import { shanghaiDateString } from './shanghai-date.js';
+import { predictFeeding, type FeedingPrediction } from '../shared/feeding-prediction.js';
 import type { AuditEntry, CareItem, CareRecord, FamilyId, FamilyMemberPermission, GrowthRecord, VaccineCatalogItem, VaccineRecord } from './types.js';
 
 const app = express();
@@ -837,6 +838,19 @@ app.get('/api/records', (req, res) => {
   const parsed = z.object({ from: z.string().datetime({ offset: true }), to: z.string().datetime({ offset: true }) }).safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: '日期范围格式不正确' });
   return res.json(listRecords(parsed.data.from, parsed.data.to));
+});
+
+app.get('/api/feeding-prediction', (_req, res) => {
+  const today = shanghaiDateString();
+  const range = shanghaiDayUtcRange(today);
+  const lookbackFrom = new Date(new Date(range.from).getTime() - 14 * 86400000).toISOString();
+  const records = listRecords(lookbackFrom, range.to).filter(r => r.type === 'feeding');
+  const prediction: FeedingPrediction = predictFeeding(records.map(r => ({
+    occurredAt: r.occurredAt,
+    breastMilkMl: r.breastMilkMl,
+    formulaMl: r.formulaMl
+  })));
+  return res.json(prediction);
 });
 
 app.get('/api/care-items', (_req, res) => {
