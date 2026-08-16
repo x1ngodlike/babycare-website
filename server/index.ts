@@ -14,7 +14,7 @@ import { BackupFileNotFoundError, deleteServerBackup, defaultBackupDirectory, In
 import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
-import { generateGrowthEvaluation } from './ai.js';
+import { generateFeedingInsights, generateGrowthEvaluation } from './ai.js';
 import { assessHeight, assessWeight, milkReferenceRange, GROWTH_STANDARD_MAX_MONTHS } from './growth-standards.js';
 import { saveGrowthEvaluation } from './db.js';
 import { addDaysToDateString, shanghaiDayUtcRange } from './shanghai-date.js';
@@ -840,7 +840,7 @@ app.get('/api/records', (req, res) => {
   return res.json(listRecords(parsed.data.from, parsed.data.to));
 });
 
-app.get('/api/feeding-prediction', (_req, res) => {
+app.get('/api/feeding-prediction', async (_req, res) => {
   const today = shanghaiDateString();
   const range = shanghaiDayUtcRange(today);
   const lookbackFrom = new Date(new Date(range.from).getTime() - 14 * 86400000).toISOString();
@@ -850,6 +850,48 @@ app.get('/api/feeding-prediction', (_req, res) => {
     breastMilkMl: r.breastMilkMl,
     formulaMl: r.formulaMl
   })));
+
+  const settings = getAiSettings();
+  if (settings.apiKey && prediction.available) {
+    try {
+      const profile = getProfile();
+      const ageText = calculateAgeText(profile.birthDate, today);
+      const insights = await generateFeedingInsights({
+        babyName: profile.name || '宝宝',
+        ageText,
+        sex: profile.sex,
+        prediction: {
+          available: prediction.available,
+          gapMinutes: prediction.gapMinutes,
+          volumeMl: prediction.volumeMl,
+          confidence: prediction.confidence,
+          nextFeedAt: prediction.nextFeedAt,
+          upcomingFeeds: prediction.upcomingFeeds.map(f => ({
+            predictedAt: f.predictedAt,
+            earliest: f.earliest,
+            latest: f.latest,
+            estimatedMl: f.estimatedMl,
+            period: f.period
+          })),
+          periodGaps: prediction.periodGaps.map(g => ({ period: g.period, count: g.count, medianMinutes: g.medianMinutes })),
+          periodVolumes: prediction.periodVolumes.map(v => ({ period: v.period, count: v.count, medianMl: v.medianMl })),
+          overallMedianGapMinutes: prediction.overallMedianGapMinutes,
+          dataDays: prediction.dataDays,
+          dataFeeds: prediction.dataFeeds
+        },
+        recentFeedings: records.slice(-7).map(r => ({
+          occurredAt: r.occurredAt,
+          breastMilkMl: r.breastMilkMl,
+          formulaMl: r.formulaMl,
+          note: r.note || undefined
+        }))
+      }, settings);
+      return res.json({ ...prediction, aiInsights: insights });
+    } catch {
+      return res.json(prediction);
+    }
+  }
+
   return res.json(prediction);
 });
 

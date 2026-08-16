@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Clock, ChevronDown, ChevronUp, Droplets } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bot, Clock, ChevronDown, ChevronUp, Droplets, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
+import { api, type FeedingPrediction, type FeedingPredictionUpcoming } from './api';
 import { formatTimeShort } from '../shared/feeding-prediction';
-import type { FeedingPrediction, FeedingPredictionUpcoming } from './api';
 
 function formatDurationFromNow(targetIso: string, now: Date = new Date()): string {
   const target = new Date(targetIso);
@@ -91,9 +91,35 @@ function predictionFromRecords(records: { occurredAt: string; breastMilkMl: numb
   };
 }
 
+const alertIcons = {
+  pattern_change: <TrendingDown size={14} />,
+  low_confidence: <AlertTriangle size={14} />,
+  growth_spurt: <TrendingUp size={14} />,
+  none: null
+};
+
+const alertLabels = {
+  pattern_change: '节奏变化',
+  low_confidence: '数据不足',
+  growth_spurt: '可能猛长期'
+};
+
 export function PredictionBanner({ records, online }: { records: { occurredAt: string; breastMilkMl: number | null; formulaMl: number | null; type: string }[]; online: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const prediction = predictionFromRecords(records.filter(r => r.type === 'feeding'));
+  const [aiPrediction, setAiPrediction] = useState<FeedingPrediction | null>(null);
+  const aiInsights = aiPrediction?.aiInsights;
+
+  const localPrediction = predictionFromRecords(records.filter(r => r.type === 'feeding'));
+  const prediction = aiPrediction ?? localPrediction;
+
+  useEffect(() => {
+    if (!online) return;
+    let cancelled = false;
+    api.feedingPrediction().then(data => {
+      if (!cancelled) setAiPrediction(data);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [online, records.length]);
 
   if (!online) return null;
   if (!prediction.available) return null;
@@ -110,7 +136,7 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
   const upcomingCount = prediction.upcomingFeeds.length;
 
   return (
-    <section className={`prediction-banner ${statusClass}`} aria-label="喂奶周期预测">
+    <section className={`prediction-banner ${statusClass}${aiInsights ? ' has-ai' : ''}`} aria-label="喂奶周期预测">
       <button
         type="button"
         className="prediction-main"
@@ -147,6 +173,25 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
 
       {expanded && (
         <div className="prediction-detail">
+          {aiInsights && (
+            <div className="prediction-ai-section">
+              <div className="prediction-ai-header">
+                <Bot size={14} />
+                <span>AI 喂养洞察</span>
+                {aiInsights.alert && aiInsights.alert !== 'none' && (
+                  <span className={`prediction-ai-alert prediction-ai-alert-${aiInsights.alert}`}>
+                    {alertIcons[aiInsights.alert]} {alertLabels[aiInsights.alert]}
+                  </span>
+                )}
+              </div>
+              <p className="prediction-ai-summary">{aiInsights.summary}</p>
+              <ul className="prediction-ai-insights">
+                {aiInsights.insights.map((insight, i) => (
+                  <li key={i}>{insight}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="prediction-upcoming">
             <h3>接下来 {upcomingCount} 次喂奶</h3>
             <ol>

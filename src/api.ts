@@ -51,6 +51,11 @@ export interface FeedingPrediction {
   overallMedianGapMinutes: number | null;
   dataDays: number;
   dataFeeds: number;
+  aiInsights?: {
+    summary: string;
+    insights: string[];
+    alert?: 'none' | 'pattern_change' | 'low_confidence' | 'growth_spurt';
+  };
 }
 
 export class ApiError extends Error {
