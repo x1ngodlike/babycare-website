@@ -1025,5 +1025,5 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 startBackupScheduler(exportPayload, backupDirectory);
 startDailyReportScheduler();
 try { startPushScheduler(); } catch (e) { console.error('[push] 推送调度器启动失败（已忽略，不影响主服务）:', e); }
-const listenHost = production ? '0.0.0.0' : '127.0.0.1';
+const listenHost = '0.0.0.0';
 app.listen(port, listenHost, () => console.log(`Baby care server listening on http://${listenHost}:${port}`));
