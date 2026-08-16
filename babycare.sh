@@ -362,7 +362,6 @@ perform_deploy() {
 }
 
 perform_update() {
-  initialize
   perform_backup
   command -v git >/dev/null 2>&1 || fail "未找到 Git，无法拉取更新。"
   [[ -d "${SCRIPT_DIR}/.git" ]] || fail "当前目录不是 Git 仓库。"
