@@ -38,7 +38,7 @@ fi
 
 # ===== 输出函数 =====
 _step() {
-  printf '\n%s[%s/%s]%s %s\n' "$STYLE_STEP" "$1" "$2" "$RESET" "$3"
+  printf '\n%s[%s/%s]%s %s\n' "$STYLE_STEP" "$2" "$1" "$RESET" "$3"
 }
 
 _step_ok() {
@@ -53,6 +53,8 @@ success() { printf '  %s%s%s %s\n' "$STYLE_OK" "✓" "$RESET" "$1"; }
 warn()    { printf '  %s%s%s %s\n' "$STYLE_WARN" "⚠" "$RESET" "$1"; }
 fail()    { printf '\n%s%s%s %s\n' "$STYLE_ERR" "✗" "$RESET" "$1" >&2; exit 1; }
 info()    { printf '%s%s%s %s\n' "$STYLE_INFO" "ℹ" "$RESET" "$1"; }
+
+_divider() { printf '%s%s%s\n' "$DIM" "────────────────────────────────" "$RESET"; }
 
 _panel() {
   local title="$1"; shift
@@ -176,6 +178,7 @@ stop_for_backup() {
 perform_backup() {
   initialize
   [[ -d "$DATA_DIR" ]] || fail "数据目录不存在：${DATA_DIR}"
+  _divider
 
   _step 4 1 "备份前停止服务"
   STOPPED_FOR_BACKUP=()
@@ -291,6 +294,8 @@ perform_deploy() {
     perform_backup
   fi
 
+  _divider
+
   _step 6 1 "准备数据目录"
   mkdir -p "$DATA_DIR" "$DATA_DIR/uploads/avatars" "$BACKUP_DIR"
   chown -R 1000:1000 "$DATA_DIR" "$BACKUP_DIR" 2>/dev/null || true
@@ -312,6 +317,8 @@ perform_deploy() {
   _step 6 4 "构建镜像"
   compose build --pull "$SERVICE_NAME"
   _step_ok
+
+  _divider
 
   _step 6 5 "启动服务"
   compose up -d --remove-orphans "$SERVICE_NAME"
@@ -336,6 +343,8 @@ perform_deploy() {
   printf '  %s%s%s 健康检查 [%02d/30] 通过\n' "$STYLE_OK" "✓" "$RESET" "$attempt"
   _step_ok
 
+  _divider
+
   _step 6 6 "清理旧镜像"
   cleanup_previous_project_images
   compose ps
@@ -359,6 +368,8 @@ perform_update() {
   [[ -d "${SCRIPT_DIR}/.git" ]] || fail "当前目录不是 Git 仓库。"
   [[ -z "$(git -C "$SCRIPT_DIR" status --porcelain --untracked-files=no)" ]] \
     || fail "仓库存在未提交修改，请先处理后再更新。"
+
+  _divider
 
   _step 2 1 "拉取最新代码"
   git -C "$SCRIPT_DIR" pull --ff-only origin main
