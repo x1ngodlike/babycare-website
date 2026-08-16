@@ -22,58 +22,51 @@ COMPOSE_CMD=()
 STOPPED_FOR_BACKUP=()
 OLD_PROJECT_IMAGE_IDS=()
 
-# ===== 终端视觉符号与颜色 =====
+# ===== 终端视觉配置 =====
 if [[ -t 1 ]]; then
   RED=$'\e[31m'; GREEN=$'\e[32m'; YELLOW=$'\e[33m'; CYAN=$'\e[36m'
   BOLD=$'\e[1m'; DIM=$'\e[2m'; RESET=$'\e[0m'
-  OK="${GREEN}✅${RESET}"; FAIL="${RED}❌${RESET}"; WARN="${YELLOW}⚠️${RESET}"; INFO="${CYAN}💡${RESET}"
-  ICON_CHECK="✅"; ICON_EMOJI_HOURGLASS="⏳"
+  STYLE_STEP="$CYAN"
+  STYLE_OK="$GREEN"
+  STYLE_ERR="$RED"
+  STYLE_WARN="$YELLOW"
+  STYLE_INFO="$CYAN"
 else
   RED=''; GREEN=''; YELLOW=''; CYAN=''; BOLD=''; DIM=''; RESET=''
-  OK='✅'; FAIL='❌'; WARN='⚠️'; INFO='💡'
+  STYLE_STEP=''; STYLE_OK=''; STYLE_ERR=''; STYLE_WARN=''; STYLE_INFO=''
 fi
 
-# ===== 辅助函数 =====
-_now_ms() {
-  local ns
-  ns="$(date +%s%N 2>/dev/null || echo 0)"
-  if [[ "$ns" == "0" ]]; then
-    echo "$(($(date +%s) * 1000))"
-  else
-    echo $((ns / 1000000))
-  fi
-}
-
+# ===== 输出函数 =====
 _step() {
-  local icon="🔍"
-  case "$3" in
-    *检查*|*校验*) icon="🔍" ;;
-    *准备*|*生成*) icon="⚙️" ;;
-    *备份*|*打包*|*停止服务*) icon="📦" ;;
-    *恢复*|*启动*) icon="▶️" ;;
-    *清理*|*移除*) icon="🧹" ;;
-    *构建*|*编译*) icon="🔨" ;;
-    *健康*|*验证*) icon="❤️" ;;
-    *部署*|*完成*) icon="🚀" ;;
-    *拉取*|*更新*) icon="🔄" ;;
-  esac
-  printf '\n%s %s[%s]%s %s\n' "$icon" "$CYAN" "$1/$2" "$RESET" "$3"
+  printf '\n%s[%s/%s]%s %s\n' "$STYLE_STEP" "$1" "$2" "$RESET" "$3"
 }
-_step_ok() { printf '  %s 完成\n' "$OK"; }
-_step_fail() { printf '  %s 失败\n' "$FAIL"; }
 
-success() { printf '  %s %s\n' "$OK" "$1"; }
-warn() { printf '  %s %s\n' "$WARN" "$1"; }
-fail() { printf '\n%s %s%s\n' "$FAIL" "$RED$1" "$RESET" >&2; exit 1; }
-info() { printf '%s %s\n' "$INFO" "$1"; }
+_step_ok() {
+  printf '  %s%s%s %s\n' "$STYLE_OK" "✓" "$RESET" "完成"
+}
 
-_summary_box() {
+_step_fail() {
+  printf '  %s%s%s %s\n' "$STYLE_ERR" "✗" "$RESET" "失败"
+}
+
+success() { printf '  %s%s%s %s\n' "$STYLE_OK" "✓" "$RESET" "$1"; }
+warn()    { printf '  %s%s%s %s\n' "$STYLE_WARN" "⚠" "$RESET" "$1"; }
+fail()    { printf '\n%s%s%s %s\n' "$STYLE_ERR" "✗" "$RESET" "$1" >&2; exit 1; }
+info()    { printf '%s%s%s %s\n' "$STYLE_INFO" "ℹ" "$RESET" "$1"; }
+
+_panel() {
   local title="$1"; shift
-  printf '\n%s━━━ %s ━━━%s\n' "$BOLD" "$title" "$RESET"
+  printf '\n%s── %s ──%s\n' "$BOLD" "$title" "$RESET"
   local line
   for line in "$@"; do
     printf '  %s\n' "$line"
   done
+}
+
+_header() {
+  printf '\n%s━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%s\n' "$BOLD" "$RESET"
+  printf '%s  %s%s\n' "$BOLD" "$1" "$RESET"
+  printf '%s━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%s\n' "$BOLD" "$RESET"
 }
 
 # ===== 核心函数 =====
@@ -220,7 +213,9 @@ perform_backup() {
   trap - EXIT INT TERM
   _step_ok
 
-  _summary_box "📦 备份完成" "文件: ${archive}" "内容: 数据库目录 + .env + docker-compose.yml"
+  _panel "备份完成" \
+    "文件: ${archive}" \
+    "内容: 数据库目录 + .env + docker-compose.yml"
 }
 
 remember_project_images() {
@@ -338,7 +333,7 @@ perform_deploy() {
     _step_fail
     fail "服务在 60 秒内未通过完整健康检查。"
   fi
-  printf '  %s 健康检查 [%02d/30] 通过\n' "$OK" "$attempt"
+  printf '  %s%s%s 健康检查 [%02d/30] 通过\n' "$STYLE_OK" "✓" "$RESET" "$attempt"
   _step_ok
 
   _step 6 6 "清理旧镜像"
@@ -349,7 +344,7 @@ perform_deploy() {
   local server_ip
   server_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
   server_ip="${server_ip:-你的-Unraid-IP}"
-  _summary_box "🚀 部署完成" \
+  _panel "部署完成" \
     "容器: ${CONTAINER_NAME}" \
     "端口: ${HOST_PORT}" \
     "数据: ${DATA_DIR}" \
@@ -376,8 +371,8 @@ perform_update() {
 show_status() {
   initialize
   compose ps
-  printf '\n📊 本项目相关容器：\n'
-  docker ps -a --filter "name=^/${CONTAINER_NAME}$" --format '名称：{{.Names}}　状态：{{.Status}}　镜像：{{.Image}}'
+  printf '\n当前运行容器：\n'
+  docker ps -a --filter "name=^/${CONTAINER_NAME}$" --format '  名称：{{.Names}}　状态：{{.Status}}　镜像：{{.Image}}'
 }
 
 show_logs() {
@@ -398,16 +393,16 @@ start_service() {
 }
 
 show_menu() {
-  printf '\n%s📦 babycare 管理中心%*s%s\n' "$BOLD" 12 "" "$RESET"
-  printf '  1️⃣  首次部署或重新构建\n'
-  printf '  2️⃣  更新到 GitHub 最新版本\n'
-  printf '  3️⃣  备份数据\n'
-  printf '  4️⃣  查看运行状态\n'
-  printf '  5️⃣  查看实时日志\n'
-  printf '  6️⃣  停止服务\n'
-  printf '  7️⃣  启动服务\n'
-  printf '  0️⃣  退出\n'
-  read -r -p '👉 请选择操作：' selection
+  _header "babycare 管理中心"
+  printf '  1) 首次部署或重新构建\n'
+  printf '  2) 更新到 GitHub 最新版本\n'
+  printf '  3) 备份数据\n'
+  printf '  4) 查看运行状态\n'
+  printf '  5) 查看实时日志\n'
+  printf '  6) 停止服务\n'
+  printf '  7) 启动服务\n'
+  printf '  0) 退出\n\n'
+  read -r -p '请选择操作：' selection
   case "$selection" in
     1) perform_deploy ;;
     2) perform_update ;;
@@ -422,16 +417,16 @@ show_menu() {
 }
 
 show_help() {
-  printf '\n%s📖 babycare 管理命令%*s%s\n' "$BOLD" 12 "" "$RESET"
-  printf '  ./babycare.sh deploy   🔨 首次部署或重新构建\n'
-  printf '  ./babycare.sh update   🔄 备份后更新到最新版本\n'
-  printf '  ./babycare.sh backup   📦 备份数据和环境配置\n'
-  printf '  ./babycare.sh status   📊 查看容器运行状态\n'
-  printf '  ./babycare.sh logs     📜 查看实时日志\n'
-  printf '  ./babycare.sh stop     ⏹️  停止服务\n'
-  printf '  ./babycare.sh start    ▶️  启动服务\n'
-  printf '  ./babycare.sh help     📖 显示本帮助\n'
-  printf '\n💡 无参数运行 ./babycare.sh 可打开中文菜单。\n'
+  _header "babycare 管理命令"
+  printf '  ./babycare.sh deploy   首次部署或重新构建\n'
+  printf '  ./babycare.sh update   备份后更新到最新版本\n'
+  printf '  ./babycare.sh backup   备份数据和环境配置\n'
+  printf '  ./babycare.sh status   查看容器运行状态\n'
+  printf '  ./babycare.sh logs     查看实时日志\n'
+  printf '  ./babycare.sh stop     停止服务\n'
+  printf '  ./babycare.sh start    启动服务\n'
+  printf '  ./babycare.sh help     显示本帮助\n'
+  printf '\n提示：无参数运行 ./babycare.sh 可打开中文菜单。\n'
 }
 
 case "${1:-菜单}" in
