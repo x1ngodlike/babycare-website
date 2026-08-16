@@ -58,7 +58,7 @@ h1, h2, h3, p { margin-top: 0; }
 .daily-report .dr-empty p, .daily-report .dr-note { color: var(--green-deep); }
 .dr-footer { margin-top: 4px; }
 
-.prediction-banner { margin-top: 10px; border: 1px solid var(--line); border-radius: var(--radius-card); background: #fff; overflow: hidden; transition: border-color .2s; }
+.prediction-banner { border: 1px solid var(--line); border-radius: var(--radius-card); background: #fff; overflow: hidden; transition: border-color .2s; }
 .prediction-banner.overdue { border-color: #c87b4e; background: #fdf5ef; }
 .prediction-banner.soon { border-color: #d4a64a; background: #fdfaf0; }
 .prediction-banner.upcoming { border-color: var(--line-sage); }
@@ -125,6 +125,7 @@ h1, h2, h3, p { margin-top: 0; }
 .section-title { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 13px; }.section-title h2 { margin: 0; font-size: var(--text-section); }.section-title > span { color: var(--text-secondary); font-size: var(--text-label); }
 .today-workbench { border: 1px solid var(--line); border-radius: var(--radius-card); background: #fff; overflow: hidden; }
 .today-workbench .baby-hero { border-radius: 0; }
+.today-workbench .prediction-banner { border-radius: 0; border-left: 0; border-right: 0; border-top: 0; }
 .today-workbench .metric-band { margin: 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
 .today-workbench .quick-section { margin: 0; padding: 5px 4px; background: #f8faf6; }
 .quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }.quick-grid button { min-width: 0; min-height: 66px; padding: 5px 2px; border: 0; border-radius: var(--radius-control); background: transparent; display: grid; justify-items: center; align-content: center; gap: 1px; cursor: pointer; }.quick-grid button:hover { background: #e9ede6; }.quick-grid button:active { background: var(--sage); }.quick-grid b { font-size: 12px; }.quick-icon { width: 35px; height: 35px; object-fit: contain; }
@@ -2172,6 +2173,7 @@ html[data-theme="dark"] .trend-summary,
 html[data-theme="dark"] .trend-total-details,
 html[data-theme="dark"] .trend-period-nav,
 html[data-theme="dark"] .pagination,
+html[data-theme="dark"] .prediction-banner,
 html[data-theme="dark"] .calendar-nav button,
 html[data-theme="dark"] .trend-period-nav button,
 html[data-theme="dark"] .filter-field select,
@@ -2191,6 +2193,39 @@ html[data-theme="dark"] .backup-type-tag.auto {
   background: #3a3a3a;
   color: var(--muted);
 }
+html[data-theme="dark"] .prediction-banner.overdue {
+  border-color: #6b4a2e;
+  background: #352618;
+}
+html[data-theme="dark"] .prediction-banner.soon {
+  border-color: #6b5a2e;
+  background: #35301a;
+}
+html[data-theme="dark"] .prediction-banner.overdue .prediction-icon { background: #3d2d1e; color: #e0894a; }
+html[data-theme="dark"] .prediction-banner.soon .prediction-icon { background: #3d3520; color: #d4a84a; }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-label { color: #e0894a; }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-time { color: #e0894a; }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-upcoming-count { background: #3d2d1e; color: #e0894a; }
+html[data-theme="dark"] .prediction-detail {
+  background: var(--surface-subtle);
+  border-top-color: var(--line);
+}
+html[data-theme="dark"] .prediction-upcoming h3 { color: #b4c7ad; }
+html[data-theme="dark"] .prediction-upcoming li {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .prediction-ai-section {
+  background: linear-gradient(135deg, #232d20 0%, #1e281b 100%);
+  border-color: #3a4a36;
+}
+html[data-theme="dark"] .prediction-ai-header { color: #b4c7ad; }
+html[data-theme="dark"] .prediction-ai-summary { color: #e0e8db; }
+html[data-theme="dark"] .prediction-ai-insights li { color: #b4c7ad; }
+html[data-theme="dark"] .prediction-meta { color: var(--muted); }
+html[data-theme="dark"] .confidence-bar { background: var(--line); }
+html[data-theme="dark"] .confidence-fill { background: var(--green); }
+html[data-theme="dark"] .prediction-upcoming-count { background: var(--sage-soft); color: var(--green); }
 html[data-theme="dark"] .import-mode-option {
   background: var(--surface-card);
   color: var(--text-primary);
