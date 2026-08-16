@@ -22,23 +22,145 @@ COMPOSE_CMD=()                  # Compose 命令（docker compose 或 docker-com
 STOPPED_FOR_BACKUP=()           # 备份期间被暂停的容器列表，结束后按此恢复
 OLD_PROJECT_IMAGE_IDS=()        # 部署前记住的旧镜像 ID，新版健康检查通过后再清理
 
-# 终端输出颜色：仅在交互式终端启用；输出重定向到文件时自动禁用，避免日志里出现转义乱码。
+# ===== 终端视觉符号与颜色 =====
+# 仅在交互式终端启用颜色和符号；输出重定向到文件时自动禁用，避免日志乱码。
 if [[ -t 1 ]]; then
-  RED=$'\e[31m'; GREEN=$'\e[32m'; YELLOW=$'\e[33m'; CYAN=$'\e[36m'; BOLD=$'\e[1m'; RESET=$'\e[0m'
+  RED=$'\e[31m'; GREEN=$'\e[32m'; YELLOW=$'\e[33m'; CYAN=$'\e[36m'
+  BOLD=$'\e[1m'; DIM=$'\e[2m'; RESET=$'\e[0m'
+  SYM_CHECK="${GREEN}✓${RESET}"
+  SYM_CROSS="${RED}✗${RESET}"
+  SYM_WARN="${YELLOW}⚠${RESET}"
+  SYM_INFO="${CYAN}ℹ${RESET}"
+  SYM_WAIT="${YELLOW}⏳${RESET}"
 else
-  RED=''; GREEN=''; YELLOW=''; CYAN=''; BOLD=''; RESET=''
+  RED=''; GREEN=''; YELLOW=''; CYAN=''; BOLD=''; DIM=''; RESET=''
+  SYM_CHECK='✓'; SYM_CROSS='✗'; SYM_WARN='⚠'; SYM_INFO='ℹ'; SYM_WAIT='⏳'
 fi
 
-# 输出一行带前缀的提示信息（正常流程信息，前缀青色）。
-info() {
-  printf '\n%s[babycare]%s %s\n' "$CYAN" "$RESET" "$1"
+# ===== 步骤进度追踪 =====
+STEP_CURRENT=0                  # 当前步骤编号
+STEP_TOTAL=0                    # 总步骤数
+STEP_START_TIME=0               # 当前步骤开始时间戳
+TOTAL_START_TIME=0              # 全流程开始时间戳
+
+# 计算当前毫秒级时间戳（兼容 macOS date）。
+_now_ms() {
+  local ns
+  ns="$(date +%s%N 2>/dev/null || echo 0)"
+  if [[ "$ns" == "0" ]]; then
+    echo "$(($(date +%s) * 1000))"
+  else
+    echo $((ns / 1000000))
+  fi
+}
+
+# 格式化耗时：毫秒转 "X.Xs" 或 "Ym X.Xs"。
+_format_duration() {
+  local ms="$1"
+  local seconds=$((ms / 1000))
+  local ms_part=$((ms % 1000))
+  if (( seconds >= 60 )); then
+    local minutes=$((seconds / 60))
+    local secs=$((seconds % 60))
+    printf '%dm %02d.%ds' "$minutes" "$secs" $((ms_part / 100))
+  else
+    printf '%d.%ds' "$seconds" $((ms_part / 100))
+  fi
+}
+
+# 输出带步骤编号的进度行，记录开始时间。
+_step() {
+  local total="$1" current="$2" desc="$3"
+  STEP_TOTAL="$total"
+  STEP_CURRENT="$current"
+  STEP_START_TIME="$(_now_ms)"
+  printf '\n%s[%s]%s %s\n' "$CYAN" "${current}/${total}" "$RESET" "$desc"
+}
+
+# 标记当前步骤完成，显示耗时。
+_step_done() {
+  local end_time elapsed
+  end_time="$(_now_ms)"
+  elapsed=$((end_time - STEP_START_TIME))
+  printf '  %s %s %s\n' "$SYM_CHECK" "完成" "${DIM}($(_format_duration $elapsed))${RESET}"
+}
+
+# 输出成功信息（绿色）。
+success() {
+  printf '  %s %s\n' "$SYM_CHECK" "$1"
+}
+
+# 输出警告信息（黄色）。
+warn() {
+  printf '  %s %s\n' "$SYM_WARN" "$1"
+}
+
+# 输出带耗时的成功步骤。
+_step_ok() {
+  _step_done
+}
+
+# 输出带耗时的失败步骤（继续执行，不终止）。
+_step_fail() {
+  local end_time elapsed
+  end_time="$(_now_ms)"
+  elapsed=$((end_time - STEP_START_TIME))
+  printf '  %s %s %s\n' "$SYM_CROSS" "失败" "${DIM}($(_format_duration $elapsed))${RESET}"
 }
 
 # 输出错误信息（红色）并以非零码退出，终止脚本。
 fail() {
-  printf '\n%s[错误] %s%s\n' "$RED" "$1" "$RESET" >&2
+  printf '\n%s %s%s\n' "$SYM_CROSS" "$RED$1" "$RESET" >&2
   exit 1
 }
+
+# 输出信息提示（青色）。
+info() {
+  printf '%s %s\n' "$SYM_INFO" "$1"
+}
+
+# 输出版本/构建摘要框。
+_summary_box() {
+  local title="$1"; shift
+  local width=56
+  local border
+  border="$(printf '%0.s═' $(seq 1 $((width - 2))))"
+  printf '\n%s╔%s╗%s\n' "$BOLD" "$border" "$RESET"
+  printf '%s║ %-*s ║%s\n' "$BOLD" "$((width - 4))" "$title" "$RESET"
+  printf '%s╠%s╣%s\n' "$BOLD" "$border" "$RESET"
+  local line
+  for line in "$@"; do
+    printf ' ║ %s\n' "$line"
+  done
+  printf '%s╚%s╝%s\n' "$BOLD" "$border" "$RESET"
+}
+
+# 输出完成摘要：总耗时和关键信息。
+show_completion_summary() {
+  local end_time elapsed
+  end_time="$(_now_ms)"
+  elapsed=$((end_time - TOTAL_START_TIME))
+  _summary_box "✅ 部署完成 · 总耗时 $(_format_duration $elapsed)" \
+    "  容器: ${CONTAINER_NAME}" \
+    "  端口: ${HOST_PORT}" \
+    "  数据: ${DATA_DIR}" \
+    "  备份: ${BACKUP_DIR}"
+}
+
+# 输出访问链接框。
+show_access_link() {
+  local server_ip
+  server_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  server_ip="${server_ip:-你的-Unraid-IP}"
+  local width=56
+  local border
+  border="$(printf '%0.s═' $(seq 1 $((width - 2))))"
+  printf '%s╔%s╗%s\n' "$BOLD" "$border" "$RESET"
+  printf ' ║  访问地址: http://%s:%s\n' "$server_ip" "$HOST_PORT"
+  printf '%s╚%s╝%s\n' "$BOLD" "$border" "$RESET"
+}
+
+# ===== 核心函数 =====
 
 # 从 .env 读取单个配置值，不执行文件中的任何命令。
 read_env_value() {
@@ -96,7 +218,7 @@ HOST_PORT=${DEFAULT_HOST_PORT}
 DATA_DIR=${DEFAULT_DATA_DIR}
 COOKIE_SECURE=false
 EOF
-    info "已生成环境配置 ${ENV_FILE}，文件权限仅允许当前用户访问。"
+    success "已生成环境配置 ${ENV_FILE}，文件权限仅允许当前用户访问。"
   else
     chmod 600 "$ENV_FILE"
   fi
@@ -126,9 +248,18 @@ load_config() {
 
 # 三步初始化：检查运行环境 → 准备 .env → 校验配置，所有子命令的公共入口。
 initialize() {
+  TOTAL_START_TIME="$(_now_ms)"
+  _step 3 1 "检查运行环境"
   prepare_runtime
+  _step_ok
+
+  _step 3 2 "准备环境配置"
   ensure_env
+  _step_ok
+
+  _step 3 3 "校验配置"
   load_config
+  _step_ok
 }
 
 # 备份时停止所有已知的本项目容器，完成后恢复原运行状态。
@@ -159,6 +290,7 @@ perform_backup() {
   initialize
   [[ -d "$DATA_DIR" ]] || fail "数据目录不存在：${DATA_DIR}"
 
+  _step 4 1 "备份前停止服务"
   STOPPED_FOR_BACKUP=()
   local name
   for name in "$CONTAINER_NAME" "${LEGACY_CONTAINERS[@]}"; do
@@ -167,30 +299,37 @@ perform_backup() {
   while IFS= read -r name; do
     [[ -n "$name" ]] && stop_for_backup "$name"
   done < <(docker ps -a --filter "label=com.docker.compose.project.working_dir=${SCRIPT_DIR}" --format '{{.Names}}')
-  # 兜底：无论备份正常结束、失败退出还是收到 Ctrl+C/终止信号，都恢复容器运行。
   trap restart_after_backup EXIT
   trap 'exit 130' INT TERM
+  _step_ok
 
+  _step 4 2 "打包数据与配置"
   mkdir -p "$BACKUP_DIR"
   chmod 750 "$BACKUP_DIR"
   local timestamp archive
   timestamp="$(date '+%Y%m%d-%H%M%S')"
   archive="${BACKUP_DIR}/babycare-website-${timestamp}.tar.gz"
 
-  # 两段 -C 分别切换目录：先打包整个数据目录（含数据库名），再打包项目里的 .env 和 Compose 配置。
   if ! tar -czf "$archive" \
     -C "$(dirname "$DATA_DIR")" "$(basename "$DATA_DIR")" \
     -C "$SCRIPT_DIR" .env docker-compose.yml; then
     restart_after_backup
     trap - EXIT INT TERM
+    _step_fail
     fail "备份失败，原服务已尝试恢复。"
   fi
   chmod 600 "$archive"
+  _step_ok
+
+  _step 4 3 "恢复服务"
   restart_after_backup
   trap - EXIT INT TERM
+  _step_ok
 
-  info "${GREEN}备份完成：${archive}${RESET}"
-  printf '备份内容：完整数据库目录、环境配置和 Compose 配置。\n'
+  _step 4 4 "完成"
+  _summary_box "✅ 备份完成" \
+    "  文件: ${archive}" \
+    "  内容: 数据库目录 + .env + docker-compose.yml"
 }
 
 # 记住部署前本项目正在使用的镜像，新版健康后再精确清理。
@@ -226,13 +365,13 @@ cleanup_previous_project_images() {
     docker image inspect "$old_image" >/dev/null 2>&1 || continue
     used_by="$(docker ps -aq --filter "ancestor=${old_image}")"
     if [[ -n "$used_by" ]]; then
-      printf '%s保留仍被其他容器使用的旧镜像：%s%s\n' "$YELLOW" "$old_image" "$RESET"
+      warn "保留仍被其他容器使用的旧镜像：${old_image}"
       continue
     fi
     if docker image rm "$old_image" >/dev/null 2>&1; then
-      printf '%s已删除本项目上一版旧镜像：%s%s\n' "$GREEN" "$old_image" "$RESET"
+      success "已删除本项目上一版旧镜像：${old_image}"
     else
-      printf '%s警告：旧镜像 %s 暂时无法删除，不影响新版运行。%s\n' "$YELLOW" "$old_image" "$RESET" >&2
+      warn "旧镜像 ${old_image} 暂时无法删除，不影响新版运行。"
     fi
   done
 }
@@ -246,7 +385,7 @@ remove_project_containers() {
   for name in "$CONTAINER_NAME" "${LEGACY_CONTAINERS[@]}"; do
     if docker inspect "$name" >/dev/null 2>&1; then
       if docker rm -f "$name" >/dev/null 2>&1; then
-        printf '%s已删除旧容器：%s%s\n' "$GREEN" "$name" "$RESET"
+        success "已删除旧容器：${name}"
       elif docker inspect "$name" >/dev/null 2>&1; then
         fail "无法删除旧容器：${name}"
       fi
@@ -259,8 +398,14 @@ remove_project_containers() {
   done < <(docker ps -aq --filter "label=com.docker.compose.project.working_dir=${SCRIPT_DIR}")
   if (( ${#project_ids[@]} > 0 )); then
     docker rm -f "${project_ids[@]}" >/dev/null
-    printf '%s已删除同一项目目录产生的孤立容器。%s\n' "$GREEN" "$RESET"
+    success "已删除同一项目目录产生的孤立容器。"
   fi
+}
+
+# 打印健康检查进度行（不换行），通过覆盖同一行更新状态。
+_health_status() {
+  local attempt="$1" max="$2" status="$3"
+  printf '\r  %s 健康检查 [%02d/%02d] %s' "$SYM_WAIT" "$attempt" "$max" "$status"
 }
 
 # 部署全流程：预备份 → 准备目录 → 清理旧容器 → 构建镜像 → 启动 → 健康检查 → 清理旧镜像。
@@ -271,28 +416,34 @@ perform_deploy() {
   if [[ "${BABYCARE_SKIP_BACKUP:-false}" != "true" && -d "$DATA_DIR" ]] \
     && find "$DATA_DIR" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
     perform_backup
+    TOTAL_START_TIME="$(_now_ms)"  # 重置计时，排除备份耗时
   fi
 
+  _step 6 1 "准备数据目录"
   mkdir -p "$DATA_DIR" "$DATA_DIR/uploads/avatars" "$BACKUP_DIR"
-  # 1000:1000 与容器内运行用户的 UID/GID 一致，保证数据库和头像目录可读写。
   chown -R 1000:1000 "$DATA_DIR" "$BACKUP_DIR" 2>/dev/null || true
   chmod 750 "$DATA_DIR" "$DATA_DIR/uploads" "$DATA_DIR/uploads/avatars" "$BACKUP_DIR" 2>/dev/null || true
+  _step_ok
 
-  info "校验 Compose 配置。"
+  _step 6 2 "校验 Compose 配置"
   compose config --quiet
+  _step_ok
+
+  _step 6 3 "清理旧容器"
   remember_project_images
   remove_project_containers
-
   if command -v nc >/dev/null 2>&1 && nc -z 127.0.0.1 "$HOST_PORT" >/dev/null 2>&1; then
     fail "端口 ${HOST_PORT} 已被其他服务占用，请修改 .env 中的 HOST_PORT。"
   fi
+  _step_ok
 
-  info "构建 ${PROJECT_NAME} 镜像。"
+  _step 6 4 "构建镜像"
   compose build --pull "$SERVICE_NAME"
-  info "创建唯一的 ${CONTAINER_NAME} 容器。"
+  _step_ok
+
+  _step 6 5 "启动服务"
   compose up -d --remove-orphans "$SERVICE_NAME"
 
-  info "检查前端文件、网页首页和后端接口。"
   # 健康检查：最多重试 30 次、每次间隔 2 秒（约 60 秒）。
   # 三项全过才算健康：容器内前端产物存在、首页可访问、/api/health 返回正常。
   local healthy="false"
@@ -308,18 +459,21 @@ perform_deploy() {
   done
 
   if [[ "$healthy" != "true" ]]; then
+    printf '\n'
     compose logs --tail=120 "$SERVICE_NAME" >&2 || true
+    _step_fail
     fail "服务在 60 秒内未通过完整健康检查。"
   fi
+  printf '\r  %s 健康检查 [%02d/30] 通过       \n' "$SYM_CHECK" "$attempt"
+  _step_ok
 
+  _step 6 6 "清理旧镜像"
   cleanup_previous_project_images
-
-  local server_ip
-  server_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
-  server_ip="${server_ip:-你的-Unraid-IP}"
   compose ps
-  info "${GREEN}部署完成。${RESET}"
-  printf '访问地址：http://%s:%s\n' "$server_ip" "$HOST_PORT"
+  _step_ok
+
+  show_completion_summary
+  show_access_link
 }
 
 # 更新流程：先备份 → 校验 Git 工作区干净 → 拉取 main 最新代码 → 用新脚本重新部署。
@@ -332,9 +486,11 @@ perform_update() {
   [[ -z "$(git -C "$SCRIPT_DIR" status --porcelain --untracked-files=no)" ]] \
     || fail "仓库存在未提交修改，请先处理后再更新。"
 
-  info "从 GitHub 拉取 main 分支最新代码。"
+  _step 2 1 "拉取最新代码"
   git -C "$SCRIPT_DIR" pull --ff-only origin main
-  info "使用更新后的脚本重新部署。"
+  _step_ok
+
+  _step 2 2 "重新部署"
   # exec 替换当前进程运行新脚本；刚已备份过，用环境变量跳过 deploy 里的重复备份。
   BABYCARE_SKIP_BACKUP=true exec "${SCRIPT_DIR}/babycare.sh" deploy
 }
@@ -357,27 +513,34 @@ show_logs() {
 stop_service() {
   initialize
   compose stop "$SERVICE_NAME"
-  info "服务已停止。"
+  success "服务已停止。"
 }
 
 # 启动已停止的服务容器。
 start_service() {
   initialize
   compose up -d "$SERVICE_NAME"
-  info "服务已启动。"
+  success "服务已启动。"
 }
 
 # 无参数运行时的中文交互菜单。
 show_menu() {
-  printf '\nbabycare管理\n\n'
-  printf '1. 首次部署或重新构建\n'
-  printf '2. 更新到 GitHub 最新版本\n'
-  printf '3. 备份数据\n'
-  printf '4. 查看运行状态\n'
-  printf '5. 查看实时日志\n'
-  printf '6. 停止服务\n'
-  printf '7. 启动服务\n'
-  printf '0. 退出\n\n'
+  local width=42
+  local border
+  border="$(printf '%0.s═' $(seq 1 $((width - 2))))"
+  printf '\n%s╔%s╗%s\n' "$BOLD" "$border" "$RESET"
+  printf '%s║  babycare 管理中心%*s ║%s\n' "$BOLD" $((width - 18)) "" "$RESET"
+  printf '%s╠%s╣%s\n' "$BOLD" "$border" "$RESET"
+  printf ' ║  1. 首次部署或重新构建\n'
+  printf ' ║  2. 更新到 GitHub 最新版本\n'
+  printf ' ║  3. 备份数据\n'
+  printf ' ║  4. 查看运行状态\n'
+  printf ' ║  5. 查看实时日志\n'
+  printf ' ║  6. 停止服务\n'
+  printf ' ║  7. 启动服务\n'
+  printf ' ║  0. 退出\n'
+  printf '%s╚%s╝%s\n' "$BOLD" "$border" "$RESET"
+  printf '\n'
   read -r -p '请选择操作：' selection
   case "$selection" in
     1) perform_deploy ;;
@@ -394,16 +557,22 @@ show_menu() {
 
 # 显示命令行帮助（./babycare.sh help）。
 show_help() {
-  printf '\n%sbabycare管理命令%s\n\n' "$BOLD" "$RESET"
-  printf '  ./babycare.sh deploy   首次部署或重新构建\n'
-  printf '  ./babycare.sh update   备份后更新到 GitHub 最新版本\n'
-  printf '  ./babycare.sh backup   备份数据和环境配置\n'
-  printf '  ./babycare.sh status   查看容器运行状态\n'
-  printf '  ./babycare.sh logs     查看实时日志\n'
-  printf '  ./babycare.sh stop     停止服务\n'
-  printf '  ./babycare.sh start    启动服务\n'
-  printf '  ./babycare.sh help     显示本帮助\n\n'
-  printf '无参数运行 ./babycare.sh 可打开中文菜单。\n'
+  local width=52
+  local border
+  border="$(printf '%0.s═' $(seq 1 $((width - 2))))"
+  printf '\n%s╔%s╗%s\n' "$BOLD" "$border" "$RESET"
+  printf '%s║  babycare 管理命令%*s ║%s\n' "$BOLD" $((width - 18)) "" "$RESET"
+  printf '%s╠%s╣%s\n' "$BOLD" "$border" "$RESET"
+  printf ' ║  ./babycare.sh deploy   首次部署或重新构建\n'
+  printf ' ║  ./babycare.sh update   备份后更新到最新版本\n'
+  printf ' ║  ./babycare.sh backup   备份数据和环境配置\n'
+  printf ' ║  ./babycare.sh status   查看容器运行状态\n'
+  printf ' ║  ./babycare.sh logs     查看实时日志\n'
+  printf ' ║  ./babycare.sh stop     停止服务\n'
+  printf ' ║  ./babycare.sh start    启动服务\n'
+  printf ' ║  ./babycare.sh help     显示本帮助\n'
+  printf '%s╚%s╝%s\n' "$BOLD" "$border" "$RESET"
+  printf '\n无参数运行 ./babycare.sh 可打开中文菜单。\n'
 }
 
 # 命令分发：无参数进入菜单；每个命令同时支持英文原名和中文别名。
