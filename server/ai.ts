@@ -141,6 +141,82 @@ export function growthEvaluationMessages(input: GrowthEvaluationInput): { role: 
   ];
 }
 
+export interface FeedingInsightsInput {
+  babyName: string;
+  ageText: string;
+  sex: BabySex;
+  prediction: {
+    available: boolean;
+    gapMinutes: number | null;
+    volumeMl: number | null;
+    confidence: number;
+    nextFeedAt: string | null;
+    upcomingFeeds: { predictedAt: string; earliest: string; latest: string; estimatedMl: number | null; period: string }[];
+    periodGaps: { period: string; count: number; medianMinutes: number | null }[];
+    periodVolumes: { period: string; count: number; medianMl: number | null }[];
+    overallMedianGapMinutes: number | null;
+    dataDays: number;
+    dataFeeds: number;
+  };
+  recentFeedings: { occurredAt: string; breastMilkMl: number | null; formulaMl: number | null; note?: string }[];
+}
+
+const feedingInsightsSchema = z.object({
+  summary: z.string().trim().min(1).max(80),
+  insights: z.array(z.string().trim().min(1).max(40)).min(1).max(3),
+  alert: z.enum(['none', 'pattern_change', 'low_confidence', 'growth_spurt']).default('none')
+});
+
+export function feedingInsightsMessages(input: FeedingInsightsInput): { role: 'system' | 'user'; content: string }[] {
+  const sexLabel = input.sex === 'male' ? '男宝宝' : input.sex === 'female' ? '女宝宝' : '宝宝';
+  const periodLabelMap: Record<string, string> = { night: '凌晨', earlyMorning: '清晨', morning: '上午', midday: '中午', afternoon: '下午', evening: '晚上' };
+  const periodGapsText = input.prediction.periodGaps.map(g => `${periodLabelMap[g.period] || g.period} ${g.count}次 中位${g.medianMinutes ? Math.round(g.medianMinutes) + '分钟' : '无数据'}`).join('；');
+  const periodVolsText = input.prediction.periodVolumes.map(v => `${periodLabelMap[v.period] || v.period} ${v.count}次 中位${v.medianMl ? Math.round(v.medianMl) + 'mL' : '无数据'}`).join('；');
+  const recentText = input.recentFeedings.slice(-7).map(f => {
+    const time = new Date(f.occurredAt).toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' });
+    const ml = (f.breastMilkMl || 0) + (f.formulaMl || 0);
+    return `${time} ${ml}mL${f.note ? ' 备注:' + f.note : ''}`;
+  }).join('；');
+  return [
+    {
+      role: 'system',
+      content: '你是有儿科保健知识的资深育儿助手，根据宝宝的历史喂奶数据和预测结果，为父母提供简明的喂养洞察。只输出 JSON：{"summary":"…","insights":["…"],"alert":"none|pattern_change|low_confidence|growth_spurt"}。\n\n【summary】≤40字，一句话说清喂奶模式的核心特征，如"喂奶间隔稳定在3小时，节奏良好"或"下午奶量偏少，注意观察"。\n\n【insights】1~3条，每条≤20字，具体行动建议或观察要点，如"下午时段可适当提前喂奶"、"注意监测尿量判断奶量是否充足"。\n\n【alert】可选值：\n- none：无异常\n- pattern_change：近期喂养模式有明显变化\n- low_confidence：数据不足，预测仅供参考\n- growth_spurt：奶量或频率呈增加趋势，可能处于猛长期\n\n【红线】\n1. 不做医疗诊断，异常时用"建议观察，必要时咨询儿科医生"\n2. 不编造输入中没有的事实\n3. 语气温和，不制造焦虑\n4. 结合月龄给出适龄建议\n\n只输出 JSON，不要解释或 Markdown。'
+    },
+    {
+      role: 'user',
+      content: JSON.stringify({
+        baby: { name: input.babyName, age: input.ageText, sex: sexLabel },
+        prediction: {
+          gapMinutes: input.prediction.gapMinutes ? Math.round(input.prediction.gapMinutes) : null,
+          gapHours: input.prediction.gapMinutes ? Math.round(input.prediction.gapMinutes / 60 * 10) / 10 : null,
+          volumeMl: input.prediction.volumeMl ? Math.round(input.prediction.volumeMl) : null,
+          confidence: Math.round(input.prediction.confidence * 100) + '%',
+          nextFeed: input.prediction.nextFeedAt ? new Date(input.prediction.nextFeedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : null,
+          upcomingFeeds: input.prediction.upcomingFeeds.map(f => ({
+            at: new Date(f.predictedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
+            earliest: new Date(f.earliest).toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' }),
+            latest: new Date(f.latest).toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' }),
+            estimatedMl: f.estimatedMl ? Math.round(f.estimatedMl) : null,
+            period: periodLabelMap[f.period] || f.period
+          })),
+          periodGaps: periodGapsText,
+          periodVolumes: periodVolsText,
+          overallMedianGap: input.prediction.overallMedianGapMinutes ? Math.round(input.prediction.overallMedianGapMinutes / 60 * 10) / 10 + '小时' : null,
+          dataDays: input.prediction.dataDays,
+          dataFeeds: input.prediction.dataFeeds
+        },
+        recentFeedings: recentText
+      })
+    }
+  ];
+}
+
+export async function generateFeedingInsights(input: FeedingInsightsInput, settings: ModelSettings): Promise<{ summary: string; insights: string[]; alert: 'none' | 'pattern_change' | 'low_confidence' | 'growth_spurt' }> {
+  const content = await requestCompletion(settings, feedingInsightsMessages(input), 400);
+  const parsedJson = JSON.parse(content) as unknown;
+  return feedingInsightsSchema.parse(parsedJson);
+}
+
 export async function generateGrowthEvaluation(input: GrowthEvaluationInput, settings: ModelSettings): Promise<{ evaluation: string }> {
   const content = await requestCompletion(settings, growthEvaluationMessages(input), 120);
   const parsedJson = JSON.parse(content) as unknown;
