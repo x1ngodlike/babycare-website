@@ -104,16 +104,15 @@ export default function FeedingRhythmChart({ records, mode, weekStarts }: { reco
     }));
   }, [points, mode, width]);
   return <section className="chart-card rhythm-card"><div className="section-title"><h2>{chartTitle}</h2>{mode === 'seven' && <div className="legend rhythm-legend"><i className="day-dot" />白天<i className="night-dot" />夜间</div>}</div>
-    {mode === 'seven' && hasData && <p className="rhythm-caption">3 天内 {points.length + 1} 次喂奶 · 夜间 {nightCount} 次</p>}
+    {mode === 'seven' && hasData && <p className="rhythm-caption">3 天内 {points.length + 1} 次喂奶 · 夜间 {nightCount} 次 · 平均 {avgGapHours.toFixed(1)}h</p>}
     {!hasData ? <div className="rhythm-empty">喂奶记录不足，暂无法计算间隔</div> : mode === 'seven' ? <div className="rhythm-chart" role="img" aria-label={`最近三天喂奶节奏散点图，共 ${points.length} 个间隔点，夜间 ${nightCount} 次`} ref={chartRef}>
       {width >= 20 && <svg width={width} height={height} aria-hidden="true">
         {hourLines.map(hour => <line key={hour} className={`rhythm-grid ${hour === refHours && refHours >= yMin && refHours <= yMax ? 'ref' : ''}`} x1={0} x2={width} y1={yFor(hour)} y2={yFor(hour)} />)}
         <polyline className="rhythm-line" points={points.map(point => `${xFor(point.at)},${yFor(point.gapHours)}`).join(' ')} />
         {points.map((point, index) => <circle key={index} className={`rhythm-dot ${point.night ? 'night' : ''}`} cx={xFor(point.at)} cy={yFor(point.gapHours)} r={DOT_RADIUS} />)}
-        {mode === 'seven' && hasData && refHours >= yMin && refHours <= yMax && <text className="rhythm-ref-label" x={width - 4} y={yFor(refHours) - 2} textAnchor="end">平均 {avgGapHours.toFixed(1)}h</text>}
       </svg>}
       <div className="rhythm-axis">{axisLabels.map(({ hour, top }) => <span key={hour} style={{ top: `${top}px` }}>{hour}h</span>)}</div>
     </div> : <div className="chart-values rhythm-values">{[...buckets].reverse().map(item => <div key={item.start.getTime()}><time>{mode === 'month' ? `${item.label} 起` : item.label}</time><span>{item.count ? `平均间隔 ${item.value.toFixed(1)} 小时（${item.count} 次）` : '无数据'}</span></div>)}</div>}
-    {mode === 'seven' && hasData && <div className="rhythm-x-axis" style={{ marginLeft: '30px', marginRight: '24px' }}>{dateLabels.map(label => <span key={label.key} style={{ left: `${label.x}px` }}>{label.label}</span>)}</div>}
+    {mode === 'seven' && hasData && <div className="rhythm-x-axis" style={{ marginLeft: '18px', marginRight: '12px' }}>{dateLabels.map(label => <span key={label.key} style={{ left: `${label.x}px` }}>{label.label}</span>)}</div>}
   </section>;
 }
