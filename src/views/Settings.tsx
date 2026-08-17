@@ -3,7 +3,7 @@ import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 import { Baby, Bell, Bot, LogOut, Monitor, Pill, RefreshCw, Save, Send, Server, Syringe, Users } from 'lucide-react';
 import { api, ApiError } from '../api';
 import { isoDay } from '../date';
-import { isCareItemDue, nextCareItemDueDate, careItemCourseRemaining, careItemCourseCompleted, getCareItemReminderTimes } from '../careSchedule';
+import { isCareItemDue, nextCareItemDueDate, getCareItemReminderTimes } from '../careSchedule';
 import { cacheProfile } from '../offline';
 import { ActionMenu, confirmAction, SegmentedControl, Switch, useDialogFocus } from '../ui';
 import { DateField, TimeField } from '../DateField';
@@ -429,8 +429,6 @@ function careItemHomeStatus(item: CareItem) {
   if (item.scheduleType === 'as_needed') return '按需 · 手动添加';
   const due = isCareItemDue(item);
   const reminders = getCareItemReminderTimes(item);
-  const courseRemaining = careItemCourseRemaining(item);
-  const courseDone = careItemCourseCompleted(item);
   const timeLabel = reminders.length > 0 ? reminders.join(' · ') : (item.reminderTime || '');
   const scheduleLabel = item.scheduleType === 'weekly' && item.weekDays
     ? `每 ${[...item.weekDays].sort((a, b) => a === 0 ? 1 : b === 0 ? -1 : a - b).map(d => ['日','一','二','三','四','五','六'][d]).join('、')}`
@@ -438,15 +436,12 @@ function careItemHomeStatus(item: CareItem) {
     ? `循环 ${item.patternDays.filter(Boolean).length}休${item.patternDays.filter(v => !v).length}`
     : item.scheduleType === 'interval' ? `每 ${item.intervalDays} 天`
     : item.scheduleType === 'daily' ? '每天' : '';
-  const courseLabel = courseRemaining !== null
-    ? courseDone ? '疗程已完成' : `第 ${(item.courseDays! - courseRemaining + 1)} 天，剩 ${courseRemaining} 天`
-    : '';
   const timePart = timeLabel ? `今日 ${timeLabel}` : '今日';
-  if (due) return `${timePart}${scheduleLabel ? ` · ${scheduleLabel}` : ''}${courseLabel ? ` · ${courseLabel}` : ''}`;
+  if (due) return `${timePart}${scheduleLabel ? ` · ${scheduleLabel}` : ''}`;
   const nextDue = nextCareItemDueDate(item);
   if (!nextDue) return '计划已结束';
   const dateLabel = new Date(`${nextDue}T12:00:00`).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
-  return `${dateLabel} · 不显示`;
+  return `${dateLabel} ${scheduleLabel ? '· ' + scheduleLabel : ''}`;
 }
 
 function CareAdherenceCard() {
