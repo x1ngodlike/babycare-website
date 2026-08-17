@@ -433,7 +433,7 @@ function careItemHomeStatus(item: CareItem) {
   const courseDone = careItemCourseCompleted(item);
   const timeLabel = reminders.length > 0 ? reminders.join(' · ') : (item.reminderTime || '');
   const scheduleLabel = item.scheduleType === 'weekly' && item.weekDays
-    ? `每 ${item.weekDays.map(d => ['日','一','二','三','四','五','六'][d]).join('、')}`
+    ? `每 ${[...item.weekDays].sort((a, b) => a === 0 ? 1 : b === 0 ? -1 : a - b).map(d => ['日','一','二','三','四','五','六'][d]).join('、')}`
     : item.scheduleType === 'pattern' && item.patternDays
     ? `循环 ${item.patternDays.filter(Boolean).length}休${item.patternDays.filter(v => !v).length}`
     : item.scheduleType === 'interval' ? `每 ${item.intervalDays} 天`
