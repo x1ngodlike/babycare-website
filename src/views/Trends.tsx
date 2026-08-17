@@ -29,11 +29,13 @@ function avgFeedingGapHours(items: CareRecord[]): number | null {
 export default function TrendsView({ records }: { records: CareRecord[] }) {
   const [mode, setMode] = useState<TrendMode>('seven');
   const [selectedMonth, setSelectedMonth] = useState(() => { const value = new Date(); return new Date(value.getFullYear(), value.getMonth(), 1); });
+  const [selectedDay, setSelectedDay] = useState(() => new Date());
+  const selectedIso = isoDay(selectedDay);
   const now = new Date();
   const todayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const todayMonthKey = `${todayMonth.getFullYear()}-${todayMonth.getMonth()}`;
   const todayIso = isoDay(now);
-  const sevenDays = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(now, index - 6)), [todayIso]);
+  const sevenDays = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(selectedDay, index - 6)), [selectedIso]);
   const [todayYear, todayMon] = todayMonthKey.split('-').map(Number);
   const aggregated = useMemo(() => {
     // ===== 七日：按天生成图表 buckets =====
@@ -61,8 +63,9 @@ export default function TrendsView({ records }: { records: CareRecord[] }) {
 
     // ===== 汇总统计：严格按语义化时间范围（与图表 buckets 解耦） =====
     // 日均统计排除今天（今日未完成不可作为完整日均值分母），仅用于汇总行；图表 buckets 仍保留今天的数据条
-    // 七日：昨天往前 7 天（共 7 个完整自然日）
-    const sevenCompleteIsoSet = new Set(Array.from({ length: 7 }, (_, index) => isoDay(addDays(now, index - 7))));
+    // 七日：未切换（锚定日＝今天）时取昨天往前 7 天（共 7 个完整自然日）；翻到历史日则取整个 7 天窗口
+    const isSevenToday = selectedIso === todayIso;
+    const sevenCompleteIsoSet = new Set(Array.from({ length: 7 }, (_, index) => isoDay(addDays(selectedDay, index - (isSevenToday ? 7 : 6)))));
     const sevenCompleteRecords = records.filter(r => sevenCompleteIsoSet.has(isoDay(new Date(r.occurredAt))));
     const sevenSummary = summarizeTrendRecords(sevenCompleteRecords);
     const sevenActiveDays = new Set(sevenCompleteRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
@@ -93,7 +96,7 @@ export default function TrendsView({ records }: { records: CareRecord[] }) {
       monthGap: avgFeedingGapHours(monthRecords),
       totalGap: avgFeedingGapHours(totalRecords),
     };
-  }, [records, sevenDays, selectedMonth, todayYear, todayMon, todayIso]);
+  }, [records, sevenDays, selectedMonth, todayYear, todayMon, todayIso, selectedIso]);
   const buckets = mode === 'seven' ? aggregated.sevenData : mode === 'month' ? aggregated.monthData : aggregated.totalData.slice(-6);
   // 节奏图时间桶：与奶量图共用 buckets（月=周桶起始；总=月桶起始，节奏图内按整月聚合）
   const weekStarts = mode === 'month' ? aggregated.monthData.map(bucket => new Date(`${bucket.key}T00:00:00`)) : mode === 'total' ? aggregated.totalData.slice(-6).map(bucket => { const [year, month] = bucket.key.split('-').map(Number); return new Date(year, month - 1, 1); }) : [];
@@ -108,10 +111,14 @@ export default function TrendsView({ records }: { records: CareRecord[] }) {
   const chartTitle = mode === 'seven' ? '每日奶量' : mode === 'month' ? '每周奶量' : '最近六个月奶量';
   const detailLabel = mode === 'seven' ? '查看每日数据' : mode === 'month' ? '查看每周数据' : '查看每月数据';
   const totalLabel = mode === 'seven' ? '七日总奶量' : mode === 'month' ? '本月总奶量' : '累计总奶量';
-  const description = mode === 'seven' ? '最近七天数据，图表按时间顺序展示。' : mode === 'month' ? '月度汇总按自然月；每周奶量按周一至周日，跨月周按完整周统计。' : '汇总开始记录至今的全部照护数据。';
+  const description = mode === 'seven' ? '最近七天数据，图表按天展示；点上方箭头可切换查看其他日期。' : mode === 'month' ? '月度汇总按自然月；每周奶量按周一至周日，跨月周按完整周统计。' : '汇总开始记录至今的全部照护数据。';
+  const sevenRangeLabel = `${sevenDays[0].toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} – ${sevenDays[6].toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}`;
+  const canShiftForward = selectedIso < todayIso;
+  const shiftDay = (offset: number) => setSelectedDay(value => addDays(value, offset));
   const shiftMonth = (offset: number) => setSelectedMonth(value => new Date(value.getFullYear(), value.getMonth() + offset, 1));
   return <div className="page-stack trends-page"><header className="page-head"><h1>趋势统计</h1><p>{description}</p></header>
     <SegmentedControl<TrendMode> className="trend-tabs" label="趋势统计范围" value={mode} options={[{ value: 'seven', label: '七日' }, { value: 'month', label: '月数据' }, { value: 'total', label: '总数据' }]} onChange={setMode} />
+    {mode === 'seven' && <div className="trend-period-nav"><button type="button" onClick={() => shiftDay(-1)} aria-label="往前一天">‹</button><strong>{sevenRangeLabel}</strong><button type="button" onClick={() => shiftDay(1)} disabled={!canShiftForward} aria-label="往后一天">›</button></div>}
     {mode === 'month' && <div className="trend-period-nav"><button onClick={() => shiftMonth(-1)} aria-label="上一个月">‹</button><strong>{selectedMonth.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</strong><button onClick={() => shiftMonth(1)} disabled={selectedMonth >= todayMonth} aria-label="下一个月">›</button></div>}
     <section className="trend-summary"><div><span>{totalLabel}</span><strong>{totalMilk}</strong><small>mL</small></div><div><span>喂奶日均</span><strong>{activeDays ? Math.round(totalMilk / activeDays) : 0}</strong><small>mL</small></div><div><span>喂奶间隔</span><strong>{scopeGap === null ? '—' : scopeGap.toFixed(1)}</strong><small>小时</small></div></section>
     {mode === 'total' && <section className="trend-total-details" aria-label="累计分类数据"><div><span>母乳</span><b>{activeSummary.breast}</b><small>mL</small></div><div><span>奶粉</span><b>{activeSummary.formula}</b><small>mL</small></div><div><span>排便</span><b>{activeSummary.bowel}</b><small>次</small></div><div><span>用药</span><b>{activeSummary.supplements}</b><small>次</small></div></section>}
