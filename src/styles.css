@@ -2548,6 +2548,8 @@ html[data-theme="dark"] .meta-icon-btn {
 }
 html[data-theme="dark"] .meta-icon-btn.selected {
   background: var(--sage-soft);
+  border: 2px solid var(--green-deep);
+  box-shadow: 0 0 0 3px rgba(34,197,94,.25);
 }
 html[data-theme="dark"] .time-empty-state {
   background: var(--surface-subtle);
@@ -2783,6 +2785,15 @@ html[data-theme="dark"] .care-item-info:hover .care-item-edit-hint {
 html[data-theme="dark"] .care-item-group > h3 {
   color: var(--green-deep);
 }
+html[data-theme="dark"] .adherence-item {
+  background: var(--surface-card);
+}
+html[data-theme="dark"] .adherence-bar {
+  background: var(--surface-muted);
+}
+html[data-theme="dark"] .adherence-header b {
+  color: var(--ink);
+}
 
 /* Dark mode overrides for bar track */
 html[data-theme="dark"] .bar-track {
@@ -2802,6 +2813,7 @@ html[data-theme="dark"] .vaccine-kind.self_paid {
 /* Dark mode overrides for input fields */
 html[data-theme="dark"] input[type="text"],
 html[data-theme="dark"] input[type="number"],
+html[data-theme="dark"] input[type="time"],
 html[data-theme="dark"] input:not([type]),
 html[data-theme="dark"] textarea,
 html[data-theme="dark"] select {
@@ -2812,6 +2824,10 @@ html[data-theme="dark"] select {
 html[data-theme="dark"] input::placeholder,
 html[data-theme="dark"] textarea::placeholder {
   color: var(--muted);
+}
+html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: .6;
 }
 
 /* Dark mode overrides for buttons */
