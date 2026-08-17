@@ -21,8 +21,9 @@ import { formatTimeShort } from '../shared/feeding-prediction';
 const TrendsView = lazy(() => import('./views/Trends'));
 const ArchiveView = lazy(() => import('./views/Archive'));
 const SettingsView = lazy(() => import('./views/Settings'));
+const ChatView = lazy(() => import('./views/Chat'));
 
-type Tab = 'today' | 'history' | 'trends' | 'archive' | 'settings';
+type Tab = 'today' | 'history' | 'chat' | 'trends' | 'archive' | 'settings';
 type ChangeScope = 'records' | 'profile' | 'all';
 type ToastState = { message: string; actionLabel?: string; onAction?: () => void | Promise<void> };
 
@@ -769,12 +770,27 @@ export default function App() {
       <Suspense fallback={null}>
       {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} allowReportAutoOpen={!editor && !growthEditor && !vaccineEditor && !auditRecord} weeklyGrowth={weeklyGrowth} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} onOpenSettings={() => setTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
       {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} profile={profile} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} />}
+      {tab === 'chat' && <ChatView user={currentUser} capabilities={capabilities} online={online} />}
       {tab === 'trends' && <TrendsView records={records} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
       {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
       </Suspense>
     </main>
-    <nav className="app-nav" aria-label="主要导航">{([['today', '/icons/nav-today.png', '今日'], ['history', '/icons/nav-records.png', '记录']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'history' ? 'nav-icon-records' : undefined} src={icon} alt="" /><b>{label}</b></button>)}<button className="nav-add" onClick={() => historyMode === 'vaccine' && tab === 'history' ? setVaccineEditor({ mode: 'add' }) : setEditor(blankDraft())} aria-label={historyMode === 'vaccine' && tab === 'history' ? '添加疫苗记录' : '添加照护记录'}><span aria-hidden="true">＋</span></button>{([['trends', '/icons/nav-trends.png', '趋势'], ['archive', '/icons/nav-archive.png', '档案']] as [Tab, string, string][]).map(([value, icon, label]) => <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><img className={value === 'archive' ? 'nav-icon-archive' : undefined} src={icon} alt="" /><b>{label}</b></button>)}</nav>
+    <nav className="app-nav" aria-label="主要导航">
+      {([
+        ['today', '/icons/nav-today.png', '今日'],
+        ['history', '/icons/nav-records.png', '记录'],
+        ['chat', '/icons/nav-chat.svg', 'AI对话'],
+        ['trends', '/icons/nav-trends.png', '趋势'],
+        ['archive', '/icons/nav-archive.png', '档案']
+      ] as [Tab, string, string][]).map(([value, icon, label]) => (
+        <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}>
+          <img className={value === 'history' ? 'nav-icon-records' : value === 'archive' ? 'nav-icon-archive' : value === 'chat' ? 'nav-icon-chat' : undefined} src={icon} alt="" />
+          <b>{label}</b>
+        </button>
+      ))}
+    </nav>
+    {tab === 'today' && <button type="button" className="floating-add" onClick={() => setEditor(blankDraft())} aria-label="添加照护记录"><span aria-hidden="true">＋</span><b>记录</b></button>}
     {editor && <RecordEditor initial={editor} careItems={careItems} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor key={growthEditor === 'new' ? 'new' : growthEditor.id} profile={profile} records={growthRecords} initial={growthEditor === 'new' ? undefined : growthEditor} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{vaccineEditor && <VaccineEditor state={vaccineEditor} profile={profile} catalog={vaccineCatalog} records={vaccineRecords} onClose={() => setVaccineEditor(null)} onSave={saveVaccine} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}
   </div>;
 }

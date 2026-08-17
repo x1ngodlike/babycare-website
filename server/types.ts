@@ -115,3 +115,29 @@ export interface CareItem {
   createdAt: string;
   updatedAt: string;
 }
+
+export type AiMemoryCategory = 'preferences' | 'health' | 'notes';
+
+export interface AiMemory {
+  id: string;
+  content: string;
+  category: AiMemoryCategory;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatSession {
+  id: string;
+  userId: FamilyId;
+  title: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sessionId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+}

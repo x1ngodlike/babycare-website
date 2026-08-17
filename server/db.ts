@@ -1,11 +1,12 @@
 import Database from 'better-sqlite3';
+import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { canonicalInstant, shanghaiDateForInstant } from './shanghai-date.js';
 import { isScheduledCareItemDue } from '../shared/care-schedule.js';
 import { addDaysToDateString, dateStringInTimeZone } from '../shared/date.js';
 import { shanghaiDateString } from './shanghai-date.js';
-import type { AuditAction, AuditEntry, AuditIdentity, BabySex, CareItem, CareRecord, FamilyId, FamilyMemberPermission, GrowthRecord, UserRole, VaccineCatalogItem, VaccineRecord } from './types.js';
+import type { AiMemory, AiMemoryCategory, AuditAction, AuditEntry, AuditIdentity, BabySex, CareItem, CareRecord, ChatMessage, ChatSession, FamilyId, FamilyMemberPermission, GrowthRecord, UserRole, VaccineCatalogItem, VaccineRecord } from './types.js';
 
 const databasePath = process.env.DATABASE_PATH || './data/baby-care.db';
 mkdirSync(dirname(databasePath), { recursive: true });
@@ -388,6 +389,35 @@ db.exec(`
     name TEXT PRIMARY KEY,
     applied_at TEXT NOT NULL
   );
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ai_memories (
+    id TEXT PRIMARY KEY,
+    content TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'notes' CHECK (category IN ('preferences', 'health', 'notes')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_ai_memories_updated_at ON ai_memories(updated_at DESC);
+
+  CREATE TABLE IF NOT EXISTS chat_sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL CHECK (user_id IN ('father', 'mother', 'grandfather', 'grandmother')),
+    title TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_chat_sessions_user ON chat_sessions(user_id, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at ASC);
 `);
 
 const dailyReportUtcMigration = 'daily-report-utc-boundaries-v1';
@@ -1117,7 +1147,7 @@ export function listDailyReports(): DailyReport[] {
   return rows.map(row => ({ ...row, suggestions: JSON.parse(row.suggestions) as string[] }));
 }
 
-type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[] };
+type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
 type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
   if (payload.profile) saveProfile({ name: payload.profile.name, birthDate: payload.profile.birthDate, birthTime: payload.profile.birthTime, sex: payload.profile.sex ?? 'unspecified', nickname: payload.profile.nickname, caregiverTitle: payload.profile.caregiverTitle, avatar: payload.profile.avatar });
@@ -1154,6 +1184,15 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
     const upsertReport = db.prepare('INSERT INTO daily_reports (report_date, summary, suggestions, model, generated_at) VALUES (@reportDate, @summary, @suggestions, @model, @generatedAt) ON CONFLICT(report_date) DO UPDATE SET summary=excluded.summary, suggestions=excluded.suggestions, model=excluded.model, generated_at=excluded.generated_at');
     for (const report of payload.dailyReports) upsertReport.run({ ...report, suggestions: JSON.stringify(report.suggestions) });
   }
+  if (payload.aiMemories?.length) for (const m of payload.aiMemories) upsertMemory(m.content, m.category);
+  if (payload.chatSessions?.length) {
+    const upsertSession = db.prepare(`INSERT INTO chat_sessions (id, user_id, title, created_at, updated_at) VALUES (@id, @userId, @title, @createdAt, @updatedAt) ON CONFLICT(id) DO UPDATE SET user_id=excluded.user_id, title=excluded.title, updated_at=excluded.updated_at`);
+    for (const s of payload.chatSessions) upsertSession.run({ ...s, title: s.title ?? null });
+  }
+  if (payload.chatMessages?.length) {
+    const upsertMessage = db.prepare(`INSERT INTO chat_messages (id, session_id, role, content, created_at) VALUES (@id, @sessionId, @role, @content, @createdAt) ON CONFLICT(id) DO UPDATE SET content=excluded.content, role=excluded.role`);
+    for (const m of payload.chatMessages) upsertMessage.run(m);
+  }
   const upsert = db.prepare(`
     INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, subject, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
     VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @subject, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
@@ -1177,7 +1216,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
 
-type ReplacePayload = { profile: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[] };
+type ReplacePayload = { profile: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
 const replaceBackupTransaction = db.transaction((payload: ReplacePayload): ImportResult => {
   db.prepare('DELETE FROM record_audit').run();
   db.prepare('DELETE FROM care_records').run();
@@ -1211,6 +1250,17 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     const insertReport = db.prepare('INSERT INTO daily_reports (report_date, summary, suggestions, model, generated_at) VALUES (@reportDate, @summary, @suggestions, @model, @generatedAt)');
     for (const report of payload.dailyReports) insertReport.run({ ...report, suggestions: JSON.stringify(report.suggestions) });
   }
+  if (payload.aiMemories?.length) for (const m of payload.aiMemories) upsertMemory(m.content, m.category);
+  db.prepare('DELETE FROM chat_messages').run();
+  db.prepare('DELETE FROM chat_sessions').run();
+  if (payload.chatSessions?.length) {
+    const insertSession = db.prepare(`INSERT INTO chat_sessions (id, user_id, title, created_at, updated_at) VALUES (@id, @userId, @title, @createdAt, @updatedAt)`);
+    for (const s of payload.chatSessions) insertSession.run({ ...s, title: s.title ?? null });
+  }
+  if (payload.chatMessages?.length) {
+    const insertMessage = db.prepare(`INSERT INTO chat_messages (id, session_id, role, content, created_at) VALUES (@id, @sessionId, @role, @content, @createdAt)`);
+    for (const m of payload.chatMessages) insertMessage.run(m);
+  }
   const insertRecord = db.prepare(`
     INSERT INTO care_records (id, type, occurred_at, breast_milk_ml, formula_ml, supplement, bowel_size, subject, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
     VALUES (@id, @type, @occurredAt, @breastMilkMl, @formulaMl, @supplement, @bowelSize, @subject, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
@@ -1228,3 +1278,81 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
 export function replaceBackup(payload: ReplacePayload): ImportResult { return replaceBackupTransaction(payload); }
 
 export function closeDatabaseForTests() { db.close(); }
+
+// ----- AI 对话：家庭共享记忆 -----
+export function listMemories(): AiMemory[] {
+  return db.prepare('SELECT id, content, category, created_at AS createdAt, updated_at AS updatedAt FROM ai_memories ORDER BY updated_at DESC').all() as AiMemory[];
+}
+
+export function addMemory(content: string, category: AiMemoryCategory): AiMemory {
+  const now = new Date().toISOString();
+  const id = randomUUID();
+  db.prepare('INSERT INTO ai_memories (id, content, category, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run(id, content, category, now, now);
+  return { id, content, category, createdAt: now, updatedAt: now };
+}
+
+/** 去重合并：同分类下内容（去空格后）已存在则只刷新 updated_at，否则新增。 */
+export function upsertMemory(content: string, category: AiMemoryCategory): AiMemory {
+  const normalized = content.trim();
+  const existing = db.prepare('SELECT id, content, category, created_at AS createdAt, updated_at AS updatedAt FROM ai_memories WHERE category = ? AND TRIM(content) = ?').get(category, normalized) as AiMemory | undefined;
+  const now = new Date().toISOString();
+  if (existing) {
+    db.prepare('UPDATE ai_memories SET updated_at = ? WHERE id = ?').run(now, existing.id);
+    return { ...existing, updatedAt: now };
+  }
+  return addMemory(normalized, category);
+}
+
+export function deleteMemory(id: string): boolean {
+  return db.prepare('DELETE FROM ai_memories WHERE id = ?').run(id).changes > 0;
+}
+
+export function clearMemories(): void {
+  db.prepare('DELETE FROM ai_memories').run();
+}
+
+// ----- AI 对话：按成员隔离的会话与消息 -----
+export function listSessions(userId?: FamilyId): ChatSession[] {
+  const rows = userId
+    ? db.prepare('SELECT id, user_id AS userId, title, created_at AS createdAt, updated_at AS updatedAt FROM chat_sessions WHERE user_id = ? ORDER BY updated_at DESC').all(userId)
+    : db.prepare('SELECT id, user_id AS userId, title, created_at AS createdAt, updated_at AS updatedAt FROM chat_sessions ORDER BY updated_at DESC').all();
+  return rows as ChatSession[];
+}
+
+export function getSession(id: string): ChatSession | null {
+  return db.prepare('SELECT id, user_id AS userId, title, created_at AS createdAt, updated_at AS updatedAt FROM chat_sessions WHERE id = ?').get(id) as ChatSession | undefined || null;
+}
+
+export function createSession(userId: FamilyId, title: string | null = null): ChatSession {
+  const now = new Date().toISOString();
+  const id = randomUUID();
+  db.prepare('INSERT INTO chat_sessions (id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run(id, userId, title, now, now);
+  return { id, userId, title, createdAt: now, updatedAt: now };
+}
+
+export function renameSession(id: string, title: string): void {
+  db.prepare('UPDATE chat_sessions SET title = ?, updated_at = ? WHERE id = ?').run(title, new Date().toISOString(), id);
+}
+
+export function deleteSession(id: string): boolean {
+  return db.transaction(() => {
+    db.prepare('DELETE FROM chat_messages WHERE session_id = ?').run(id);
+    return db.prepare('DELETE FROM chat_sessions WHERE id = ?').run(id);
+  })().changes > 0;
+}
+
+export function listMessages(sessionId: string): ChatMessage[] {
+  return db.prepare('SELECT id, session_id AS sessionId, role, content, created_at AS createdAt FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC').all(sessionId) as ChatMessage[];
+}
+
+export function addMessage(sessionId: string, role: 'user' | 'assistant', content: string): ChatMessage {
+  const now = new Date().toISOString();
+  const id = randomUUID();
+  db.prepare('INSERT INTO chat_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)').run(id, sessionId, role, content, now);
+  db.prepare('UPDATE chat_sessions SET updated_at = ? WHERE id = ?').run(now, sessionId);
+  return { id, sessionId, role, content, createdAt: now };
+}
+
+export function allChatMessages(): ChatMessage[] {
+  return db.prepare('SELECT id, session_id AS sessionId, role, content, created_at AS createdAt FROM chat_messages ORDER BY created_at ASC').all() as ChatMessage[];
+}

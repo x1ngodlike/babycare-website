@@ -56,7 +56,7 @@ function completionUrl(baseUrl: string) {
   return `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
 }
 
-async function requestCompletion(settings: ModelSettings, messages: { role: 'system' | 'user'; content: string }[], maxTokens = 1200) {
+export async function requestCompletion(settings: ModelSettings, messages: { role: 'system' | 'user'; content: string }[], maxTokens = 1200) {
   const response = await fetch(completionUrl(settings.baseUrl), {
     method: 'POST',
     headers: { Authorization: `Bearer ${settings.apiKey}`, 'Content-Type': 'application/json' },

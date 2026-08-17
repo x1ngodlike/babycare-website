@@ -1,4 +1,4 @@
-import type { AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
+import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 
 export interface GrowthIndicatorAssessment {
   value: number;
@@ -95,6 +95,15 @@ export const api = {
   aiSettings: () => request<AiSettingsPublic>('/api/ai/settings'),
   updateAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<AiSettingsPublic>('/api/ai/settings', { method: 'PUT', body: JSON.stringify(settings) }),
   testAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<{ ok: boolean; message: string }>('/api/ai/settings/test', { method: 'POST', body: JSON.stringify(settings) }),
+  chat: (message: string, sessionId?: string, userId?: FamilyId) => request<ChatReply>('/api/ai/chat', { method: 'POST', body: JSON.stringify({ message, sessionId, userId }) }),
+  chatSessions: (userId?: FamilyId) => request<{ sessions: ChatSession[] }>(`/api/ai/chat/sessions${userId ? `?userId=${userId}` : ''}`),
+  createChatSession: (userId?: FamilyId) => request<ChatSession>('/api/ai/chat/sessions', { method: 'POST', body: JSON.stringify({ userId }) }),
+  deleteChatSession: (id: string) => request<{ deleted: boolean }>(`/api/ai/chat/sessions/${id}`, { method: 'DELETE' }),
+  chatMessages: (id: string) => request<{ messages: ChatMessage[] }>(`/api/ai/chat/sessions/${id}/messages`),
+  memories: () => request<{ memories: AiMemory[] }>('/api/ai/memories'),
+  addMemory: (content: string, category: 'preferences' | 'health' | 'notes') => request<AiMemory>('/api/ai/memories', { method: 'POST', body: JSON.stringify({ content, category }) }),
+  deleteMemory: (id: string) => request<{ deleted: boolean }>(`/api/ai/memories/${id}`, { method: 'DELETE' }),
+  clearMemories: () => request<{ cleared: boolean }>('/api/ai/memories', { method: 'DELETE' }),
   dailyReport: (date?: string) => request<{ date: string; exists: boolean; summary?: string; suggestions?: string[]; model?: string; generatedAt?: string }>(`/api/daily-report${date ? `?date=${encodeURIComponent(date)}` : ''}`),
   generateDailyReport: (date?: string) => request<{ date: string; summary: string; suggestions: string[]; model: string; generatedAt: string }>(`/api/daily-report/generate${date ? `?date=${encodeURIComponent(date)}` : ''}`, { method: 'POST' }),
   updateProfile: (profile: Partial<Pick<Profile, 'nickname' | 'caregiverTitle' | 'birthTime'>> & Pick<Profile, 'name' | 'birthDate' | 'sex'>) => request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(profile) }),

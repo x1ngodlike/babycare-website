@@ -9,9 +9,10 @@ import { z } from 'zod';
 import multer from 'multer';
 import sharp from 'sharp';
 import { testModelConnection } from './ai.js';
+import { generateChatReply } from './chat.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import { BackupFileNotFoundError, deleteServerBackup, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup, type BackupType } from './backup.js';
-import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, computeFeedingRecordsHash, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiFeedingInsights, getAiSettings, getCareAdherence, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiFeedingInsights, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
+import { allAudit, allChatMessages, allRecords, addMemory, clearMemories, createSession as createChatSession, deleteMemory, deleteSession, CareItemConflictError, CareItemInactiveError, CareItemOrderError, computeFeedingRecordsHash, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiFeedingInsights, getAiSettings, getCareAdherence, getSession as getChatSession, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listMemories, listMessages, listRecords, listSessions, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiFeedingInsights, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
 import { generateFeedingInsights, generateGrowthEvaluation } from './ai.js';
@@ -194,9 +195,12 @@ const auditEntrySchema = z.object({
 const careItemSchema = z.object({
   id: z.string().min(1).max(50), name: z.string().trim().min(1, '请填写项目名称').max(12, '项目名称不能超过 12 个字'),
   category: z.enum(['medication', 'care']).optional(), icon: z.enum(['medicine', 'massage', 'bath', 'care']), sortOrder: z.number().int().min(0).max(999), active: z.boolean(),
-  scheduleType: z.enum(['daily', 'interval', 'as_needed']).default('as_needed'), intervalDays: z.number().int().min(1).max(365).default(1),
+  scheduleType: z.enum(['daily', 'interval', 'weekly', 'pattern', 'as_needed']).default('as_needed'), intervalDays: z.number().int().min(1).max(365).default(1),
   scheduleStartDate: z.string().date().nullable().default(null), reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().default(null),
   scheduleEndDate: z.string().date().nullable().default(null),
+  reminderTimes: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)).max(10).nullable().optional(),
+  weekDays: z.array(z.number().int().min(0).max(6)).max(7).nullable().optional(),
+  patternDays: z.array(z.boolean()).min(2).max(14).nullable().optional(),
   createdAt: z.string().datetime({ offset: true }), updatedAt: z.string().datetime({ offset: true })
 });
 
@@ -276,7 +280,16 @@ const backupPayloadSchema = z.object({
   vaccineCatalog: z.array(z.object({ id: z.string().min(1).max(50), name: z.string().min(1).max(50), category: z.enum(['program', 'self_paid']), shortName: z.string().max(30).nullable(), description: z.string().max(300), doseCount: z.number().int().min(1).max(20).nullable(), intervalSummary: z.string().max(200), active: z.boolean(), sortOrder: z.number().int().min(0).max(9999), isSystem: z.boolean().optional().default(false) })).max(100).optional(),
   dailyReports: z.array(z.object({
     reportDate: z.string(), summary: z.string(), suggestions: z.array(z.string()), model: z.string(), generatedAt: z.string()
-  })).max(3650).optional()
+  })).max(3650).optional(),
+  aiMemories: z.array(z.object({
+    id: z.string(), content: z.string(), category: z.enum(['preferences', 'health', 'notes']), createdAt: z.string(), updatedAt: z.string()
+  })).max(1000).optional(),
+  chatSessions: z.array(z.object({
+    id: z.string(), userId: z.enum(['father', 'mother', 'grandfather', 'grandmother']), title: z.string().nullable(), createdAt: z.string(), updatedAt: z.string()
+  })).max(1000).optional(),
+  chatMessages: z.array(z.object({
+    id: z.string(), sessionId: z.string(), role: z.enum(['user', 'assistant']), content: z.string(), createdAt: z.string()
+  })).max(50000).optional()
 });
 
 const aiSettingsSchema = z.object({
@@ -401,7 +414,7 @@ function exportPayload() {
     administeredOn: record.administeredOn || null
   }));
   const profile = getProfile();
-  return { version: 10, exportedAt: new Date().toISOString(), profile: profile || { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null }, records, audits: allAudit(), careItems, familyMembers: listFamilyMembers(), growthRecords, vaccineRecords, vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports() };
+  return { version: 10, exportedAt: new Date().toISOString(), profile: profile || { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null }, records, audits: allAudit(), careItems, familyMembers: listFamilyMembers(), growthRecords, vaccineRecords, vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports(), aiMemories: listMemories(), chatSessions: listSessions(), chatMessages: allChatMessages() };
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -476,6 +489,91 @@ app.post('/api/ai/settings/test', requireSuperAdmin, async (req, res) => {
   } catch (error) {
     return res.status(502).json({ error: modelError(error) });
   }
+});
+
+// ----- AI 对话 -----
+const chatMessageSchema = z.object({
+  sessionId: z.string().uuid().optional(),
+  userId: z.enum(['father', 'mother', 'grandfather', 'grandmother']).optional(),
+  message: z.string().trim().min(1).max(2000)
+});
+const memoryInputSchema = z.object({
+  content: z.string().trim().min(1).max(300),
+  category: z.enum(['preferences', 'health', 'notes'])
+});
+
+app.post('/api/ai/chat', async (req, res) => {
+  const user = getSessionUser(req)!;
+  const parsed = chatMessageSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '对话内容格式不正确' });
+  const settings = getAiSettings();
+  if (!settings.apiKey) return res.status(400).json({ error: '服务器尚未配置 AI 模型，请先在设置中配置' });
+  const targetUserId = (user.role === 'superadmin' && parsed.data.userId && parsed.data.userId !== user.id) ? parsed.data.userId : user.id;
+  try {
+    const result = await generateChatReply({ baseUrl: settings.baseUrl, model: settings.model, apiKey: settings.apiKey }, { userId: targetUserId, sessionId: parsed.data.sessionId, message: parsed.data.message });
+    return res.json({ reply: result.reply, sessionId: result.sessionId, title: result.title, extractedMemories: result.extractedMemories, userId: targetUserId });
+  } catch (error) {
+    return res.status(502).json({ error: modelError(error) });
+  }
+});
+
+app.get('/api/ai/chat/sessions', (req, res) => {
+  const user = getSessionUser(req)!;
+  const requested = typeof req.query.userId === 'string' ? (req.query.userId as FamilyId) : undefined;
+  if (user.role !== 'superadmin' && requested && requested !== user.id) return res.status(403).json({ error: '只能查看自己的对话' });
+  const userId = (user.role === 'superadmin' && requested) ? requested : user.id;
+  return res.json({ sessions: listSessions(userId) });
+});
+
+app.post('/api/ai/chat/sessions', (req, res) => {
+  const user = getSessionUser(req)!;
+  const parsed = z.object({ userId: z.enum(['father', 'mother', 'grandfather', 'grandmother']).optional() }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: '参数不正确' });
+  const targetUserId = (user.role === 'superadmin' && parsed.data.userId) ? parsed.data.userId : user.id;
+  const session = createChatSession(targetUserId);
+  return res.status(201).json(session);
+});
+
+app.get('/api/ai/chat/sessions/:id/messages', (req, res) => {
+  const user = getSessionUser(req)!;
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '会话编号不正确' });
+  const session = getChatSession(parsed.data);
+  if (!session) return res.status(404).json({ error: '会话不存在' });
+  if (session.userId !== user.id && user.role !== 'superadmin') return res.status(403).json({ error: '只能查看自己的对话' });
+  return res.json({ messages: listMessages(parsed.data) });
+});
+
+app.delete('/api/ai/chat/sessions/:id', (req, res) => {
+  const user = getSessionUser(req)!;
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '会话编号不正确' });
+  const session = getChatSession(parsed.data);
+  if (!session) return res.status(404).json({ error: '会话不存在' });
+  if (session.userId !== user.id && user.role !== 'superadmin') return res.status(403).json({ error: '只能删除自己的对话' });
+  deleteSession(parsed.data);
+  return res.json({ deleted: true });
+});
+
+app.get('/api/ai/memories', (_req, res) => res.json({ memories: listMemories() }));
+
+app.post('/api/ai/memories', (req, res) => {
+  const parsed = memoryInputSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '记忆格式不正确' });
+  const memory = addMemory(parsed.data.content, parsed.data.category);
+  return res.status(201).json(memory);
+});
+
+app.delete('/api/ai/memories/:id', requireSuperAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '记忆编号不正确' });
+  if (!deleteMemory(parsed.data)) return res.status(404).json({ error: '记忆不存在' });
+  return res.json({ deleted: true });
+});
+
+app.delete('/api/ai/memories', requireSuperAdmin, (_req, res) => {
+  clearMemories();
+  return res.json({ cleared: true });
 });
 
 app.get('/api/daily-report', async (req, res) => {
