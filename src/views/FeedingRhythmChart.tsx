@@ -104,7 +104,7 @@ export default function FeedingRhythmChart({ records, mode, weekStarts }: { reco
     }));
   }, [points, mode, width]);
   return <section className="chart-card rhythm-card"><div className="section-title"><h2>{chartTitle}</h2>{mode === 'seven' && <div className="legend rhythm-legend"><i className="day-dot" />白天<i className="night-dot" />夜间</div>}</div>
-    {mode === 'seven' && hasData && <p className="rhythm-caption">3 天内 {points.length + 1} 次喂奶 · 夜间 {nightCount} 次 · 平均 {avgGapHours.toFixed(1)}h</p>}
+    {mode === 'seven' && hasData && <p className="rhythm-caption">3 天内 {points.length + 1} 次喂奶 · 夜间 {nightCount} 次 · 平均间隔 {avgGapHours.toFixed(1)}h</p>}
     {!hasData ? <div className="rhythm-empty">喂奶记录不足，暂无法计算间隔</div> : mode === 'seven' ? <div className="rhythm-chart" role="img" aria-label={`最近三天喂奶节奏散点图，共 ${points.length} 个间隔点，夜间 ${nightCount} 次`} ref={chartRef}>
       {width >= 20 && <svg width={width} height={height} aria-hidden="true">
         {hourLines.map(hour => <line key={hour} className={`rhythm-grid ${hour === refHours && refHours >= yMin && refHours <= yMax ? 'ref' : ''}`} x1={0} x2={width} y1={yFor(hour)} y2={yFor(hour)} />)}

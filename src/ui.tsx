@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export type ConfirmOptions = {
   title: string;
@@ -51,23 +52,34 @@ export type ActionMenuItem = { label: string; onSelect(): void | Promise<void>; 
 
 export function ActionMenu({ label, items, className = '' }: { label: string; items: ActionMenuItem[]; className?: string }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const openedAtRef = useRef(0);
+  const toggle = () => {
+    if (open) { setOpen(false); setPos(null); return; }
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    setOpen(true);
+  };
   useEffect(() => {
     if (!open) return;
-    ref.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
-    const pointer = (event: PointerEvent) => { if (event.target instanceof Node && !ref.current?.contains(event.target)) setOpen(false); };
+    openedAtRef.current = Date.now();
+    popoverRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+    const pointer = (event: PointerEvent) => { if (event.target instanceof Node && !triggerRef.current?.contains(event.target) && !popoverRef.current?.contains(event.target)) setOpen(false); };
     const key = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); };
-    const scroll = () => setOpen(false);
-    document.addEventListener('pointerdown', pointer); window.addEventListener('keydown', key); window.addEventListener('scroll', scroll, true);
-    return () => { document.removeEventListener('pointerdown', pointer); window.removeEventListener('keydown', key); window.removeEventListener('scroll', scroll, true); };
+    const scroll = () => { if (Date.now() - openedAtRef.current > 100) setOpen(false); };
+    window.addEventListener('resize', scroll); window.addEventListener('scroll', scroll, true); document.addEventListener('pointerdown', pointer); window.addEventListener('keydown', key);
+    return () => { window.removeEventListener('resize', scroll); window.removeEventListener('scroll', scroll, true); document.removeEventListener('pointerdown', pointer); window.removeEventListener('keydown', key); };
   }, [open]);
   function moveFocus(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
-    ref.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')[next]?.focus();
+    popoverRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')[next]?.focus();
   }
-  return <div ref={ref} className={`ui-action-menu ${className}`}><button type="button" className="ui-action-trigger" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}><span className="menu-dots" aria-hidden="true"><i /><i /><i /></span></button>{open && <div className="ui-action-popover" role="menu">{items.map((item, index) => <button type="button" role="menuitem" className={item.danger ? 'danger' : ''} key={item.label} onKeyDown={event => moveFocus(event, index)} onClick={() => { setOpen(false); void item.onSelect(); }}>{item.label}</button>)}</div>}</div>;
+  return <div ref={ref} className={`ui-action-menu ${className}`}><button ref={triggerRef} type="button" className="ui-action-trigger" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={toggle}><span className="menu-dots" aria-hidden="true"><i /><i /><i /></span></button>{open && pos && createPortal(<div ref={popoverRef} className="ui-action-popover" role="menu" style={{ position: 'fixed', top: pos.top, right: pos.right }}>{items.map((item, index) => <button type="button" role="menuitem" className={item.danger ? 'danger' : ''} key={item.label} onKeyDown={event => moveFocus(event, index)} onClick={() => { setOpen(false); void item.onSelect(); }}>{item.label}</button>)}</div>, document.body)}</div>;
 }
 
 export function SegmentedControl<T extends string>({ label, value, options, onChange, className = '' }: { label: string; value: T; options: { value: T; label: string }[]; onChange(value: T): void; className?: string }) {
