@@ -5,7 +5,7 @@ import type { CareItem } from './types';
 const item = (overrides: Partial<CareItem> = {}): CareItem => ({
   id: 'vd', name: 'VD', category: 'medication', icon: 'medicine', sortOrder: 10, active: true,
   scheduleType: 'daily', intervalDays: 1, scheduleStartDate: '2026-08-10',
-  reminderTime: null, reminderTimes: null, scheduleEndDate: null, weekDays: null, patternDays: null, courseDays: null, courseStartDate: null,
+  reminderTime: null, reminderTimes: null, scheduleEndDate: null, weekDays: null, patternDays: null,
   createdAt: '2026-08-10T00:00:00.000Z', updatedAt: '2026-08-10T00:00:00.000Z',
   ...overrides
 });
@@ -18,8 +18,10 @@ describe('care schedule', () => {
 
   it('uses the start date as the anchor for interval schedules', () => {
     const alternate = item({ scheduleType: 'interval', intervalDays: 2 });
+    expect(isCareItemDue(alternate, new Date('2026-08-10T12:00:00+08:00'))).toBe(false); // 第一天不触发
     expect(isCareItemDue(alternate, new Date('2026-08-11T12:00:00+08:00'))).toBe(false);
     expect(isCareItemDue(alternate, new Date('2026-08-12T12:00:00+08:00'))).toBe(true);
+    expect(isCareItemDue(alternate, new Date('2026-08-14T12:00:00+08:00'))).toBe(true);
   });
 
   it('never turns as-needed or inactive items into pending work', () => {

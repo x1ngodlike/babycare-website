@@ -208,15 +208,12 @@ const careItemInputSchema = z.object({
   reminderTimes: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)).max(10).nullable().optional(),
   scheduleEndDate: z.string().date().nullable(),
   weekDays: z.array(z.number().int().min(0).max(6)).max(7).nullable().optional(),
-  patternDays: z.array(z.boolean()).min(2).max(14).nullable().optional(),
-  courseDays: z.number().int().min(1).max(365).nullable().optional(),
-  courseStartDate: z.string().date().nullable().optional()
+  patternDays: z.array(z.boolean()).min(2).max(14).nullable().optional()
 }).superRefine((value, ctx) => {
   if (value.scheduleType !== 'as_needed' && !value.scheduleStartDate) ctx.addIssue({ code: 'custom', message: '请设置计划开始日期' });
   if (value.scheduleType === 'weekly' && (!value.weekDays || value.weekDays.length === 0)) ctx.addIssue({ code: 'custom', message: '请选择至少一个星期' });
   if (value.scheduleType === 'pattern' && (!value.patternDays || value.patternDays.length === 0)) ctx.addIssue({ code: 'custom', message: '请设置循环模式' });
   if (value.scheduleStartDate && value.scheduleEndDate && value.scheduleEndDate < value.scheduleStartDate) ctx.addIssue({ code: 'custom', message: '结束日期不能早于开始日期' });
-  if (value.courseDays && !value.courseStartDate && value.scheduleStartDate) value.courseStartDate = value.scheduleStartDate;
 });
 
 const familyMemberSchema = z.object({

@@ -2,7 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type
 import { Search } from 'lucide-react';
 import { api, ApiError } from './api';
 import { addDays, isoDay, startOfWeek } from './date';
-import { isCareItemDue, getCareItemReminderTimes, careItemCourseRemaining, careItemCourseCompleted } from './careSchedule';
+import { isCareItemDue, getCareItemReminderTimes } from './careSchedule';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
 import type { AuditEntry, BowelSize, Capabilities, CareItem, CareItemCategory, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineRecord, FamilyId, GrowthRecord, Profile, PushStatus, RecordType, SessionUser, Supplement, VaccineCatalogItem, VaccineRecord } from './types';
@@ -14,7 +14,7 @@ import { DateField, DateTimeField } from './DateField';
 import { usePullToRefresh } from './usePullToRefresh';
 import { syncNativeVaccineReminders } from './native';
 import { PredictionBanner } from './PredictionBanner';
-import { auditNames, canManage, careItemCategory, careItemIcon, careItemIconSources, familyMembers, roleNames, selectableCareItems, summary, type ThemeMode, typeNames } from './shared';
+import { auditNames, canManage, careItemCategory, careItemIcon, careItemIconSources, familyMembers, isScheduleOver, roleNames, selectableCareItems, summary, type ThemeMode, typeNames } from './shared';
 import { formatTimeShort } from '../shared/feeding-prediction';
 
 // 低频页面按需加载，配合 main.tsx 空闲预取与 Service Worker 运行时缓存
@@ -324,7 +324,7 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
   const recentSorted = [...recentRecords].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   const lastRecord = recentSorted[0] || null;
   const pendingCareItems = todayPlanStatus === 'ready' ? careItems
-    .filter(item => item.active && isCareItemDue(item) && !done.has(item.name))
+    .filter(item => item.active && !isScheduleOver(item) && isCareItemDue(item) && !done.has(item.name))
     .sort((a, b) => {
       const aTimes = getCareItemReminderTimes(a);
       const bTimes = getCareItemReminderTimes(b);
@@ -348,15 +348,10 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
   function renderMedicineTask(item: CareItem, timeLabel?: string) {
     const isCare = item.category === 'care';
     const reminders = getCareItemReminderTimes(item);
-    const courseRemaining = careItemCourseRemaining(item);
-    const courseDone = careItemCourseCompleted(item);
     const timeDisplay = timeLabel ? `今日 ${timeLabel}` : reminders.length > 0 ? `今日 ${reminders.join(' · ')}` : '今日';
-    const courseInfo = courseRemaining !== null
-      ? courseDone ? ' · 疗程已完成' : ` · 第 ${(item.courseDays! - courseRemaining + 1)}/${item.courseDays} 天`
-      : '';
     return <article key={`medicine:${item.id}${timeLabel ? ':' + timeLabel : ''}`}>
       <img className="task-icon medicine" src={careItemIconSources[item.icon]} alt="" />
-      <div><b>{item.name}</b><small>{timeDisplay} · {isCare ? '待完成' : '待记录'}{courseInfo}</small></div>
+      <div><b>{item.name}</b><small>{timeDisplay} · {isCare ? '待完成' : '待记录'}</small></div>
       <div className="today-plan-actions">
         <button className="btn primary" aria-label={`记录${item.name}${isCare ? '已完成' : '已服用'}`} disabled={Boolean(savingSupplement)} onClick={() => void addSupplement(item.name)}>
           {savingSupplement === item.name ? '稍候' : isCare ? '完成' : '服药'}

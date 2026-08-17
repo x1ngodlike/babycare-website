@@ -9,7 +9,7 @@ import { ActionMenu, confirmAction, SegmentedControl, Switch, useDialogFocus } f
 import { DateField, TimeField } from '../DateField';
 import { getNativeNotificationPermission, getNativeNotificationSettings, requestNativeNotificationPermission, saveNativeNotificationSettings, showNativeCategoryTestNotification, type NativeNotificationPermission, type NativeNotificationSettings, type NativeNotificationType } from '../native';
 import { AvatarCropperModal } from '../AvatarCropper';
-import { canManage, careItemIconSources, ChoiceField, familyMembers, roleNames, sexLabels, type ThemeMode } from '../shared';
+import { canManage, careItemIconSources, ChoiceField, familyMembers, isScheduleOver, roleNames, sexLabels, type ThemeMode } from '../shared';
 import type { AiSettingsPublic, BabySex, Capabilities, CareItem, CareItemCategory, CareItemIcon, DraftVaccineCatalogItem, FamilyId, FamilyMemberPermission, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, VaccineCatalogItem } from '../types';
 
 function Feedback({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose?: () => void }) {
@@ -310,9 +310,7 @@ function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem
     reminderTimes: item?.reminderTimes && item?.reminderTimes.length > 0 ? item.reminderTimes : (item?.reminderTime ? [item.reminderTime] : []),
     scheduleEndDate: item?.scheduleEndDate || '',
     weekDays: item?.weekDays || [],
-    patternDays: item?.patternDays || null as boolean[] | null,
-    courseDays: item?.courseDays || null as number | null,
-    courseStartDate: item?.courseStartDate || ''
+    patternDays: item?.patternDays || null as boolean[] | null
   };
   const [draft, setDraft] = useState(initial); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
@@ -358,9 +356,7 @@ function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem
       reminderTimes,
       scheduleEndDate: draft.scheduleType === 'as_needed' ? null : draft.scheduleEndDate || null,
       weekDays: draft.scheduleType === 'weekly' ? draft.weekDays : null,
-      patternDays: draft.scheduleType === 'pattern' ? draft.patternDays : null,
-      courseDays: null,
-      courseStartDate: null
+      patternDays: draft.scheduleType === 'pattern' ? draft.patternDays : null
     };
     try {
       const saved = item ? await api.updateCareItem(item.id, payload) : await api.createCareItem(payload);
@@ -427,6 +423,7 @@ function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem
 function careItemHomeStatus(item: CareItem) {
   if (!item.active) return '已停用';
   if (item.scheduleType === 'as_needed') return '按需 · 手动添加';
+  if (isScheduleOver(item)) return '已停用';
   const due = isCareItemDue(item);
   const reminders = getCareItemReminderTimes(item);
   const timeLabel = reminders.length > 0 ? reminders.join(' · ') : (item.reminderTime || '');
@@ -439,7 +436,7 @@ function careItemHomeStatus(item: CareItem) {
   const timePart = timeLabel ? `今日 ${timeLabel}` : '今日';
   if (due) return `${timePart}${scheduleLabel ? ` · ${scheduleLabel}` : ''}`;
   const nextDue = nextCareItemDueDate(item);
-  if (!nextDue) return '计划已结束';
+  if (!nextDue) return '已停用';
   const dateLabel = new Date(`${nextDue}T12:00:00`).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
   return `${dateLabel} ${scheduleLabel ? '· ' + scheduleLabel : ''}`;
 }
@@ -483,7 +480,7 @@ function CareItemsCard({ items, onChanged }: { items: CareItem[]; onChanged(): P
   function endDrag() { const state = dragRef.current; if (!state) return; dragRef.current = null; setDraggingId(''); void persistOrder(orderedRef.current, state.original); }
   function cancelDrag() { const state = dragRef.current; if (!state) return; orderedRef.current = state.original; setOrdered(state.original); dragRef.current = null; setDraggingId(''); }
   const groups: { category: CareItemCategory; label: string }[] = [{ category: 'medication', label: '用药' }, { category: 'care', label: '护理' }];
-  const renderItem = (item: CareItem) => <article data-care-item-id={item.id} className={`${item.active ? '' : 'inactive'} ${draggingId === item.id ? 'dragging' : ''}`} key={item.id}><button type="button" className="care-drag-handle" aria-label={`调整${item.name}在${item.category === 'medication' ? '用药' : '护理'}分组中的顺序，可拖动或按上下方向键`} aria-keyshortcuts="ArrowUp ArrowDown" onPointerDown={event => startDrag(event, item)} onPointerMove={drag} onPointerUp={endDrag} onPointerCancel={cancelDrag} onKeyDown={event => { if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { event.preventDefault(); void moveByKeyboard(item, event.key === 'ArrowUp' ? -1 : 1); } }} aria-hidden="true">≡</button><img src={careItemIconSources[item.icon]} alt="" /><button className="care-item-info" onClick={() => setEditing(item)}><b>{item.name}<span className="care-item-edit-hint"> · 修改</span></b><small>{careItemHomeStatus(item)}</small></button><Switch checked={item.active} label={`${item.active ? '停用' : '启用'}${item.name}`} disabled={Boolean(busyId)} onChange={() => void toggle(item)} /></article>;
+  const renderItem = (item: CareItem) => { const effectiveActive = item.active && !isScheduleOver(item); return <article data-care-item-id={item.id} className={`${effectiveActive ? '' : 'inactive'} ${draggingId === item.id ? 'dragging' : ''}`} key={item.id}><button type="button" className="care-drag-handle" aria-label={`调整${item.name}在${item.category === 'medication' ? '用药' : '护理'}分组中的顺序，可拖动或按上下方向键`} aria-keyshortcuts="ArrowUp ArrowDown" onPointerDown={event => startDrag(event, item)} onPointerMove={drag} onPointerUp={endDrag} onPointerCancel={cancelDrag} onKeyDown={event => { if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { event.preventDefault(); void moveByKeyboard(item, event.key === 'ArrowUp' ? -1 : 1); } }} aria-hidden="true">≡</button><img src={careItemIconSources[item.icon]} alt="" /><button className="care-item-info" onClick={() => setEditing(item)}><b>{item.name}<span className="care-item-edit-hint"> · 修改</span></b><small>{careItemHomeStatus(item)}</small></button><Switch checked={effectiveActive} label={`${effectiveActive ? '停用' : '启用'}${item.name}`} disabled={Boolean(busyId) || isScheduleOver(item)} onChange={() => void toggle(item)} /></article>; };
   return <><section className="settings-card care-items-card"><div className="setting-status"><h2>用药护理</h2><span className="on">管理</span></div><p>定时或间隔项目会进入首页今日计划；护理项目统一用“完成”记录。按需项目仅在手动添加记录时显示。</p>{groups.map(group => <section className="care-item-group" key={group.category}><h3>{group.label}</h3><div className="care-item-list">{ordered.filter(item => item.category === group.category).map(renderItem)}</div></section>)}<button className="btn primary full" disabled={Boolean(busyId)} onClick={() => setEditing('new')}>新增项目</button><Feedback message={message} type={message.includes('失败') || message.includes('变化') ? 'error' : 'success'} onClose={() => setMessage('')} /></section>{editing && <CareItemEditor item={editing === 'new' ? undefined : editing} nextOrder={Math.max(0, ...items.map(item => item.sortOrder)) + 10} onClose={() => setEditing(null)} onSaved={async () => { await onChanged(); setMessage(editing === 'new' ? '项目已新增' : '项目已修改'); }} />}</>;
 }
 
@@ -924,7 +921,7 @@ function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, 
     <div className="settings-menu-stack">
       {canManage(user) && <section className="settings-menu" aria-label="家庭设置"><SettingsEntry icon="profile" title="宝宝资料" description="姓名、生日与基础信息" onClick={() => open('baby')} />{user.role === 'superadmin' && <SettingsEntry icon="members" title="成员权限" description="家庭成员与管理权限" status={`${familyMembers.length} 人`} onClick={() => open('family')} />}</section>}
       {(canManage(user) || nativeNotificationsAvailable) && <section className="settings-menu" aria-label="提醒通知">{canManage(user) && <SettingsEntry icon="send" title="消息推送" description="提醒规则与接收通道" status={pushEntryStatus} onClick={() => open('push')} />}{nativeNotificationsAvailable && <SettingsEntry icon="bell" title="APP 通知" description="早报、喂奶、照护与疫苗提醒" status={nativeNotificationPermission === 'granted' ? '已允许' : '待开启'} onClick={() => open('app-notifications')} />}</section>}
-      {canManage(user) && <section className="settings-menu" aria-label="照护设置"><SettingsEntry icon="medicine" title="用药护理" description="分类、计划与项目管理" status={`${careItems.filter(item => item.active).length} 项`} onClick={() => open('care-items')} /><SettingsEntry icon="vaccine" title="疫苗管理" description="目录与接种计划" status={`${vaccineCatalog.filter(item => item.active).length} 项`} onClick={() => open('vaccines')} /></section>}
+      {canManage(user) && <section className="settings-menu" aria-label="照护设置"><SettingsEntry icon="medicine" title="用药护理" description="分类、计划与项目管理" status={`${careItems.filter(item => item.active && !isScheduleOver(item)).length} 项`} onClick={() => open('care-items')} /><SettingsEntry icon="vaccine" title="疫苗管理" description="目录与接种计划" status={`${vaccineCatalog.filter(item => item.active).length} 项`} onClick={() => open('vaccines')} /></section>}
       {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
       <section className="settings-menu" aria-label="APP 设置">
         {nativeBridge && <SettingsEntry icon="server" title="服务器环境" description="切换局域网或外网连接" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} />}

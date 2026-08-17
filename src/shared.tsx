@@ -1,5 +1,6 @@
 // 首屏与各懒加载视图共享的常量、辅助函数与基础组件（由 App.tsx 抽出，逻辑不变）
 import type { AuditIdentity, BabySex, CareItem, CareItemCategory, CareItemIcon, CareRecord, DraftRecord, FamilyId, RecordType, SessionUser, UserRole } from './types';
+import { isoDay } from './date';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -40,7 +41,12 @@ export const careItemCategory = (name: string | null | undefined, items: CareIte
 
 export const careItemIcon = (value: CareRecord | DraftRecord, items: CareItem[]) => value.type === 'supplement' ? careItemIconSources[careItemFor(value.supplement, items)?.icon || (value.supplement === '推拿' ? 'massage' : 'medicine')] : typeIcons[value.type];
 
-export const selectableCareItems = (items: CareItem[], current?: string | null) => items.filter(item => item.active || item.name === current);
+export const selectableCareItems = (items: CareItem[], current?: string | null) => items.filter(item => (item.active && !isScheduleOver(item)) || item.name === current);
+
+export const isScheduleOver = (item: CareItem): boolean => {
+  if (!item.scheduleEndDate) return false;
+  return isoDay(new Date()) > item.scheduleEndDate;
+};
 
 export function summary(record: CareRecord | DraftRecord, careItems: CareItem[] = []) {
   if (record.type === 'feeding') return [record.breastMilkMl ? `母乳 ${record.breastMilkMl} mL` : '', record.formulaMl ? `奶粉 ${record.formulaMl} mL` : ''].filter(Boolean).join('，') || '待补充奶量';

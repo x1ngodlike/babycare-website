@@ -112,8 +112,6 @@ export interface CareItem {
   scheduleEndDate: string | null;
   weekDays: number[] | null;
   patternDays: boolean[] | null;
-  courseDays: number | null;
-  courseStartDate: string | null;
   createdAt: string;
   updatedAt: string;
 }

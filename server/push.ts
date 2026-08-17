@@ -653,8 +653,6 @@ export async function testCareItemPush() {
       reminderTimes: null,
       weekDays: null,
       patternDays: null,
-      courseDays: null,
-      courseStartDate: null,
       sortOrder: 0,
       active: true,
       createdAt: new Date().toISOString(),
@@ -798,7 +796,6 @@ function buildPushPlusPerItemHtml(item: CareItem) {
   const verb = isMedicine ? '服用' : '完成';
   const reminders = getCareItemReminderTimes(item);
   const timeLabel = reminders.length > 0 ? reminders.join(' · ') : (item.reminderTime || '今日');
-  const courseLabel = item.courseDays ? ` · 疗程 ${item.courseDays} 天` : '';
   const html = `
     <div style="padding:0;border-radius:14px;border:1px solid #e0e8e3;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',Arial,sans-serif;font-size:14px;color:#1f2a24;line-height:1.6;overflow:hidden;">
       <div style="padding:16px;background:linear-gradient(180deg,#eaf3ed 0%,#ffffff 100%);">
@@ -807,7 +804,7 @@ function buildPushPlusPerItemHtml(item: CareItem) {
       <div style="padding:4px 16px 16px;">
         <div style="background:#f7faf8;border-radius:10px;padding:12px 14px;">
           <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">${actionEmoji}</span><b style="font-size:14px;color:#1f2a24;">今天还未${verb} <span style="color:#2b6b3e;">${item.name}</span></b></div>
-          <div style="margin-top:8px;padding-left:28px;font-size:12px;color:#6c7a72;line-height:1.5;">执行计划 · ${scheduleLabel}${courseLabel}</div>
+          <div style="margin-top:8px;padding-left:28px;font-size:12px;color:#6c7a72;line-height:1.5;">执行计划 · ${scheduleLabel}</div>
         </div>
         <div style="margin-top:14px;text-align:center;font-size:13px;color:#2b6b3e;font-weight:700;line-height:1.5;">现在去做个照护打卡吧~</div>
       </div>

@@ -11,7 +11,7 @@
 .ui-segmented button { min-height: var(--size-touch); padding: 7px 10px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text-secondary); font-weight: 800; cursor: pointer; }
 .ui-segmented button.active { outline: 1px solid var(--line); background: var(--surface-card); color: var(--green-deep); }
 
-.ui-switch { flex: none; width: 40px; height: 24px; padding: 0; border: 0; border-radius: 999px; background: #c4ccc3; cursor: pointer; overflow: hidden; display: flex; align-items: center; transition: background .15s ease; justify-self: end; }
+.ui-switch { flex: none; width: 40px; height: 24px; padding: 0; border: 0; border-radius: 999px; background: #c4ccc3; cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: flex-start; transition: background .15s ease; justify-self: end; align-self: center; line-height: 1; }
 .ui-switch span { display: block; flex: 0 0 20px; width: 20px; height: 20px; margin: 2px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #23342a35; transition: transform .15s ease; }
 .ui-switch.on { background: var(--green); }
 .ui-switch.on span { transform: translateX(16px); }
