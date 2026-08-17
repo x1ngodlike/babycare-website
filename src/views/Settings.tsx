@@ -304,7 +304,7 @@ function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem
     category: item?.category || 'medication' as CareItemCategory,
     icon: item?.icon || 'medicine' as CareItemIcon,
     scheduleType: item?.scheduleType || 'as_needed' as CareItem['scheduleType'],
-    intervalDays: item?.intervalDays || 2,
+    intervalDays: item?.intervalDays ?? 2,
     scheduleStartDate: item?.scheduleStartDate || defaultStart,
     reminderTime: item?.reminderTime || '',
     reminderTimes: item?.reminderTimes && item?.reminderTimes.length > 0 ? item.reminderTimes : (item?.reminderTime ? [item.reminderTime] : []),
@@ -352,7 +352,7 @@ function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem
       ...draft,
       name: draft.name.trim(),
       sortOrder,
-      intervalDays: draft.scheduleType === 'interval' ? draft.intervalDays : 1,
+      intervalDays: draft.scheduleType === 'interval' ? Math.max(2, draft.intervalDays) : 1,
       scheduleStartDate,
       reminderTime: draft.reminderTime || null,
       reminderTimes,
@@ -384,7 +384,7 @@ function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem
     <fieldset><legend>执行计划</legend><div className="choice-group schedule-choice">
       <button type="button" className={draft.scheduleType === 'as_needed' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'as_needed' }))}>按需</button>
       <button type="button" className={draft.scheduleType === 'daily' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'daily' }))}>一次</button>
-      <button type="button" className={draft.scheduleType === 'interval' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'interval' }))}>间隔</button>
+      <button type="button" className={draft.scheduleType === 'interval' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'interval', intervalDays: value.intervalDays < 2 ? 2 : value.intervalDays }))}>间隔</button>
       <button type="button" className={draft.scheduleType === 'weekly' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'weekly' }))}>指定</button>
       <button type="button" className={draft.scheduleType === 'pattern' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'pattern', patternDays: value.patternDays || [true, true, true, false, false] }))}>循环</button>
     </div><p className="field-help">按需项目不会自动进入首页今日计划，仍可随时手动记录。</p></fieldset>
