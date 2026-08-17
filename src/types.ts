@@ -96,7 +96,7 @@ export interface Profile { name: string; birthDate: string; birthTime?: string; 
 export interface ServerBackupStatus { directory: string; intervalHours: number; retention: number; count: number; lastBackupAt: string | null; nextBackupAt: string }
 export type BackupType = 'manual' | 'auto';
 export interface ServerBackupFile { name: string; createdAt: string; size: number; type: BackupType }
-export type CareScheduleType = 'daily' | 'interval' | 'as_needed';
+export type CareScheduleType = 'daily' | 'interval' | 'weekly' | 'pattern' | 'as_needed';
 export type CareItemCategory = 'medication' | 'care';
 export type CareItemIcon = 'medicine' | 'massage' | 'bath' | 'care';
 export interface CareItem {
@@ -110,7 +110,12 @@ export interface CareItem {
   intervalDays: number;
   scheduleStartDate: string | null;
   reminderTime: string | null;
+  reminderTimes: string[] | null;
   scheduleEndDate: string | null;
+  weekDays: number[] | null;
+  patternDays: boolean[] | null;
+  courseDays: number | null;
+  courseStartDate: string | null;
   createdAt: string;
   updatedAt: string;
 }

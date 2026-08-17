@@ -104,11 +104,16 @@ export interface CareItem {
   icon: 'medicine' | 'massage' | 'bath' | 'care';
   sortOrder: number;
   active: boolean;
-  scheduleType: 'daily' | 'interval' | 'as_needed';
+  scheduleType: 'daily' | 'interval' | 'weekly' | 'pattern' | 'as_needed';
   intervalDays: number;
   scheduleStartDate: string | null;
   reminderTime: string | null;
+  reminderTimes: string[] | null;
   scheduleEndDate: string | null;
+  weekDays: number[] | null;
+  patternDays: boolean[] | null;
+  courseDays: number | null;
+  courseStartDate: string | null;
   createdAt: string;
   updatedAt: string;
 }

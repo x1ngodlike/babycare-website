@@ -11,7 +11,7 @@ import sharp from 'sharp';
 import { testModelConnection } from './ai.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import { BackupFileNotFoundError, deleteServerBackup, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup, type BackupType } from './backup.js';
-import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, computeFeedingRecordsHash, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiFeedingInsights, getAiSettings, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiFeedingInsights, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
+import { allAudit, allRecords, CareItemConflictError, CareItemInactiveError, CareItemOrderError, computeFeedingRecordsHash, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiFeedingInsights, getAiSettings, getCareAdherence, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listRecords, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiFeedingInsights, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
 import { generateFeedingInsights, generateGrowthEvaluation } from './ai.js';
@@ -202,12 +202,21 @@ const careItemSchema = z.object({
 
 const careItemInputSchema = z.object({
   name: z.string().trim().min(1).max(12), category: z.enum(['medication', 'care']), icon: z.enum(['medicine', 'massage', 'bath', 'care']),
-  sortOrder: z.number().int().min(0).max(999), scheduleType: z.enum(['daily', 'interval', 'as_needed']),
+  sortOrder: z.number().int().min(0).max(999), scheduleType: z.enum(['daily', 'interval', 'weekly', 'pattern', 'as_needed']),
   intervalDays: z.number().int().min(1).max(365), scheduleStartDate: z.string().date().nullable(),
-  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable(), scheduleEndDate: z.string().date().nullable()
+  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable(),
+  reminderTimes: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)).max(10).nullable().optional(),
+  scheduleEndDate: z.string().date().nullable(),
+  weekDays: z.array(z.number().int().min(0).max(6)).max(7).nullable().optional(),
+  patternDays: z.array(z.boolean()).min(2).max(14).nullable().optional(),
+  courseDays: z.number().int().min(1).max(365).nullable().optional(),
+  courseStartDate: z.string().date().nullable().optional()
 }).superRefine((value, ctx) => {
   if (value.scheduleType !== 'as_needed' && !value.scheduleStartDate) ctx.addIssue({ code: 'custom', message: '请设置计划开始日期' });
+  if (value.scheduleType === 'weekly' && (!value.weekDays || value.weekDays.length === 0)) ctx.addIssue({ code: 'custom', message: '请选择至少一个星期' });
+  if (value.scheduleType === 'pattern' && (!value.patternDays || value.patternDays.length === 0)) ctx.addIssue({ code: 'custom', message: '请设置循环模式' });
   if (value.scheduleStartDate && value.scheduleEndDate && value.scheduleEndDate < value.scheduleStartDate) ctx.addIssue({ code: 'custom', message: '结束日期不能早于开始日期' });
+  if (value.courseDays && !value.courseStartDate && value.scheduleStartDate) value.courseStartDate = value.scheduleStartDate;
 });
 
 const familyMemberSchema = z.object({
@@ -970,6 +979,11 @@ app.patch('/api/care-items/:id/active', requireAdmin, (req, res) => {
   const item = setCareItemActive(id, parsed.data.active);
   changeHub.broadcast('all');
   return res.json(item);
+});
+
+app.get('/api/care-items/adherence', requireAuth, (_req, res) => {
+  const items = getCareAdherence(30);
+  return res.json({ items });
 });
 
 app.post('/api/records', (req, res) => {

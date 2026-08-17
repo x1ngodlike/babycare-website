@@ -2,7 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type
 import { Search } from 'lucide-react';
 import { api, ApiError } from './api';
 import { addDays, isoDay, startOfWeek } from './date';
-import { isCareItemDue } from './careSchedule';
+import { isCareItemDue, getCareItemReminderTimes, careItemCourseRemaining, careItemCourseCompleted } from './careSchedule';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
 import type { AuditEntry, BowelSize, Capabilities, CareItem, CareItemCategory, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineRecord, FamilyId, GrowthRecord, Profile, PushStatus, RecordType, SessionUser, Supplement, VaccineCatalogItem, VaccineRecord } from './types';
@@ -325,7 +325,11 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
   const lastRecord = recentSorted[0] || null;
   const pendingCareItems = todayPlanStatus === 'ready' ? careItems
     .filter(item => item.active && isCareItemDue(item) && !done.has(item.name))
-    .sort((a, b) => (a.reminderTime || '').localeCompare(b.reminderTime || '')) : [];
+    .sort((a, b) => {
+      const aTimes = getCareItemReminderTimes(a);
+      const bTimes = getCareItemReminderTimes(b);
+      return (aTimes[0] || '').localeCompare(bTimes[0] || '');
+    }) : [];
   const today = isoDay(new Date());
   const actionableVaccines = todayPlanStatus === 'ready' ? buildVaccinePlan(profile.birthDate, vaccineRecords, vaccineCatalog)
     .filter(item => !item.record?.administeredOn && (item.record?.appointmentOn || item.plannedOn) <= today)
@@ -333,13 +337,33 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
   const overdueVaccines = actionableVaccines.filter(item => (item.record?.appointmentOn || item.plannedOn) < today);
   const todayVaccines = actionableVaccines.filter(item => (item.record?.appointmentOn || item.plannedOn) === today);
   const timedTodayTasks = [
-    ...pendingCareItems.filter(item => item.reminderTime).map(item => ({ kind: 'medicine' as const, time: item.reminderTime!, item })),
+    ...pendingCareItems
+      .filter(item => getCareItemReminderTimes(item).length > 0)
+      .flatMap(item => getCareItemReminderTimes(item).map(time => ({ kind: 'medicine' as const, time, item }))),
     ...todayVaccines.filter(item => item.record?.appointmentOn === today && item.record.appointmentTime).map(item => ({ kind: 'vaccine' as const, time: item.record!.appointmentTime!, item }))
   ].sort((a, b) => a.time.localeCompare(b.time));
-  const untimedCareItems = pendingCareItems.filter(item => !item.reminderTime);
+  const untimedCareItems = pendingCareItems.filter(item => getCareItemReminderTimes(item).length === 0);
   const untimedTodayVaccines = todayVaccines.filter(item => !(item.record?.appointmentOn === today && item.record.appointmentTime));
   async function addSupplement(item: Supplement) { setSavingSupplement(item); try { await onSupplement(item); } finally { setSavingSupplement(null); } }
-  function renderMedicineTask(item: CareItem) { const isCare = item.category === 'care'; return <article key={`medicine:${item.id}`}><img className="task-icon medicine" src={careItemIconSources[item.icon]} alt="" /><div><b>{item.name}</b><small>{item.reminderTime ? `今日 ${item.reminderTime}` : '今日'} · {isCare ? '待完成' : '待记录'}</small></div><div className="today-plan-actions"><button className="btn primary" aria-label={`记录${item.name}${isCare ? '已完成' : '已服用'}`} disabled={Boolean(savingSupplement)} onClick={() => void addSupplement(item.name)}>{savingSupplement === item.name ? '稍候' : isCare ? '完成' : '服药'}</button></div></article>; }
+  function renderMedicineTask(item: CareItem, timeLabel?: string) {
+    const isCare = item.category === 'care';
+    const reminders = getCareItemReminderTimes(item);
+    const courseRemaining = careItemCourseRemaining(item);
+    const courseDone = careItemCourseCompleted(item);
+    const timeDisplay = timeLabel ? `今日 ${timeLabel}` : reminders.length > 0 ? `今日 ${reminders.join(' · ')}` : '今日';
+    const courseInfo = courseRemaining !== null
+      ? courseDone ? ' · 疗程已完成' : ` · 第 ${(item.courseDays! - courseRemaining + 1)}/${item.courseDays} 天`
+      : '';
+    return <article key={`medicine:${item.id}${timeLabel ? ':' + timeLabel : ''}`}>
+      <img className="task-icon medicine" src={careItemIconSources[item.icon]} alt="" />
+      <div><b>{item.name}</b><small>{timeDisplay} · {isCare ? '待完成' : '待记录'}{courseInfo}</small></div>
+      <div className="today-plan-actions">
+        <button className="btn primary" aria-label={`记录${item.name}${isCare ? '已完成' : '已服用'}`} disabled={Boolean(savingSupplement)} onClick={() => void addSupplement(item.name)}>
+          {savingSupplement === item.name ? '稍候' : isCare ? '完成' : '服药'}
+        </button>
+      </div>
+    </article>;
+  }
   function renderVaccineTask(item: VaccinePlanItem) {
     const effectiveOn = item.record?.appointmentOn || item.plannedOn;
     const timing = vaccineTimingStatus(effectiveOn);
@@ -369,7 +393,7 @@ function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCat
     </div>
     {todayPlanStatus === 'loading' && <section className="today-plan today-plan-loading" aria-label="今日待办正在读取" aria-busy="true"><h2>今日待办</h2><div className="today-plan-skeleton"><i /><div><i /><i /></div><i /></div></section>}
     {todayPlanStatus === 'error' && <section className="today-plan today-plan-error" role="status"><h2>今日待办</h2><p>计划暂时无法读取，请联网后下拉刷新。</p></section>}
-    {todayPlanStatus === 'ready' && (pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日待办</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item) : renderVaccineTask(task.item))}{untimedCareItems.map(renderMedicineTask)}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img className="task-icon growth" src="/icons/task-growth-normalized.png" alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>测量</button></div></article>}</div></section>}
+    {todayPlanStatus === 'ready' && (pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日待办</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item, task.time) : renderVaccineTask(task.item))}{untimedCareItems.map(item => renderMedicineTask(item))}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img className="task-icon growth" src="/icons/task-growth-normalized.png" alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>测量</button></div></article>}</div></section>}
     <div className="today-insights" aria-label="今日信息">
       {todayPlanStatus === 'ready' && <VaccineReminderCard profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onComplete={onCompleteVaccine} onAppointment={onAppointmentVaccine} />}
       <DailyReport capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} superadmin={superadmin} userId={userId} allowAutoOpen={allowReportAutoOpen} />
