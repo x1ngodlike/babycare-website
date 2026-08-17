@@ -16,6 +16,7 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**', '**/backup-*/**']
   },
   server: {
-    proxy: { '/api': 'http://localhost:3000', '/avatars': 'http://localhost:3000' }
+    proxy: { '/api': 'http://localhost:3000', '/avatars': 'http://localhost:3000' },
+    watch: { paths: ['server/**'] }
   }
 });
