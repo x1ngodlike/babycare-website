@@ -379,7 +379,7 @@ function CareItemEditor({ item, nextOrder, onClose, onSaved }: { item?: CareItem
     <label>项目名称<input maxLength={12} value={draft.name} onChange={event => setDraft(value => ({ ...value, name: event.target.value }))} placeholder={draft.category === 'medication' ? '例如：维生素 D' : '例如：洗澡'} autoFocus required /></label>
     <fieldset><legend>执行计划</legend><div className="choice-group schedule-choice">
       <button type="button" className={draft.scheduleType === 'as_needed' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'as_needed' }))}>按需</button>
-      <button type="button" className={draft.scheduleType === 'daily' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'daily' }))}>一次</button>
+      <button type="button" className={draft.scheduleType === 'daily' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'daily' }))}>每日</button>
       <button type="button" className={draft.scheduleType === 'interval' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'interval', intervalDays: value.intervalDays < 2 ? 2 : value.intervalDays }))}>间隔</button>
       <button type="button" className={draft.scheduleType === 'weekly' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'weekly' }))}>指定</button>
       <button type="button" className={draft.scheduleType === 'pattern' ? 'selected' : ''} onClick={() => setDraft(value => ({ ...value, scheduleType: 'pattern', patternDays: value.patternDays || [true, true, true, false, false] }))}>循环</button>
