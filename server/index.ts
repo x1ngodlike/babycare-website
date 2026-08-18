@@ -510,7 +510,7 @@ app.post('/api/ai/chat', async (req, res) => {
   if (!settings.apiKey) return res.status(400).json({ error: '服务器尚未配置 AI 模型，请先在设置中配置' });
   const targetUserId = (user.role === 'superadmin' && parsed.data.userId && parsed.data.userId !== user.id) ? parsed.data.userId : user.id;
   try {
-    const result = await generateChatReply({ baseUrl: settings.baseUrl, model: settings.model, apiKey: settings.apiKey }, { userId: targetUserId, sessionId: parsed.data.sessionId, message: parsed.data.message });
+    const result = await generateChatReply({ baseUrl: settings.baseUrl, model: settings.model, apiKey: settings.apiKey }, { userId: targetUserId, sessionId: parsed.data.sessionId, message: parsed.data.message, userName: user.name });
     return res.json({ reply: result.reply, sessionId: result.sessionId, title: result.title, extractedMemories: result.extractedMemories, userId: targetUserId });
   } catch (error) {
     return res.status(502).json({ error: modelError(error) });

@@ -71,13 +71,15 @@ describe('generateChatReply integration', () => {
   it('calls the model and returns the assistant reply with a session', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ reply: '今日记录了一笔喂奶和一次排便。', memories: [], title: '今日记录' }) } }] }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    const result = await chat.generateChatReply({ baseUrl: 'https://api.example.com', model: 'test', apiKey: 'secret' }, { userId: 'father', message: '今天怎么样' });
+    const result = await chat.generateChatReply({ baseUrl: 'https://api.example.com', model: 'test', apiKey: 'secret' }, { userId: 'father', message: '今天怎么样', userName: '爸爸' });
     expect(result.reply).toBe('今日记录了一笔喂奶和一次排便。');
     expect(result.sessionId).toBeTruthy();
     expect(result.title).toBe('今日记录');
     expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/chat/completions', expect.objectContaining({ method: 'POST' }));
     const request = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     expect(request.messages[0].role).toBe('system');
+    expect(request.messages[1].content).toContain('当前上下文');
+    expect(request.messages[1].content).toContain('提问者：爸爸');
     expect(request.messages[1].content).toContain('家长最新问题');
     vi.unstubAllGlobals();
   });

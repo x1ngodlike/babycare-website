@@ -130,9 +130,20 @@ export interface ChatReply {
   extractedMemories: { category: AiMemoryCategory; content: string }[];
 }
 
+const WEEKDAY_CN = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+function buildCurrentContext(userName: string): string {
+  const now = new Date();
+  const shanghai = new Date(now.getTime() + 8 * 3600_000);
+  const date = shanghai.toISOString().slice(0, 10);
+  const time = shanghai.toISOString().slice(11, 16);
+  const weekday = WEEKDAY_CN[shanghai.getUTCDay()];
+  return `【当前上下文】日期：${date}（${weekday}），时间：${time}，提问者：${userName}`;
+}
+
 export async function generateChatReply(
   settings: ModelSettings,
-  opts: { userId: FamilyId; sessionId?: string; message: string }
+  opts: { userId: FamilyId; sessionId?: string; message: string; userName?: string }
 ): Promise<ChatReply> {
   const session: ChatSession = opts.sessionId ? (getSession(opts.sessionId) || createSession(opts.userId)) : createSession(opts.userId);
   const history = listMessages(session.id);
@@ -142,12 +153,15 @@ export async function generateChatReply(
     ? history.map(m => `${m.role === 'user' ? '家长' : '助手'}：${m.content}`).join('\n')
     : '（新对话，暂无历史）';
 
+  const currentContext = buildCurrentContext(opts.userName || '家长');
+
   const userContent = [
+    currentContext,
     '【宝宝资料与历史数据】\n' + dataContext,
     '【家庭共享记忆（之前对话中沉淀，可参考引用）】\n' + memoryContext,
     '【对话历史】\n' + historyText,
     '【家长最新问题】\n' + opts.message,
-    '请仅依据上述数据与家长问题作答，输出 JSON：{"reply":"对家长的回答（自然口语，可引用数据与记忆，不超过 300 字；较长回答可用简短小标题和要点列表让条理更清晰，关键数字用加粗标记）","memories":[{"category":"preferences|health|notes","content":"从【家长最新问题】中提炼家长亲口说出的、值得长期记住的要点（可适度概括，但不得改变原意、不得补充或推断原文没有的信息，例如不能把‘吃虾后起红疹’说成‘对海鲜过敏’，也不得摘录助手的话）；若家长消息中没有可沉淀的明确要点，则不要返回该项"}],"title":"若这是新对话且尚未有标题，给本对话起一个简短标题（不超过 20 字），否则省略"}。'
+    `请仅依据上述数据与家长问题作答，输出 JSON：{"reply":"对家长的回答（自然口语，可引用数据与记忆，不超过 300 字；较长回答可用简短小标题和要点列表让条理更清晰，关键数字用加粗标记）","memories":[{"category":"preferences|health|notes","content":"从【家长最新问题】中提炼家长亲口说出的、值得长期记住的要点（可适度概括，但不得改变原意、不得补充或推断原文没有的信息，例如不能把『吃虾后起红疹』说成『对海鲜过敏』，也不得摘录助手的话）；若家长消息中没有可沉淀的明确要点，则不要返回该项"}],"title":"给本对话起一个简短标题（不超过 20 字），能概括本次对话的核心话题"}。`
   ].join('\n\n');
 
   const content = await requestCompletion(settings, [
@@ -160,7 +174,7 @@ export async function generateChatReply(
   addMessage(session.id, 'assistant', parsed.reply);
 
   let title = session.title;
-  if (parsed.title && !session.title) {
+  if (parsed.title && (!session.title || session.title === '新对话')) {
     renameSession(session.id, parsed.title);
     title = parsed.title;
   }

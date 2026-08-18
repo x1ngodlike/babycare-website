@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api, ApiError } from '../api';
 import { familyMembers } from '../shared';
-import { ActionMenu, confirmAction, EmptyState, SegmentedControl } from '../ui';
+import { confirmAction, EmptyState, SegmentedControl } from '../ui';
 import type { AiMemory, Capabilities, ChatMessage, ChatSession, ExtractedMemory, FamilyId, SessionUser } from '../types';
 
 const categoryLabels: Record<AiMemory['category'], string> = { preferences: '偏好', health: '健康', notes: '备忘' };
@@ -11,7 +12,24 @@ function formatChatTime(iso: string): string {
   return new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-const SUGGESTIONS = ['最近奶量怎么样？', '这个月身高体重达标吗？', '下次疫苗什么时候打？'];
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '刚刚';
+  if (mins < 60) return `${mins} 分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} 天前`;
+  return formatChatTime(iso);
+}
+
+const SUGGESTIONS = [
+  { icon: '🍼', text: '最近奶量怎么样？' },
+  { icon: '📏', text: '这个月身高体重达标吗？' },
+  { icon: '💉', text: '下次疫苗什么时候打？' },
+  { icon: '💤', text: '宝宝睡眠作息正常吗？' },
+];
 
 function renderInline(text: string, keyBase: string): React.ReactNode[] {
   const segments = text.split(/(\*\*[^*]+\*\*)/g);
@@ -102,6 +120,7 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<AiMemory['category']>('notes');
   const [saving, setSaving] = useState(false);
+  const [filter, setFilter] = useState<'all' | AiMemory['category']>('all');
   const dialogRef = useRef<HTMLElement | null>(null);
   useEffect(() => { if (!open) return; setLoading(true); setError(''); api.memories().then(r => setMemories(r.memories)).catch(err => setError(err instanceof Error ? err.message : '读取失败')).finally(() => setLoading(false)); }, [open]);
   async function add() {
@@ -116,20 +135,101 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
     try { await api.deleteMemory(id); setMemories(prev => prev.filter(m => m.id !== id)); }
     catch (err) { setError(err instanceof Error ? err.message : '删除失败'); }
   }
+  const filtered = useMemo(() => {
+    const sorted = [...memories].sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category) || b.updatedAt.localeCompare(a.updatedAt));
+    if (filter === 'all') return sorted;
+    return sorted.filter(m => m.category === filter);
+  }, [memories, filter]);
+  const countByCategory = useMemo(() => ({ health: memories.filter(m => m.category === 'health').length, preferences: memories.filter(m => m.category === 'preferences').length, notes: memories.filter(m => m.category === 'notes').length }), [memories]);
   if (!open) return null;
-  return <div className="modal-layer" onMouseDown={e => e.target === e.currentTarget && onClose()}><section ref={dialogRef} className="editor memory-manager" role="dialog" aria-modal="true" aria-labelledby="memory-title">
-    <header className="editor-head"><div><p className="kicker">AI 记忆</p><h2 id="memory-title">管理家庭共享记忆</h2></div><button type="button" className="close-btn" onClick={onClose} aria-label="关闭">×</button></header>
-    {error && <p className="error-text" role="alert">{error}</p>}
-    <div className="memory-add">
-      <textarea rows={2} maxLength={200} placeholder="手动添加一条希望 AI 记住的要点…" value={content} onChange={e => setContent(e.target.value)} />
-      <div className="memory-add-row">
-        <SegmentedControl<AiMemory['category']> label="记忆分类" value={category} options={[{ value: 'health', label: '健康' }, { value: 'preferences', label: '偏好' }, { value: 'notes', label: '备忘' }]} onChange={setCategory} />
-        <button type="button" className="btn primary" disabled={saving || !content.trim()} onClick={() => void add()}>{saving ? '保存中…' : '添加记忆'}</button>
+  return createPortal(<div className="modal-layer memory-modal" onMouseDown={e => e.target === e.currentTarget && onClose()}>
+    <section ref={dialogRef} className="editor memory-manager" role="dialog" aria-modal="true" aria-labelledby="memory-title">
+      <header className="memory-head">
+        <div className="memory-head-copy">
+          <p className="kicker">AI 记忆</p>
+          <h2 id="memory-title">家庭共享记忆</h2>
+          <p className="memory-subtitle">AI 在对话中会参考这些记忆来回答问题</p>
+        </div>
+        <button type="button" className="memory-close" onClick={onClose} aria-label="关闭">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </header>
+
+      {error && <p className="error-text" role="alert">{error}</p>}
+
+      <div className="memory-add-card">
+        <div className="memory-add-input">
+          <textarea rows={2} maxLength={200} placeholder="添加一条希望 AI 记住的要点…" value={content} onChange={e => setContent(e.target.value)} />
+          <span className="memory-char-count">{content.length}/200</span>
+        </div>
+        <div className="memory-add-actions">
+          <div className="memory-category-tabs" role="radiogroup" aria-label="记忆分类">
+            {categoryOrder.map(cat => (
+              <button key={cat} type="button" role="radio" aria-checked={category === cat} className={`memory-category-tab ${category === cat ? 'selected' : ''}`} onClick={() => setCategory(cat)}>
+                <span className={`memory-dot ${cat}`} />{categoryLabels[cat]}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="btn primary memory-add-btn" disabled={saving || !content.trim()} onClick={() => void add()}>
+            {saving ? '保存中…' : '添加'}
+          </button>
+        </div>
       </div>
-    </div>
-    {loading ? <p className="loading-copy">正在读取…</p> : memories.length === 0 ? <p className="loading-copy">还没有 AI 记忆。</p> : <ul className="memory-list">{memories.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category) || b.updatedAt.localeCompare(a.updatedAt)).map(m => <li key={m.id}><span className={`memory-tag ${m.category}`}>{categoryLabels[m.category]}</span><p>{m.content}</p><button type="button" aria-label="删除" onClick={() => void remove(m.id)}>×</button></li>)}</ul>}
-    <div className="memory-footer"><button type="button" className="btn secondary full" onClick={onClose}>关闭</button></div>
-  </section></div>;
+
+      {!loading && memories.length > 0 && <div className="memory-filter-bar">
+        <span className="memory-filter-label">筛选</span>
+        <div className="memory-filter-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={filter === 'all'} className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>
+            全部 <span className="memory-count">{memories.length}</span>
+          </button>
+          {categoryOrder.map(cat => countByCategory[cat] > 0 && (
+            <button key={cat} type="button" role="tab" aria-selected={filter === cat} className={filter === cat ? 'active' : ''} onClick={() => setFilter(cat)}>
+              {categoryLabels[cat]} <span className="memory-count">{countByCategory[cat]}</span>
+            </button>
+          ))}
+        </div>
+      </div>}
+
+      {loading ? (
+        <div className="memory-loading">
+          <div className="memory-spinner" />
+          <span>正在加载记忆…</span>
+        </div>
+      ) : memories.length === 0 ? (
+        <div className="memory-empty">
+          <div className="memory-empty-icon" aria-hidden="true">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 0 0-4 4v1a4 4 0 0 0 4 4 4 4 0 0 0 4-4V6a4 4 0 0 0-4-4Z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v4"/><path d="M8 21h8"/></svg>
+          </div>
+          <p>还没有 AI 记忆</p>
+          <span>在上方添加要点，AI 会在对话中自动参考</span>
+        </div>
+      ) : (
+        <ul className="memory-list" role="list">
+          {filtered.map(m => (
+            <li key={m.id} className="memory-item">
+              <div className="memory-item-main">
+                <div className="memory-item-meta">
+                  <span className={`memory-tag ${m.category}`}>{categoryLabels[m.category]}</span>
+                  <span className="memory-item-time" title={new Date(m.updatedAt).toLocaleString('zh-CN')}>{relativeTime(m.updatedAt)}</span>
+                </div>
+                <p className="memory-item-text">{m.content}</p>
+              </div>
+              <button type="button" className="memory-item-delete" aria-label="删除这条记忆" onClick={() => void remove(m.id)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  </div>, document.body);
+}
+
+function renderAvatar(role: ChatMessage['role'], userName: string): React.ReactNode {
+  if (role === 'user') {
+    return <div className="chat-avatar user">{userName.slice(0, 1)}</div>;
+  }
+  return <div className="chat-avatar assistant" aria-hidden="true">AI</div>;
 }
 
 export default function ChatView({ user, capabilities, online }: { user: SessionUser; capabilities: Capabilities; online: boolean }) {
@@ -142,9 +242,13 @@ export default function ChatView({ user, capabilities, online }: { user: Session
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showMemoryManager, setShowMemoryManager] = useState(false);
+  const [showSessionSheet, setShowSessionSheet] = useState(false);
+  const [showSessionDropdown, setShowSessionDropdown] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [extractedHints, setExtractedHints] = useState<Record<string, ExtractedMemory[]>>({});
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const sessionDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const activeSession = useMemo(() => sessions.find(s => s.id === activeSessionId) || null, [sessions, activeSessionId]);
 
@@ -160,9 +264,19 @@ export default function ChatView({ user, capabilities, online }: { user: Session
 
   useEffect(() => { void loadSessions(); }, [loadSessions]);
 
+  useEffect(() => { if (!activeSessionId && sessions.length > 0) setActiveSessionId(sessions[0].id); }, [sessions, activeSessionId]);
+
   useEffect(() => { if (activeSessionId) void loadMessages(activeSessionId); }, [activeSessionId, loadMessages]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+    }
+  }, [input]);
 
   async function createSession() {
     try {
@@ -176,14 +290,30 @@ export default function ChatView({ user, capabilities, online }: { user: Session
 
   async function deleteSession(id: string) {
     if (!await confirmAction({ title: '删除这段对话？', description: '对话记录将被移除，无法恢复。', confirmLabel: '删除', danger: true })) return;
+    setDeletingSessionId(id);
     try { await api.deleteChatSession(id); setSessions(prev => prev.filter(s => s.id !== id)); if (activeSessionId === id) { setActiveSessionId(null); setMessages([]); } }
     catch (err) { setError(err instanceof Error ? err.message : '删除失败'); }
+    finally { setDeletingSessionId(null); }
   }
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showSessionDropdown) return;
+    function handleClick(e: MouseEvent) {
+      if (sessionDropdownRef.current && !sessionDropdownRef.current.contains(e.target as Node)) {
+        setShowSessionDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showSessionDropdown]);
 
   function selectSession(id: string) {
     setActiveSessionId(id);
     setMessages([]);
     setError('');
+    setShowSessionSheet(false);
+    setShowSessionDropdown(false);
     inputRef.current?.focus();
   }
 
@@ -226,8 +356,6 @@ export default function ChatView({ user, capabilities, online }: { user: Session
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); }
   }
 
-  const sessionMenuItems = useMemo(() => sessions.map(s => ({ label: s.title || '新对话', onSelect: () => selectSession(s.id) })), [sessions]);
-
   return <div className="page-stack chat-page">
     <header className="page-head chat-head">
       <div>
@@ -239,35 +367,107 @@ export default function ChatView({ user, capabilities, online }: { user: Session
     {superadmin && <div className="chat-member-switch"><SegmentedControl<FamilyId> label="查看成员对话" value={targetUserId} options={familyMembers.map(m => ({ value: m.id, label: m.name }))} onChange={id => { setTargetUserId(id); setActiveSessionId(null); setMessages([]); }} /></div>}
 
     <div className="chat-toolbar">
-      {sessions.length > 0 ? <div className="chat-session-picker">
-        <span className="chat-session-name">{activeSession?.title || '新对话'}</span>
-        <ActionMenu label="切换对话" items={sessionMenuItems} />
-        {activeSessionId && <button type="button" className="text-link" onClick={() => void deleteSession(activeSessionId)}>删除</button>}
+      {sessions.length > 0 ? <div className="chat-session-picker desktop" ref={sessionDropdownRef}>
+        <button type="button" className="chat-session-trigger-btn" onClick={() => setShowSessionDropdown(v => !v)} aria-haspopup="listbox" aria-expanded={showSessionDropdown}>
+          <span className="chat-session-name">{activeSession?.title || '新对话'}</span>
+          <span className="chat-session-caret" aria-hidden="true">▾</span>
+        </button>
+        {showSessionDropdown && createPortal(<div className="chat-session-dropdown" role="listbox">
+          <div className="chat-session-dropdown-head">
+            <span>全部对话</span>
+            <span className="chat-session-count">{sessions.length}</span>
+          </div>
+          <ul className="chat-session-dropdown-list">
+            {sessions.map(s => <li key={s.id} className={activeSessionId === s.id ? 'active' : ''} role="option" aria-selected={activeSessionId === s.id}>
+              <button type="button" className="chat-session-item" onClick={() => selectSession(s.id)}>
+                <div className="chat-session-item-info">
+                  <span className="chat-session-item-title">{s.title || '新对话'}</span>
+                  <span className="chat-session-item-time">{relativeTime(s.updatedAt)}</span>
+                </div>
+                {activeSessionId === s.id && <span className="chat-session-item-check" aria-hidden="true">✓</span>}
+              </button>
+              <button type="button" className="chat-session-item-delete" onClick={e => { e.stopPropagation(); void deleteSession(s.id); }} disabled={deletingSessionId === s.id} aria-label={`删除对话 ${s.title || '新对话'}`}>
+                {deletingSessionId === s.id ? '…' : '×'}
+              </button>
+            </li>)}
+          </ul>
+        </div>, document.body)}
       </div> : <span className="chat-empty-hint">还没有对话，点击「新对话」开始。</span>}
+      
+      {sessions.length > 0 && <button type="button" className="chat-session-trigger mobile" onClick={() => setShowSessionSheet(true)}>
+        {activeSession?.title || '新对话'} ▾
+      </button>}
+
       <div className="chat-toolbar-right">
         {superadmin && <button type="button" className="btn secondary" onClick={() => setShowMemoryManager(true)}>记忆</button>}
         <button type="button" className="btn primary" onClick={() => void createSession()}>新对话</button>
       </div>
     </div>
 
+    {/* Mobile Session Sheet */}
+    {showSessionSheet && createPortal(<div className="mobile-sheet-layer" onClick={() => setShowSessionSheet(false)}>
+      <section className="mobile-sheet" onClick={e => e.stopPropagation()}>
+        <header className="mobile-sheet-header">
+          <h3>选择对话</h3>
+          <button type="button" className="close-btn" onClick={() => setShowSessionSheet(false)}>×</button>
+        </header>
+        <ul className="mobile-sheet-list">
+          {sessions.map(s => <li key={s.id} className={activeSessionId === s.id ? 'active' : ''}>
+            <button type="button" className="mobile-session-item" onClick={() => selectSession(s.id)}>
+              <div className="mobile-session-item-info">
+                <span className="mobile-session-item-title">{s.title || '新对话'}</span>
+                <span className="mobile-session-item-time">{relativeTime(s.updatedAt)}</span>
+              </div>
+              {activeSessionId === s.id && <span className="check-icon">✓</span>}
+            </button>
+            <button type="button" className="mobile-session-delete" onClick={e => { e.stopPropagation(); void deleteSession(s.id); }} disabled={deletingSessionId === s.id} aria-label={`删除对话 ${s.title || '新对话'}`}>
+              {deletingSessionId === s.id ? '…' : '删除'}
+            </button>
+          </li>)}
+        </ul>
+      </section>
+    </div>, document.body)}
+
     <div className="chat-messages">
       {!activeSessionId && sessions.length === 0 && <EmptyState title="开始一段 AI 对话" description="可以问喂奶、排便、生长、疫苗或照护相关的任何问题。" action={<button type="button" className="btn primary" onClick={() => void createSession()}>开始对话</button>} />}
-      {activeSessionId && messages.length === 0 && <div className="chat-welcome"><p>可以问我关于宝宝的问题，例如：</p><div className="chat-suggestions">{SUGGESTIONS.map(suggestion => <button type="button" key={suggestion} className="chat-suggestion" onClick={() => void sendText(suggestion)}>{suggestion}</button>)}</div></div>}
-      {messages.map(m => <div key={m.id} className={`chat-bubble ${m.role}`}>
-        <div className="chat-meta">{m.role === 'user' ? user.name : 'AI 助手'} · {formatChatTime(m.createdAt)}</div>
-        <div className="chat-content">{renderRichText(m.content)}</div>
-        {m.role === 'assistant' && extractedHints[m.id] && <div className="chat-memory-hint">已记住：{extractedHints[m.id].map(h => `「${h.content}」`).join('、')}</div>}
+      {activeSessionId && messages.length === 0 && <div className="chat-welcome">
+        <div className="chat-welcome-icon">👋</div>
+        <p>你好！我是宝宝的 AI 育儿助手，可以问我任何关于宝宝的问题：</p>
+        <div className="chat-suggestions">
+          {SUGGESTIONS.map((suggestion, index) => (
+            <button type="button" key={index} className="chat-suggestion" onClick={() => void sendText(suggestion.text)}>
+              <span className="suggestion-icon">{suggestion.icon}</span>
+              <span className="suggestion-text">{suggestion.text}</span>
+            </button>
+          ))}
+        </div>
+      </div>}
+      {messages.map(m => <div key={m.id} className={`chat-msg-row ${m.role}`}>
+        {m.role === 'assistant' && renderAvatar(m.role, user.name)}
+        <div className={`chat-bubble ${m.role}`}>
+          <div className="chat-content">{renderRichText(m.content)}</div>
+          {m.role === 'assistant' && extractedHints[m.id] && <div className="chat-memory-hint">已记住：{extractedHints[m.id].map(h => `「${h.content}」`).join('、')}</div>}
+        </div>
+        {m.role === 'user' && renderAvatar(m.role, user.name)}
       </div>)}
-      {loading && <div className="chat-bubble assistant loading"><span /></div>}
+      {loading && <div className="chat-msg-row assistant">
+        {renderAvatar('assistant', user.name)}
+        <div className="chat-bubble assistant loading">
+          <span /><span /><span />
+        </div>
+      </div>}
       <div ref={messagesEndRef} />
     </div>
 
     <div className="chat-input-bar">
-      <textarea ref={inputRef} rows={1} maxLength={2000} placeholder={capabilities.aiEnabled ? '输入问题…' : 'AI 模型未配置'} value={input} disabled={loading || !capabilities.aiEnabled} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} />
+      <div className="chat-input-wrapper">
+        <textarea ref={inputRef} rows={1} maxLength={2000} placeholder={capabilities.aiEnabled ? '输入问题…' : 'AI 模型未配置'} value={input} disabled={loading || !capabilities.aiEnabled} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} />
+        {input && <button type="button" className="chat-input-clear" onClick={() => setInput('')} aria-label="清空">×</button>}
+      </div>
       <button type="button" className="btn primary" disabled={loading || !input.trim() || !capabilities.aiEnabled} onClick={() => void send()}>{loading ? '思考中…' : '发送'}</button>
     </div>
 
-    {error && <div className="chat-error-toast" role="alert"><span>{error}</span><button type="button" aria-label="关闭" onClick={() => setError('')}>×</button></div>}
+    {error && createPortal(<div className="chat-error-toast" role="alert"><span>{error}</span><button type="button" aria-label="关闭" onClick={() => setError('')}>×</button></div>, document.body)}
     <MemoryManager open={showMemoryManager} onClose={() => setShowMemoryManager(false)} />
   </div>;
 }
