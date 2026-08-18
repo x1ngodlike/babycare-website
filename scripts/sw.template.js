@@ -1,0 +1,52 @@
+// 由 scripts/build-sw.mjs 在 vite build 后生成（占位符会被替换），不要手改 dist/sw.js。
+// 版本号由预缓存清单内容哈希得出：部署产物变化时自动失效旧缓存，无需手工 bump。
+const CACHE = __CACHE_NAME__;
+const PRECACHE = __PRECACHE_JSON__;
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => cache.addAll(PRECACHE))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
+// 运行时缓存上限，防止无界增长（超出后逐出最旧的条目）
+const MAX_ENTRIES = 150;
+
+async function trimCache(cache) {
+  const keys = await cache.keys();
+  if (keys.length > MAX_ENTRIES) {
+    await cache.delete(keys[0]);
+  }
+}
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/')) return;
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        // 只缓存成功响应，避免把错误页或 404 写入缓存
+        if (response.ok && (response.type === 'basic' || response.type === 'default')) {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy).then(() => trimCache(cache)));
+        }
+        return response;
+      })
+      .catch(() =>
+        caches.match(request).then((match) => match || (request.mode === 'navigate' ? caches.match('/') : undefined))
+      )
+  );
+});

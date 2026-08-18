@@ -13,7 +13,7 @@ export default defineConfig({
     }
   },
   test: {
-    exclude: ['**/node_modules/**', '**/dist/**', '**/backup-*/**']
+    exclude: ['**/node_modules/**', '**/dist/**', '**/dist-server/**', '**/backup-*/**']
   },
   server: {
     proxy: { '/api': 'http://localhost:3000', '/avatars': 'http://localhost:3000' },

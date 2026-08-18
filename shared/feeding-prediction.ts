@@ -79,7 +79,7 @@ function weightedMedian(
   const now = new Date();
   const pairs = values.map((value, i) => ({
     value,
-    weight: Math.pow(lambda, (now.getTime() - timestamps[i].getTime()) / 86400000)
+    weight: lambda ** ((now.getTime() - timestamps[i].getTime()) / 86400000)
   }));
 
   const sorted = pairs.sort((a, b) => a.value - b.value);
@@ -106,7 +106,7 @@ export function predictFeeding(
 ): FeedingPrediction {
   const feedings = records
     .map(r => ({ ...r, date: new Date(r.occurredAt) }))
-    .filter(r => !isNaN(r.date.getTime()))
+    .filter(r => !Number.isNaN(r.date.getTime()))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   if (feedings.length === 0) {

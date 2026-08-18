@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "ensure:data": "node -e \"const fs=require('node:fs'),path=require('node:path');const D=process.env.DATA_DIR||'./data';const dir=path.resolve(D,'uploads','avatars');try{fs.mkdirSync(dir,{recursive:true});try{fs.accessSync(dir,fs.constants.W_OK);console.log('[ensure:data] OK  %s',dir)}catch(e){console.error('[ensure:data] 目录不可写：%s（%s）。请在容器里给 DATA_DIR 挂可写 volume 或 chown/chmod',dir,e.message);process.exit(1)}}catch(e){console.error('[ensure:data] 无法创建：%s（%s）',dir,e.message);process.exit(1)}\"",
+    "ensure:data": "node scripts/ensure-data.mjs",
     "predev": "npm run ensure:data",
     "prestart": "npm run ensure:data",
     "prebuild": "npm run ensure:data",
@@ -12,10 +12,13 @@
     "dev:web": "vite --host 0.0.0.0",
     "dev:server": "tsx watch server/index.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit",
-    "build": "npm run typecheck && vite build && tsc -p tsconfig.server.json",
+    "build": "npm run typecheck && vite build && node scripts/build-sw.mjs && node -e \"require('node:fs').rmSync('dist-server',{recursive:true,force:true})\" && tsc -p tsconfig.server.json",
     "start": "node dist-server/server/index.js",
     "test": "vitest run",
-    "check": "npm run test && npm run build && npm run check:css",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "check": "npm run test && npm run lint && npm run build && npm run check:css",
     "check:css": "node scripts/check-css.mjs",
     "images:check": "python3 scripts/optimize-images.py",
     "images:optimize": "python3 scripts/optimize-images.py --apply"
@@ -34,6 +37,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.9",
     "@types/better-sqlite3": "^9.6.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
