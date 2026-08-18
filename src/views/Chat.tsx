@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Lightbulb, Mic, Trash2, X } from 'lucide-react';
 import { api, ApiError } from '../api';
 import { familyMembers } from '../shared';
 import { confirmAction, EmptyState } from '../ui';
@@ -152,7 +152,7 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
           <p className="memory-subtitle">AI 在对话中会参考这些记忆来回答问题</p>
         </div>
         <button type="button" className="memory-close" onClick={onClose} aria-label="关闭">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <X size={18} strokeWidth={2} />
         </button>
       </header>
 
@@ -199,7 +199,7 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
       ) : memories.length === 0 ? (
         <div className="memory-empty">
           <div className="memory-empty-icon" aria-hidden="true">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 0 0-4 4v1a4 4 0 0 0 4 4 4 4 0 0 0 4-4V6a4 4 0 0 0-4-4Z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v4"/><path d="M8 21h8"/></svg>
+            <Mic size={40} strokeWidth={1.5} />
           </div>
           <p>还没有 AI 记忆</p>
           <span>在上方添加要点，AI 会在对话中自动参考</span>
@@ -216,7 +216,7 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
                 <p className="memory-item-text">{m.content}</p>
               </div>
               <button type="button" className="memory-item-delete" aria-label="删除这条记忆" onClick={() => void remove(m.id)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <Trash2 size={14} strokeWidth={2} />
               </button>
             </li>
           ))}
@@ -471,7 +471,7 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
       {!activeSessionId && sessions.length === 0 && <EmptyState title="开始一段 AI 对话" description="可以问喂奶、排便、生长、疫苗或照护相关的任何问题。" action={<button type="button" className="btn primary" onClick={() => void createSession()}>开始对话</button>} />}
       {activeSessionId && messages.length === 0 && <div className="chat-welcome">
         <div className="chat-welcome-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1 4-1 6a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4c0-2-1-3.5-1-6a7 7 0 0 1 7-7Z"/><path d="M9 11h.01M15 11h.01"/><path d="M10.5 15a3 3 0 0 0 3 0"/></svg>
+          <Lightbulb size={28} strokeWidth={1.8} />
         </div>
         <p>你好！我是宝宝的 AI 助手，可以问我任何关于宝宝的问题：</p>
         <div className="chat-suggestions">
