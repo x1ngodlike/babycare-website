@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, Brain, Lightbulb, Trash2, XIcon } from 'lucide-react';
+import { ChevronLeft, Brain, Lightbulb, Trash2, XIcon, RotateCcw } from 'lucide-react';
 import { api, ApiError } from '../api';
 import { familyMembers } from '../shared';
 import { confirmAction, EmptyState } from '../ui';
@@ -23,6 +23,38 @@ function relativeTime(iso: string): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} 天前`;
   return formatChatTime(iso);
+}
+
+type ExpiryChoice = 'perm' | '3' | '7' | '30' | 'custom';
+const EXPIRY_PRESETS: { key: ExpiryChoice; label: string; days: number | null }[] = [
+  { key: 'perm', label: '永久', days: null },
+  { key: '3', label: '3 天', days: 3 },
+  { key: '7', label: '7 天', days: 7 },
+  { key: '30', label: '30 天', days: 30 }
+];
+
+function computeExpiresAt(choice: ExpiryChoice, customDate: string): string | null {
+  if (choice === 'perm') return null;
+  if (choice === 'custom') {
+    if (!customDate) return null;
+    const d = new Date(`${customDate}T23:59:00`);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  const days = EXPIRY_PRESETS.find(p => p.key === choice)?.days;
+  if (!days) return null;
+  return new Date(Date.now() + days * 86400000).toISOString();
+}
+
+function formatExpiry(expiresAt: string | null | undefined): { text: string; expired: boolean } {
+  if (!expiresAt) return { text: '永久', expired: false };
+  const t = new Date(expiresAt).getTime();
+  if (Number.isNaN(t)) return { text: '永久', expired: false };
+  if (t <= Date.now()) return { text: '已过期', expired: true };
+  const ms = t - Date.now();
+  const days = Math.floor(ms / 86400000);
+  if (days >= 1) return { text: `剩 ${days} 天`, expired: false };
+  const hours = Math.floor(ms / 3600000);
+  return { text: `剩 ${hours} 小时`, expired: false };
 }
 
 const SUGGESTIONS = [
@@ -122,12 +154,24 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
   const [category, setCategory] = useState<AiMemory['category']>('notes');
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<'all' | AiMemory['category']>('all');
+  const [expiryChoice, setExpiryChoice] = useState<ExpiryChoice>('perm');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [includeExpired, setIncludeExpired] = useState(false);
   const dialogRef = useRef<HTMLElement | null>(null);
-  useEffect(() => { if (!open) return; setLoading(true); setError(''); api.memories().then(r => setMemories(r.memories)).catch(err => setError(err instanceof Error ? err.message : '读取失败')).finally(() => setLoading(false)); }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true); setError('');
+    api.memories(includeExpired).then(r => setMemories(r.memories)).catch(err => setError(err instanceof Error ? err.message : '读取失败')).finally(() => setLoading(false));
+  }, [open, includeExpired]);
   async function add() {
     if (!content.trim()) return;
     setSaving(true); setError('');
-    try { const memory = await api.addMemory(content.trim(), category); setMemories(prev => [memory, ...prev]); setContent(''); }
+    const expiresAt = computeExpiresAt(expiryChoice, expiryDate);
+    try {
+      const memory = await api.addMemory(content.trim(), category, expiresAt);
+      setMemories(prev => [memory, ...prev]);
+      setContent(''); setExpiryChoice('perm'); setExpiryDate('');
+    }
     catch (err) { setError(err instanceof Error ? err.message : '添加失败'); }
     finally { setSaving(false); }
   }
@@ -135,6 +179,13 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
     if (!await confirmAction({ title: '删除这条记忆？', description: '删除后 AI 将不再参考该要点。', confirmLabel: '删除', danger: true })) return;
     try { await api.deleteMemory(id); setMemories(prev => prev.filter(m => m.id !== id)); }
     catch (err) { setError(err instanceof Error ? err.message : '删除失败'); }
+  }
+  async function restore(id: string) {
+    try {
+      const memory = await api.restoreMemory(id);
+      setMemories(prev => prev.map(m => m.id === id ? memory : m));
+    }
+    catch (err) { setError(err instanceof Error ? err.message : '恢复失败'); }
   }
   const filtered = useMemo(() => {
     const sorted = [...memories].sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category) || b.updatedAt.localeCompare(a.updatedAt));
@@ -175,6 +226,17 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
             {saving ? '保存中…' : '添加'}
           </button>
         </div>
+        <div className="memory-expiry-row">
+          <span className="memory-expiry-label">有效期</span>
+          <div className="memory-expiry-tabs" role="radiogroup" aria-label="记忆有效期">
+            {EXPIRY_PRESETS.map(p => (
+              <button key={p.key} type="button" role="radio" aria-checked={expiryChoice === p.key} className={`memory-expiry-tab ${expiryChoice === p.key ? 'selected' : ''}`} onClick={() => { setExpiryChoice(p.key); setExpiryDate(''); }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <input type="date" className="memory-expiry-date" value={expiryDate} min={new Date().toISOString().slice(0, 10)} onChange={e => { setExpiryDate(e.target.value); if (e.target.value) setExpiryChoice('custom'); }} aria-label="自定义过期日期" />
+        </div>
       </div>
 
       {!loading && memories.length > 0 && <div className="memory-filter-bar">
@@ -188,6 +250,10 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
               {categoryLabels[cat]} <span className="memory-count">{countByCategory[cat]}</span>
             </button>
           ))}
+          <label className="memory-include-expired">
+            <input type="checkbox" checked={includeExpired} onChange={e => setIncludeExpired(e.target.checked)} />
+            显示已过期/已作废
+          </label>
         </div>
       </div>}
 
@@ -212,12 +278,22 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
                 <div className="memory-item-meta">
                   <span className={`memory-tag ${m.category}`}>{categoryLabels[m.category]}</span>
                   <span className="memory-item-time" title={new Date(m.updatedAt).toLocaleString('zh-CN')}>{relativeTime(m.updatedAt)}</span>
+                  {m.status === 'resolved'
+                    ? <span className="memory-expiry-badge resolved">已作废</span>
+                    : <span className={`memory-expiry-badge ${formatExpiry(m.expiresAt).expired ? 'expired' : ''}`}>{formatExpiry(m.expiresAt).text}</span>}
                 </div>
                 <p className="memory-item-text">{m.content}</p>
               </div>
-              <button type="button" className="memory-item-delete" aria-label="删除这条记忆" onClick={() => void remove(m.id)}>
-                <Trash2 size={14} strokeWidth={2} />
-              </button>
+              <div className="memory-item-actions">
+                {m.status === 'resolved' && (
+                  <button type="button" className="memory-item-restore" aria-label="恢复这条记忆" title="恢复（撤销作废）" onClick={() => void restore(m.id)}>
+                    <RotateCcw size={14} strokeWidth={2} />
+                  </button>
+                )}
+                <button type="button" className="memory-item-delete" aria-label="删除这条记忆" onClick={() => void remove(m.id)}>
+                  <Trash2 size={14} strokeWidth={2} />
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -249,6 +325,7 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [extractedHints, setExtractedHints] = useState<Record<string, ExtractedMemory[]>>({});
+  const [resolvedHints, setResolvedHints] = useState<Record<string, { id: string; content: string }[]>>({});
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const sessionDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -361,7 +438,8 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
         const withoutOptimistic = prev.filter(m => m.id !== optimisticUser.id);
         return [...withoutOptimistic, { ...optimisticUser, sessionId: res.sessionId }, assistant];
       });
-      if (res.extractedMemories.length) setExtractedHints(prev => ({ ...prev, [`reply-${Date.now()}`]: res.extractedMemories }));
+      if (res.extractedMemories.length) setExtractedHints(prev => ({ ...prev, [assistant.id]: res.extractedMemories }));
+      if (res.resolvedMemories.length) setResolvedHints(prev => ({ ...prev, [assistant.id]: res.resolvedMemories }));
     } catch (err) {
       setMessages(prev => prev.filter(m => m.id !== optimisticUser.id));
       setInput(trimmed);
@@ -487,7 +565,19 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
         {m.role === 'assistant' && renderAvatar(m.role, displayUserName)}
         <div className={`chat-bubble ${m.role}`}>
           <div className="chat-content">{renderRichText(m.content)}</div>
-          {m.role === 'assistant' && extractedHints[m.id] && <div className="chat-memory-hint">已记住：{extractedHints[m.id].map(h => `「${h.content}」`).join('、')}</div>}
+          {m.role === 'assistant' && (extractedHints[m.id]?.length || resolvedHints[m.id]?.length) && (
+            <div className="chat-memory-hint">
+              {extractedHints[m.id]?.length ? (
+                <span className="hint-line">已记住：{extractedHints[m.id].map(h => {
+                  const exp = formatExpiry(h.expiresAt);
+                  return `「${h.content}」${exp.expired || exp.text === '永久' ? '' : `（${exp.text}）`}`;
+                }).join('、')}</span>
+              ) : null}
+              {resolvedHints[m.id]?.length ? (
+                <span className="hint-line hint-resolved">已作废旧记忆：{resolvedHints[m.id].map(r => `「${r.content}」`).join('、')}</span>
+              ) : null}
+            </div>
+          )}
         </div>
         {m.role === 'user' && renderAvatar(m.role, displayUserName)}
       </div>)}

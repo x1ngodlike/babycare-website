@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   addMessage, allRecords, createSession, getSession, listCareItems, listGrowthRecords, listMemories,
   listMessages, listVaccineRecords, renameSession,
-  upsertMemory, getProfile
+  upsertMemory, getProfile, resolveBySupersede
 } from './db/index.js';
 import { requestCompletion, type ModelSettings } from './ai.js';
 import { shanghaiDateString } from './shanghai-date.js';
@@ -15,14 +15,17 @@ const SYSTEM_PROMPT = `你是"宝宝照护"家庭的 AI 育儿助手，熟悉这
 1. 只基于【宝宝资料与历史数据】和【家庭共享记忆】中提供的信息作答，结合常识与通用育儿知识；不编造数据中不存在的数值或事实。
 2. 不给出确诊结论，但可以基于宝宝的症状和已录入数据提供健康预警（如风险等级、可能原因、观察要点）和家庭护理建议（如物理降温、补水、睡姿调整等）；出现红色预警（持续高烧、呼吸困难、抽搐、脱水等）时，明确提示立即就医。
 3. 可引用记忆与历史数据让回答更连贯；如果数据不足，坦诚说明并给通用建议。
-4. 每次回复同时判断是否需要沉淀新的长期记忆：只记录【家长在消息中明确说出的】、确实重要且可跨对话复用的要点（如过敏史、喂养偏好、作息规律、家长明确交代的事项）；不得记录由数据推断得出的结论，也不得把助手自己的回复当作记忆；不要记录一次性闲聊。记忆须忠实于家长原话，可适度概括，但不得偏移原意或补充推断任何原文没有的信息。
+4. 每次回复同时判断是否需要沉淀新的长期记忆：只记录【家长在消息中明确说出的】、确实重要且可跨对话复用的要点（如过敏史、喂养偏好、作息规律、家长明确交代的事项）；不得记录由数据推断得出的结论，也不得把助手自己的回复当作记忆；不要记录一次性闲聊。记忆须忠实于家长原话，可适度概括，但不得偏移原意或补充推断任何原文没有的信息。对【临时性状态】（如当前生病/不舒服/在服药中/腹泻中）应在 memories 里设置 expiresAt 为该状态预计结束的 ISO 时间（如几天后）；对【稳定可长期复用】的要点（过敏史、喂养偏好、作息）则不要设置 expiresAt（留空）。
+5. 矛盾消解：如果本次要记录的要点会推翻或替代一条已有的家庭记忆（例如之前记了「宝宝肚子不舒服」，现在家长说「肚子好了」），请在该 memory 项里填写 supersedes 为那条旧记忆的核心内容（尽量贴近原话、保留关键短语），系统会自动将旧记忆标记为已作废，无需你手动删除；若没有可推翻的旧记忆则不要填 supersedes。
 5. 输出严格为 JSON，不要解释、不要 Markdown 代码块。`;
 
 export const chatSchema = z.object({
   reply: z.string().trim().min(1).max(2000),
   memories: z.array(z.object({
     category: z.enum(['preferences', 'health', 'notes']),
-    content: z.string().trim().min(1).max(300)
+    content: z.string().trim().min(1).max(300),
+    expiresAt: z.string().datetime({ offset: true }).nullable().optional(),
+    supersedes: z.string().trim().max(300).optional()
   })).max(10),
   title: z.string().trim().max(40).optional()
 });
@@ -127,7 +130,8 @@ export interface ChatReply {
   reply: string;
   sessionId: string;
   title: string | null;
-  extractedMemories: { category: AiMemoryCategory; content: string }[];
+  extractedMemories: { category: AiMemoryCategory; content: string; expiresAt: string | null }[];
+  resolvedMemories: { id: string; content: string }[];
 }
 
 const WEEKDAY_CN = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -161,7 +165,7 @@ export async function generateChatReply(
     '【家庭共享记忆（之前对话中沉淀，可参考引用）】\n' + memoryContext,
     '【对话历史】\n' + historyText,
     '【家长最新问题】\n' + opts.message,
-    `请仅依据上述数据与家长问题作答，输出 JSON：{"reply":"对家长的回答（自然口语，可引用数据与记忆，不超过 300 字；较长回答可用简短小标题和要点列表让条理更清晰，关键数字用加粗标记）","memories":[{"category":"preferences|health|notes","content":"从【家长最新问题】中提炼家长亲口说出的、值得长期记住的要点（可适度概括，但不得改变原意、不得补充或推断原文没有的信息，例如不能把『吃虾后起红疹』说成『对海鲜过敏』，也不得摘录助手的话）；若家长消息中没有可沉淀的明确要点，则不要返回该项"}],"title":"给本对话起一个简短标题（不超过 20 字），能概括本次对话的核心话题"}。`
+    `请仅依据上述数据与家长问题作答，输出 JSON：{"reply":"对家长的回答（自然口语，可引用数据与记忆，不超过 300 字；较长回答可用简短小标题和要点列表让条理更清晰，关键数字用加粗标记）","memories":[{"category":"preferences|health|notes","content":"从【家长最新问题】中提炼家长亲口说出的、值得长期记住的要点（可适度概括，但不得改变原意、不得补充或推断原文没有的信息，例如不能把『吃虾后起红疹』说成『对海鲜过敏』，也不得摘录助手的话）；若家长消息中没有可沉淀的明确要点，则不要返回该项","expiresAt":"若该要点属于临时状态（生病/不舒服/服药中/腹泻等），填预计结束的 ISO 时间，例如 2026-08-29T16:00:00.000Z；若是稳定长期要点则填 null 或不返回该项","supersedes":"仅当本条要点会推翻一条已有的家庭记忆时填写，内容为那条旧记忆的核心原文（尽量贴近原话、保留关键短语），系统会自动将其标记为已作废；若无旧记忆被推翻则不返回该项"}],"title":"给本对话起一个简短标题（不超过 20 字），能概括本次对话的核心话题"}。`
   ].join('\n\n');
 
   const content = await requestCompletion(settings, [
@@ -185,11 +189,18 @@ export async function generateChatReply(
   );
   const safeMemories = parsed.memories.filter(m => memoryGrounded(normalizeForMatch(m.content), userSource));
 
-  const extractedMemories: { category: AiMemoryCategory; content: string }[] = [];
+  const extractedMemories: { category: AiMemoryCategory; content: string; expiresAt: string | null }[] = [];
+  const resolvedMemories: { id: string; content: string }[] = [];
   for (const m of safeMemories) {
-    upsertMemory(m.content, m.category);
-    extractedMemories.push({ category: m.category, content: m.content });
+    const expiresAt = m.expiresAt ?? null;
+    const saved = upsertMemory(m.content, m.category, expiresAt);
+    extractedMemories.push({ category: m.category, content: m.content, expiresAt });
+    // 矛盾消解：若本条新记忆推翻某条旧记忆，自动将旧记忆标记为已作废（排除刚写入的本条自身）
+    if (m.supersedes && m.supersedes.trim()) {
+      const resolved = resolveBySupersede(m.supersedes.trim(), saved.id);
+      resolvedMemories.push(...resolved.map(r => ({ id: r.id, content: r.content })));
+    }
   }
 
-  return { reply: parsed.reply, sessionId: session.id, title, extractedMemories };
+  return { reply: parsed.reply, sessionId: session.id, title, extractedMemories, resolvedMemories };
 }

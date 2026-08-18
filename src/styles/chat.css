@@ -124,7 +124,10 @@
 .chat-content ul, .chat-content ol { margin: 0 0 8px; padding-left: 20px; }
 .chat-content li { margin: 3px 0; }
 .chat-content strong { font-weight: 800; }
-.chat-memory-hint { margin-top: 8px; padding: 8px 12px; background: linear-gradient(135deg, color-mix(in srgb, var(--green) 6%, transparent), color-mix(in srgb, var(--sage-soft) 60%, transparent)); border-radius: 12px; color: var(--green-deep); font-size: 12px; line-height: 1.4; }
+.chat-memory-hint { margin-top: 8px; padding: 8px 12px; background: linear-gradient(135deg, color-mix(in srgb, var(--green) 6%, transparent), color-mix(in srgb, var(--sage-soft) 60%, transparent)); border-radius: 12px; color: var(--green-deep); font-size: 12px; line-height: 1.5; }
+.chat-memory-hint .hint-line { display: block; }
+.chat-memory-hint .hint-line + .hint-line { margin-top: 4px; }
+.chat-memory-hint .hint-resolved { color: #8b6a1e; font-weight: 700; }
 .chat-input-bar { flex-shrink: 0; padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); background: var(--surface-page); border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: flex-end; }
 .chat-input-wrapper { flex: 1; position: relative; display: flex; align-items: flex-end; }
 .chat-input-bar textarea { width: 100%; min-height: 40px; max-height: 120px; padding: 10px 40px 10px 14px; border-radius: 24px; resize: none; overflow-y: hidden; }
@@ -438,6 +441,94 @@
   color: #7a5c2e;
 }
 
+.memory-expiry-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.memory-expiry-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.memory-expiry-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-card);
+  height: 34px;
+  align-items: stretch;
+}
+.memory-expiry-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+  white-space: nowrap;
+}
+.memory-expiry-tab:hover:not(.selected) { color: var(--ink); }
+.memory-expiry-tab.selected {
+  background: var(--sage);
+  color: var(--green-deep);
+}
+.memory-expiry-date {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-card);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+}
+.memory-expiry-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  background: #e7eefc;
+  color: #2f5aa8;
+  font-variant-numeric: tabular-nums;
+}
+.memory-expiry-badge.expired {
+  background: #f0e7e7;
+  color: #8b2a1e;
+}
+.memory-expiry-badge.resolved {
+  background: #efe9dd;
+  color: #8b6a1e;
+}
+.memory-include-expired {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.memory-expiry-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 .memory-item-time {
   font-size: 12px;
   color: var(--text-tertiary);
@@ -472,6 +563,36 @@
   color: var(--danger);
 }
 .memory-item-delete:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.memory-item-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.memory-item-restore {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  color: var(--green-deep);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.memory-item-restore:hover {
+  background: #e8f3e8;
+  color: var(--green);
+}
+.memory-item-restore:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
@@ -627,6 +748,31 @@ html[data-theme='dark'] .memory-tag.notes {
   background: rgba(200, 161, 90, .2);
   color: #e0c48a;
 }
+html[data-theme='dark'] .memory-expiry-tabs {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme='dark'] .memory-expiry-tab.selected {
+  background: var(--sage);
+  color: var(--green-deep);
+}
+html[data-theme='dark'] .memory-expiry-date {
+  background: var(--surface-card);
+  border-color: var(--line);
+  color: var(--ink);
+}
+html[data-theme='dark'] .memory-expiry-badge {
+  background: rgba(47, 90, 168, .25);
+  color: #9db8ec;
+}
+html[data-theme='dark'] .memory-expiry-badge.expired {
+  background: rgba(200, 90, 60, .2);
+  color: #e89880;
+}
+html[data-theme='dark'] .memory-expiry-badge.resolved {
+  background: rgba(200, 168, 90, .2);
+  color: #e0c48a;
+}
 html[data-theme='dark'] .memory-empty-icon {
   background: rgba(82, 109, 89, .2);
   color: #a8c4b0;
@@ -638,6 +784,14 @@ html[data-theme='dark'] .memory-item-delete {
 html[data-theme='dark'] .memory-item-delete:hover {
   background: rgba(165, 71, 64, .2);
   color: #e89880;
+}
+html[data-theme='dark'] .memory-item-restore {
+  background: rgba(255, 255, 255, .06);
+  color: #a8c0a0;
+}
+html[data-theme='dark'] .memory-item-restore:hover {
+  background: rgba(74, 107, 63, .28);
+  color: #c4d6bc;
 }
 html[data-theme='dark'] .error-text {
   background: rgba(165, 71, 64, .15);
@@ -671,6 +825,7 @@ html[data-theme="dark"] .chat-input-clear:hover { background: #4a4d48; }
 html[data-theme="dark"] .chat-member-trigger { background: var(--surface-card); border-color: var(--line); }
 html[data-theme="dark"] .chat-member-dropdown { background: var(--surface-card); border-color: var(--line); box-shadow: 0 12px 32px rgba(0, 0, 0, .4); }
 html[data-theme="dark"] .chat-memory-hint { background: linear-gradient(135deg, rgba(74,107,63,.15), rgba(84,100,74,.1)); color: #a8c0a0; }
+html[data-theme="dark"] .chat-memory-hint .hint-resolved { color: #e0c48a; }
 html[data-theme="dark"] .chat-toolbar { border-bottom-color: var(--line); }
 html[data-theme="dark"] .chat-fullscreen-header { border-bottom-color: var(--line); }
 html[data-theme="dark"] .chat-input-bar { border-top-color: var(--line); }

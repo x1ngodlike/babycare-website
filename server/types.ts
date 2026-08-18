@@ -149,6 +149,9 @@ export interface AiMemory {
   category: AiMemoryCategory;
   createdAt: string;
   updatedAt: string;
+  expiresAt: string | null;
+  status: 'active' | 'resolved';
+  resolvedAt: string | null;
 }
 
 export interface ChatSession {

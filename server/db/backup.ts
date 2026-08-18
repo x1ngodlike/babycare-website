@@ -2,13 +2,15 @@ import { db } from './connection.js';
 import { canonicalInstant } from '../shanghai-date.js';
 import { saveProfile } from './profile.js';
 import { replaceFamilyRoles } from './family.js';
-import { upsertMemory } from './chat.js';
+import { restoreMemory } from './chat.js';
 import { addAudit } from './records.js';
 import { syncDefaultVaccineCatalog, systemVaccineIds } from './vaccines.js';
 import type { DailyReport } from './daily-reports.js';
-import type { AiMemory, AuditEntry, BabySex, CareItem, CareRecord, ChatMessage, ChatSession, FamilyMemberPermission, GrowthRecord, MilestoneRecord, VaccineCatalogItem, VaccineRecord } from '../types.js';
+import type { AiMemory, AiMemoryCategory, AuditEntry, BabySex, CareItem, CareRecord, ChatMessage, ChatSession, FamilyMemberPermission, GrowthRecord, MilestoneRecord, VaccineCatalogItem, VaccineRecord } from '../types.js';
 
-type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
+type ImportedMemory = { id: string; content: string; category: AiMemoryCategory; createdAt: string; updatedAt: string; expiresAt?: string | null; status?: 'active' | 'resolved'; resolvedAt?: string | null };
+
+type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: ImportedMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
 type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
   if (payload.profile) saveProfile({ name: payload.profile.name, birthDate: payload.profile.birthDate, birthTime: payload.profile.birthTime, sex: payload.profile.sex ?? 'unspecified', nickname: payload.profile.nickname, caregiverTitle: payload.profile.caregiverTitle, avatar: payload.profile.avatar });
@@ -53,7 +55,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
     const upsertReport = db.prepare('INSERT INTO daily_reports (report_date, summary, suggestions, model, generated_at) VALUES (@reportDate, @summary, @suggestions, @model, @generatedAt) ON CONFLICT(report_date) DO UPDATE SET summary=excluded.summary, suggestions=excluded.suggestions, model=excluded.model, generated_at=excluded.generated_at');
     for (const report of payload.dailyReports) upsertReport.run({ ...report, suggestions: JSON.stringify(report.suggestions) });
   }
-  if (payload.aiMemories?.length) for (const m of payload.aiMemories) upsertMemory(m.content, m.category);
+  if (payload.aiMemories?.length) for (const m of payload.aiMemories) restoreMemory({ id: m.id, content: m.content, category: m.category, createdAt: m.createdAt, updatedAt: m.updatedAt, expiresAt: m.expiresAt ?? null, status: m.status ?? 'active', resolvedAt: m.resolvedAt ?? null });
   if (payload.chatSessions?.length) {
     const upsertSession = db.prepare(`INSERT INTO chat_sessions (id, user_id, title, created_at, updated_at) VALUES (@id, @userId, @title, @createdAt, @updatedAt) ON CONFLICT(id) DO UPDATE SET user_id=excluded.user_id, title=excluded.title, updated_at=excluded.updated_at`);
     for (const s of payload.chatSessions) upsertSession.run({ ...s, title: s.title ?? null });
@@ -125,7 +127,7 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     const insertReport = db.prepare('INSERT INTO daily_reports (report_date, summary, suggestions, model, generated_at) VALUES (@reportDate, @summary, @suggestions, @model, @generatedAt)');
     for (const report of payload.dailyReports) insertReport.run({ ...report, suggestions: JSON.stringify(report.suggestions) });
   }
-  if (payload.aiMemories?.length) for (const m of payload.aiMemories) upsertMemory(m.content, m.category);
+  if (payload.aiMemories?.length) for (const m of payload.aiMemories) restoreMemory({ id: m.id, content: m.content, category: m.category, createdAt: m.createdAt, updatedAt: m.updatedAt, expiresAt: m.expiresAt ?? null, status: m.status ?? 'active', resolvedAt: m.resolvedAt ?? null });
   db.prepare('DELETE FROM chat_messages').run();
   db.prepare('DELETE FROM chat_sessions').run();
   if (payload.chatSessions?.length) {

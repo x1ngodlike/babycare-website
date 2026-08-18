@@ -373,9 +373,13 @@ db.exec(`
     content TEXT NOT NULL,
     category TEXT NOT NULL DEFAULT 'notes' CHECK (category IN ('preferences', 'health', 'notes')),
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    expires_at TEXT,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'resolved')),
+    resolved_at TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_ai_memories_updated_at ON ai_memories(updated_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_ai_memories_expires_at ON ai_memories(expires_at);
 
   CREATE TABLE IF NOT EXISTS chat_sessions (
     id TEXT PRIMARY KEY,
@@ -401,5 +405,11 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE name = ?').get(dailyRepor
   db.prepare('DELETE FROM daily_reports').run();
   db.prepare('INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)').run(dailyReportUtcMigration, new Date().toISOString());
 })();
+
+// 记忆过期字段：旧库可能没有 expires_at，按需补列（CREATE TABLE IF NOT EXISTS 不会为已存在的表加列）
+const aiMemoryColumns = db.prepare('PRAGMA table_info(ai_memories)').all() as { name: string }[];
+if (!aiMemoryColumns.some(column => column.name === 'expires_at')) db.exec('ALTER TABLE ai_memories ADD COLUMN expires_at TEXT');
+if (!aiMemoryColumns.some(column => column.name === 'status')) db.exec("ALTER TABLE ai_memories ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
+if (!aiMemoryColumns.some(column => column.name === 'resolved_at')) db.exec('ALTER TABLE ai_memories ADD COLUMN resolved_at TEXT');
 
 export function closeDatabaseForTests() { db.close(); }

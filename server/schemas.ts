@@ -136,7 +136,7 @@ export const backupPayloadSchema = z.object({
     reportDate: z.string(), summary: z.string(), suggestions: z.array(z.string()), model: z.string(), generatedAt: z.string()
   })).max(3650).optional(),
   aiMemories: z.array(z.object({
-    id: z.string(), content: z.string(), category: z.enum(['preferences', 'health', 'notes']), createdAt: z.string(), updatedAt: z.string()
+    id: z.string(), content: z.string(), category: z.enum(['preferences', 'health', 'notes']), createdAt: z.string(), updatedAt: z.string(), expiresAt: z.string().nullable().optional(), status: z.enum(['active', 'resolved']).optional(), resolvedAt: z.string().nullable().optional()
   })).max(1000).optional(),
   chatSessions: z.array(z.object({
     id: z.string(), userId: z.enum(['father', 'mother', 'grandfather', 'grandmother']), title: z.string().nullable(), createdAt: z.string(), updatedAt: z.string()
@@ -161,5 +161,7 @@ export const chatMessageSchema = z.object({
 
 export const memoryInputSchema = z.object({
   content: z.string().trim().min(1).max(300),
-  category: z.enum(['preferences', 'health', 'notes'])
+  category: z.enum(['preferences', 'health', 'notes']),
+  expiresAt: z.string().datetime({ offset: true }).nullable().optional()
+    .refine(v => !v || new Date(v).getTime() > Date.now(), { message: '过期时间必须晚于当前时间' })
 });

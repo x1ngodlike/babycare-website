@@ -4,7 +4,7 @@ import { getSessionUser, requireAdmin, requireSuperAdmin } from '../auth.js';
 import { testModelConnection } from '../ai.js';
 import { generateChatReply } from '../chat.js';
 import { generateDailyReportForDate, yesterdayInShanghai } from '../daily-report.js';
-import { addMemory, clearMemories, deleteMemory, deleteSession, getAiSettings, getDailyReport, getSession as getChatSession, listMemories, listMessages, listSessions, saveAiSettings, createSession as createChatSession } from '../db/index.js';
+import { addMemory, clearMemories, deleteMemory, deleteSession, getAiSettings, getDailyReport, getSession as getChatSession, listMemories, listMessages, listSessions, restoreMemoryById, saveAiSettings, createSession as createChatSession } from '../db/index.js';
 import { aiSettingsSchema, chatMessageSchema, memoryInputSchema } from '../schemas.js';
 import type { FamilyId } from '../types.js';
 
@@ -112,12 +112,15 @@ export function registerAiRoutes(app: Express) {
     return res.json({ deleted: true });
   });
 
-  app.get('/api/ai/memories', (_req, res) => res.json({ memories: listMemories() }));
+  app.get('/api/ai/memories', (req, res) => {
+    const includeExpired = req.query.includeExpired === '1' || req.query.includeExpired === 'true';
+    return res.json({ memories: listMemories(includeExpired) });
+  });
 
   app.post('/api/ai/memories', (req, res) => {
     const parsed = memoryInputSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '记忆格式不正确' });
-    const memory = addMemory(parsed.data.content, parsed.data.category);
+    const memory = addMemory(parsed.data.content, parsed.data.category, parsed.data.expiresAt ?? null);
     return res.status(201).json(memory);
   });
 
@@ -131,6 +134,14 @@ export function registerAiRoutes(app: Express) {
   app.delete('/api/ai/memories', requireAdmin, (_req, res) => {
     clearMemories();
     return res.json({ cleared: true });
+  });
+
+  app.post('/api/ai/memories/:id/restore', requireAdmin, (req, res) => {
+    const parsed = z.string().uuid().safeParse(req.params.id);
+    if (!parsed.success) return res.status(400).json({ error: '记忆编号不正确' });
+    const memory = restoreMemoryById(parsed.data);
+    if (!memory) return res.status(404).json({ error: '记忆不存在' });
+    return res.json(memory);
   });
 
   // ----- 日报 -----

@@ -115,11 +115,11 @@ export interface AuditEntry {
 }
 
 export type AiMemoryCategory = 'preferences' | 'health' | 'notes';
-export interface AiMemory { id: string; content: string; category: AiMemoryCategory; createdAt: string; updatedAt: string }
+export interface AiMemory { id: string; content: string; category: AiMemoryCategory; createdAt: string; updatedAt: string; expiresAt: string | null; status: 'active' | 'resolved'; resolvedAt: string | null }
 export interface ChatSession { id: string; userId: FamilyId; title: string | null; createdAt: string; updatedAt: string }
 export interface ChatMessage { id: string; sessionId: string; role: 'user' | 'assistant'; content: string; createdAt: string }
-export interface ExtractedMemory { category: AiMemoryCategory; content: string }
-export interface ChatReply { reply: string; sessionId: string; title: string | null; extractedMemories: ExtractedMemory[]; userId: FamilyId }
+export interface ExtractedMemory { category: AiMemoryCategory; content: string; expiresAt?: string | null }
+export interface ChatReply { reply: string; sessionId: string; title: string | null; extractedMemories: ExtractedMemory[]; resolvedMemories: { id: string; content: string }[]; userId: FamilyId }
 
 export interface Profile { name: string; birthDate: string; birthTime?: string; sex: BabySex; nickname: string; caregiverTitle: string; avatar: string | null; updatedAt?: string }
 export interface ServerBackupStatus { directory: string; intervalHours: number; retention: number; count: number; lastBackupAt: string | null; nextBackupAt: string }

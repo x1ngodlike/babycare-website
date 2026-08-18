@@ -84,3 +84,70 @@ describe('generateChatReply integration', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('memory expiry', () => {
+  it('filters expired memories from context but keeps them when includeExpired', () => {
+    const past = new Date(Date.now() - 86400000).toISOString();
+    const future = new Date(Date.now() + 86400000).toISOString();
+    db.addMemory('已过期测试记忆', 'notes', past);
+    db.addMemory('未过期测试记忆', 'notes', future);
+    expect(chat.buildMemoryContext()).not.toContain('已过期测试记忆');
+    expect(chat.buildMemoryContext()).toContain('未过期测试记忆');
+    const all = db.listMemories(true);
+    expect(all.some(m => m.content === '已过期测试记忆')).toBe(true);
+    expect(all.some(m => m.content === '未过期测试记忆')).toBe(true);
+  });
+});
+
+describe('memory contradiction resolution', () => {
+  it('marks a conflicting active memory resolved and hides it from context', () => {
+    db.addMemory('宝宝肚子不舒服', 'health');
+    expect(db.listMemories().some(m => m.content === '宝宝肚子不舒服' && m.status === 'active')).toBe(true);
+
+    const resolved = db.resolveBySupersede('宝宝肚子不舒服');
+    expect(resolved.length).toBe(1);
+    expect(resolved[0].content).toBe('宝宝肚子不舒服');
+
+    // 作废后不再注入对话上下文
+    expect(chat.buildMemoryContext()).not.toContain('宝宝肚子不舒服');
+    // 默认列表隐藏已作废记忆
+    expect(db.listMemories().some(m => m.content === '宝宝肚子不舒服')).toBe(false);
+    // includeExpired 可找回，且状态为 resolved
+    expect(db.listMemories(true).some(m => m.content === '宝宝肚子不舒服' && m.status === 'resolved')).toBe(true);
+  });
+
+  it('does not resolve when overlap is too small', () => {
+    db.addMemory('宝宝喜欢被竖抱', 'preferences');
+    expect(db.resolveBySupersede('宝宝今天很开心').length).toBe(0);
+  });
+
+  it('resolves old memory when the model sets supersedes in its output', async () => {
+    db.addMemory('宝宝肚子不舒服', 'health');
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ reply: '太好了，已经好了。', memories: [{ category: 'health', content: '宝宝肚子好了', supersedes: '宝宝肚子不舒服' }], title: '恢复情况' }) } }] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await chat.generateChatReply({ baseUrl: 'https://api.example.com', model: 'test', apiKey: 'secret' }, { userId: 'father', message: '宝宝肚子好了' });
+    expect(result.resolvedMemories.length).toBe(1);
+    expect(result.resolvedMemories[0].content).toBe('宝宝肚子不舒服');
+    expect(chat.buildMemoryContext()).not.toContain('宝宝肚子不舒服');
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('memory restore', () => {
+  it('restores a resolved memory back to active and back into the chat context', () => {
+    const created = db.addMemory('宝宝发烧了', 'health');
+    db.resolveBySupersede('宝宝发烧了');
+    expect(db.listMemories().some(m => m.content === '宝宝发烧了')).toBe(false);
+
+    const restored = db.restoreMemoryById(created.id);
+    expect(restored).not.toBeNull();
+    expect(restored!.status).toBe('active');
+    expect(restored!.expiresAt).toBeNull();
+    expect(chat.buildMemoryContext()).toContain('宝宝发烧了');
+    expect(db.listMemories().some(m => m.content === '宝宝发烧了' && m.status === 'active')).toBe(true);
+  });
+
+  it('returns null for a non-existent id', () => {
+    expect(db.restoreMemoryById('00000000-0000-0000-0000-000000000000')).toBeNull();
+  });
+});
