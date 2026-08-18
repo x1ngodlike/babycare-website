@@ -279,13 +279,13 @@ export function formatDurationFromNow(targetIso: string, now: Date = new Date())
   const diffMinutes = Math.round(diffMs / 60000);
 
   if (diffMinutes <= 0) return '应该已经喂了';
-  if (diffMinutes < 60) return `约 ${diffMinutes} 分钟后`;
+  if (diffMinutes < 60) return `约 ${diffMinutes}分钟后`;
   const hours = Math.floor(diffMinutes / 60);
   const minutes = diffMinutes % 60;
-  if (hours < 24) return minutes > 0 ? `约 ${hours} 小时${minutes}分钟后` : `约 ${hours} 小时后`;
+  if (hours < 24) return minutes > 0 ? `约 ${hours}小时${minutes}分钟后` : `约 ${hours}小时后`;
   const days = Math.floor(hours / 24);
   const remainH = hours % 24;
-  return days > 0 ? `约 ${days} 天${remainH}小时后` : `约 ${hours} 小时后`;
+  return days > 0 ? `约 ${days}天${remainH}小时后` : `约 ${hours}小时后`;
 }
 
 export function formatElapsed(fromIso: string, now: Date = new Date()): string {
