@@ -250,6 +250,10 @@ export default function ChatView({ user, capabilities, online }: { user: Session
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const sessionDropdownRef = useRef<HTMLDivElement | null>(null);
 
+  const displayUserName = superadmin
+    ? (familyMembers.find(m => m.id === targetUserId)?.name || user.name)
+    : user.name;
+
   const activeSession = useMemo(() => sessions.find(s => s.id === activeSessionId) || null, [sessions, activeSessionId]);
 
   const loadSessions = useCallback(async () => {
@@ -326,7 +330,7 @@ export default function ChatView({ user, capabilities, online }: { user: Session
     const optimisticUser: ChatMessage = { id: `local-${Date.now()}`, sessionId: activeSessionId || '', role: 'user', content: trimmed, createdAt: new Date().toISOString() };
     setMessages(prev => [...prev, optimisticUser]);
     try {
-      const res = await api.chat(trimmed, activeSessionId || undefined, superadmin ? targetUserId : undefined);
+      const res = await api.chat(trimmed, activeSessionId || undefined, superadmin ? targetUserId : undefined, superadmin ? displayUserName : undefined);
       setActiveSessionId(res.sessionId);
       setSessions(prev => {
         const exists = prev.some(s => s.id === res.sessionId);
@@ -364,7 +368,7 @@ export default function ChatView({ user, capabilities, online }: { user: Session
       </div>
     </header>
 
-    {superadmin && <div className="chat-member-switch"><SegmentedControl<FamilyId> label="查看成员对话" value={targetUserId} options={familyMembers.map(m => ({ value: m.id, label: m.name }))} onChange={id => { setTargetUserId(id); setActiveSessionId(null); setMessages([]); }} /></div>}
+    {superadmin && <div className="chat-member-switch"><SegmentedControl<FamilyId> label="查看成员对话" value={targetUserId} options={familyMembers.map(m => ({ value: m.id, label: m.name }))} onChange={id => { setTargetUserId(id); setActiveSessionId(null); setMessages([]); setSessions([]); setShowSessionDropdown(false); }} /></div>}
 
     <div className="chat-toolbar">
       {sessions.length > 0 ? <div className="chat-session-picker desktop" ref={sessionDropdownRef}>
@@ -372,7 +376,7 @@ export default function ChatView({ user, capabilities, online }: { user: Session
           <span className="chat-session-name">{activeSession?.title || '新对话'}</span>
           <span className="chat-session-caret" aria-hidden="true">▾</span>
         </button>
-        {showSessionDropdown && createPortal(<div className="chat-session-dropdown" role="listbox">
+        {showSessionDropdown && <div className="chat-session-dropdown" role="listbox">
           <div className="chat-session-dropdown-head">
             <span>全部对话</span>
             <span className="chat-session-count">{sessions.length}</span>
@@ -391,7 +395,7 @@ export default function ChatView({ user, capabilities, online }: { user: Session
               </button>
             </li>)}
           </ul>
-        </div>, document.body)}
+        </div>}
       </div> : <span className="chat-empty-hint">还没有对话，点击「新对话」开始。</span>}
       
       {sessions.length > 0 && <button type="button" className="chat-session-trigger mobile" onClick={() => setShowSessionSheet(true)}>
@@ -443,15 +447,15 @@ export default function ChatView({ user, capabilities, online }: { user: Session
         </div>
       </div>}
       {messages.map(m => <div key={m.id} className={`chat-msg-row ${m.role}`}>
-        {m.role === 'assistant' && renderAvatar(m.role, user.name)}
+        {m.role === 'assistant' && renderAvatar(m.role, displayUserName)}
         <div className={`chat-bubble ${m.role}`}>
           <div className="chat-content">{renderRichText(m.content)}</div>
           {m.role === 'assistant' && extractedHints[m.id] && <div className="chat-memory-hint">已记住：{extractedHints[m.id].map(h => `「${h.content}」`).join('、')}</div>}
         </div>
-        {m.role === 'user' && renderAvatar(m.role, user.name)}
+        {m.role === 'user' && renderAvatar(m.role, displayUserName)}
       </div>)}
       {loading && <div className="chat-msg-row assistant">
-        {renderAvatar('assistant', user.name)}
+        {renderAvatar('assistant', displayUserName)}
         <div className="chat-bubble assistant loading">
           <span /><span /><span />
         </div>

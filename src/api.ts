@@ -95,7 +95,7 @@ export const api = {
   aiSettings: () => request<AiSettingsPublic>('/api/ai/settings'),
   updateAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<AiSettingsPublic>('/api/ai/settings', { method: 'PUT', body: JSON.stringify(settings) }),
   testAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<{ ok: boolean; message: string }>('/api/ai/settings/test', { method: 'POST', body: JSON.stringify(settings) }),
-  chat: (message: string, sessionId?: string, userId?: FamilyId) => request<ChatReply>('/api/ai/chat', { method: 'POST', body: JSON.stringify({ message, sessionId, userId }) }),
+  chat: (message: string, sessionId?: string, userId?: FamilyId, userName?: string) => request<ChatReply>('/api/ai/chat', { method: 'POST', body: JSON.stringify({ message, sessionId, userId, userName }) }),
   chatSessions: (userId?: FamilyId) => request<{ sessions: ChatSession[] }>(`/api/ai/chat/sessions${userId ? `?userId=${userId}` : ''}`),
   createChatSession: (userId?: FamilyId) => request<ChatSession>('/api/ai/chat/sessions', { method: 'POST', body: JSON.stringify({ userId }) }),
   deleteChatSession: (id: string) => request<{ deleted: boolean }>(`/api/ai/chat/sessions/${id}`, { method: 'DELETE' }),
