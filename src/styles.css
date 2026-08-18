@@ -378,7 +378,6 @@ label, fieldset { display: grid; gap: 7px; color: var(--ink); font-size: 14px; f
 @keyframes plan-skeleton { 0%, 100% { opacity: .48; } 50% { opacity: .9; } }
 
 
-.app-nav button img.nav-icon-records { width: 36px; height: 36px; }
 .vaccine-info-sheet .vaccine-kind { font-size: 12px; }
 .schedule-warning { margin-top: -6px; padding: 9px 11px; border-radius: var(--radius-control); background: #fff6e9; color: #80583e; }
 
@@ -879,7 +878,8 @@ input, textarea, .picker-trigger { background: #fffefa; }
   box-shadow: 0 -4px 22px rgba(49, 62, 42, .1);
   backdrop-filter: blur(16px) saturate(1.1);
 }
-.app-nav button { border-radius: 18px; transition: background .15s ease, color .15s ease; }
+.app-nav button { border-radius: 18px; transition: background .15s ease, color .15s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0px; padding: 6px 8px; }
+.app-nav button img { width: 40px; height: 40px; object-fit: contain; }
 .app-nav button:hover { background: #f2f4ec; }
 .app-nav button.active { color: #36502f; }
 .app-nav button.active img { transform: translateY(-2px) scale(1.1); filter: drop-shadow(0 3px 4px rgba(63, 67, 49, .14)); }

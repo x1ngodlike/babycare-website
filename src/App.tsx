@@ -809,7 +809,7 @@ export default function App() {
       {([
         ['today', '/icons/nav-today.png', '今日'],
         ['history', '/icons/nav-records.png', '记录'],
-        ['chat', '/icons/nav-chat.jpg', 'AI 助手'],
+        ['chat', '/icons/nav-chat.png', 'AI 助手'],
         ['trends', '/icons/nav-trends.png', '趋势'],
         ['archive', '/icons/nav-archive.png', '档案']
       ] as [Tab, string, string][]).map(([value, icon, label]) => (
