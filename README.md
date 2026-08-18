@@ -8,7 +8,7 @@
 npm run check
 ```
 
-该命令依次执行单元测试、前后端严格类型检查、生产构建和 CSS 结构检查。疫苗建议计划与照护周期逻辑由 `shared/` 下的跨端模块统一提供。
+该命令依次执行单元测试、静态检查（Biome lint）、前后端严格类型检查、生产构建和 CSS 结构检查。疫苗建议计划与照护周期逻辑由 `shared/` 下的跨端模块统一提供。
 
 ## 主要功能
 
@@ -152,7 +152,7 @@ chown -R 1000:1000 /mnt/user/appdata/baby-care/data
 
 确认恢复后的记录无误，再自行处理 `data.before-restore`；它是恢复前的数据副本。
 
-SQLite 数据库存放在 `data/baby-care.db`。应用每 6 小时把完整 JSON 自动保存到 `data/backups/`，最多保留最近 28 份；Unraid 中对应 `/mnt/user/appdata/baby-care/data/backups/`，不会建立新的共享目录。爸爸可在设置页立即备份、选择服务器备份进行完整恢复，或手动导出和导入备份文件；服务器恢复前会先自动保存当前数据，恢复后宝宝资料、照护记录和操作历史与所选备份完全一致。不要在容器运行时只复制单个数据库文件，以免遗漏 WAL 中尚未合并的记录。
+SQLite 数据库存放在 `data/baby-care.db`。应用每 6 小时把完整 JSON 自动保存到 `data/backups/`，最多保留最近 30 份；Unraid 中对应 `/mnt/user/appdata/baby-care/data/backups/`，不会建立新的共享目录。爸爸可在设置页立即备份、选择服务器备份进行完整恢复，或手动导出和导入备份文件；服务器恢复前会先自动保存当前数据，恢复后宝宝资料、照护记录和操作历史与所选备份完全一致。不要在容器运行时只复制单个数据库文件，以免遗漏 WAL 中尚未合并的记录。
 
 ## AI 模型配置
 
@@ -229,7 +229,7 @@ npm run dev
 npm run check
 ```
 
-该命令依次运行单元测试、前后端严格类型检查、生产构建和 CSS 结构检查。需要单独排查时，也可分别运行 `npm test`、`npm run typecheck`、`npm run build` 和 `npm run check:css`。
+该命令依次运行单元测试、静态检查（`npm run lint`，Biome）、前后端严格类型检查、生产构建和 CSS 结构检查。需要单独排查时，也可分别运行 `npm test`、`npm run lint`、`npm run typecheck`、`npm run build` 和 `npm run check:css`。
 
 ### 图片维护工具
 

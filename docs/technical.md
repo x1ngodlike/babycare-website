@@ -46,46 +46,57 @@ Express
 
 ```text
 src/
-  App.tsx              页面、状态和主要交互
-  VaccineViews.tsx     疫苗视图与编辑器
-  vaccines.ts          疫苗计划的前端适配
-  careSchedule.ts      照护周期的前端适配
-  usePullToRefresh.ts  移动端下拉刷新 Hook
-  date.ts              客户端日期工具
-  api.ts               REST API 封装
-  offline.ts           本地缓存和离线写队列
-  DateField.tsx        日期/时间选择器
-  ui.tsx / ui.css      通用组件
-  styles.css           页面样式与设计变量
+  App.tsx                应用主组件：会话、数据加载、实时刷新、离线同步与页面切换
+  views/                 Today / History / RecordEditor / RecordDialogs / Settings / Trends / Archive / Chat 视图
+  views/settings/        设置页按功能拆分的卡片（Profile / Ai / Backup / CareItems / Family / Vaccine / Push / NativeNotifications / Appearance）
+  VaccineViews.tsx       疫苗视图与编辑器
+  vaccines.ts            疫苗计划的前端适配
+  careSchedule.ts        照护周期的前端适配
+  usePullToRefresh.ts    移动端下拉刷新 Hook
+  date.ts                客户端日期与年龄工具
+  api.ts                 REST API 封装
+  offline.ts             本地缓存和离线写队列
+  DateField.tsx          日期/时间选择器
+  ui.tsx / ui.css        通用组件
+  styles/                base / layout / light / hero-records / dark / charts / chat / milestone（按 import 顺序保持覆盖语义）
 
 server/
-  index.ts             Express 入口、通用路由与输入校验
-  routes/push.ts       推送配置与测试接口
-  db.ts                表结构、迁移和数据访问
-  auth.ts              家庭身份会话与权限中间件
-  events.ts            SSE 连接与广播
-  shanghai-date.ts     Asia/Shanghai 日期边界
-  daily-report.ts      昨日报告汇总和调度
-  ai.ts                AI 请求与基础报告逻辑
-  push.ts              PushPlus 渲染和调度
-  vaccine-plan.ts      疫苗计划的服务端适配
-  backup.ts            JSON 服务器备份（保留 30 份、手动/自动类型、删除）
-  types.ts             服务端类型
+  index.ts               Express 入口：中间件、鉴权顺序、静态服务、错误处理与启动
+  routes/                auth / system / profile / family / ai / growth / vaccines / milestones / records / push 路由分组
+  routes/context.ts      路由模块共享的运行时依赖类型
+  schemas.ts             API 输入与备份结构校验（zod）
+  normalize.ts           请求载荷到业务实体的归一化
+  avatar-dir.ts          头像目录初始化与路径诊断
+  export-payload.ts      完整备份导出载荷组装
+  db/                    connection（连接与迁移）+ 按领域拆分的数据访问（records / growth / vaccines / milestones / care-items / family / profile / ai / push / chat / daily-reports / backup / errors）
+  auth.ts                家庭身份会话与权限中间件
+  events.ts              SSE 连接与广播
+  shanghai-date.ts       Asia/Shanghai 日期边界
+  daily-report.ts        昨日报告汇总和调度
+  ai.ts                  AI 请求与基础报告逻辑
+  push.ts                PushPlus 调度与发送
+  push-templates.ts      推送内容模板与数据构建
+  vaccine-plan.ts        疫苗计划的服务端适配
+  backup.ts              JSON 服务器备份（保留 30 份、手动/自动类型、删除）
+  types.ts               服务端类型
 
 shared/
-  date.ts              跨端日期字符串与月份计算
-  care-schedule.ts     跨端照护周期判断
-  vaccine-plan.ts      跨端疫苗时间表与计划生成
+  date.ts                跨端日期字符串与月份计算
+  care-schedule.ts       跨端照护周期判断
+  vaccine-plan.ts        跨端疫苗时间表与计划生成
 
 public/
-  sw.js                 PWA 静态缓存
-  manifest.webmanifest  PWA 元数据
-  icons/                图标
-  illustrations/        空状态插画
+  manifest.webmanifest   PWA 元数据
+  sw.js                  由 scripts/build-sw.mjs 在构建时生成（预缓存清单 + 自动版本号）
+  icons/                 图标
+  illustrations/         空状态插画
+  milestones/            里程碑图标（webp）
 
 scripts/
-  check-css.mjs          CSS 基础结构检查
-  optimize-images.py     默认只读的图片检查与可选批量优化
+  build-sw.mjs            构建后生成 dist/sw.js（预缓存清单与缓存版本）
+  check-css.mjs           CSS 基础结构检查
+  ensure-data.mjs         启动前校验 DATA_DIR 可写
+  optimize-images.py      默认只读的图片检查与可选批量优化
 
 android-app/
   app/src/main/         WebView 壳、服务器配置和 Android 资源
@@ -163,10 +174,11 @@ data/
 
 包含名称、`category`（`medication | care` 分类）、`icon`（`medicine | massage | bath | care`）、排序、启用状态，以及：
 
-- `schedule_type`：`daily | interval | as_needed`。
+- `schedule_type`：`daily | interval | weekly | pattern | as_needed`。
 - `interval_days`。
 - `schedule_start_date`、`schedule_end_date`。
-- `reminder_time`。
+- `reminder_time`、`reminder_times`（多次提醒时间，JSON 数组）。
+- `week_days`（weekly 的星期集合，JSON 数组）、`pattern_days`（pattern 的执行/休息循环，JSON 布尔数组）。
 - `created_at`、`updated_at`。
 
 ### 4.5 `growth_records`
@@ -221,6 +233,20 @@ data/
 | GET | `/api/daily-report` | 登录 | 获取/按需生成报告 |
 | POST | `/api/daily-report/generate` | 登录 | 重新生成报告 |
 
+### 5.2.1 AI 对话（按成员隔离）
+
+| 方法 | 路径 | 权限 | 说明 |
+|---|---|---|---|
+| POST | `/api/ai/chat` | 登录 | 发送对话，返回回复、会话与提取的记忆 |
+| GET | `/api/ai/chat/sessions` | 登录 | 会话列表（超管可指定 `userId` 查看他人） |
+| POST | `/api/ai/chat/sessions` | 登录 | 新建会话 |
+| GET | `/api/ai/chat/sessions/:id/messages` | 登录 | 会话消息（仅本人或超管） |
+| DELETE | `/api/ai/chat/sessions/:id` | 登录 | 删除会话（仅本人或超管） |
+| GET | `/api/ai/memories` | 登录 | 家庭共享记忆 |
+| POST | `/api/ai/memories` | 登录 | 新增记忆 |
+| DELETE | `/api/ai/memories/:id` | 管理 | 删除单条记忆 |
+| DELETE | `/api/ai/memories` | 管理 | 清空记忆 |
+
 ### 5.3 业务资源
 
 照护记录：
@@ -238,6 +264,11 @@ data/
 - `PUT /api/care-items/order`
 - `PUT /api/care-items/:id`
 - `PATCH /api/care-items/:id/active`
+- `GET /api/care-items/adherence`（近 30 天依从性统计）
+
+喂养预测：
+
+- `GET /api/feeding-prediction`（基于近 7 天喂奶间隔的预计喂奶与 AI 洞察缓存）
 
 成长记录：
 
@@ -246,6 +277,16 @@ data/
 - `GET /api/growth-records/deleted`
 - `POST /api/growth-records/:id/restore`
 - `DELETE /api/growth-records/:id/permanent`
+- `GET /api/growth-assessment`（身高体重参考区间与牛奶量评估）
+- `POST /api/growth-records/:id/evaluation`（AI 生长评价）
+
+里程碑记录：
+
+- `GET/POST /api/milestone-records`
+- `PUT/DELETE /api/milestone-records/:id`
+- `GET /api/milestone-records/deleted`
+- `POST /api/milestone-records/:id/restore`
+- `DELETE /api/milestone-records/:id/permanent`
 
 疫苗：
 
@@ -278,8 +319,9 @@ data/
 | POST | `/api/push/test/care-item` | 测试单项提醒 |
 | POST | `/api/push/enable` | 开启总开关 |
 | POST | `/api/push/disable` | 关闭总开关 |
+| GET | `/api/app-notifications` | Android APP 通知队列增量拉取（`clientId` + `after` 游标） |
 
-备份和导入接口仅超管可用。当前前端仅向超管展示消息推送设置。
+备份和导入接口仅超管可用。PushPlus 设置仅超管展示；APP 通知按设备独立配置，装有原生壳的设备上普通用户也可设置本机通知。
 
 ## 6. 认证与权限
 
@@ -391,7 +433,7 @@ npm run dev
 npm run check
 ```
 
-该命令依次执行单元测试、严格类型检查、生产构建和 CSS 结构检查。单项排查可使用 `npm test`、`npm run typecheck`、`npm run build` 或 `npm run check:css`。
+该命令依次执行单元测试、静态检查（Biome）、严格类型检查、生产构建和 CSS 结构检查。单项排查可使用 `npm test`、`npm run lint`、`npm run typecheck`、`npm run build` 或 `npm run check:css`。
 
 图片维护工具依赖 Python 3 和 Pillow。`npm run images:check` 只列出受管图片，不写入；`npm run images:optimize` 才会创建 `public/.image-backup-*` 备份并原地优化。它不接入 `npm run check` 或生产构建，避免常规检查意外改写资源。
 
