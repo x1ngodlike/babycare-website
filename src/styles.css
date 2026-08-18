@@ -82,9 +82,10 @@ h1, h2, h3, p { margin-top: 0; }
 .prediction-detail { border-top: 1px solid var(--line); padding: 12px 14px 14px; background: #fafbf9; }
 .prediction-upcoming h3 { margin: 0 0 8px; font-size: 13px; color: var(--green-deep); font-weight: 700; }
 .prediction-upcoming ol { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 6px; }
-.prediction-upcoming li { display: grid; grid-template-columns: 22px 54px minmax(0, 1fr) auto auto; gap: 6px; align-items: center; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #fff; border: 1px solid var(--line); white-space: nowrap; }
+.prediction-upcoming li { display: grid; grid-template-columns: 22px 54px auto minmax(0, 1fr) auto auto; gap: 6px; align-items: center; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #fff; border: 1px solid var(--line); white-space: nowrap; }
 .feed-index { width: 22px; height: 22px; border-radius: 50%; background: var(--sage); color: var(--green-deep); font-size: 11px; font-weight: 800; display: grid; place-content: center; }
 .feed-time { font-weight: 700; color: var(--ink); white-space: nowrap; }
+.feed-period { color: var(--muted); font-size: 11px; font-weight: 600; white-space: nowrap; padding: 1px 5px; border-radius: 999px; background: #f0f2ed; }
 .feed-range { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .feed-vol { color: var(--green); font-weight: 600; font-size: 12px; white-space: nowrap; }
 .feed-duration { color: var(--muted); font-size: 12px; white-space: nowrap; }
@@ -126,9 +127,10 @@ h1, h2, h3, p { margin-top: 0; }
   background: #f7ecd0;
 }
 @media (max-width: 520px) {
-  .prediction-upcoming li { grid-template-columns: 20px 48px minmax(0, 1fr) auto; gap: 5px; font-size: 12px; padding: 5px 6px; }
+  .prediction-upcoming li { grid-template-columns: 20px 48px auto auto; gap: 5px; font-size: 12px; padding: 5px 6px; }
   .prediction-upcoming li .feed-range { display: none; }
-  .prediction-upcoming li .feed-vol { font-size: 11px; }
+  .prediction-upcoming li .feed-vol { display: none; }
+  .prediction-upcoming li .feed-period { font-size: 10px; padding: 1px 4px; }
   .prediction-upcoming li .feed-duration { font-size: 11px; }
   .prediction-upcoming li .feed-index { width: 20px; height: 20px; font-size: 10px; }
   .prediction-meta { gap: 6px; font-size: 11px; }
@@ -2297,6 +2299,10 @@ html[data-theme="dark"] .prediction-upcoming h3 { color: #b4c7ad; }
 html[data-theme="dark"] .prediction-upcoming li {
   background: var(--surface-card);
   border-color: var(--line);
+}
+html[data-theme="dark"] .feed-period {
+  background: #2a3328;
+  color: #9aad94;
 }
 html[data-theme="dark"] .prediction-ai-section {
   background: linear-gradient(135deg, #232d20 0%, #1e281b 100%);

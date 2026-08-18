@@ -82,7 +82,7 @@ function minutesBetween(a: Date, b: Date): number {
 export function predictFeeding(
   records: FeedingPredictionInput[],
   now: Date = new Date(),
-  lookbackDays = 14,
+  lookbackDays = 7,
   upcomingCount = 3
 ): FeedingPrediction {
   const feedings = records
