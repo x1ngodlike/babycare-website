@@ -68,11 +68,30 @@ function getPeriod(date: Date): FeedingPeriod {
   return 'evening';
 }
 
-function median(values: number[]): number | null {
+function weightedMedian(
+  values: number[],
+  timestamps: Date[],
+  lambda = 0.8
+): number | null {
   if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  if (values.length === 1) return values[0];
+
+  const now = new Date();
+  const pairs = values.map((value, i) => ({
+    value,
+    weight: Math.pow(lambda, (now.getTime() - timestamps[i].getTime()) / 86400000)
+  }));
+
+  const sorted = pairs.sort((a, b) => a.value - b.value);
+  const totalWeight = sorted.reduce((s, p) => s + p.weight, 0);
+  let halfWeight = totalWeight / 2;
+
+  for (const p of sorted) {
+    halfWeight -= p.weight;
+    if (halfWeight <= 0) return p.value;
+  }
+
+  return sorted[sorted.length - 1].value;
 }
 
 function minutesBetween(a: Date, b: Date): number {
@@ -157,22 +176,24 @@ export function predictFeeding(
     if (ml > 0) volumes.push({ ml, date: f.date, period: getPeriod(f.date) });
   }
 
-  const periodGapsMap = new Map<FeedingPeriod, number[]>();
-  const periodVolumesMap = new Map<FeedingPeriod, number[]>();
+  const periodGapsMap = new Map<FeedingPeriod, { minutes: number; date: Date }[]>();
+  const periodVolumesMap = new Map<FeedingPeriod, { ml: number; date: Date }[]>();
   for (const g of gaps) {
     const arr = periodGapsMap.get(g.period) || [];
-    arr.push(g.minutes);
+    arr.push({ minutes: g.minutes, date: g.to });
     periodGapsMap.set(g.period, arr);
   }
   for (const v of volumes) {
     const arr = periodVolumesMap.get(v.period) || [];
-    arr.push(v.ml);
+    arr.push({ ml: v.ml, date: v.date });
     periodVolumesMap.set(v.period, arr);
   }
 
   const periodGaps: FeedingGapStats[] = periodDefs.map(def => {
-    const vals = periodGapsMap.get(def.period) || [];
-    const med = median(vals);
+    const items = periodGapsMap.get(def.period) || [];
+    const vals = items.map(i => i.minutes);
+    const dates = items.map(i => i.date);
+    const med = weightedMedian(vals, dates);
     return {
       period: def.period,
       count: vals.length,
@@ -183,12 +204,15 @@ export function predictFeeding(
   }).filter(s => s.count > 0);
 
   const periodVolumes: FeedingVolumeStats[] = periodDefs.map(def => {
-    const vals = periodVolumesMap.get(def.period) || [];
-    return { period: def.period, count: vals.length, medianMl: median(vals) };
+    const items = periodVolumesMap.get(def.period) || [];
+    const vals = items.map(i => i.ml);
+    const dates = items.map(i => i.date);
+    return { period: def.period, count: vals.length, medianMl: weightedMedian(vals, dates) };
   }).filter(s => s.count > 0);
 
-  const allGapMinutes = gaps.map(g => g.minutes);
-  const overallMedianGap = median(allGapMinutes);
+  const allGapValues = gaps.map(g => g.minutes);
+  const allGapDates = gaps.map(g => g.to);
+  const overallMedianGap = weightedMedian(allGapValues, allGapDates);
 
   const lastFeed = feedings[feedings.length - 1];
   const lastPeriod = getPeriod(lastFeed.date);
@@ -198,7 +222,7 @@ export function predictFeeding(
   const nextPeriodVolume = periodVolumes.find(v => v.period === nextPeriod);
 
   const gapMinutes = nextPeriodGap?.medianMinutes ?? overallMedianGap ?? 180;
-  const volumeMl = nextPeriodVolume?.medianMl ?? (periodVolumes.length > 0 ? median(periodVolumes.flatMap(v => v.medianMl ? [v.medianMl] : [])) : null) ?? 120;
+  const volumeMl = nextPeriodVolume?.medianMl ?? weightedMedian(volumes.map(v => v.ml), volumes.map(v => v.date)) ?? 120;
 
   const earliestGap = Math.max(30, Math.round(gapMinutes * 0.75));
   const latestGap = Math.round(gapMinutes * 1.25);
@@ -219,7 +243,7 @@ export function predictFeeding(
       const period = getPeriod(lastPredicted);
       gapForThisPeriod = getGapForPrediction(lastPredicted, periodGaps, overallMedianGap);
       volForThisPeriod = periodVolumes.find(v => v.period === period)?.medianMl
-        ?? (periodVolumes.length > 0 ? median(periodVolumes.flatMap(v => v.medianMl ? [v.medianMl] : [])) : null)
+        ?? weightedMedian(volumes.map(v => v.ml), volumes.map(v => v.date))
         ?? 120;
     }
     const predictedAt = new Date(lastPredicted.getTime() + gapForThisPeriod * 60000);
@@ -248,7 +272,7 @@ export function predictFeeding(
     nextFeedLatest: nextLatestDate.toISOString(),
     gapMinutes,
     volumeMl,
-    confidence: Math.min(1, allGapMinutes.length / 8),
+    confidence: Math.min(1, gaps.length / 8),
     upcomingFeeds,
     periodGaps,
     periodVolumes,

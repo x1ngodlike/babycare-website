@@ -6,7 +6,7 @@ import { canonicalInstant, shanghaiDateForInstant } from './shanghai-date.js';
 import { isScheduledCareItemDue } from '../shared/care-schedule.js';
 import { addDaysToDateString, dateStringInTimeZone } from '../shared/date.js';
 import { shanghaiDateString } from './shanghai-date.js';
-import type { AiMemory, AiMemoryCategory, AuditAction, AuditEntry, AuditIdentity, BabySex, CareItem, CareRecord, ChatMessage, ChatSession, FamilyId, FamilyMemberPermission, GrowthRecord, UserRole, VaccineCatalogItem, VaccineRecord } from './types.js';
+import type { AiMemory, AiMemoryCategory, AuditAction, AuditEntry, AuditIdentity, BabySex, CareItem, CareRecord, ChatMessage, ChatSession, FamilyId, FamilyMemberPermission, GrowthRecord, MilestoneRecord, UserRole, VaccineCatalogItem, VaccineRecord } from './types.js';
 
 const databasePath = process.env.DATABASE_PATH || './data/baby-care.db';
 mkdirSync(dirname(databasePath), { recursive: true });
@@ -247,11 +247,31 @@ db.exec(`
     is_system INTEGER NOT NULL DEFAULT 0,
     deleted_at TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS milestones (
+    id TEXT PRIMARY KEY,
+    milestone_key TEXT NOT NULL,
+    category TEXT NOT NULL CHECK (category IN ('gross_motor', 'fine_motor', 'language', 'cognitive', 'social')),
+    achieved_on TEXT NOT NULL,
+    note TEXT,
+    photo TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    updated_by TEXT NOT NULL DEFAULT '',
+    deleted_at TEXT,
+    deleted_by TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_milestones_achieved_on ON milestones(achieved_on DESC);
+  CREATE INDEX IF NOT EXISTS idx_milestones_key ON milestones(milestone_key);
 `);
 
 const growthTableColumns = db.prepare('PRAGMA table_info(growth_records)').all() as { name: string }[];
 if (!growthTableColumns.some(column => column.name === 'evaluation')) db.exec('ALTER TABLE growth_records ADD COLUMN evaluation TEXT');
 if (!growthTableColumns.some(column => column.name === 'evaluated_at')) db.exec('ALTER TABLE growth_records ADD COLUMN evaluated_at TEXT');
+
+const milestoneTableColumns = db.prepare('PRAGMA table_info(milestones)').all() as { name: string }[];
+if (!milestoneTableColumns.some(column => column.name === 'updated_by')) db.exec("ALTER TABLE milestones ADD COLUMN updated_by TEXT NOT NULL DEFAULT ''");
 
 const careItemTableColumns = db.prepare('PRAGMA table_info(care_items)').all() as { name: string }[];
 if (!careItemTableColumns.some(column => column.name === 'schedule_type')) db.exec("ALTER TABLE care_items ADD COLUMN schedule_type TEXT NOT NULL DEFAULT 'as_needed' CHECK (schedule_type IN ('daily', 'interval', 'as_needed'))");
@@ -1147,7 +1167,7 @@ export function listDailyReports(): DailyReport[] {
   return rows.map(row => ({ ...row, suggestions: JSON.parse(row.suggestions) as string[] }));
 }
 
-type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
+type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
 type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
   if (payload.profile) saveProfile({ name: payload.profile.name, birthDate: payload.profile.birthDate, birthTime: payload.profile.birthTime, sex: payload.profile.sex ?? 'unspecified', nickname: payload.profile.nickname, caregiverTitle: payload.profile.caregiverTitle, avatar: payload.profile.avatar });
@@ -1175,6 +1195,14 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
         appointment_on=excluded.appointment_on, appointment_time=excluded.appointment_time, administered_on=excluded.administered_on, note=excluded.note, updated_at=excluded.updated_at, updated_by=excluded.updated_by,
         deleted_at=excluded.deleted_at, deleted_by=excluded.deleted_by`);
     for (const record of payload.vaccineRecords) upsertVaccine.run({ appointmentOn: null, appointmentTime: null, ...record });
+  }
+  if (payload.milestoneRecords?.length) {
+    const upsertMilestone = db.prepare(`INSERT INTO milestones (id, milestone_key, category, achieved_on, note, photo, created_at, updated_at, created_by, deleted_at, deleted_by)
+      VALUES (@id, @milestoneKey, @category, @achievedOn, @note, @photo, @createdAt, @updatedAt, @createdBy, @deletedAt, @deletedBy)
+      ON CONFLICT(id) DO UPDATE SET milestone_key=excluded.milestone_key, category=excluded.category, achieved_on=excluded.achieved_on,
+        note=excluded.note, photo=excluded.photo, updated_at=excluded.updated_at, updated_by=excluded.updated_by,
+        deleted_at=excluded.deleted_at, deleted_by=excluded.deleted_by`);
+    for (const record of payload.milestoneRecords) upsertMilestone.run(record);
   }
   if (payload.vaccineCatalog?.length) {
     const upsertCatalog = db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order, is_system) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder, @isSystem) ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, short_name=excluded.short_name, description=excluded.description, dose_count=excluded.dose_count, interval_summary=excluded.interval_summary, active=excluded.active, sort_order=excluded.sort_order, is_system=excluded.is_system`);
@@ -1216,7 +1244,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
 
-type ReplacePayload = { profile: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
+type ReplacePayload = { profile: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
 const replaceBackupTransaction = db.transaction((payload: ReplacePayload): ImportResult => {
   db.prepare('DELETE FROM record_audit').run();
   db.prepare('DELETE FROM care_records').run();
@@ -1239,6 +1267,12 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     const insertVaccine = db.prepare(`INSERT INTO vaccine_records (id, vaccine_name, category, dose, planned_on, appointment_on, appointment_time, administered_on, note, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
       VALUES (@id, @vaccineName, @category, @dose, @plannedOn, @appointmentOn, @appointmentTime, @administeredOn, @note, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)`);
     for (const record of payload.vaccineRecords) insertVaccine.run({ appointmentOn: null, appointmentTime: null, ...record });
+  }
+  db.prepare('DELETE FROM milestones').run();
+  if (payload.milestoneRecords?.length) {
+    const insertMilestone = db.prepare(`INSERT INTO milestones (id, milestone_key, category, achieved_on, note, photo, created_at, updated_at, created_by, deleted_at, deleted_by)
+      VALUES (@id, @milestoneKey, @category, @achievedOn, @note, @photo, @createdAt, @updatedAt, @createdBy, @deletedAt, @deletedBy)`);
+    for (const record of payload.milestoneRecords) insertMilestone.run(record);
   }
   if (payload.vaccineCatalog?.length) {
     db.prepare('DELETE FROM vaccine_catalog').run();
@@ -1355,4 +1389,47 @@ export function addMessage(sessionId: string, role: 'user' | 'assistant', conten
 
 export function allChatMessages(): ChatMessage[] {
   return db.prepare('SELECT id, session_id AS sessionId, role, content, created_at AS createdAt FROM chat_messages ORDER BY created_at ASC').all() as ChatMessage[];
+}
+
+const milestoneColumns = `id, milestone_key AS milestoneKey, category, achieved_on AS achievedOn, note, photo, created_at AS createdAt, updated_at AS updatedAt, created_by AS createdBy, updated_by AS updatedBy, deleted_at AS deletedAt, deleted_by AS deletedBy`;
+
+function getMilestoneRecord(id: string): MilestoneRecord | null {
+  return db.prepare(`SELECT ${milestoneColumns} FROM milestones WHERE id = ?`).get(id) as MilestoneRecord | undefined || null;
+}
+
+export function listMilestoneRecords(includeDeleted = false): MilestoneRecord[] {
+  const where = includeDeleted ? '' : 'WHERE deleted_at IS NULL';
+  return db.prepare(`SELECT ${milestoneColumns} FROM milestones ${where} ORDER BY achieved_on DESC, updated_at DESC`).all() as MilestoneRecord[];
+}
+
+export function saveMilestoneRecord(record: MilestoneRecord): MilestoneRecord {
+  const existing = getMilestoneRecord(record.id);
+  if (existing?.deletedAt) throw new RecordNotFoundError('里程碑记录已删除');
+  if (existing) {
+    db.prepare(`UPDATE milestones SET milestone_key = ?, category = ?, achieved_on = ?, note = ?, photo = ?, updated_at = ?, updated_by = ? WHERE id = ? AND deleted_at IS NULL`)
+      .run(record.milestoneKey, record.category, record.achievedOn, record.note, record.photo, record.updatedAt, record.updatedBy, record.id);
+  } else {
+    db.prepare(`INSERT INTO milestones (id, milestone_key, category, achieved_on, note, photo, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`)
+      .run(record.id, record.milestoneKey, record.category, record.achievedOn, record.note, record.photo, record.createdAt, record.updatedAt, record.createdBy, record.updatedBy);
+  }
+  return getMilestoneRecord(record.id)!;
+}
+
+export function removeMilestoneRecord(id: string, actor: AuditIdentity): MilestoneRecord | null {
+  const now = new Date().toISOString();
+  const result = db.prepare('UPDATE milestones SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE id = ? AND deleted_at IS NULL').run(now, actor, now, actor, id);
+  return result.changes ? getMilestoneRecord(id) : null;
+}
+
+export function restoreMilestoneRecord(id: string, actor: AuditIdentity): MilestoneRecord {
+  const existing = getMilestoneRecord(id);
+  if (!existing?.deletedAt) throw new RecordNotFoundError('已删除的里程碑记录不存在');
+  const now = new Date().toISOString();
+  db.prepare('UPDATE milestones SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ? WHERE id = ?').run(now, actor, id);
+  return getMilestoneRecord(id)!;
+}
+
+export function purgeMilestoneRecord(id: string): boolean {
+  return db.prepare('DELETE FROM milestones WHERE id = ? AND deleted_at IS NOT NULL').run(id).changes > 0;
 }

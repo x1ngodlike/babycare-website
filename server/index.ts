@@ -12,7 +12,7 @@ import { testModelConnection } from './ai.js';
 import { generateChatReply } from './chat.js';
 import { authenticate, clearSession, createSession, getSessionUser, requireAdmin, requireAuth, requireSuperAdmin } from './auth.js';
 import { BackupFileNotFoundError, deleteServerBackup, defaultBackupDirectory, InvalidBackupNameError, listServerBackups, readServerBackup, serverBackupStatus, startBackupScheduler, writeServerBackup, type BackupType } from './backup.js';
-import { allAudit, allChatMessages, allRecords, addMemory, clearMemories, createSession as createChatSession, deleteMemory, deleteSession, CareItemConflictError, CareItemInactiveError, CareItemOrderError, computeFeedingRecordsHash, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiFeedingInsights, getAiSettings, getCareAdherence, getSession as getChatSession, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listMemories, listMessages, listRecords, listSessions, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreRecord, saveAiFeedingInsights, saveAiSettings, saveCareItem, saveGrowthRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
+import { allAudit, allChatMessages, allRecords, addMemory, clearMemories, createSession as createChatSession, deleteMemory, deleteSession, CareItemConflictError, CareItemInactiveError, CareItemOrderError, computeFeedingRecordsHash, DuplicateGrowthDayError, DuplicateSupplementError, DuplicateVaccineRecordError, FamilyPermissionError, getAiFeedingInsights, getAiSettings, getCareAdherence, getSession as getChatSession, getDailyReport, getProfile, importBackup, listAudit, listCareItems, listDailyReports, listDeletedRecords, listFamilyMembers, listGrowthRecords, listMemories, listMessages, listMilestoneRecords, listRecords, listSessions, listVaccineCatalog, listVaccineRecords, purgeGrowthRecord, purgeMilestoneRecord, purgeRecord, RecordNotFoundError, removeGrowthRecord, removeMilestoneRecord, removeRecord, removeVaccineCatalogItem, removeVaccineRecord, reorderCareItems, reorderVaccineCatalog, replaceBackup, restoreGrowthRecord, restoreMilestoneRecord, restoreRecord, saveAiFeedingInsights, saveAiSettings, saveCareItem, saveGrowthRecord, saveMilestoneRecord, saveProfile, saveRecord, saveVaccineCatalogItem, saveVaccineRecord, setCareItemActive, setFamilyRole, setVaccineCatalogActive, VaccineCatalogConflictError } from './db.js';
 import { createChangeHub } from './events.js';
 import { generateDailyReportForDate, startDailyReportScheduler, yesterdayInShanghai } from './daily-report.js';
 import { generateFeedingInsights, generateGrowthEvaluation } from './ai.js';
@@ -23,7 +23,8 @@ import { startPushScheduler } from './push.js';
 import { registerPushRoutes } from './routes/push.js';
 import { shanghaiDateString } from './shanghai-date.js';
 import { predictFeeding, type FeedingPrediction } from '../shared/feeding-prediction.js';
-import type { AuditEntry, CareItem, CareRecord, FamilyId, FamilyMemberPermission, GrowthRecord, VaccineCatalogItem, VaccineRecord } from './types.js';
+import { getMilestoneDefinition } from '../shared/milestones.js';
+import type { AuditEntry, CareItem, CareRecord, FamilyId, FamilyMemberPermission, GrowthRecord, MilestoneRecord, VaccineCatalogItem, VaccineRecord } from './types.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -259,6 +260,21 @@ const vaccineRecordSchema = z.object({
   deletedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).nullable().optional()
 });
 
+const milestoneRecordSchema = z.object({
+  id: z.string().optional(),
+  milestoneKey: z.string().trim().min(1).max(50),
+  category: z.enum(['gross_motor', 'fine_motor', 'language', 'cognitive', 'social']).optional(),
+  achievedOn: z.string().date(),
+  note: z.string().trim().max(200).nullable().optional(),
+  photo: z.string().max(500).nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }).optional(),
+  updatedAt: z.string().datetime({ offset: true }).optional(),
+  createdBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).optional(),
+  updatedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).optional(),
+  deletedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  deletedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).nullable().optional()
+});
+
 const vaccineCatalogInputSchema = z.object({
   name: z.string().trim().min(1, '请填写疫苗名称').max(50, '疫苗名称过长'),
   category: z.enum(['program', 'self_paid']),
@@ -277,6 +293,7 @@ const backupPayloadSchema = z.object({
   familyMembers: z.array(familyMemberSchema).max(4).optional(),
   growthRecords: z.array(growthRecordSchema).max(1000).optional(),
   vaccineRecords: z.array(vaccineRecordSchema).max(1000).optional(),
+  milestoneRecords: z.array(milestoneRecordSchema).max(1000).optional(),
   vaccineCatalog: z.array(z.object({ id: z.string().min(1).max(50), name: z.string().min(1).max(50), category: z.enum(['program', 'self_paid']), shortName: z.string().max(30).nullable(), description: z.string().max(300), doseCount: z.number().int().min(1).max(20).nullable(), intervalSummary: z.string().max(200), active: z.boolean(), sortOrder: z.number().int().min(0).max(9999), isSystem: z.boolean().optional().default(false) })).max(100).optional(),
   dailyReports: z.array(z.object({
     reportDate: z.string(), summary: z.string(), suggestions: z.array(z.string()), model: z.string(), generatedAt: z.string()
@@ -374,6 +391,26 @@ function normalizeVaccineRecord(input: z.infer<typeof vaccineRecordSchema>, acto
   };
 }
 
+function normalizeMilestoneRecord(input: z.infer<typeof milestoneRecordSchema>, actor: FamilyId, preserveAudit = false): MilestoneRecord {
+  const now = new Date().toISOString();
+  const def = getMilestoneDefinition(input.milestoneKey);
+  const category = input.category ?? def?.category ?? 'gross_motor';
+  return {
+    id: input.id || randomUUID(),
+    milestoneKey: input.milestoneKey,
+    category,
+    achievedOn: input.achievedOn,
+    note: input.note || null,
+    photo: input.photo || null,
+    createdAt: input.createdAt || now,
+    updatedAt: preserveAudit && input.updatedAt ? input.updatedAt : now,
+    createdBy: preserveAudit ? input.createdBy || 'legacy' : actor,
+    updatedBy: preserveAudit ? input.updatedBy || input.createdBy || 'legacy' : actor,
+    deletedAt: preserveAudit ? input.deletedAt || null : null,
+    deletedBy: preserveAudit ? input.deletedBy || null : null
+  };
+}
+
 function normalizeDateTime(value: string | null | undefined): string | null {
   if (!value) return null;
   // 将 "2026-08-10 11:15:47" 格式转换为 ISO 格式
@@ -413,8 +450,13 @@ function exportPayload() {
     updatedAt: normalizeDateTime(record.updatedAt) || new Date().toISOString(),
     administeredOn: record.administeredOn || null
   }));
+  const milestoneRecords = listMilestoneRecords(true).map(record => ({
+    ...record,
+    createdAt: normalizeDateTime(record.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeDateTime(record.updatedAt) || new Date().toISOString()
+  }));
   const profile = getProfile();
-  return { version: 10, exportedAt: new Date().toISOString(), profile: profile || { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null }, records, audits: allAudit(), careItems, familyMembers: listFamilyMembers(), growthRecords, vaccineRecords, vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports(), aiMemories: listMemories(), chatSessions: listSessions(), chatMessages: allChatMessages() };
+  return { version: 10, exportedAt: new Date().toISOString(), profile: profile || { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null }, records, audits: allAudit(), careItems, familyMembers: listFamilyMembers(), growthRecords, vaccineRecords, milestoneRecords, vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports(), aiMemories: listMemories(), chatSessions: listSessions(), chatMessages: allChatMessages() };
 }
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -939,6 +981,62 @@ app.delete('/api/vaccine-records/:id', requireAdmin, (req, res) => {
   return res.json({ deleted: Boolean(record), record });
 });
 
+function validateMilestoneDate(achievedOn: string) {
+  const profile = getProfile();
+  if (achievedOn < profile.birthDate) return '达成日期不能早于出生日期';
+  if (achievedOn > new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })) return '达成日期不能晚于今天';
+  return '';
+}
+
+app.get('/api/milestone-records', (_req, res) => res.json(listMilestoneRecords()));
+
+app.get('/api/milestone-records/deleted', requireAdmin, (_req, res) => res.json(listMilestoneRecords(true).filter(r => r.deletedAt)));
+
+app.post('/api/milestone-records', (req, res) => {
+  const parsed = milestoneRecordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '里程碑记录格式不正确' });
+  const dateError = validateMilestoneDate(parsed.data.achievedOn);
+  if (dateError) return res.status(400).json({ error: dateError });
+  const record = saveMilestoneRecord(normalizeMilestoneRecord(parsed.data, getSessionUser(req)!.id));
+  changeHub.broadcast('all');
+  return res.status(201).json(record);
+});
+
+app.put('/api/milestone-records/:id', (req, res) => {
+  const parsed = milestoneRecordSchema.safeParse({ ...req.body, id: req.params.id });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '里程碑记录格式不正确' });
+  const dateError = validateMilestoneDate(parsed.data.achievedOn);
+  if (dateError) return res.status(400).json({ error: dateError });
+  const record = saveMilestoneRecord(normalizeMilestoneRecord(parsed.data, getSessionUser(req)!.id));
+  changeHub.broadcast('all');
+  return res.json(record);
+});
+
+app.delete('/api/milestone-records/:id', requireAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '里程碑记录编号不正确' });
+  const record = removeMilestoneRecord(parsed.data, getSessionUser(req)!.id);
+  if (!record) return res.status(404).json({ error: '里程碑记录不存在' });
+  changeHub.broadcast('all');
+  return res.json({ deleted: true, record });
+});
+
+app.post('/api/milestone-records/:id/restore', requireAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '里程碑记录编号不正确' });
+  const record = restoreMilestoneRecord(parsed.data, getSessionUser(req)!.id);
+  changeHub.broadcast('all');
+  return res.json(record);
+});
+
+app.delete('/api/milestone-records/:id/permanent', requireAdmin, (req, res) => {
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: '里程碑记录编号不正确' });
+  if (!purgeMilestoneRecord(parsed.data)) return res.status(404).json({ error: '已删除的里程碑记录不存在' });
+  changeHub.broadcast('all');
+  return res.json({ deleted: true });
+});
+
 app.get('/api/records', (req, res) => {
   const parsed = z.object({ from: z.string().datetime({ offset: true }), to: z.string().datetime({ offset: true }) }).safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: '日期范围格式不正确' });
@@ -1183,8 +1281,9 @@ app.post('/api/import', requireSuperAdmin, (req, res) => {
   const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
   const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
   const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, 'father', true));
+  const milestoneRecords = parsed.data.milestoneRecords?.map(item => normalizeMilestoneRecord(item, 'father', true));
   const defaultProfile = { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null };
-  const importPayload = { profile: parsed.data.profile || defaultProfile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports };
+  const importPayload = { profile: parsed.data.profile || defaultProfile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, milestoneRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports };
   const result = mode === 'replace' ? replaceBackup(importPayload) : importBackup(importPayload);
   changeHub.broadcast('all');
   res.json({ ...result, mode });

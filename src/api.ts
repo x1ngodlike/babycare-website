@@ -1,4 +1,4 @@
-import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
+import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthRecord, DraftMilestoneRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, MilestoneRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 
 export interface GrowthIndicatorAssessment {
   value: number;
@@ -126,6 +126,13 @@ export const api = {
   createVaccineRecord: (record: DraftVaccineRecord) => request<VaccineRecord>('/api/vaccine-records', { method: 'POST', body: JSON.stringify(record) }),
   updateVaccineRecord: (id: string, record: DraftVaccineRecord) => request<VaccineRecord>(`/api/vaccine-records/${id}`, { method: 'PUT', body: JSON.stringify(record) }),
   deleteVaccineRecord: (id: string) => request<{ deleted: boolean; record: VaccineRecord | null }>(`/api/vaccine-records/${id}`, { method: 'DELETE' }),
+  milestoneRecords: () => request<MilestoneRecord[]>('/api/milestone-records'),
+  deletedMilestoneRecords: () => request<MilestoneRecord[]>('/api/milestone-records/deleted'),
+  createMilestoneRecord: (record: DraftMilestoneRecord) => request<MilestoneRecord>('/api/milestone-records', { method: 'POST', body: JSON.stringify(record) }),
+  updateMilestoneRecord: (id: string, record: DraftMilestoneRecord) => request<MilestoneRecord>(`/api/milestone-records/${id}`, { method: 'PUT', body: JSON.stringify(record) }),
+  deleteMilestoneRecord: (id: string) => request<{ deleted: boolean; record: MilestoneRecord }>(`/api/milestone-records/${id}`, { method: 'DELETE' }),
+  restoreMilestoneRecord: (id: string) => request<MilestoneRecord>(`/api/milestone-records/${id}/restore`, { method: 'POST' }),
+  purgeMilestoneRecord: (id: string) => request<{ deleted: boolean }>(`/api/milestone-records/${id}/permanent`, { method: 'DELETE' }),
   familyMembers: () => request<FamilyMemberPermission[]>('/api/family-members'),
   updateFamilyRole: (id: Exclude<FamilyId, 'father'>, role: Exclude<UserRole, 'superadmin'>) => request<FamilyMemberPermission>(`/api/family-members/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
   records: (from: string, to: string) => request<CareRecord[]>(`/api/records?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),

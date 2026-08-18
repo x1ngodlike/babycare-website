@@ -59,6 +59,31 @@ export interface VaccineCatalogItem {
   isSystem: boolean;
 }
 
+export type MilestoneCategory = 'gross_motor' | 'fine_motor' | 'language' | 'cognitive' | 'social';
+
+export interface MilestoneRecord {
+  id: string;
+  milestoneKey: string;
+  category: MilestoneCategory;
+  achievedOn: string;
+  note: string | null;
+  photo: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: AuditIdentity;
+  updatedBy: AuditIdentity;
+  deletedAt: string | null;
+  deletedBy: AuditIdentity | null;
+}
+
+export interface DraftMilestoneRecord {
+  id?: string;
+  milestoneKey: string;
+  achievedOn: string;
+  note?: string | null;
+  photo?: string | null;
+}
+
 export interface CareRecord {
   id: string;
   type: RecordType;
