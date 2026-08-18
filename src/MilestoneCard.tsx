@@ -21,14 +21,15 @@ import type { MilestoneRecord, Profile } from './types';
 function MilestoneBadge({ milestoneKey, size = 32, status = 'pending' }: { milestoneKey: string; size?: number; status?: string }) {
   return (
     <div className={`milestone-badge ms-badge-${status}`} style={{ width: size, height: size }}>
+      {/* ?v=2：图片内容更新过（webp 恢复透明背景），加版本号让浏览器/SW 缓存立即失效 */}
       <img
-        src={`/milestones/${milestoneKey}.webp`}
+        src={`/milestones/${milestoneKey}.webp?v=2`}
         alt=""
         className="badge-icon"
         loading="lazy"
       />
       <img
-        src="/milestones/frames/frame-circle.webp"
+        src="/milestones/frames/frame-circle.webp?v=2"
         alt=""
         className="badge-frame"
       />
