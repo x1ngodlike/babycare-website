@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { isoDay } from './date';
 import { useDialogFocus } from './ui';
@@ -104,9 +105,9 @@ function Calendar({ day, min, max, onPick }: { day: string; min?: string; max?: 
 
   return <div className="picker-calendar">
     <div className="picker-calendar-nav">
-      <button type="button" aria-label="上个月" disabled={!canPrev} onClick={() => setView(shiftMonth(view.year, view.month, -1))}>‹</button>
+      <button type="button" aria-label="上个月" disabled={!canPrev} onClick={() => setView(shiftMonth(view.year, view.month, -1))}><ChevronLeft size={18} strokeWidth={2.2} /></button>
       <strong aria-live="polite">{view.year}年{view.month + 1}月</strong>
-      <button type="button" aria-label="下个月" disabled={!canNext} onClick={() => setView(shiftMonth(view.year, view.month, 1))}>›</button>
+      <button type="button" aria-label="下个月" disabled={!canNext} onClick={() => setView(shiftMonth(view.year, view.month, 1))}><ChevronRight size={18} strokeWidth={2.2} /></button>
     </div>
     <div className="picker-weekdays">{WEEKDAYS.map(name => <span key={name}>{name}</span>)}</div>
     <div className="picker-grid" ref={gridRef} role="grid" aria-label={`${view.year}年${view.month + 1}月`}>

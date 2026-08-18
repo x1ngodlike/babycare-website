@@ -41,7 +41,7 @@
 .picker-trigger:disabled { background: var(--surface-subtle); color: var(--muted); cursor: not-allowed; }
 .picker-calendar-nav { min-height: 44px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; text-align: center; }
 .picker-calendar-nav strong { font-size: 16px; }
-.picker-calendar-nav button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--green-deep); font-size: 24px; cursor: pointer; }
+.picker-calendar-nav button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--green-deep); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .picker-calendar-nav button:hover:not(:disabled) { background: var(--sage-soft); }
 .picker-calendar-nav button:disabled { opacity: .3; cursor: default; }
 .picker-weekdays { margin-top: 6px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); color: var(--muted); text-align: center; font-size: 11px; }

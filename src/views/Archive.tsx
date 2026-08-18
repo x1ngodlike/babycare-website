@@ -1,4 +1,5 @@
 // 宝宝档案视图（由 App.tsx 抽出，React.lazy 按需加载）
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type GrowthAssessment, type GrowthIndicatorAssessment } from '../api';
 import { calculateAge, isoDay } from '../date';
@@ -69,7 +70,7 @@ function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClos
 
 function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange(page: number): void }) {
   if (totalPages <= 1) return null;
-  return <nav className="pagination" aria-label="成长记录分页"><button disabled={page <= 1} onClick={() => onChange(page - 1)}>‹ 上一页</button><span>第 {page} / {totalPages} 页</span><button disabled={page >= totalPages} onClick={() => onChange(page + 1)}>下一页 ›</button></nav>;
+  return <nav className="pagination" aria-label="成长记录分页"><button disabled={page <= 1} onClick={() => onChange(page - 1)}><ChevronLeft size={14} strokeWidth={2.2} /> 上一页</button><span>第 {page} / {totalPages} 页</span><button disabled={page >= totalPages} onClick={() => onChange(page + 1)}>下一页 <ChevronRight size={14} strokeWidth={2.2} /></button></nav>;
 }
 
 function GrowthDelta({ value, digits, unit }: { value: number; digits: number; unit: string }) {

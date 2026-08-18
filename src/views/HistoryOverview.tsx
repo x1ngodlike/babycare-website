@@ -1,4 +1,5 @@
 // 历史记录 · 七日总览（横轴＝日期，纵轴＝0–24 时，记录沿用现有图标体系；密集记录聚合展示，纯查看）
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { addDays, isoDay } from '../date';
 import { careItemIcon, summary, typeNames } from '../shared';
@@ -54,7 +55,7 @@ export default function HistoryOverview({ records, careItems, selected, onShiftW
     return null;
   }, [tipId, days, byDay]);
   return <section className="overview-panel" aria-label="七日照护总览">
-    <div className="calendar-nav"><button onClick={() => onShiftWeek(-7)} aria-label="向前七天">‹</button><strong>{rangeLabel}</strong><button onClick={() => onShiftWeek(7)} aria-label="向后七天">›</button></div>
+    <div className="calendar-nav"><button onClick={() => onShiftWeek(-7)} aria-label="向前七天"><ChevronLeft size={18} strokeWidth={2.2} /></button><strong>{rangeLabel}</strong><button onClick={() => onShiftWeek(7)} aria-label="向后七天"><ChevronRight size={18} strokeWidth={2.2} /></button></div>
     <div className="overview-days">
       <span aria-hidden="true" />
       {days.map(day => { const key = isoDay(day); const isToday = key === todayKey; const count = byDay.get(key)?.length || 0; const label = day.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }); return <div key={key} className={`overview-day ${isToday ? 'today' : ''}`} aria-label={`${label}，${count} 条记录`}><b>{isToday ? '今天' : key === yesterdayKey ? '昨天' : day.toLocaleDateString('zh-CN', { weekday: 'short' })}</b><span>{label}</span></div>; })}

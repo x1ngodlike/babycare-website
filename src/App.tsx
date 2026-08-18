@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { api, ApiError } from './api';
 import { addDays, isoDay, startOfWeek } from './date';
 import { isCareItemDue, getCareItemReminderTimes } from './careSchedule';
@@ -304,7 +304,7 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId,
   const [year, month, day] = data ? data.date.split('-').map(Number) : [0, 0, 0];
   const weekday = data ? ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date(`${data.date}T00:00:00`).getDay()] : '';
   if (data) return <>
-    <button type="button" className="daily-report collapsed info-summary-row" aria-label="查看昨日报告" onClick={openReport}><span className="info-row-label">昨日报告</span><span className="info-row-value">{data.summary}</span><span className="info-row-chevron" aria-hidden="true">›</span></button>
+    <button type="button" className="daily-report collapsed info-summary-row" aria-label="查看昨日报告" onClick={openReport}><span className="info-row-label">昨日报告</span><span className="info-row-value">{data.summary}</span><ChevronRight className="info-row-chevron" aria-hidden="true" size={16} strokeWidth={2} /></button>
     {open && <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && setOpen(false)}><section ref={dialogRef} className="editor info-sheet" role="dialog" aria-modal="true" aria-labelledby="daily-report-title"><header className="editor-head"><div><p className="kicker">{`${year}年${month}月${day}日 · ${weekday}`}</p><h2 id="daily-report-title">昨日报告</h2></div><button className="close-btn" onClick={() => setOpen(false)} aria-label="关闭">×</button></header><p className="dr-summary">{data.summary}</p>{data.suggestions.length > 0 && <ul className="dr-suggestions">{data.suggestions.map((item, index) => <li key={index}>{item}</li>)}</ul>}<div className="dr-footer"><small>{data.generatedAt ? `生成于 ${new Date(data.generatedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}` : ''}</small></div>{superadmin && <button type="button" className="btn secondary full" disabled={busy || !online} onClick={generate}>{busy ? '正在重新生成…' : '重新生成报告'}</button>}</section></div>}
   </>;
   return (
@@ -428,7 +428,7 @@ function HistoryView({ records, deletedRecords, vaccineRecords, vaccineCatalog, 
     view === 'deleted' ? <section className="deleted-records"><button className="inline-back" onClick={closeDeleted}>← 返回照护记录</button><div className="section-title"><h2>已删除记录</h2><span>{deletedRecords.length} 条</span></div>{deletedRecords.length ? deletedRecords.map(record => <article className="deleted-record" key={record.id}><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div><small>{new Date(record.occurredAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} · {record.type === 'supplement' && careItemCategory(record.supplement, careItems) === 'care' ? '护理' : typeNames[record.type]}</small><strong>{summary(record, careItems)}</strong><p>{auditNames[record.deletedBy || 'legacy']}删除 · {record.deletedAt ? new Date(record.deletedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : ''}</p></div><div className="deleted-actions"><button className="btn secondary" onClick={() => onRestore(record)}>恢复</button><button className="btn danger-button" onClick={() => onPurge(record)}>彻底删除</button></div></article>) : <EmptyState title="没有已删除记录" description="管理身份删除的记录会暂存在这里。" />}</section> : <>
     {toolbar}
     {layout === 'day' ? <>
-    <section className="calendar-panel"><div className="calendar-nav"><button onClick={() => setSelected(addDays(selected, -7))} aria-label="向前七天">‹</button><strong>{selected.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</strong><button onClick={() => setSelected(addDays(selected, 7))} aria-label="向后七天">›</button></div><div className="week-strip">{days.map(day => <button key={isoDay(day)} aria-pressed={isoDay(day) === isoDay(selected)} className={`${isoDay(day) === isoDay(selected) ? 'selected' : ''} ${isoDay(day) === isoDay(new Date()) ? 'today' : ''}`} onClick={() => setSelected(day)}><span>{day.toLocaleDateString('zh-CN', { weekday: 'short' })}</span><b>{day.getDate()}</b></button>)}</div></section>
+    <section className="calendar-panel"><div className="calendar-nav"><button onClick={() => setSelected(addDays(selected, -7))} aria-label="向前七天"><ChevronLeft size={18} strokeWidth={2.2} /></button><strong>{selected.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</strong><button onClick={() => setSelected(addDays(selected, 7))} aria-label="向后七天"><ChevronRight size={18} strokeWidth={2.2} /></button></div><div className="week-strip">{days.map(day => <button key={isoDay(day)} aria-pressed={isoDay(day) === isoDay(selected)} className={`${isoDay(day) === isoDay(selected) ? 'selected' : ''} ${isoDay(day) === isoDay(new Date()) ? 'today' : ''}`} onClick={() => setSelected(day)}><span>{day.toLocaleDateString('zh-CN', { weekday: 'short' })}</span><b>{day.getDate()}</b></button>)}</div></section>
     <div className="section-title history-record-heading"><h2>{query.trim() ? '全部搜索结果' : selected.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</h2><div className="section-title-actions"><span>{filtered.length} 条</span>{manager && <button className="text-button" onClick={openDeleted}>已删除</button>}</div></div><div className="history-timeline"><Timeline records={filtered} careItems={careItems} manager={manager} emptyText={query.trim() ? '没有找到匹配记录' : undefined} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} searchMode={!!query.trim()} /></div>
     </> : <HistoryOverview records={overviewFiltered} careItems={careItems} selected={selected} onShiftWeek={offset => setSelected(addDays(selected, offset))} />}</>}
   </div>;
@@ -482,6 +482,17 @@ export default function App() {
     };
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
+  }, []);
+  useEffect(() => {
+    (window as Window & { babycareHandleBack?: () => boolean }).babycareHandleBack = () => {
+      if (tabRef.current === 'chat') {
+        chatHistoryPushed.current = false;
+        setTab('today');
+        return true;
+      }
+      return false;
+    };
+    return () => { delete (window as Window & { babycareHandleBack?: () => boolean }).babycareHandleBack; };
   }, []);
   useEffect(() => {
     const openNotification = (event: Event) => {

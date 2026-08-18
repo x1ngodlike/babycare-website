@@ -591,14 +591,36 @@ public final class MainActivity extends Activity {
         if (requestCode == NOTIFICATION_PERMISSION_REQUEST) notifyWebPermissionChanged();
     }
 
+    private volatile boolean jsBackHandled = false;
+
     @Override
     public void onBackPressed() {
         if (errorView.getVisibility() == View.VISIBLE) {
             showServerDialog(false);
             return;
         }
-        if (webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
+        if (webView == null) {
+            super.onBackPressed();
+            return;
+        }
+        jsBackHandled = false;
+        try {
+            webView.evaluateJavascript(
+                "(function(){try{var r=window.babycareHandleBack&&window.babycareHandleBack();return r===true?'1':'0';}catch(e){return '0';}})();",
+                value -> {
+                    String safe = value == null ? "" : value;
+                    if ("1".equals(safe.replace("\"", ""))) {
+                        jsBackHandled = true;
+                        return;
+                    }
+                    if (webView.canGoBack()) webView.goBack();
+                    else MainActivity.super.onBackPressed();
+                }
+            );
+        } catch (Exception error) {
+            if (webView.canGoBack()) webView.goBack();
+            else super.onBackPressed();
+        }
     }
 
     @Override
