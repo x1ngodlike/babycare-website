@@ -175,7 +175,7 @@ function normalizeAiDatetime(value: string | null | undefined): string | null {
     const normalized = value.includes('T') ? value : value.replace(' ', 'T');
     const withZ = /[Zz]$/.test(normalized) ? normalized : normalized.replace(/([+-]\d{2}:?\d{2})$/, 'Z');
     const date = new Date(withZ);
-    if (isNaN(date.getTime())) return null;
+    if (Number.isNaN(date.getTime())) return null;
     return date.toISOString();
   } catch {
     return null;

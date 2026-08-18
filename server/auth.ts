@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
-import { getFamilyRole } from './db.js';
+import { getFamilyRole } from './db/index.js';
 import type { FamilyId, UserRole } from './types.js';
 
 export interface SessionUser { id: FamilyId; name: string; role: UserRole }

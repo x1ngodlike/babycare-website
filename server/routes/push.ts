@@ -1,6 +1,6 @@
 import express, { type Express } from 'express';
 import { requireAdmin } from '../auth.js';
-import { listAppNotifications, touchAppNotificationClient } from '../db.js';
+import { listAppNotifications, touchAppNotificationClient } from '../db/index.js';
 import { getPushStatus, testCareItemPush, testFeedingGapPush, testMorningDigestPush, updatePushSettings } from '../push.js';
 
 export function registerPushRoutes(app: Express) {

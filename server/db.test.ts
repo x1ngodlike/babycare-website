@@ -25,7 +25,7 @@ legacyDb.exec(`
 `);
 legacyDb.close();
 
-const db = await import('./db.js');
+const db = await import('./db/index.js');
 
 function record(overrides: Partial<CareRecord> = {}): CareRecord {
   const now = '2026-08-09T08:00:00.000Z';

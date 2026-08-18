@@ -3,7 +3,7 @@ import {
   addMessage, allRecords, createSession, getSession, listCareItems, listGrowthRecords, listMemories,
   listMessages, listVaccineRecords, renameSession,
   upsertMemory, getProfile
-} from './db.js';
+} from './db/index.js';
 import { requestCompletion, type ModelSettings } from './ai.js';
 import { shanghaiDateString } from './shanghai-date.js';
 import { addDaysToDateString } from '../shared/date.js';

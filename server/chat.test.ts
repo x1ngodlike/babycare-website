@@ -24,7 +24,7 @@ legacyDb.exec(`
 legacyDb.close();
 
 const chat = await import('./chat.js');
-const db = await import('./db.js');
+const db = await import('./db/index.js');
 
 beforeAll(() => {
   const now = new Date().toISOString();

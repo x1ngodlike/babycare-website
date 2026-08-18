@@ -1,6 +1,6 @@
 import type { DailyReportInput } from './ai.js';
 import { evaluateAdVdPlan, generateDailyReport } from './ai.js';
-import { getAiSettings, getDailyReport, getProfile, listGrowthRecords, listRecords, saveDailyReport } from './db.js';
+import { getAiSettings, getDailyReport, getProfile, listGrowthRecords, listRecords, saveDailyReport } from './db/index.js';
 import { addDaysToDateString, shanghaiDateString, shanghaiDayUtcRange } from './shanghai-date.js';
 
 export function yesterdayInShanghai(): string {

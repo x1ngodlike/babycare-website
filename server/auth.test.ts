@@ -6,7 +6,7 @@ import { join } from 'node:path';
 const directory = mkdtempSync(join(tmpdir(), 'baby-care-auth-test-'));
 process.env.DATABASE_PATH = join(directory, 'test.db');
 const { authenticate } = await import('./auth.js');
-const database = await import('./db.js');
+const database = await import('./db/index.js');
 afterAll(() => { database.closeDatabaseForTests(); rmSync(directory, { recursive: true, force: true }); });
 
 describe('family authentication', () => {

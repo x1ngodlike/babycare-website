@@ -33,7 +33,7 @@ legacy.exec(`
 `);
 legacy.close();
 process.env.DATABASE_PATH = databasePath;
-const db = await import('./db.js');
+const db = await import('./db/index.js');
 
 afterAll(() => { db.closeDatabaseForTests(); rmSync(directory, { recursive: true, force: true }); });
 
