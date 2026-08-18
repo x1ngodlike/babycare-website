@@ -1,0 +1,1570 @@
+/* ===== Dark Mode ===== */
+:root { color-scheme: light; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #dde3dc;
+    --muted: #8a938b;
+    --text-secondary: #8a938b;
+    --text-tertiary: #6f7867;
+    --green: #7d9a66;
+    --green-deep: #a8c098;
+    --sage: #3a4a36;
+    --sage-soft: #2a3528;
+    --orange: #e09958;
+    --cream: #4a3f30;
+    --line: #333d38;
+    --line-strong: #434e47;
+    --line-sage: #3a4a36;
+    --focus: #7d9a66;
+    --surface-page: #1a1f1b;
+    --surface-card: #242b25;
+    --surface-subtle: #2d342d;
+    --surface-muted: #353d36;
+    --danger: #e0736a;
+    --white: #dde3dc;
+    --tag-program-bg: #3a4a36;
+    --tag-program-text: #b4c7ad;
+    --tag-self-paid-bg: #4a3f30;
+    --tag-self-paid-text: #e0a868;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 26px rgba(0, 0, 0, .25);
+    --shadow-float: 0 10px 28px rgba(0, 0, 0, .4), 0 2px 7px rgba(0, 0, 0, .3);
+    color-scheme: dark;
+  }
+}
+
+html[data-theme="dark"] {
+  --ink: #dde3dc;
+  --muted: #8a938b;
+  --text-secondary: #8a938b;
+  --text-tertiary: #6f7867;
+  --green: #7d9a66;
+  --green-deep: #a8c098;
+  --sage: #3a4a36;
+  --sage-soft: #2a3528;
+  --orange: #e09958;
+  --cream: #4a3f30;
+  --line: #333d38;
+  --line-strong: #434e47;
+  --line-sage: #3a4a36;
+  --focus: #7d9a66;
+  --surface-page: #1a1f1b;
+  --surface-card: #242b25;
+  --surface-subtle: #2d342d;
+  --surface-muted: #353d36;
+  --danger: #e0736a;
+  --white: #dde3dc;
+  --tag-program-bg: #3a4a36;
+  --tag-program-text: #b4c7ad;
+  --tag-self-paid-bg: #4a3f30;
+  --tag-self-paid-text: #e0a868;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 26px rgba(0, 0, 0, .25);
+  --shadow-float: 0 10px 28px rgba(0, 0, 0, .4), 0 2px 7px rgba(0, 0, 0, .3);
+  color-scheme: dark;
+}
+
+/* Dark mode hardcoded color overrides */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    background: var(--surface-page);
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) body {
+    background:
+      radial-gradient(circle at 8% 4%, rgba(125, 154, 102, .08) 0 10%, transparent 32%),
+      radial-gradient(circle at 95% 92%, rgba(125, 154, 102, .06), transparent 25%),
+      linear-gradient(180deg, #1e2420 0%, var(--surface-page) 46%, #181d19 100%);
+  }
+  html:not([data-theme="light"]) .app::before,
+  html:not([data-theme="light"]) .app::after {
+    background: rgba(125, 154, 102, .1);
+  }
+  html:not([data-theme="light"]) input,
+  html:not([data-theme="light"]) textarea,
+  html:not([data-theme="light"]) select {
+    background: #2a312a;
+    color: var(--ink);
+    border-color: var(--line-strong);
+  }
+  html:not([data-theme="light"]) .baby-hero {
+    background: linear-gradient(135deg, #3a4f36 0%, #2d3f2b 58%, #425740 100%);
+  }
+  html:not([data-theme="light"]) .baby-hero .kicker { color: #b4c7ad; }
+  html:not([data-theme="light"]) .hero-profile-line,
+  html:not([data-theme="light"]) .hero-status p { color: #c5d3be; }
+  html:not([data-theme="light"]) .hero-avatar { background: #2a312a; border-color: rgba(168, 192, 152, .6); }
+  html:not([data-theme="light"]) .metric-band,
+  html:not([data-theme="light"]) .metric-band > div { background: var(--surface-card); }
+  html:not([data-theme="light"]) .network-pill,
+  html:not([data-theme="light"]) .user-pill {
+    background: rgba(42, 49, 42, .9);
+    border-color: rgba(67, 78, 71, .85);
+    color: var(--green);
+  }
+  html:not([data-theme="light"]) .network-pill::before { background: #7d9a66; }
+  html:not([data-theme="light"]) .today-workbench,
+  html:not([data-theme="light"]) .settings-card,
+  html:not([data-theme="light"]) .chart-card,
+  html:not([data-theme="light"]) .rhythm-list,
+  html:not([data-theme="light"]) .settings-menu,
+  html:not([data-theme="light"]) .account-card,
+  html:not([data-theme="light"]) .archive-profile,
+  html:not([data-theme="light"]) .growth-history,
+  html:not([data-theme="light"]) .growth-assessment-card,
+  html:not([data-theme="light"]) .deleted-records,
+  html:not([data-theme="light"]) .trend-summary,
+  html:not([data-theme="light"]) .trend-total-details,
+  html:not([data-theme="light"]) .trend-period-nav,
+  html:not([data-theme="light"]) .pagination,
+  html:not([data-theme="light"]) .calendar-nav button,
+  html:not([data-theme="light"]) .trend-period-nav button,
+  html:not([data-theme="light"]) .filter-field select,
+  html:not([data-theme="light"]) .backup-file-select,
+  html:not([data-theme="light"]) .native-notification-row,
+  html:not([data-theme="light"]) .today-insights,
+  html:not([data-theme="light"]) .today-plan {
+    background: #2d2520;
+    border-color: #4d3f30;
+    box-shadow: var(--shadow-card);
+  }
+  html:not([data-theme="light"]) .backup-file-delete:hover {
+    background: #3a2a28;
+    color: var(--danger);
+  }
+  html:not([data-theme="light"]) .backup-type-tag.auto {
+    background: #3a3a3a;
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .import-mode-option {
+    background: var(--surface-card);
+    color: var(--text-primary);
+  }
+  html:not([data-theme="light"]) .import-mode-option:hover {
+    background: var(--surface-subtle);
+    border-color: var(--green);
+  }
+  html:not([data-theme="light"]) .import-mode-option.selected {
+    background: var(--surface-subtle);
+    border-color: var(--green);
+  }
+  html:not([data-theme="light"]) .import-mode-content p {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .today-workbench .quick-section {
+    background: var(--surface-subtle);
+  }
+  html:not([data-theme="light"]) .quick-grid button {
+    background: var(--surface-subtle);
+    color: var(--ink);
+    border-color: var(--line);
+  }
+  html:not([data-theme="light"]) .quick-grid button:hover { background: var(--surface-muted); }
+  html:not([data-theme="light"]) .quick-grid button:active { background: var(--sage-soft); }
+  html:not([data-theme="light"]) .quick-grid b { color: #c5d3be; }
+  html:not([data-theme="light"]) .push-rule-row,
+  html:not([data-theme="light"]) .push-channel-row { border-color: var(--line); }
+  html:not([data-theme="light"]) .bar-track { background: var(--surface-subtle); }
+  html:not([data-theme="light"]) .segmented,
+  html:not([data-theme="light"]) .role-switch {
+    background: var(--surface-subtle);
+    border-color: var(--line-strong);
+  }
+  html:not([data-theme="light"]) .segment.active,
+  html:not([data-theme="light"]) .role-switch button.active {
+    background: var(--surface-card);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  html:not([data-theme="light"]) .btn.secondary {
+    background: var(--surface-card);
+    border-color: var(--line);
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .btn.primary {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: #fff;
+  }
+  html:not([data-theme="light"]) .today-plan-list .btn.primary {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: #fff;
+  }
+  html:not([data-theme="light"]) .btn.primary span,
+  html:not([data-theme="light"]) .btn.primary i {
+    color: #fff;
+  }
+  html:not([data-theme="light"]) .btn.danger-button.secondary {
+    background: transparent;
+    border-color: #5a3f3c;
+    color: var(--danger);
+  }
+  html:not([data-theme="light"]) .btn.danger-button.secondary:hover {
+    background: #3a2a28;
+  }
+  html:not([data-theme="light"]) .auth-page,
+  html:not([data-theme="light"]) .loading-page {
+    background:
+      radial-gradient(circle at 50% 12%, rgba(125, 154, 102, .12), transparent 36%),
+      linear-gradient(160deg, #1a1f1b, #222822);
+  }
+  html:not([data-theme="light"]) .auth-card {
+    background: var(--surface-card);
+    border-color: var(--line);
+  }
+  html:not([data-theme="light"]) .identity-picker button {
+    background: var(--surface-subtle);
+    border-color: var(--line);
+  }
+  html:not([data-theme="light"]) .identity-picker button.selected {
+    border-color: var(--orange);
+    background: rgba(224, 153, 88, 0.15);
+    color: var(--orange);
+  }
+  html:not([data-theme="light"]) .identity-picker button b {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .identity-picker button small {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .app-nav {
+    background: rgba(36, 43, 37, .96);
+    border-color: var(--line);
+    box-shadow: 0 -4px 22px rgba(0, 0, 0, .35);
+  }
+  html:not([data-theme="light"]) .app-nav button { color: #8a938b; }
+  html:not([data-theme="light"]) .app-nav button:hover { background: var(--surface-subtle); }
+  html:not([data-theme="light"]) .app-nav button.active,
+  html:not([data-theme="light"]) .app-nav button.active:hover,
+  html:not([data-theme="light"]) .app-nav button.active:active { background: transparent; }
+  html:not([data-theme="light"]) .app-nav button.active { color: var(--green-deep); }
+  html:not([data-theme="light"]) .app-nav button.active img { filter: none; opacity: 1; }
+  html:not([data-theme="light"]) .app-nav button img { opacity: .4; filter: saturate(.5) brightness(.7); }
+  html:not([data-theme="light"]) .floating-add,
+  html:not([data-theme="light"]) .app-nav .nav-add {
+    background: linear-gradient(180deg, #d48540, #b86b28);
+    border-color: #3a2a1c;
+    color: #fff;
+  }
+  html:not([data-theme="light"]) .floating-add span,
+  html:not([data-theme="light"]) .app-nav .nav-add span {
+    color: #fff;
+  }
+  html:not([data-theme="light"]) .app-nav .nav-add:hover,
+  html:not([data-theme="light"]) .app-nav .nav-add:active {
+    background: linear-gradient(180deg, #e0944d, #c4792f);
+  }
+  html:not([data-theme="light"]) .baby-hero::after {
+    background:
+      linear-gradient(90deg, rgba(26, 40, 28, .76) 0%, rgba(26, 40, 28, .5) 48%, rgba(26, 40, 28, .08) 100%),
+      var(--hero-background, url('/hero-midday.jpg')) center / cover no-repeat;
+  }
+  html:not([data-theme="light"]) .modal-layer { background: rgba(0, 0, 0, .6); }
+  html:not([data-theme="light"]) .editor {
+    background: var(--surface-card);
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .todo-list,
+  html:not([data-theme="light"]) .draggable-item,
+  html:not([data-theme="light"]) .draggable-placeholder {
+    background: var(--surface-card);
+    border-color: var(--line);
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .draggable-item {
+    border-color: var(--line-strong);
+  }
+  html:not([data-theme="light"]) .record-controls button,
+  html:not([data-theme="light"]) .text-button,
+  html:not([data-theme="light"]) .inline-back {
+    color: var(--green-deep);
+  }
+  html:not([data-theme="light"]) .settings-entry,
+  html:not([data-theme="light"]) .settings-menu {
+    background: var(--surface-card);
+    border-color: var(--line);
+  }
+  html:not([data-theme="light"]) .settings-menu-stack .settings-entry:hover {
+    background: var(--surface-subtle);
+  }
+  html:not([data-theme="light"]) .settings-menu-stack .settings-entry:active {
+    background: var(--sage-soft);
+  }
+  html:not([data-theme="light"]) .care-item-list article,
+  html:not([data-theme="light"]) .review-list article,
+  html:not([data-theme="light"]) .vaccine-list article,
+  html:not([data-theme="light"]) .vaccine-sheet-item,
+  html:not([data-theme="light"]) .vaccine-upcoming-list article {
+    background: var(--surface-card);
+    border-color: var(--line);
+  }
+  html:not([data-theme="light"]) .vaccine-calendar-grid > button {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .vaccine-calendar-grid > button:hover {
+    background: var(--surface-subtle);
+  }
+  html:not([data-theme="light"]) .vaccine-agenda-list article.selected {
+    background: var(--sage-soft);
+  }
+  html:not([data-theme="light"]) .vaccine-date,
+  html:not([data-theme="light"]) .vaccine-calendar-week {
+    background: var(--sage-soft);
+    color: var(--green-deep);
+  }
+  html:not([data-theme="light"]) .ga-band.mid {
+    background: var(--sage);
+    color: var(--green-deep);
+  }
+  html:not([data-theme="light"]) .ga-band.below,
+  html:not([data-theme="light"]) .ga-band.above {
+    background: var(--cream);
+    color: #c98a4a;
+  }
+  html:not([data-theme="light"]) .ga-band.low,
+  html:not([data-theme="light"]) .ga-band.high {
+    background: #5a3330;
+    color: var(--danger);
+  }
+  html:not([data-theme="light"]) .ga-seg.core { background: var(--sage); }
+  html:not([data-theme="light"]) .ga-seg.edge { background: var(--cream); }
+  html:not([data-theme="light"]) .ga-track-milk { background: var(--surface-muted); }
+  html:not([data-theme="light"]) .ga-danger-zone { background: #5a3330; }
+  html:not([data-theme="light"]) .ga-zone { background: var(--sage); }
+  html:not([data-theme="light"]) .ga-marker {
+    background: var(--green-deep);
+    border-color: var(--surface-card);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+  }
+  html:not([data-theme="light"]) .ga-marker.alert {
+    background: var(--danger);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+  }
+  html:not([data-theme="light"]) .ga-scale,
+  html:not([data-theme="light"]) .ga-scale-milk {
+    color: var(--text-tertiary);
+  }
+  html:not([data-theme="light"]) .baby-hero::after {
+    background:
+      linear-gradient(90deg, rgba(26, 40, 28, .76) 0%, rgba(26, 40, 28, .5) 48%, rgba(26, 40, 28, .08) 100%),
+      var(--hero-background, url('/hero-midday.jpg')) center / cover no-repeat;
+  }
+  html:not([data-theme="light"]) .today-layout .baby-hero {
+    background: linear-gradient(135deg, #3a4f36 0%, #2d3f2b 58%, #425740 100%);
+  }
+  html:not([data-theme="light"]) .today-insights {
+    background: var(--surface-card);
+  }
+  html:not([data-theme="light"]) .today-plan {
+    background: #2d2520;
+    border-color: #4d3f30;
+  }
+  html:not([data-theme="light"]) .today-plan > h2,
+  html:not([data-theme="light"]) .today-layout .today-plan > h2 {
+    color: #d9a46a;
+  }
+  html:not([data-theme="light"]) .today-plan-list article {
+    border-color: #4d3f30;
+  }
+  html:not([data-theme="light"]) .today-layout .today-plan-list .task-icon,
+  html:not([data-theme="light"]) .today-layout .today-plan-list .vaccine-task > img,
+  html:not([data-theme="light"]) .today-layout .today-plan-list .growth-task > img {
+    background: #3a3025;
+    border-color: #5a4a38;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, .2);
+  }
+  html:not([data-theme="light"]) .today-layout .today-timeline .record-mark,
+  html:not([data-theme="light"]) .history-timeline .record-mark {
+    background: #3d4a35;
+    border-color: #54644a;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, .2);
+  }
+  html:not([data-theme="light"]) .history-timeline .time-col i,
+  html:not([data-theme="light"]) .today-timeline .time-col i,
+  html:not([data-theme="light"]) .today-layout .today-timeline .time-col i {
+    background: var(--line);
+  }
+  html:not([data-theme="light"]) .history-timeline .record-copy small,
+  html:not([data-theme="light"]) .today-timeline .record-copy small {
+    color: #8fae7b;
+  }
+  html:not([data-theme="light"]) .draggable-item .drag-handle,
+  html:not([data-theme="light"]) .care-drag-handle {
+    background: transparent;
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .schedule-fields {
+    background: var(--surface-subtle);
+  }
+  html:not([data-theme="light"]) .meta-icon-btn {
+    background: var(--surface-subtle);
+    border-color: var(--line);
+  }
+  html:not([data-theme="light"]) .meta-icon-btn.selected {
+    background: var(--sage-soft);
+  }
+  html:not([data-theme="light"]) .meta-category-label {
+    background: var(--surface-subtle);
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .time-empty-state {
+    border-color: var(--line);
+  }
+  html:not([data-theme="light"]) .ga-note,
+  html:not([data-theme="light"]) .ga-eval-meta,
+  html:not([data-theme="light"]) .ga-disclaimer,
+  html:not([data-theme="light"]) .ga-milk-note {
+    color: var(--text-tertiary);
+  }
+  html:not([data-theme="light"]) .today-baby-summary img {
+    background: #2a312a;
+    border-color: rgba(168, 192, 152, .6);
+  }
+  html:not([data-theme="light"]) .today-workbench .today-profile-strip span,
+  html:not([data-theme="light"]) .today-baby-summary span {
+    color: var(--green-deep);
+  }
+  html:not([data-theme="light"]) .toast {
+    background: var(--ink);
+    color: #1a1f1b;
+  }
+  html:not([data-theme="light"]) .toast button {
+    background: #1a1f1b;
+    color: var(--green-deep);
+  }
+  html:not([data-theme="light"]) .kicker {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .archive-profile-summary {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .archive-profile h2 {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .ga-indicator-head b {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .ga-indicator-head span {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .vaccine-archive-count {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) time {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) time small {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) b,
+  html:not([data-theme="light"]) strong {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .growth-list time {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .growth-list > article > div > b {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .growth-delta.up {
+    color: var(--green-deep);
+  }
+  html:not([data-theme="light"]) .growth-delta.down {
+    color: var(--danger);
+  }
+  html:not([data-theme="light"]) .growth-delta.flat {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .btn.primary span,
+  html:not([data-theme="light"]) .btn.primary i {
+    color: var(--white);
+  }
+  html:not([data-theme="light"]) .bar-day > span {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .bar-value {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .account-card i {
+    color: var(--green-deep);
+    background: var(--surface-subtle);
+  }
+  html:not([data-theme="light"]) .choice-group button {
+    background: var(--surface-subtle);
+    border-color: var(--line);
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .choice-group button.selected {
+    border-color: var(--orange);
+    background: rgba(224, 153, 88, 0.15);
+    color: var(--orange);
+  }
+  html:not([data-theme="light"]) .care-choice-grid button {
+    background: var(--surface-subtle);
+    border-color: var(--line);
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .care-choice-grid button.selected {
+    border-color: var(--orange);
+    background: rgba(224, 153, 88, 0.15);
+    color: var(--orange);
+  }
+  html:not([data-theme="light"]) .care-choice-groups .care-choice-grid button {
+    background: var(--surface-subtle);
+    border-color: var(--line);
+  }
+  html:not([data-theme="light"]) .care-choice-groups .care-choice-grid button.selected {
+    border-color: var(--orange);
+    background: rgba(224, 153, 88, 0.15);
+    color: var(--orange);
+    box-shadow: none;
+  }
+  html:not([data-theme="light"]) .segmented {
+    background: var(--surface-muted);
+    border-color: var(--line);
+  }
+  html:not([data-theme="light"]) .segmented button {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .segment.active {
+    background: var(--surface-card);
+    color: var(--green-deep);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  html:not([data-theme="light"]) .role-switch {
+    background: var(--surface-subtle);
+    border-color: var(--line-strong);
+  }
+  html:not([data-theme="light"]) .role-switch button {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .role-switch button.active {
+    background: var(--surface-card);
+    color: var(--green-deep);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  html:not([data-theme="light"]) .settings-entry em {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .settings-entry > i {
+    color: var(--muted);
+  }
+}
+
+html[data-theme="dark"] {
+  background: var(--surface-page);
+  color: var(--ink);
+}
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 8% 4%, rgba(125, 154, 102, .08) 0 10%, transparent 32%),
+    radial-gradient(circle at 95% 92%, rgba(125, 154, 102, .06), transparent 25%),
+    linear-gradient(180deg, #1e2420 0%, var(--surface-page) 46%, #181d19 100%);
+}
+html[data-theme="dark"] .app::before,
+html[data-theme="dark"] .app::after {
+  background: rgba(125, 154, 102, .1);
+}
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  background: #2a312a;
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+html[data-theme="dark"] .baby-hero {
+  background: linear-gradient(135deg, #3a4f36 0%, #2d3f2b 58%, #425740 100%);
+}
+html[data-theme="dark"] .baby-hero .kicker { color: #b4c7ad; }
+html[data-theme="dark"] .hero-profile-line,
+html[data-theme="dark"] .hero-status p { color: #c5d3be; }
+html[data-theme="dark"] .hero-avatar { background: #2a312a; border-color: rgba(168, 192, 152, .6); }
+html[data-theme="dark"] .network-pill,
+html[data-theme="dark"] .user-pill {
+  background: rgba(42, 49, 42, .9);
+  border-color: rgba(67, 78, 71, .85);
+  color: var(--green);
+}
+html[data-theme="dark"] .network-pill::before { background: #7d9a66; }
+html[data-theme="dark"] .today-workbench,
+html[data-theme="dark"] .settings-card,
+html[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .rhythm-list,
+html[data-theme="dark"] .settings-menu,
+html[data-theme="dark"] .account-card,
+html[data-theme="dark"] .archive-profile,
+html[data-theme="dark"] .growth-history,
+html[data-theme="dark"] .growth-assessment-card,
+html[data-theme="dark"] .deleted-records,
+html[data-theme="dark"] .trend-summary,
+html[data-theme="dark"] .trend-total-details,
+html[data-theme="dark"] .trend-period-nav,
+html[data-theme="dark"] .pagination,
+html[data-theme="dark"] .prediction-banner,
+html[data-theme="dark"] .calendar-nav button,
+html[data-theme="dark"] .trend-period-nav button,
+html[data-theme="dark"] .filter-field select,
+html[data-theme="dark"] .backup-file-select,
+html[data-theme="dark"] .native-notification-row,
+html[data-theme="dark"] .today-insights,
+html[data-theme="dark"] .today-plan {
+  background: var(--surface-card);
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+html[data-theme="dark"] .backup-file-delete:hover {
+  background: #3a2a28;
+  color: var(--danger);
+}
+html[data-theme="dark"] .backup-type-tag.auto {
+  background: #3a3a3a;
+  color: var(--muted);
+}
+html[data-theme="dark"] .prediction-banner.overdue {
+  border-color: #6b4a2e;
+  background: #352618;
+}
+html[data-theme="dark"] .prediction-banner.soon {
+  border-color: #6b5a2e;
+  background: #35301a;
+}
+html[data-theme="dark"] .prediction-banner.overdue .prediction-icon { background: #3d2d1e; color: #e0894a; }
+html[data-theme="dark"] .prediction-banner.soon .prediction-icon { background: #3d3520; color: #d4a84a; }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-label { color: #e0894a; }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-time { color: #e0894a; }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-upcoming-count { background: #3d2d1e; color: #e0894a; }
+html[data-theme="dark"] .prediction-detail {
+  background: var(--surface-subtle);
+  border-top-color: var(--line);
+}
+html[data-theme="dark"] .prediction-upcoming h3 { color: #b4c7ad; }
+html[data-theme="dark"] .prediction-upcoming li {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .feed-period {
+  background: #2a3328;
+  color: #9aad94;
+}
+html[data-theme="dark"] .prediction-ai-section {
+  background: linear-gradient(135deg, #232d20 0%, #1e281b 100%);
+  border-color: #3a4a36;
+}
+html[data-theme="dark"] .prediction-ai-header { color: #b4c7ad; }
+html[data-theme="dark"] .prediction-ai-summary { color: #e0e8db; }
+html[data-theme="dark"] .prediction-ai-insights li { color: #b4c7ad; }
+html[data-theme="dark"] .prediction-meta { color: var(--muted); }
+html[data-theme="dark"] .confidence-bar { background: var(--line); }
+html[data-theme="dark"] .confidence-fill { background: var(--green); }
+html[data-theme="dark"] .prediction-ai-badge { color: var(--green); }
+html[data-theme="dark"] .prediction-banner.ai-predicted .prediction-time::after {
+  color: var(--green);
+  background: #2d3a28;
+}
+html[data-theme="dark"] .prediction-banner.ai-predicted.overdue .prediction-time::after {
+  color: #e0894a;
+  background: #3d2d1e;
+}
+html[data-theme="dark"] .prediction-banner.ai-predicted.soon .prediction-time::after {
+  color: #d4a84a;
+  background: #3d3520;
+}
+html[data-theme="dark"] .prediction-upcoming-count { background: var(--sage-soft); color: var(--green); }
+html[data-theme="dark"] .import-mode-option {
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+html[data-theme="dark"] .import-mode-option:hover {
+  background: var(--surface-subtle);
+  border-color: var(--green);
+}
+html[data-theme="dark"] .import-mode-option.selected {
+  background: var(--surface-subtle);
+  border-color: var(--green);
+}
+html[data-theme="dark"] .import-mode-content p {
+  color: var(--muted);
+}
+html[data-theme="dark"] .today-workbench .quick-section {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .quick-grid button:hover { background: var(--surface-muted); }
+html[data-theme="dark"] .quick-grid button:active { background: var(--sage-soft); }
+html[data-theme="dark"] .quick-grid b { color: #c5d3be; }
+html[data-theme="dark"] .push-rule-row,
+html[data-theme="dark"] .push-channel-row { border-color: var(--line); }
+html[data-theme="dark"] .bar-track { background: var(--surface-subtle); }
+html[data-theme="dark"] .segmented,
+html[data-theme="dark"] .role-switch {
+  background: var(--surface-subtle);
+  border-color: var(--line-strong);
+}
+html[data-theme="dark"] .segment.active,
+html[data-theme="dark"] .role-switch button.active {
+  background: var(--surface-card);
+  box-shadow: 0 0 0 1px var(--line);
+}
+html[data-theme="dark"] .btn.secondary {
+  background: var(--surface-card);
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .btn.danger-button.secondary {
+  background: transparent;
+  border-color: #5a3f3c;
+  color: var(--danger);
+}
+html[data-theme="dark"] .btn.danger-button.secondary:hover {
+  background: #3a2a28;
+}
+html[data-theme="dark"] .auth-page,
+html[data-theme="dark"] .loading-page {
+  background:
+    radial-gradient(circle at 50% 12%, rgba(125, 154, 102, .12), transparent 36%),
+    linear-gradient(160deg, #1a1f1b, #222822);
+}
+html[data-theme="dark"] .auth-card {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .identity-picker button {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .identity-picker button.selected {
+  border-color: var(--green);
+  background: var(--sage-soft);
+}
+html[data-theme="dark"] .app-nav {
+  background: rgba(36, 43, 37, .96);
+  border-color: var(--line);
+  box-shadow: 0 -4px 22px rgba(0, 0, 0, .35);
+}
+html[data-theme="dark"] .app-nav button { color: #8a938b; }
+html[data-theme="dark"] .app-nav button:hover { background: var(--surface-subtle); }
+html[data-theme="dark"] .app-nav button.active,
+html[data-theme="dark"] .app-nav button.active:hover,
+html[data-theme="dark"] .app-nav button.active:active { background: transparent; }
+html[data-theme="dark"] .app-nav button.active { color: var(--green-deep); }
+html[data-theme="dark"] .app-nav button.active img { filter: none; opacity: 1; }
+html[data-theme="dark"] .app-nav button img { opacity: .4; filter: saturate(.5) brightness(.7); }
+html[data-theme="dark"] .floating-add,
+html[data-theme="dark"] .app-nav .nav-add {
+  background: linear-gradient(180deg, #d48540, #b86b28);
+  border-color: #3a2a1c;
+  color: #fff;
+}
+html[data-theme="dark"] .floating-add span,
+html[data-theme="dark"] .app-nav .nav-add span {
+  color: #fff;
+}
+html[data-theme="dark"] .app-nav .nav-add:hover,
+html[data-theme="dark"] .app-nav .nav-add:active {
+  background: linear-gradient(180deg, #e0944d, #c4792f);
+}
+html[data-theme="dark"] .baby-hero::after {
+  background:
+    linear-gradient(90deg, rgba(26, 40, 28, .76) 0%, rgba(26, 40, 28, .5) 48%, rgba(26, 40, 28, .08) 100%),
+    var(--hero-background, url('/hero-midday.jpg')) center / cover no-repeat;
+}
+html[data-theme="dark"] .modal-layer { background: rgba(0, 0, 0, .6); }
+html[data-theme="dark"] .editor {
+  background: var(--surface-card);
+  color: var(--ink);
+}
+html[data-theme="dark"] .record-controls button,
+html[data-theme="dark"] .text-button,
+html[data-theme="dark"] .inline-back {
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .settings-entry,
+html[data-theme="dark"] .settings-menu {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .settings-menu-stack .settings-entry:hover {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .settings-menu-stack .settings-entry:active {
+  background: var(--sage-soft);
+}
+html[data-theme="dark"] .settings-menu-stack .settings-entry b {
+  color: var(--ink);
+}
+html[data-theme="dark"] .settings-menu-stack .settings-entry small {
+  color: var(--muted);
+}
+html[data-theme="dark"] .settings-menu-stack .settings-entry em {
+  color: var(--muted);
+}
+html[data-theme="dark"] .care-item-list article,
+html[data-theme="dark"] .review-list article,
+html[data-theme="dark"] .vaccine-list article,
+html[data-theme="dark"] .vaccine-sheet-item,
+html[data-theme="dark"] .vaccine-upcoming-list article {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .vaccine-calendar-grid > button {
+  color: var(--ink);
+}
+html[data-theme="dark"] .vaccine-calendar-grid > button:hover {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .vaccine-agenda-list article.selected {
+  background: var(--sage-soft);
+}
+html[data-theme="dark"] .vaccine-date,
+html[data-theme="dark"] .vaccine-calendar-week {
+  background: var(--sage-soft);
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .ga-band.mid {
+  background: var(--sage);
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .ga-band.below,
+html[data-theme="dark"] .ga-band.above {
+  background: var(--cream);
+  color: #c98a4a;
+}
+html[data-theme="dark"] .ga-band.low,
+html[data-theme="dark"] .ga-band.high {
+  background: #5a3330;
+  color: var(--danger);
+}
+html[data-theme="dark"] .ga-seg.core { background: var(--sage); }
+html[data-theme="dark"] .ga-seg.edge { background: var(--cream); }
+html[data-theme="dark"] .ga-track-milk { background: var(--surface-muted); }
+html[data-theme="dark"] .ga-danger-zone { background: #5a3330; }
+html[data-theme="dark"] .ga-zone { background: var(--sage); }
+html[data-theme="dark"] .ga-marker {
+  background: var(--green-deep);
+  border-color: var(--surface-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+}
+html[data-theme="dark"] .ga-marker.alert {
+  background: var(--danger);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+}
+html[data-theme="dark"] .today-layout .baby-hero {
+  background: linear-gradient(135deg, #3a4f36 0%, #2d3f2b 58%, #425740 100%);
+}
+html[data-theme="dark"] .today-plan {
+  background: #2d2520;
+  border-color: #4d3f30;
+}
+html[data-theme="dark"] .today-plan > h2,
+html[data-theme="dark"] .today-layout .today-plan > h2 {
+  color: #d9a46a;
+}
+html[data-theme="dark"] .today-plan-list article {
+  border-color: #4d3f30;
+}
+html[data-theme="dark"] .today-layout .today-plan-list .task-icon,
+html[data-theme="dark"] .today-layout .today-plan-list .vaccine-task > img,
+html[data-theme="dark"] .today-layout .today-plan-list .growth-task > img {
+  background: #3a3025;
+  border-color: #5a4a38;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, .2);
+}
+html[data-theme="dark"] .today-layout .today-timeline .record-mark,
+html[data-theme="dark"] .history-timeline .record-mark {
+  background: #3d4a35;
+  border-color: #54644a;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, .2);
+}
+html[data-theme="dark"] .history-timeline .time-col i,
+html[data-theme="dark"] .today-timeline .time-col i,
+html[data-theme="dark"] .today-layout .today-timeline .time-col i {
+  background: var(--line);
+}
+html[data-theme="dark"] .history-timeline .record-copy small,
+html[data-theme="dark"] .today-timeline .record-copy small {
+  color: #8fae7b;
+}
+html[data-theme="dark"] .draggable-item .drag-handle,
+html[data-theme="dark"] .care-drag-handle {
+  background: transparent;
+  color: var(--muted);
+}
+html[data-theme="dark"] .schedule-fields {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .meta-icon-btn {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .meta-icon-btn.selected {
+  background: var(--sage-soft);
+  border: 2px solid var(--green-deep);
+  box-shadow: 0 0 0 3px rgba(34,197,94,.25);
+}
+html[data-theme="dark"] .time-empty-state {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .time-empty-state {
+  border-color: var(--line);
+}
+html[data-theme="dark"] .ga-note,
+html[data-theme="dark"] .ga-eval-meta,
+html[data-theme="dark"] .ga-disclaimer,
+html[data-theme="dark"] .ga-milk-note {
+  color: var(--text-tertiary);
+}
+html[data-theme="dark"] .today-baby-summary img {
+  background: #2a312a;
+  border-color: rgba(168, 192, 152, .6);
+}
+html[data-theme="dark"] .today-workbench .today-profile-strip span,
+html[data-theme="dark"] .today-baby-summary span {
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .toast {
+  background: var(--ink);
+  color: #1a1f1b;
+}
+html[data-theme="dark"] .toast button {
+  background: #1a1f1b;
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .metric-band,
+html[data-theme="dark"] .metric-band > div {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .metric-band span {
+  color: var(--muted);
+}
+html[data-theme="dark"] .metric-band strong {
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .quick-grid button {
+  background: var(--surface-subtle);
+  color: var(--ink);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .quick-grid button:hover {
+  background: var(--surface-muted);
+}
+html[data-theme="dark"] .quick-grid button:active {
+  background: var(--sage-soft);
+}
+html[data-theme="dark"] .subpage-head > button {
+  background: var(--surface-card);
+  color: var(--green-deep);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .subpage-head > button:hover {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .vaccine-reminder-card {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .vaccine-reminder-card h2 {
+  color: var(--ink);
+}
+html[data-theme="dark"] .vaccine-reminder-card .kicker {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-card-head > span,
+html[data-theme="dark"] .vaccine-card-tools > span {
+  background: var(--surface-subtle);
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-card-head > span.soon,
+html[data-theme="dark"] .vaccine-card-tools > span.soon {
+  background: var(--cream);
+  color: #c98a4a;
+}
+html[data-theme="dark"] .vaccine-card-head > span.overdue,
+html[data-theme="dark"] .vaccine-card-tools > span.overdue {
+  background: #5a3330;
+  color: var(--danger);
+}
+html[data-theme="dark"] .vaccine-reminder-card p,
+html[data-theme="dark"] .vaccine-next > p {
+  color: var(--muted);
+}
+html[data-theme="dark"] .settings-card h2,
+html[data-theme="dark"] .settings-card h1 {
+  color: var(--ink);
+}
+html[data-theme="dark"] .close-btn {
+  color: var(--muted);
+}
+html[data-theme="dark"] .close-btn:hover {
+  color: var(--ink);
+  background: var(--surface-subtle);
+  border-radius: 50%;
+}
+html[data-theme="dark"] .today-plan {
+  background: #2d2520;
+  border-color: #4d3f30;
+}
+html[data-theme="dark"] .today-plan > .kicker {
+  color: var(--muted);
+}
+html[data-theme="dark"] .today-plan-list article {
+  border-bottom-color: #4d3f30;
+}
+html[data-theme="dark"] .today-plan-list b {
+  color: #e8d5b8;
+}
+html[data-theme="dark"] .today-plan-list small {
+  color: var(--muted);
+}
+html[data-theme="dark"] .today-insights {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .metric-band > div {
+  color: var(--ink);
+}
+html[data-theme="dark"] .today-workbench .quick-section {
+  background: var(--surface-subtle);
+}
+
+/* Dark mode overrides for settings and profile */
+html[data-theme="dark"] .settings-menu {
+  background: var(--surface-card);
+}
+html[data-theme="dark"] .settings-entry {
+  background: var(--surface-card);
+  border-bottom-color: var(--line);
+}
+html[data-theme="dark"] .settings-entry > i {
+  color: var(--muted);
+}
+html[data-theme="dark"] .settings-entry:active {
+  background: var(--sage-soft);
+}
+html[data-theme="dark"] .avatar-upload-area {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .avatar-preview {
+  background: var(--surface-muted);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .push-channel-badge {
+  background: var(--surface-muted);
+  color: var(--muted);
+}
+html[data-theme="dark"] .push-type-badge {
+  background: var(--surface-muted);
+  color: var(--muted);
+}
+html[data-theme="dark"] .push-type-badge.on {
+  background: #263d2e;
+  color: #9fd0ae;
+}
+html[data-theme="dark"] .push-type-badge.sent {
+  background: #26384a;
+  color: #9cc2e8;
+}
+html[data-theme="dark"] .form-switch-row {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .segmented {
+  background: var(--surface-muted);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .segment.active {
+  background: var(--surface-card);
+  box-shadow: 0 0 0 1px var(--line);
+}
+html[data-theme="dark"] .segment.active span {
+  color: var(--green-deep);
+}
+
+/* Dark mode overrides for subpage header */
+html[data-theme="dark"] .subpage-head > button {
+  background: var(--surface-card);
+  border-color: var(--line);
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .subpage-head h1 {
+  color: var(--ink);
+}
+
+/* Dark mode overrides for vaccine page */
+html[data-theme="dark"] .vaccine-history h2,
+html[data-theme="dark"] .vaccine-record-section h2 {
+  color: var(--ink);
+}
+html[data-theme="dark"] .vaccine-row-title strong {
+  color: var(--ink);
+}
+html[data-theme="dark"] .vaccine-row-meta,
+html[data-theme="dark"] .vaccine-date,
+html[data-theme="dark"] .vaccine-source-note {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-upcoming-list .vaccine-card-head > span.overdue,
+html[data-theme="dark"] .vaccine-upcoming-list .vaccine-card-tools > span.overdue {
+  background: #5a3330;
+  color: var(--danger);
+}
+html[data-theme="dark"] .vaccine-overview > div b,
+html[data-theme="dark"] .vaccine-overview > div strong {
+  color: var(--ink);
+}
+html[data-theme="dark"] .vaccine-overview > div small {
+  color: var(--muted);
+}
+
+/* Dark mode overrides for care items */
+html[data-theme="dark"] .care-item-list article {
+  background: var(--surface-card);
+  border-bottom-color: var(--line);
+}
+html[data-theme="dark"] .care-item-list article.inactive {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .care-item-list img {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .care-drag-handle {
+  background: transparent;
+  color: var(--muted);
+}
+html[data-theme="dark"] .care-item-info b {
+  color: var(--ink);
+}
+html[data-theme="dark"] .care-item-info small {
+  color: var(--muted);
+}
+html[data-theme="dark"] .care-item-edit-hint {
+  color: var(--muted);
+}
+html[data-theme="dark"] .care-item-info:hover .care-item-edit-hint {
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .care-item-group > h3 {
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .adherence-item {
+  background: var(--surface-card);
+}
+html[data-theme="dark"] .adherence-bar {
+  background: var(--surface-muted);
+}
+html[data-theme="dark"] .adherence-header b {
+  color: var(--ink);
+}
+
+/* Dark mode overrides for bar track */
+html[data-theme="dark"] .bar-track {
+  background: var(--surface-muted);
+}
+
+/* Dark mode overrides for tag/kinder elements */
+html[data-theme="dark"] .vaccine-kind.program {
+  background: var(--tag-program-bg);
+  color: var(--tag-program-text);
+}
+html[data-theme="dark"] .vaccine-kind.self_paid {
+  background: var(--tag-self-paid-bg);
+  color: var(--tag-self-paid-text);
+}
+
+/* Dark mode overrides for input fields */
+html[data-theme="dark"] input[type="text"],
+html[data-theme="dark"] input[type="number"],
+html[data-theme="dark"] input[type="time"],
+html[data-theme="dark"] input:not([type]),
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  background: var(--surface-card);
+  border-color: var(--line);
+  color: var(--ink);
+}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: var(--muted);
+}
+html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: .6;
+}
+
+/* Dark mode overrides for buttons */
+html[data-theme="dark"] .btn.primary {
+  background: var(--orange);
+  color: #fff;
+  border-color: var(--orange);
+}
+html[data-theme="dark"] .today-plan-list .btn.primary {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: #fff;
+}
+html[data-theme="dark"] .btn.secondary {
+  background: var(--surface-card);
+  border-color: var(--line);
+  color: var(--ink);
+}
+html[data-theme="dark"] .btn.ghost {
+  color: var(--ink);
+}
+html[data-theme="dark"] .btn.primary span,
+html[data-theme="dark"] .btn.primary i {
+  color: #fff;
+}
+
+/* Dark mode overrides for kicker and archive profile */
+html[data-theme="dark"] .kicker {
+  color: var(--muted);
+}
+html[data-theme="dark"] .archive-profile-summary {
+  color: var(--muted);
+}
+html[data-theme="dark"] .archive-profile h2 {
+  color: var(--ink);
+}
+html[data-theme="dark"] .archive-profile h2 .nickname {
+  color: var(--muted);
+}
+html[data-theme="dark"] .archive-profile-meta p {
+  color: var(--muted);
+}
+html[data-theme="dark"] .archive-profile-edit-icon {
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .archive-profile-edit-icon:hover {
+  background: var(--surface-subtle);
+}
+
+/* Dark mode overrides for growth assessment card */
+html[data-theme="dark"] .growth-assessment-card .section-title h2 {
+  color: var(--ink);
+}
+html[data-theme="dark"] .ga-indicator-head span {
+  color: var(--muted);
+}
+html[data-theme="dark"] .ga-indicator-head b {
+  color: var(--ink);
+}
+html[data-theme="dark"] .ga-scale,
+html[data-theme="dark"] .ga-scale-milk {
+  color: var(--muted);
+}
+html[data-theme="dark"] .ga-milk-note,
+html[data-theme="dark"] .ga-note,
+html[data-theme="dark"] .ga-disclaimer,
+html[data-theme="dark"] .ga-eval-meta {
+  color: var(--muted);
+}
+html[data-theme="dark"] .ga-eval-head h3 {
+  color: var(--ink);
+}
+html[data-theme="dark"] .ga-eval-text {
+  color: var(--ink);
+}
+
+/* Dark mode overrides for growth list and time elements */
+html[data-theme="dark"] .growth-list time {
+  color: var(--ink);
+}
+html[data-theme="dark"] .growth-list time small,
+html[data-theme="dark"] .growth-list > article > div > span,
+html[data-theme="dark"] .growth-list > article > div > small {
+  color: var(--muted);
+}
+html[data-theme="dark"] .growth-list > article > div > b {
+  color: var(--ink);
+}
+html[data-theme="dark"] .growth-delta.up {
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .growth-delta.down {
+  color: var(--danger);
+}
+html[data-theme="dark"] .growth-delta.flat {
+  color: var(--muted);
+}
+
+/* Dark mode overrides for vaccine archive count */
+html[data-theme="dark"] .vaccine-archive-count {
+  color: var(--muted);
+}
+
+/* Dark mode overrides for time elements in growth history */
+html[data-theme="dark"] .growth-list time small {
+  color: var(--muted);
+}
+html[data-theme="dark"] time {
+  color: var(--ink);
+}
+html[data-theme="dark"] time small {
+  color: var(--muted);
+}
+
+/* Dark mode overrides for generic text elements */
+html[data-theme="dark"] b,
+html[data-theme="dark"] strong {
+  color: var(--ink);
+}
+
+/* Dark mode overrides for generic containers */
+html[data-theme="dark"] .page {
+  background: var(--surface-page);
+}
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .settings-card,
+html[data-theme="dark"] .vaccine-card,
+html[data-theme="dark"] .vaccine-reminder-card,
+html[data-theme="dark"] .vaccine-record-section,
+html[data-theme="dark"] .vaccine-archive-summary,
+html[data-theme="dark"] .vaccine-next,
+html[data-theme="dark"] .vaccine-overview,
+html[data-theme="dark"] .vaccine-calendar-card,
+html[data-theme="dark"] .vaccine-month-agenda,
+html[data-theme="dark"] .vaccine-schedule-group,
+html[data-theme="dark"] .vaccine-editor,
+html[data-theme="dark"] .vaccine-catalog-card {
+  background: var(--surface-card);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .vaccine-reminder-card {
+  border-color: var(--line);
+  background: var(--surface-card);
+}
+html[data-theme="dark"] .vaccine-reminder-card h2,
+html[data-theme="dark"] .vaccine-next h2,
+html[data-theme="dark"] .vaccine-schedule-head h2 {
+  color: var(--ink);
+}
+html[data-theme="dark"] .vaccine-reminder-card p {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-card-head .kicker {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-icon-action {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-icon-action:hover {
+  background: var(--surface-subtle);
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .vaccine-calendar-grid > button:hover {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .vaccine-calendar-grid > button.selected {
+  background: var(--sage-soft);
+}
+html[data-theme="dark"] .vaccine-agenda-list time {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .vaccine-agenda-list article.selected {
+  background: var(--sage-soft);
+}
+html[data-theme="dark"] .vaccine-editor select,
+html[data-theme="dark"] .vaccine-catalog-editor select {
+  background: var(--surface-card);
+  border-color: var(--line);
+  color: var(--ink);
+}
+html[data-theme="dark"] .danger-light {
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+  background: var(--surface-subtle) !important;
+}
+html[data-theme="dark"] .vaccine-calendar-legend i.overdue {
+  background: #c66e3c;
+}
+html[data-theme="dark"] .vaccine-calendar-grid > button.overdue > i {
+  background: #c66e3c;
+}
+html[data-theme="dark"] .vaccine-row-main p,
+html[data-theme="dark"] .vaccine-list article > div p {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-date {
+  background: var(--sage-soft);
+}
+html[data-theme="dark"] .vaccine-calendar-nav button {
+  color: var(--green-deep);
+}
+html[data-theme="dark"] .vaccine-calendar-nav button:hover {
+  background: var(--sage-soft);
+}
+html[data-theme="dark"] .vaccine-reminder-card.collapsed:hover {
+  border-color: var(--line);
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .vaccine-collapsed-action {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-sheet-item-copy small {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-archive-summary > p small {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-archive-summary > p b {
+  color: var(--ink);
+}
+html[data-theme="dark"] .schedule-warning {
+  background: var(--surface-subtle);
+  color: var(--orange);
+}
+html[data-theme="dark"] .settings-menu-stack .settings-entry.danger:hover {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .btn.danger-button.secondary:hover {
+  background: var(--surface-subtle);
+}
+html[data-theme="dark"] .vaccine-calendar-grid > button {
+  color: var(--ink);
+}
+html[data-theme="dark"] .vaccine-calendar-week span {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-schedule-head p:last-child {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-agenda-copy p {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-agenda-copy p.overdue {
+  color: var(--danger);
+}
+html[data-theme="dark"] .vaccine-calendar-legend span {
+  color: var(--muted);
+}
+html[data-theme="dark"] .catalog-copy small {
+  color: var(--muted);
+}
+html[data-theme="dark"] .vaccine-catalog-card > p {
+  color: var(--muted);
+}
+html[data-theme="dark"] .catalog-head-actions > span {
+  color: var(--muted);
+}
+
+/* Dark mode overrides for text elements */
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4 {
+  color: var(--ink);
+}
+html[data-theme="dark"] p,
+html[data-theme="dark"] span,
+html[data-theme="dark"] div,
+html[data-theme="dark"] li {
+  color: inherit;
+}
+
+/* Dark mode overrides for chart day labels */
+html[data-theme="dark"] .bar-day > span {
+  color: var(--muted);
+}
+html[data-theme="dark"] .bar-value {
+  color: var(--muted);
+}
+
+/* Dark mode overrides for account-card i (管理权限) */
+html[data-theme="dark"] .account-card i {
+  color: var(--green-deep);
+  background: var(--surface-subtle);
+}
+
+/* Dark mode overrides for choice-group buttons (性别选择) */
+html[data-theme="dark"] .choice-group button {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+  color: var(--ink);
+}
+html[data-theme="dark"] .choice-group button.selected {
+  border-color: var(--orange);
+  background: rgba(224, 153, 88, 0.15);
+  color: var(--orange);
+}
+
+/* Dark mode overrides for care-choice-grid buttons */
+html[data-theme="dark"] .care-choice-grid button {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+  color: var(--ink);
+}
+html[data-theme="dark"] .care-choice-grid button.selected {
+  border-color: var(--orange);
+  background: rgba(224, 153, 88, 0.15);
+  color: var(--orange);
+}
+html[data-theme="dark"] .care-choice-groups .care-choice-grid button {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .care-choice-groups .care-choice-grid button.selected {
+  border-color: var(--orange);
+  background: rgba(224, 153, 88, 0.15);
+  color: var(--orange);
+  box-shadow: none;
+}
+
+/* Dark mode overrides for identity-picker */
+html[data-theme="dark"] .identity-picker button {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+  color: var(--ink);
+}
+html[data-theme="dark"] .identity-picker button b {
+  color: var(--ink);
+}
+html[data-theme="dark"] .identity-picker button small {
+  color: var(--muted);
+}
+html[data-theme="dark"] .identity-picker button.selected {
+  border-color: var(--orange);
+  background: rgba(224, 153, 88, 0.15);
+  color: var(--orange);
+}
+
+/* Dark mode overrides for segmented controls */
+html[data-theme="dark"] .segmented {
+  background: var(--surface-muted);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .segmented button {
+  color: var(--muted);
+}
+html[data-theme="dark"] .segment.active {
+  background: var(--surface-card);
+  color: var(--green-deep);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+/* Dark mode overrides for role-switch */
+html[data-theme="dark"] .role-switch {
+  background: var(--surface-subtle);
+  border-color: var(--line-strong);
+}
+html[data-theme="dark"] .role-switch button {
+  color: var(--muted);
+}
+html[data-theme="dark"] .role-switch button.active {
+  background: var(--surface-card);
+  color: var(--green-deep);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+/* Dark mode overrides for settings-entry */
+html[data-theme="dark"] .settings-entry em {
+  color: var(--muted);
+}
+html[data-theme="dark"] .settings-entry > i {
+  color: var(--muted);
+}
+
+/* Dark mode overrides for subpage-head */
+html[data-theme="dark"] .subpage-head > button {
+  background: var(--surface-card);
+  color: var(--green-deep);
+  border-color: var(--line);
+}
+

@@ -1,0 +1,115 @@
+/* Milestone summary card (archive page) */
+.milestone-summary .milestone-summary-rows { display: grid; gap: 6px; margin-top: 4px; }
+.milestone-summary-row { display: flex; align-items: center; gap: 10px; font-size: 13px; line-height: 1.5; }
+.milestone-summary-row .ms-summary-label { font-size: 14px; }
+.milestone-summary-row .ms-tag { margin-left: 0; }
+.milestone-summary-row .ms-summary-who { margin-left: auto; white-space: nowrap; }
+.milestone-summary-done { color: var(--green-deep); font-weight: 700; }
+.ms-summary-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; font-size: 13px; line-height: 1; flex-shrink: 0; }
+.ms-summary-badge.ms-pending { background: #fff4e6; }
+.ms-summary-badge.ms-upcoming { background: #eef1eb; }
+.ms-summary-badge.ms-late { background: #f4dfdc; }
+
+.milestone-badge { position: relative; flex-shrink: 0; border-radius: 50%; overflow: hidden; background: #fff; }
+.milestone-badge .badge-icon { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
+.milestone-badge .badge-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; pointer-events: none; }
+.milestone-badge.ms-badge-achieved { box-shadow: 0 2px 6px rgba(82, 109, 89, 0.2); }
+.milestone-badge.ms-badge-pending .badge-icon,
+.milestone-badge.ms-badge-upcoming .badge-icon,
+.milestone-badge.ms-badge-late .badge-icon { filter: grayscale(0.4) opacity(0.85); }
+.ms-summary-label { font-weight: 700; color: var(--ink); }
+.ms-summary-who { color: var(--muted); font-size: 11px; font-weight: 600; margin-left: auto; }
+.ms-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 4px; font-size: 11px; font-weight: 700; line-height: 1; flex-shrink: 0; }
+.ms-tag-achieved { background: var(--sage-soft); color: var(--green-deep); }
+.ms-tag-pending { background: #fff4e6; color: #b5691f; }
+.ms-tag-upcoming { background: #eef1eb; color: var(--muted); }
+.ms-tag-late { background: #f4dfdc; color: var(--danger); }
+.ms-note { display: block; color: var(--muted); font-size: 11px; font-style: italic; margin-top: 2px; line-height: 1.4; }
+
+/* Milestone history page */
+.milestone-progress-bar { margin: 8px 0 14px; display: grid; gap: 6px; }
+.milestone-progress-info { display: flex; align-items: baseline; gap: 4px; font-size: 13px; }
+.milestone-progress-info span { color: var(--muted); }
+.milestone-progress-info b { font-size: 20px; color: var(--green-deep); }
+.milestone-progress-info small { color: var(--muted); font-size: 12px; }
+.milestone-progress-track { height: 6px; border-radius: 999px; background: var(--surface-subtle); overflow: hidden; }
+.milestone-progress-fill { height: 100%; background: var(--sage); border-radius: 999px; transition: width .3s ease; }
+
+.milestone-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.milestone-filter button { min-height: 32px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; transition: border-color .15s, background .15s, color .15s; }
+.milestone-filter button:hover { border-color: var(--sage); color: var(--green-deep); }
+.milestone-filter button.active { border-color: var(--green); background: var(--sage-soft); color: var(--green-deep); }
+
+.milestone-groups { display: grid; gap: 4px; }
+.milestone-group { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 8px; }
+.milestone-group-title { margin: 0 0 4px; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 6px; color: var(--ink); }
+.milestone-group-title span { font-size: 16px; }
+.milestone-list { list-style: none; margin: 0; padding: 0; }
+
+.milestone-item { min-height: 80px; padding: 10px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 64px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; }
+.milestone-item:last-child { border-bottom: 0; }
+.ms-label-wrap { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ms-label { font-size: 16px; font-weight: 700; }
+.ms-who-range { color: var(--muted); font-size: 12px; font-weight: 500; }
+.ms-date { display: inline-flex; align-items: center; gap: 4px; color: var(--ink); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.ms-age { color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.ms-note { display: block; color: var(--muted); font-size: 12px; font-style: italic; line-height: 1.4; }
+.ms-status { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
+.ms-status.ms-achieved { background: var(--sage-soft); color: var(--green-deep); }
+.ms-status.ms-pending { background: #fff4e6; color: #b5691f; }
+.ms-status.ms-late { background: #f4dfdc; color: var(--danger); }
+.ms-status.ms-upcoming { background: #eef1eb; color: var(--muted); }
+.ms-actions { display: inline-flex; align-items: center; gap: 4px; }
+.ms-btn { min-height: 28px; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--radius-control); background: #fff; color: var(--green-deep); font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; transition: background .15s, border-color .15s; white-space: nowrap; }
+.ms-btn:hover { background: var(--sage-soft); border-color: var(--sage); }
+.ms-btn.ms-btn-danger { color: var(--danger); }
+.ms-btn.ms-btn-danger:hover { background: #fdf0ee; border-color: var(--danger); }
+.ms-btn.ms-btn-add { border-color: var(--green); background: var(--sage-soft); }
+.ms-btn.ms-btn-add:hover { background: var(--sage); color: #fff; }
+.milestone-def-desc { display: block; margin-top: var(--space-1); color: var(--muted); font-size: var(--text-meta); line-height: 1.5; }
+
+/* Mobile layout for milestone */
+@media (max-width: 520px) {
+  .milestone-progress-info b { font-size: 18px; }
+  .milestone-item {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    gap: 14px;
+    padding: 10px 0;
+    min-height: 72px;
+  }
+  .ms-label { font-size: 14px; }
+  .ms-who-range { font-size: 11px; }
+  .ms-date, .ms-status { font-size: 11px; }
+  .ms-age { font-size: 11px; display: inline; }
+  .ms-note { font-size: 11px; }
+  .ms-actions { grid-column: 1 / -1; justify-content: flex-end; padding-top: 6px; border-top: 1px dashed var(--line); margin-top: 2px; }
+  .ms-btn { min-height: 28px; padding: 4px 10px; font-size: 11px; }
+}
+
+/* Dark mode overrides for milestone */
+html[data-theme="dark"] .milestone-filter button { background: var(--surface-card); color: var(--muted); }
+html[data-theme="dark"] .milestone-filter button:hover { background: var(--sage-soft); color: var(--green-deep); }
+html[data-theme="dark"] .milestone-filter button.active { background: var(--sage-soft); color: var(--green-deep); }
+html[data-theme="dark"] .ms-btn { background: var(--surface-card); }
+html[data-theme="dark"] .ms-status.ms-pending { background: #3d3526; color: #e8b878; }
+html[data-theme="dark"] .ms-status.ms-late { background: #3d2a28; color: #e89a90; }
+html[data-theme="dark"] .ms-status.ms-upcoming { background: var(--surface-subtle); color: var(--muted); }
+html[data-theme="dark"] .ms-summary-badge.ms-pending { background: #3d3526; }
+html[data-theme="dark"] .ms-summary-badge.ms-upcoming { background: var(--surface-subtle); }
+html[data-theme="dark"] .ms-summary-badge.ms-late { background: #3d2a28; }
+html[data-theme="dark"] .ms-tag-achieved { background: var(--sage-soft); color: var(--green-deep); }
+html[data-theme="dark"] .ms-tag-pending { background: #3d3526; color: #e8b878; }
+html[data-theme="dark"] .ms-tag-upcoming { background: var(--surface-subtle); color: var(--muted); }
+html[data-theme="dark"] .ms-tag-late { background: #3d2a28; color: #e89a90; }
+html[data-theme="dark"] .milestone-item { border-bottom-color: var(--line); }
+html[data-theme="dark"] .milestone-group { border-top-color: var(--line); }
+html[data-theme="dark"] .milestone-progress-track { background: var(--surface-subtle); }
+html[data-theme="dark"] .ms-summary-label { color: var(--ink); }
+html[data-theme="dark"] .milestone-badge { background: var(--surface-card); }
+html[data-theme="dark"] .milestone-badge .badge-frame { mix-blend-mode: normal; }
+html[data-theme="dark"] .milestone-badge.ms-badge-achieved { box-shadow: 0 2px 6px rgba(82, 109, 89, 0.3); }
+@media (max-width: 520px) {
+  html[data-theme="dark"] .ms-actions { border-top-color: var(--line); }
+  html[data-theme="dark"] .ms-summary-who { margin-left: auto; }
+}
+

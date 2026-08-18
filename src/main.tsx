@@ -2,7 +2,14 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { ConfirmProvider } from './ui';
-import './styles.css';
+import './styles/base.css';
+import './styles/layout.css';
+import './styles/light.css';
+import './styles/hero-records.css';
+import './styles/dark.css';
+import './styles/charts.css';
+import './styles/chat.css';
+import './styles/milestone.css';
 import './ui.css';
 
 createRoot(document.getElementById('root')!).render(<StrictMode><ConfirmProvider><App /></ConfirmProvider></StrictMode>);

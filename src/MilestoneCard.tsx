@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './api';
 import { calculateAge, isoDay } from './date';
-import { confirmAction } from './ui';
+import { confirmAction, Modal } from './ui';
 import { DateField } from './DateField';
 import {
   MILESTONE_CATEGORY_EMOJI,
@@ -22,13 +22,13 @@ function MilestoneBadge({ milestoneKey, size = 32, status = 'pending' }: { miles
   return (
     <div className={`milestone-badge ms-badge-${status}`} style={{ width: size, height: size }}>
       <img
-        src={`/milestones/${milestoneKey}.png`}
+        src={`/milestones/${milestoneKey}.webp`}
         alt=""
         className="badge-icon"
         loading="lazy"
       />
       <img
-        src="/milestones/frames/frame-circle.png"
+        src="/milestones/frames/frame-circle.webp"
         alt=""
         className="badge-frame"
       />
@@ -178,16 +178,7 @@ function MilestoneEditor({ milestoneKey, record, profile, onClose, onSaved }: {
   const ageAtAchieved = achievedOn ? calculateAge(profile.birthDate, new Date(`${achievedOn}T12:00:00`)) : '';
 
   return (
-    <div className="modal-layer" onMouseDown={e => e.target === e.currentTarget && !busy && onClose()}>
-      <section className="editor" role="dialog" aria-modal="true" aria-labelledby="milestone-editor-title">
-        <header className="editor-head">
-          <div>
-            <p className="kicker">发育里程碑</p>
-            <h2 id="milestone-editor-title">{def.emoji} {def.label}</h2>
-            <small className="milestone-def-desc">{def.description} · WHO 建议 {formatWholeMonths(def.whoMonthsRange)}</small>
-          </div>
-          <button className="close-btn" onClick={onClose} aria-label="关闭">×</button>
-        </header>
+    <Modal title={`${def.emoji} ${def.label}`} kicker="发育里程碑" headerExtra={<small className="milestone-def-desc">{def.description} · WHO 建议 {formatWholeMonths(def.whoMonthsRange)}</small>} onClose={onClose} busy={busy}>
         <form className="editor-form" onSubmit={submit}>
           <DateField label="达成日期" value={achievedOn} onChange={setAchievedOn} min={profile.birthDate} max={isoDay(new Date())} required />
           {ageAtAchieved && <small className="field-hint">达成时宝宝 {ageAtAchieved}</small>}
@@ -200,8 +191,7 @@ function MilestoneEditor({ milestoneKey, record, profile, onClose, onSaved }: {
             <button type="submit" className="btn" disabled={busy}>{busy ? '保存中…' : (record ? '保存修改' : '标记达成')}</button>
           </footer>
         </form>
-      </section>
-    </div>
+    </Modal>
   );
 }
 

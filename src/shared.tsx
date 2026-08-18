@@ -1,6 +1,7 @@
 // 首屏与各懒加载视图共享的常量、辅助函数与基础组件（由 App.tsx 抽出，逻辑不变）
-import type { AuditIdentity, BabySex, CareItem, CareItemCategory, CareItemIcon, CareRecord, DraftRecord, FamilyId, RecordType, SessionUser, UserRole } from './types';
-import { isoDay } from './date';
+import type { AuditEntry, AuditIdentity, BabySex, Capabilities, CareItem, CareItemCategory, CareItemIcon, CareRecord, DraftRecord, FamilyId, GrowthRecord, Profile, RecordType, SessionUser, UserRole } from './types';
+import { addDays, ageParts, isoDay, startOfWeek } from './date';
+import { createUuid } from './id';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -58,3 +59,79 @@ export function summary(record: CareRecord | DraftRecord, careItems: CareItem[] 
 export function ChoiceField<T extends string>({ label, values, selected, onSelect, getLabel = value => value }: { label: string; values: T[]; selected?: T | null; onSelect(value: T): void; getLabel?(value: T): string }) {
   return <fieldset><legend>{label}</legend><div className="choice-group">{values.map(value => <button type="button" key={value} aria-pressed={selected === value} className={selected === value ? 'selected' : ''} onClick={() => onSelect(value)}>{selected === value && '✓ '}{getLabel(value)}</button>)}</div></fieldset>;
 }
+
+// ----- 以下由 App.tsx 抽出：记录编辑、首页与年龄文案相关辅助 -----
+
+export const recordEditorTypeOrder: RecordType[] = ['feeding', 'bowel', 'supplement', 'note'];
+
+export const auditActions: Record<AuditEntry['action'], string> = { create: '创建记录', update: '修改记录', delete: '删除记录', restore: '恢复记录', import: '从备份导入' };
+
+export const emptyCapabilities: Capabilities = { aiEnabled: false, aiModel: null };
+
+export const blankDraft = (type: RecordType = 'feeding'): DraftRecord => ({ id: createUuid(), type, occurredAt: new Date().toISOString(), breastMilkMl: null, formulaMl: null });
+
+export function hasEnteredContent(value: DraftRecord) {
+  return Boolean(value.breastMilkMl || value.formulaMl || value.supplement || value.bowelSize || value.subject?.trim() || value.note?.trim());
+}
+
+export function optimisticRecord(value: DraftRecord, user: SessionUser, previous?: CareRecord): CareRecord {
+  const now = new Date().toISOString();
+  return {
+    id: value.id || createUuid(), type: value.type, occurredAt: value.occurredAt,
+    breastMilkMl: value.type === 'feeding' ? value.breastMilkMl ?? null : null,
+    formulaMl: value.type === 'feeding' ? value.formulaMl ?? null : null,
+    supplement: value.type === 'supplement' ? value.supplement ?? null : null,
+    bowelSize: value.type === 'bowel' ? value.bowelSize ?? null : null,
+    subject: value.type === 'note' ? value.subject?.trim() || null : null,
+    note: value.note ?? null,
+    createdAt: previous?.createdAt || now, updatedAt: now,
+    createdBy: previous?.createdBy || user.id, updatedBy: user.id,
+    deletedAt: null, deletedBy: null
+  };
+}
+
+const caregiverTitles: Record<FamilyId, string> = { father: '爸爸', mother: '妈妈', grandfather: '爷爷', grandmother: '奶奶' };
+
+type HeroPeriod = 'morning' | 'midday' | 'afternoon' | 'evening' | 'night';
+
+function getHeroPeriod(hour: number): HeroPeriod {
+  if (hour >= 5 && hour < 11) return 'morning';
+  if (hour >= 11 && hour < 14) return 'midday';
+  if (hour >= 14 && hour < 18) return 'afternoon';
+  if (hour >= 18 && hour < 23) return 'evening';
+  return 'night';
+}
+
+function getGreeting(profile: Profile, userId: FamilyId, hour = new Date().getHours()): { greeting: string; displayName: string } {
+  let greeting: string;
+  const period = getHeroPeriod(hour);
+  if (period === 'morning') greeting = '早上好';
+  else if (period === 'midday') greeting = '中午好';
+  else if (period === 'afternoon') greeting = '下午好';
+  else if (period === 'evening') greeting = '晚上好';
+  else greeting = '夜深了';
+  const displayName = profile.nickname?.trim() || profile.name;
+  const title = caregiverTitles[userId] || '';
+  return { greeting, displayName: title ? `${displayName}${title}` : displayName };
+}
+
+function getAgeProfileLine(birthDate: string, realName: string, now = new Date()): string {
+  const { years, months, days } = ageParts(birthDate, now);
+  const ageText = years
+    ? `${years}岁${months ? `${months}个月` : ''}${days ? `${days}天` : ''}`
+    : `${years * 12 + months}个月${days ? `${days}天` : ''}`;
+  return `${realName} · ${ageText}`;
+}
+
+const weekContains = (record: GrowthRecord, date = new Date()) => {
+  const from = isoDay(startOfWeek(date)); const to = isoDay(addDays(startOfWeek(date), 7));
+  return record.measuredOn >= from && record.measuredOn < to;
+};
+
+function FeedingSummary({ record, careItems = [] }: { record: CareRecord | DraftRecord; careItems?: CareItem[] }) {
+  if (record.type !== 'feeding') return <>{summary(record, careItems)}</>;
+  const parts = [record.breastMilkMl ? `母乳 ${record.breastMilkMl} mL` : '', record.formulaMl ? `奶粉 ${record.formulaMl} mL` : ''].filter(Boolean);
+  return <span className="feeding-summary">{parts.length ? parts.map(part => <span key={part}>{part}</span>) : <span>待补充奶量</span>}</span>;
+}
+
+export { getHeroPeriod, getGreeting, getAgeProfileLine, weekContains, FeedingSummary };

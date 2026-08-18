@@ -1,6 +1,6 @@
 // 头像裁剪弹窗（由 App.tsx 抽出，仅被懒加载视图引用，可自动进入共享异步 chunk）
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { useDialogFocus } from './ui';
+import { Modal } from './ui';
 
 export function AvatarCropperModal({ imageSrc, onClose, onConfirm }: { imageSrc: string; onClose(): void; onConfirm(file: File): void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -9,7 +9,6 @@ export function AvatarCropperModal({ imageSrc, onClose, onConfirm }: { imageSrc:
   const stateRef = useRef({ imgW: 0, imgH: 0, scale: 1, offsetX: 0, offsetY: 0, minScale: 1 });
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const gestureRef = useRef({ centerX: 0, centerY: 0, distance: 0 });
-  const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, onClose);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -143,11 +142,11 @@ export function AvatarCropperModal({ imageSrc, onClose, onConfirm }: { imageSrc:
     } finally { setBusy(false); }
   }
 
-  return <div className="modal-layer" onMouseDown={e => e.target === e.currentTarget && !busy && onClose()}><section ref={dialogRef} className="editor avatar-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="avatar-cropper-title"><header className="editor-head"><div><p className="kicker">宝宝头像</p><h2 id="avatar-cropper-title">裁剪头像</h2></div><button className="close-btn" onClick={() => !busy && onClose()} aria-label="关闭" disabled={busy}>×</button></header><div className="cropper-body" onWheel={onWheel}><canvas ref={canvasRef} width={size.w} height={size.h}
+  return <Modal className="avatar-cropper-modal" title="裁剪头像" kicker="宝宝头像" onClose={onClose} busy={busy}><div className="cropper-body" onWheel={onWheel}><canvas ref={canvasRef} width={size.w} height={size.h}
     onPointerDown={onPointerDown}
     onPointerMove={onPointerMove}
     onPointerUp={onPointerEnd}
     onPointerCancel={onPointerEnd} /></div><p className="cropper-hint">单指拖动位置，双指缩放大小</p>
     {!ready && <p className="cropper-loading">正在载入图片…</p>}
-    <footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose} disabled={busy}>取消</button><button className="btn primary" onClick={() => void confirm()} disabled={!ready || busy}>{busy ? '处理中…' : '确认使用'}</button></footer></section></div>;
+    <footer className="editor-actions"><button type="button" className="btn secondary" onClick={onClose} disabled={busy}>取消</button><button className="btn primary" onClick={() => void confirm()} disabled={!ready || busy}>{busy ? '处理中…' : '确认使用'}</button></footer></Modal>;
 }

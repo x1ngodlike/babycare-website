@@ -1,5 +1,4 @@
 import type { VaccineCatalogItem, VaccineRecord } from './types';
-import { addMonthsClamped, } from '../shared/date';
 import { buildSharedVaccinePlan, vaccineSchedule, type VaccineCategory } from '../shared/vaccine-plan';
 
 export interface VaccinePlanItem {
@@ -77,10 +76,6 @@ export function doseOptionLabel(vaccineName: string, dose: number, catalog?: Vac
   const item = catalog?.find(value => value.name === vaccineName);
   if (item?.doseCount && dose >= item.doseCount) return `第 ${dose} 剂 · 完成全程`;
   return `第 ${dose} 剂${item?.doseCount ? ` · 共 ${item.doseCount} 剂` : ' · 后续按接种门诊安排'}`;
-}
-
-export function addMonths(day: string, months: number, days = 0) {
-  return addMonthsClamped(day, months, days);
 }
 
 export function buildVaccinePlan(birthDate: string, records: VaccineRecord[], catalog?: VaccineCatalogItem[]): VaccinePlanItem[] {

@@ -8,7 +8,6 @@ db.pragma('journal_mode = WAL');
 
 const creators = ['father', 'mother', 'grandmother'];
 const pick = list => list[Math.floor(Math.random() * list.length)];
-const pad = n => String(n).padStart(2, '0');
 // 本地（Asia/Shanghai）日期 -> UTC ISO
 const localToUtc = (y, m, d, hh, mm) => new Date(Date.UTC(y, m - 1, d, hh - 8, mm)).toISOString();
 
@@ -16,7 +15,10 @@ const now = new Date();
 const endY = now.getFullYear(); const endM = now.getMonth() + 1; const endD = now.getDate();
 const rows = [];
 let id = 0;
-const nextId = () => `seed-${Date.now().toString(36)}-${(id += 1).toString(36).padStart(4, '0')}`;
+const nextId = () => {
+  id += 1;
+  return `seed-${Date.now().toString(36)}-${id.toString(36).padStart(4, '0')}`;
+};
 
 // 生成近 30 天（含今天），喂奶锚点为本地时间，白天 ~3h 间隔 + 夜间长间隔
 const DAY_COUNT = 30;

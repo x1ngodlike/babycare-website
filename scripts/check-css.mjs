@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
-const files = ['src/styles.css', 'src/ui.css'];
+const files = ['src/ui.css', ...readdirSync(new URL('../src/styles/', import.meta.url)).map(name => `src/styles/${name}`)];
 let failed = false;
 
 for (const file of files) {

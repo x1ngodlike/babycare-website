@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type GrowthAssessment, type GrowthIndicatorAssessment } from '../api';
 import { calculateAge, isoDay } from '../date';
 import { cacheProfile } from '../offline';
-import { ActionMenu, confirmAction, EmptyState, useDialogFocus } from '../ui';
+import { ActionMenu, confirmAction, EmptyState, Modal, useDirtyClose } from '../ui';
 import { DateField, TimeField } from '../DateField';
 import { VaccineArchiveSummary } from '../VaccineViews';
 import { MilestoneArchiveSummary, MilestoneHistory } from '../MilestoneCard';
@@ -19,8 +19,7 @@ function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClos
   const [avatarBusy, setAvatarBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dirty = form.name !== profile.name || form.birthDate !== profile.birthDate || form.sex !== (profile.sex || 'unspecified') || (form.nickname ?? '') !== (profile.nickname ?? '') || (form.birthTime ?? '') !== (profile.birthTime ?? '');
-  function requestClose() { void (async () => { if (!dirty || await confirmAction({ title: '放弃未保存的内容？', description: '宝宝资料的修改不会保存。', confirmLabel: '放弃修改', danger: true })) onClose(); })(); }
-  const dialogRef = useRef<HTMLElement | null>(null); useDialogFocus(dialogRef, requestClose);
+  const requestClose = useDirtyClose(dirty, onClose, busy, { description: '宝宝资料的修改不会保存。' });
   async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const next = await api.updateProfile({ name: form.name, birthDate: form.birthDate, birthTime: form.birthTime || undefined, sex: form.sex, nickname: form.nickname, caregiverTitle: form.caregiverTitle }); cacheProfile(next); onSaved(next); onClose(); } catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); } }
   function pickFile() { fileInputRef.current?.click(); }
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -46,7 +45,7 @@ function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClos
     catch (err) { setError(err instanceof Error ? err.message : '头像移除失败'); }
     finally { setAvatarBusy(false); }
   }
-  return <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && !busy && requestClose()}><section ref={dialogRef} className="editor" role="dialog" aria-modal="true" aria-labelledby="profile-editor-title"><header className="editor-head"><div><p className="kicker">宝宝档案</p><h2 id="profile-editor-title">修改基本资料</h2></div><button className="close-btn" onClick={requestClose} aria-label="关闭">×</button></header><form className="editor-form" onSubmit={submit}>
+  return <Modal title="修改基本资料" kicker="宝宝档案" onClose={() => void requestClose()}><form className="editor-form" onSubmit={submit}>
     <div className="avatar-upload-area">
       <div className="avatar-preview" aria-label="当前头像">
         {form.avatar ? <img src={form.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}
@@ -63,10 +62,10 @@ function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClos
     <DateField label="出生日期" max={isoDay(new Date())} value={form.birthDate} onChange={birthDate => setForm({ ...form, birthDate })} />
     <TimeField label="出生时间" value={form.birthTime ?? ''} onChange={birthTime => setForm({ ...form, birthTime })} required={false} />
     {error && <p className="error-text" role="alert">{error}</p>}
-    <footer className="editor-actions"><button type="button" className="btn secondary" onClick={requestClose}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '保存资料'}</button></footer>
-  </form></section>
+    <footer className="editor-actions"><button type="button" className="btn secondary" onClick={() => void requestClose()}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '保存资料'}</button></footer>
+  </form>
   {cropperSrc && <AvatarCropperModal imageSrc={cropperSrc} onClose={() => setCropperSrc(null)} onConfirm={file => void onCropperConfirm(file)} />}
-  </div>;
+  </Modal>;
 }
 
 function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange(page: number): void }) {
@@ -102,7 +101,7 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
   if (archiveMode === 'milestone') {
     return <MilestoneHistory profile={profile} manager={canManage(user)} onBack={() => setArchiveMode('main')} />;
   }
-  if (showDeleted && canManage(user)) return <div className="page-stack archive-page"><header className="subpage-head"><button onClick={closeDeletedArchive} aria-label="返回宝宝档案">←</button><div><p className="kicker">宝宝档案</p><h1>已删除的成长记录</h1></div></header><section className="growth-history growth-deleted-page">{deletedGrowthRecords.length ? <div className="growth-deleted-list">{visibleDeletedRecords.map(record => <article key={record.id}><span>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span><b>{record.heightCm} cm · {record.weightKg} kg</b><button className="btn secondary" onClick={() => void onRestoreGrowth(record)}>恢复</button><button className="btn danger-button" onClick={() => void onPurgeGrowth(record)}>彻底删除</button></article>)}</div> : <EmptyState title="没有已删除的成长记录" description="删除的记录会保留在这里。" />}<Pagination page={deletedPage} totalPages={deletedPages} onChange={setDeletedPage} /></section></div>;
+  if (showDeleted && canManage(user)) return <div className="page-stack archive-page"><header className="subpage-head"><button onClick={closeDeletedArchive} aria-label="返回宝宝档案">←</button><div><p className="kicker">宝宝档案</p><h1>已删除的成长记录</h1></div></header><section className="growth-history growth-deleted-page">{deletedGrowthRecords.length ? <div className="growth-deleted-list">{visibleDeletedRecords.map(record => <article key={record.id}><span>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span><b>{record.heightCm} cm · {record.weightKg} kg</b><button className="btn secondary" onClick={() => void onRestoreGrowth(record)}>恢复</button><button className="btn danger-button" onClick={() => void onPurgeGrowth(record)}>彻底删除</button></article>)}</div> : <EmptyState title="没有已删除的成长记录" description="删除的记录会保留在这里。" image="/illustrations/empty-records.webp" />}<Pagination page={deletedPage} totalPages={deletedPages} onChange={setDeletedPage} /></section></div>;
 
   return <div className="page-stack archive-page">
     <header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header>

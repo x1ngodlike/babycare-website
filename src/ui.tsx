@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export type ConfirmOptions = {
@@ -100,4 +100,39 @@ export function Switch({ checked, label, onChange, disabled = false }: { checked
 
 export function EmptyState({ title, description, image, action }: { title: string; description?: string; image?: string; action?: React.ReactNode }) {
   return <div className="empty-state">{image ? <img className="empty-state-image" src={image} alt="" /> : <span aria-hidden="true">○</span>}<h3>{title}</h3>{description && <p>{description}</p>}{action && <div className="empty-state-action">{action}</div>}</div>;
+}
+
+// ----- 弹窗与脏关闭确认（由各视图弹窗抽出，行为与原实现一致） -----
+
+/** 内容有未保存修改时，关闭需二次确认。返回 Promise 的关闭函数。 */
+export function useDirtyClose(dirty: boolean, onClose: () => void, busy = false, confirm?: Partial<ConfirmOptions>) {
+  return useCallback(async () => {
+    if (busy) return;
+    if (dirty && !await confirmAction({ title: confirm?.title ?? '放弃未保存的内容？', description: confirm?.description ?? '当前填写内容不会保存。', confirmLabel: confirm?.confirmLabel ?? '放弃修改', danger: true })) return;
+    onClose();
+  }, [dirty, onClose, busy, confirm?.title, confirm?.description, confirm?.confirmLabel]);
+}
+
+/** 通用弹窗骨架：遮罩 + editor 容器 + 标题栏（可选 kicker 与额外描述）+ 关闭按钮，统一焦点圈定与 Escape/遮罩关闭。内容与操作按钮由 children 提供。 */
+export function Modal({ title, kicker, headerExtra, onClose, children, className = '', busy = false }: {
+  title: string;
+  kicker?: string;
+  headerExtra?: React.ReactNode;
+  onClose(): void;
+  children: React.ReactNode;
+  className?: string;
+  busy?: boolean;
+}) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const requestClose = () => { if (!busy) onClose(); };
+  useDialogFocus(dialogRef, requestClose);
+  return (
+    <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && requestClose()}>
+      <section ref={dialogRef} className={`editor ${className}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <header className="editor-head"><div>{kicker && <p className="kicker">{kicker}</p>}<h2 id={titleId}>{title}</h2>{headerExtra}</div><button className="close-btn" disabled={busy} onClick={requestClose} aria-label="关闭">×</button></header>
+        {children}
+      </section>
+    </div>
+  );
 }

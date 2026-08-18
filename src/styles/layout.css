@@ -1,0 +1,228 @@
+.main-content {
+  padding-top: max(12px, calc(env(safe-area-inset-top) + 8px));
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+.page-head { padding: 8px 4px 12px; }
+.subpage-head { padding-top: 8px; }
+
+.baby-hero {
+  background: linear-gradient(135deg, #718d56 0%, #5f7b4d 58%, #789160 100%);
+}
+.baby-hero.hero-morning { --hero-background: url('/hero-morning.jpg'); }
+.baby-hero.hero-midday { --hero-background: url('/hero-midday.jpg'); }
+.baby-hero.hero-afternoon { --hero-background: url('/hero-afternoon.jpg'); }
+.baby-hero.hero-evening { --hero-background: url('/hero-evening.jpg'); }
+.baby-hero.hero-night { --hero-background: url('/hero-night.jpg'); }
+@keyframes hero-background-in { from { opacity: .72; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .baby-hero::after { animation: none; } }
+
+.today-layout .today-plan-list article {
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+}
+.today-layout .today-plan-list .task-icon,
+.today-layout .today-plan-list .vaccine-task > img,
+.today-layout .today-plan-list .growth-task > img {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid #ece4d7;
+  border-radius: 14px;
+  background: #fff8ed;
+  object-fit: contain;
+  filter: none;
+  box-shadow:
+    inset 0 2px 5px rgba(105, 90, 65, .12),
+    inset 0 -1px 2px rgba(255, 255, 255, .8);
+}
+
+.today-layout .today-timeline .record-mark,
+.history-timeline .record-mark {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid #e8e4d9;
+  border-radius: 12px;
+  background: #fffaf2;
+  object-fit: contain;
+  filter: none;
+  box-shadow:
+    inset 0 2px 5px rgba(105, 90, 65, .12),
+    inset 0 -1px 2px rgba(255, 255, 255, .82);
+}
+
+.history-timeline .timeline { position: relative; }
+.history-timeline .timeline-item {
+  position: relative;
+  width: calc(100% - 36px);
+  min-height: 72px;
+  margin-left: 36px;
+  padding: 8px 4px 8px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  grid-template-columns: 48px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+}
+.history-timeline .timeline-item:last-child { border-bottom: 0; }
+.history-timeline .time-col {
+  position: absolute;
+  inset: 0 auto 0 -36px;
+  width: 36px;
+}
+.history-timeline .time-col time {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 0;
+  width: 36px;
+  padding: 0;
+  transform: translateY(-50%);
+  background: var(--surface-page);
+  color: var(--green-deep);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
+  text-align: left;
+  white-space: nowrap;
+}
+.history-timeline .time-col time span { display: block; transform: translateY(-11px); }
+.history-timeline .timeline-item.has-note .time-col time span { transform: translateY(-20px); }
+.history-timeline .time-col i {
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  width: 1px;
+  height: 100%;
+  background: #dce4d6;
+}
+.history-timeline .record-copy small {
+  display: block;
+  margin: 0;
+  color: #5f7f4e;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
+}
+.history-timeline .record-copy strong {
+  display: block;
+  margin-top: 1px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 800;
+}
+.history-timeline .record-copy > em { margin-top: 2px; font-size: 12px; line-height: 1.45; }
+
+.care-choice-field { gap: 8px; }
+.care-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.care-choice-grid button {
+  position: relative;
+  min-width: 0;
+  min-height: 72px;
+  padding: 8px 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fffaf2;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.care-choice-grid button img { width: 32px; height: 32px; object-fit: contain; }
+.care-choice-grid button span { max-width: 100%; overflow: hidden; font-size: 12px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.care-choice-grid button i {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 17px;
+}
+.care-choice-grid button.selected { border-color: #759064; background: #edf3e8; color: var(--green-deep); }
+
+.app-nav {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  overflow: visible;
+}
+.app-nav .nav-add {
+  align-self: center;
+  justify-self: center;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  min-height: 58px;
+  margin-top: 0;
+  padding: 0;
+  border: 5px solid #fff8ee;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fa963d, #e87928);
+  color: #fff;
+  box-shadow: var(--shadow-float);
+  display: grid;
+  place-content: center;
+}
+.app-nav .nav-add:hover,
+.app-nav .nav-add:active { background: linear-gradient(180deg, #fa963d, #e87928); }
+.app-nav .nav-add span { font-size: 30px; font-weight: 400; line-height: 1; transform: translateY(-1px); }
+
+@media (min-width: 760px) {
+  .main-content { padding-top: max(20px, calc(env(safe-area-inset-top) + 12px)); }
+}
+@media (max-width: 340px) {
+  .care-choice-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.today-layout .today-plan-list .task-icon,
+.today-layout .today-plan-list .vaccine-task > img,
+.today-layout .today-plan-list .growth-task > img,
+.today-layout .today-timeline .record-mark,
+.history-timeline .record-mark {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid #e8e4d9;
+  background: #fff9ef;
+  object-fit: contain;
+  filter: none;
+  box-shadow:
+    inset 0 2px 5px rgba(105, 90, 65, .12),
+    inset 0 -1px 2px rgba(255, 255, 255, .82);
+}
+.today-layout .today-plan-list .task-icon,
+.today-layout .today-plan-list .vaccine-task > img,
+.today-layout .today-plan-list .growth-task > img { border-radius: 14px; }
+.today-layout .today-timeline .record-mark,
+.history-timeline .record-mark { border-radius: 12px; }
+.history-timeline .timeline-item { grid-template-columns: 48px minmax(0, 1fr) 44px; }
+
+.app-nav .nav-add {
+  align-self: center;
+  margin-top: 0;
+}
+
+@media (max-width: 520px) {
+  .main-content { padding-top: max(16px, env(safe-area-inset-top)); }
+  .top-status { top: max(16px, env(safe-area-inset-top)); }
+  .app-nav {
+    width: 100%;
+    border-right: 0;
+    border-left: 0;
+  }
+}
+

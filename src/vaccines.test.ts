@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { VaccineCatalogItem, VaccineRecord } from './types';
-import { addMonths, buildVaccinePlan, doseOptionLabel, vaccineDayDistance, vaccineTimingStatus } from './vaccines';
+import { addMonthsClamped } from '../shared/date';
+import { buildVaccinePlan, doseOptionLabel, vaccineDayDistance, vaccineTimingStatus } from './vaccines';
 
 describe('vaccine reminder plan', () => {
   it('clamps month-end birthdays instead of skipping a month', () => {
-    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonthsClamped('2026-01-31', 1)).toBe('2026-02-28');
   });
 
   it('shows the next-dose interval without adding another field', () => {
