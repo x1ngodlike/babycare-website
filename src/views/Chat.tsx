@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api, ApiError } from '../api';
 import { familyMembers } from '../shared';
-import { confirmAction, EmptyState, SegmentedControl } from '../ui';
+import { confirmAction, EmptyState } from '../ui';
 import type { AiMemory, Capabilities, ChatMessage, ChatSession, ExtractedMemory, FamilyId, SessionUser } from '../types';
 
 const categoryLabels: Record<AiMemory['category'], string> = { preferences: '偏好', health: '健康', notes: '备忘' };
@@ -28,7 +28,7 @@ const SUGGESTIONS = [
   { icon: '🍼', text: '最近奶量怎么样？' },
   { icon: '📏', text: '这个月身高体重达标吗？' },
   { icon: '💉', text: '下次疫苗什么时候打？' },
-  { icon: '💤', text: '宝宝睡眠作息正常吗？' },
+  { icon: '🛁', text: '宝宝洗澡需要注意什么？' },
 ];
 
 function renderInline(text: string, keyBase: string): React.ReactNode[] {
@@ -232,8 +232,9 @@ function renderAvatar(role: ChatMessage['role'], userName: string): React.ReactN
   return <div className="chat-avatar assistant" aria-hidden="true">AI</div>;
 }
 
-export default function ChatView({ user, capabilities, online }: { user: SessionUser; capabilities: Capabilities; online: boolean }) {
+export default function ChatView({ user, capabilities, online, onBack }: { user: SessionUser; capabilities: Capabilities; online: boolean; onBack?: () => void }) {
   const superadmin = user.role === 'superadmin';
+  const canManageMemory = user.role === 'superadmin' || user.role === 'admin';
   const [targetUserId, setTargetUserId] = useState<FamilyId>(user.id);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -244,11 +245,13 @@ export default function ChatView({ user, capabilities, online }: { user: Session
   const [showMemoryManager, setShowMemoryManager] = useState(false);
   const [showSessionSheet, setShowSessionSheet] = useState(false);
   const [showSessionDropdown, setShowSessionDropdown] = useState(false);
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [extractedHints, setExtractedHints] = useState<Record<string, ExtractedMemory[]>>({});
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const sessionDropdownRef = useRef<HTMLDivElement | null>(null);
+  const memberDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const displayUserName = superadmin
     ? (familyMembers.find(m => m.id === targetUserId)?.name || user.name)
@@ -300,17 +303,20 @@ export default function ChatView({ user, capabilities, online }: { user: Session
     finally { setDeletingSessionId(null); }
   }
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
-    if (!showSessionDropdown) return;
+    if (!showSessionDropdown && !showMemberDropdown) return;
     function handleClick(e: MouseEvent) {
-      if (sessionDropdownRef.current && !sessionDropdownRef.current.contains(e.target as Node)) {
+      if (showSessionDropdown && sessionDropdownRef.current && !sessionDropdownRef.current.contains(e.target as Node)) {
         setShowSessionDropdown(false);
+      }
+      if (showMemberDropdown && memberDropdownRef.current && !memberDropdownRef.current.contains(e.target as Node)) {
+        setShowMemberDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [showSessionDropdown]);
+  }, [showSessionDropdown, showMemberDropdown]);
 
   function selectSession(id: string) {
     setActiveSessionId(id);
@@ -360,17 +366,38 @@ export default function ChatView({ user, capabilities, online }: { user: Session
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); }
   }
 
-  return <div className="page-stack chat-page">
-    <header className="page-head chat-head">
-      <div>
-        <h1>AI 育儿助手</h1>
-        <p>{activeSession?.title || (activeSessionId ? '新对话' : '选择或开始一段对话')}</p>
+  return <div className="chat-page">
+    <header className="chat-fullscreen-header">
+      {onBack && <button type="button" className="chat-back-btn" onClick={onBack} aria-label="返回">
+        <span aria-hidden="true">‹</span>
+      </button>}
+      <div className="chat-header-title">
+        <h1>AI 助手</h1>
+      </div>
+      <div className="chat-header-actions">
+        {canManageMemory && <button type="button" className="btn ghost" onClick={() => setShowMemoryManager(true)} aria-label="记忆">记忆</button>}
+        <button type="button" className="btn primary" onClick={() => void createSession()}>新对话</button>
       </div>
     </header>
 
-    {superadmin && <div className="chat-member-switch"><SegmentedControl<FamilyId> label="查看成员对话" value={targetUserId} options={familyMembers.map(m => ({ value: m.id, label: m.name }))} onChange={id => { setTargetUserId(id); setActiveSessionId(null); setMessages([]); setSessions([]); setShowSessionDropdown(false); }} /></div>}
-
     <div className="chat-toolbar">
+      {superadmin && <div className="chat-member-switch" ref={memberDropdownRef}>
+        <button type="button" className="chat-member-trigger" onClick={() => setShowMemberDropdown(v => !v)} aria-haspopup="listbox" aria-expanded={showMemberDropdown}>
+          <span className="chat-member-name">{familyMembers.find(m => m.id === targetUserId)?.name}</span>
+          <span className="chat-member-caret" aria-hidden="true">▾</span>
+        </button>
+        {showMemberDropdown && <div className="chat-member-dropdown" role="listbox">
+          <ul className="chat-member-dropdown-list">
+            {familyMembers.map(m => <li key={m.id} className={targetUserId === m.id ? 'active' : ''} role="option" aria-selected={targetUserId === m.id}>
+              <button type="button" className="chat-member-item" onClick={() => { setTargetUserId(m.id); setActiveSessionId(null); setMessages([]); setSessions([]); setShowSessionDropdown(false); setShowMemberDropdown(false); }}>
+                <span className="chat-member-item-name">{m.name}</span>
+                {targetUserId === m.id && <span className="chat-member-item-check" aria-hidden="true">✓</span>}
+              </button>
+            </li>)}
+          </ul>
+        </div>}
+      </div>}
+
       {sessions.length > 0 ? <div className="chat-session-picker desktop" ref={sessionDropdownRef}>
         <button type="button" className="chat-session-trigger-btn" onClick={() => setShowSessionDropdown(v => !v)} aria-haspopup="listbox" aria-expanded={showSessionDropdown}>
           <span className="chat-session-name">{activeSession?.title || '新对话'}</span>
@@ -397,15 +424,10 @@ export default function ChatView({ user, capabilities, online }: { user: Session
           </ul>
         </div>}
       </div> : <span className="chat-empty-hint">还没有对话，点击「新对话」开始。</span>}
-      
+
       {sessions.length > 0 && <button type="button" className="chat-session-trigger mobile" onClick={() => setShowSessionSheet(true)}>
         {activeSession?.title || '新对话'} ▾
       </button>}
-
-      <div className="chat-toolbar-right">
-        {superadmin && <button type="button" className="btn secondary" onClick={() => setShowMemoryManager(true)}>记忆</button>}
-        <button type="button" className="btn primary" onClick={() => void createSession()}>新对话</button>
-      </div>
     </div>
 
     {/* Mobile Session Sheet */}
@@ -435,8 +457,10 @@ export default function ChatView({ user, capabilities, online }: { user: Session
     <div className="chat-messages">
       {!activeSessionId && sessions.length === 0 && <EmptyState title="开始一段 AI 对话" description="可以问喂奶、排便、生长、疫苗或照护相关的任何问题。" action={<button type="button" className="btn primary" onClick={() => void createSession()}>开始对话</button>} />}
       {activeSessionId && messages.length === 0 && <div className="chat-welcome">
-        <div className="chat-welcome-icon">👋</div>
-        <p>你好！我是宝宝的 AI 育儿助手，可以问我任何关于宝宝的问题：</p>
+        <div className="chat-welcome-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1 4-1 6a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4c0-2-1-3.5-1-6a7 7 0 0 1 7-7Z"/><path d="M9 11h.01M15 11h.01"/><path d="M10.5 15a3 3 0 0 0 3 0"/></svg>
+        </div>
+        <p>你好！我是宝宝的 AI 助手，可以问我任何关于宝宝的问题：</p>
         <div className="chat-suggestions">
           {SUGGESTIONS.map((suggestion, index) => (
             <button type="button" key={index} className="chat-suggestion" onClick={() => void sendText(suggestion.text)}>

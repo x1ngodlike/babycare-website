@@ -565,14 +565,14 @@ app.post('/api/ai/memories', (req, res) => {
   return res.status(201).json(memory);
 });
 
-app.delete('/api/ai/memories/:id', requireSuperAdmin, (req, res) => {
+app.delete('/api/ai/memories/:id', requireAdmin, (req, res) => {
   const parsed = z.string().uuid().safeParse(req.params.id);
   if (!parsed.success) return res.status(400).json({ error: '记忆编号不正确' });
   if (!deleteMemory(parsed.data)) return res.status(404).json({ error: '记忆不存在' });
   return res.json({ deleted: true });
 });
 
-app.delete('/api/ai/memories', requireSuperAdmin, (_req, res) => {
+app.delete('/api/ai/memories', requireAdmin, (_req, res) => {
   clearMemories();
   return res.json({ cleared: true });
 });
