@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, Lightbulb, Mic, Trash2, X } from 'lucide-react';
+import { ChevronLeft, Brain, Lightbulb, Trash2, XIcon } from 'lucide-react';
 import { api, ApiError } from '../api';
 import { familyMembers } from '../shared';
 import { confirmAction, EmptyState } from '../ui';
@@ -152,7 +152,7 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
           <p className="memory-subtitle">AI 在对话中会参考这些记忆来回答问题</p>
         </div>
         <button type="button" className="memory-close" onClick={onClose} aria-label="关闭">
-          <X size={18} strokeWidth={2} />
+          <XIcon size={18} strokeWidth={2} />
         </button>
       </header>
 
@@ -199,7 +199,7 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
       ) : memories.length === 0 ? (
         <div className="memory-empty">
           <div className="memory-empty-icon" aria-hidden="true">
-            <Mic size={40} strokeWidth={1.5} />
+            <Brain size={40} strokeWidth={1.5} />
           </div>
           <p>还没有 AI 记忆</p>
           <span>在上方添加要点，AI 会在对话中自动参考</span>
