@@ -3,7 +3,13 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
-RUN npm ci
+# npm ci：国内网络走 npmmirror 镜像（含 sharp/esbuild 二进制与 node-gyp 头文件），
+# 用 BuildKit 缓存卷复用下载缓存（第二次构建秒级），并跳过 audit/fund 网络请求。
+# 注意：npm ci 会下载 Biome 全部平台包（构建只用 linux-x64），属一次性浪费。
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set registry https://registry.npmmirror.com \
+    && npm config set disturl https://npmmirror.com/mirrors/node \
+    && npm ci --no-audit --no-fund
 COPY . .
 RUN npm run build \
   && test -f /app/dist/index.html \
