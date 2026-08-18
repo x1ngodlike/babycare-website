@@ -21,23 +21,17 @@ import type { MilestoneRecord, Profile } from './types';
 function MilestoneBadge({ milestoneKey, size = 32, status = 'pending' }: { milestoneKey: string; size?: number; status?: string }) {
   return (
     <div className={`milestone-badge ms-badge-${status}`} style={{ width: size, height: size }}>
-      <picture>
-        <source type="image/webp" srcSet={`/milestones/${milestoneKey}.webp`} />
-        <img
-          src={`/milestones/${milestoneKey}.jpg`}
-          alt=""
-          className="badge-icon"
-          loading="lazy"
-        />
-      </picture>
-      <picture>
-        <source type="image/webp" srcSet="/milestones/frames/frame-circle.webp" />
-        <img
-          src="/milestones/frames/frame-circle.jpg"
-          alt=""
-          className="badge-frame"
-        />
-      </picture>
+      <img
+        src={`/milestones/${milestoneKey}.png`}
+        alt=""
+        className="badge-icon"
+        loading="lazy"
+      />
+      <img
+        src="/milestones/frames/frame-circle.png"
+        alt=""
+        className="badge-frame"
+      />
     </div>
   );
 }
@@ -195,10 +189,8 @@ function MilestoneEditor({ milestoneKey, record, profile, onClose, onSaved }: {
           <button className="close-btn" onClick={onClose} aria-label="关闭">×</button>
         </header>
         <form className="editor-form" onSubmit={submit}>
-          <label>达成日期
-            <DateField label="达成日期" value={achievedOn} onChange={setAchievedOn} min={profile.birthDate} max={isoDay(new Date())} required />
-            {ageAtAchieved && <small className="field-hint">达成时宝宝 {ageAtAchieved}</small>}
-          </label>
+          <DateField label="达成日期" value={achievedOn} onChange={setAchievedOn} min={profile.birthDate} max={isoDay(new Date())} required />
+          {ageAtAchieved && <small className="field-hint">达成时宝宝 {ageAtAchieved}</small>}
           <label>备注（可选）
             <textarea value={note} maxLength={200} onChange={e => setNote(e.target.value)} placeholder="记录当时的场景、心情等" rows={3} />
           </label>
