@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bot, ChevronDown, ChevronUp, Droplets, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Milk, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
 import { api, type FeedingPrediction } from './api';
 import { predictFeeding, formatTimeShort, formatElapsed, formatDurationFromNow, periodLabels, type FeedingPredictionInput } from '../shared/feeding-prediction';
 
@@ -62,7 +62,7 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
       >
         <div className="prediction-left">
           <div className="prediction-icon">
-            <Droplets size={18} strokeWidth={2} />
+            <Milk size={18} strokeWidth={2} />
           </div>
           <div className="prediction-text">
             <span className="prediction-label">
