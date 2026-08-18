@@ -17,7 +17,7 @@
 .ui-switch.on span { transform: translateX(16px); }
 .ui-switch:disabled { opacity: .55; cursor: not-allowed; }
 
-.confirm-layer { z-index: 80; }
+.confirm-layer { z-index: 300; }
 .ui-confirm-dialog { width: min(420px, calc(100% - 28px)); padding: 20px; border-radius: var(--radius-dialog); background: var(--surface-card); box-shadow: var(--shadow-dialog); }
 .ui-confirm-dialog header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .ui-confirm-dialog h2 { margin: 3px 0 0; font-size: var(--text-section); line-height: 1.3; }
