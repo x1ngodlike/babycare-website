@@ -126,7 +126,7 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
             </ol>
           </div>
           <div className="prediction-meta">
-            <span>数据来源：过去 {prediction.dataDays} 天 {prediction.dataFeeds} 次喂奶</span>
+            <span>数据来源：近 {prediction.dataDays} 天 {prediction.dataFeeds} 次喂奶</span>
             <div className="confidence-bar" aria-label={`预测置信度 ${confidencePercent}%`}>
               <div className="confidence-fill" style={{ width: `${confidencePercent}%` }} />
             </div>

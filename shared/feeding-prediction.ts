@@ -129,8 +129,10 @@ export function predictFeeding(
       periodGaps: [],
       periodVolumes: [],
       overallMedianGapMinutes: null,
-      dataDays: Math.min(lookbackDays, Math.ceil((now.getTime() - new Date(feedings[0].occurredAt).getTime()) / 86400000)),
-      dataFeeds: feedings.length
+      dataDays: recentFeedings.length > 1
+        ? Math.max(1, Math.round((recentFeedings[recentFeedings.length - 1].date.getTime() - recentFeedings[0].date.getTime()) / 86400000))
+        : Math.min(lookbackDays, feedings.length),
+      dataFeeds: recentFeedings.length
     };
   }
 
@@ -234,11 +236,9 @@ export function predictFeeding(
     lastPredicted = predictedAt;
   }
 
-  const totalDays = recentFeedings.length > 1
+  const dataDays = recentFeedings.length > 1
     ? Math.max(1, Math.round((recentFeedings[recentFeedings.length - 1].date.getTime() - recentFeedings[0].date.getTime()) / 86400000))
-    : 0;
-
-  const dataDays = totalDays || Math.min(lookbackDays, Math.max(1, Math.ceil((now.getTime() - feedings[0].date.getTime()) / 86400000)));
+    : Math.min(lookbackDays, recentFeedings.length);
 
   return {
     available: true,
@@ -254,7 +254,7 @@ export function predictFeeding(
     periodVolumes,
     overallMedianGapMinutes: overallMedianGap,
     dataDays,
-    dataFeeds: feedings.length
+    dataFeeds: recentFeedings.length
   };
 }
 
