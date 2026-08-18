@@ -79,7 +79,7 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
         </div>
         <div className="prediction-right">
           <div className="prediction-stats">
-            {prediction.volumeMl !== null && <span>{prediction.volumeMl} mL</span>}
+            {prediction.volumeMl !== null && <span>约 {prediction.volumeMl} mL</span>}
           </div>
           {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
@@ -112,11 +112,13 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
               {prediction.upcomingFeeds.map(feed => (
                 <li key={feed.index}>
                   <span className="feed-index">{feed.index}</span>
-                  <span className="feed-time">{formatTimeShort(feed.predictedAt)}</span>
-                  <span className="feed-range">
-                    {formatTimeShort(feed.earliest)}–{formatTimeShort(feed.latest)}
+                  <span className="feed-info">
+                    <span className="feed-time">{formatTimeShort(feed.predictedAt)}</span>
+                    <span className="feed-range">
+                      {formatTimeShort(feed.earliest)}–{formatTimeShort(feed.latest)}
+                    </span>
+                    <span className="feed-period">{periodLabels[feed.period]}</span>
                   </span>
-                  <span className="feed-period">{periodLabels[feed.period]}</span>
                   {feed.estimatedMl !== null && <span className="feed-vol">约 {feed.estimatedMl} mL</span>}
                   <span className="feed-duration">{formatDurationFromNow(feed.predictedAt, now)}</span>
                 </li>
