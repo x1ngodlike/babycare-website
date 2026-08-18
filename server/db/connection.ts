@@ -164,6 +164,13 @@ db.exec(`
     created_at TEXT NOT NULL,
     expires_at TEXT NOT NULL
   );
+`);
+
+const appNotificationColumns = db.prepare('PRAGMA table_info(app_notifications)').all() as { name: string }[];
+if (!appNotificationColumns.some(column => column.name === 'expires_at')) db.exec("ALTER TABLE app_notifications ADD COLUMN expires_at TEXT NOT NULL DEFAULT (datetime('now'))");
+if (!appNotificationColumns.some(column => column.name === 'target')) db.exec("ALTER TABLE app_notifications ADD COLUMN target TEXT NOT NULL DEFAULT 'today'");
+
+db.exec(`
   CREATE INDEX IF NOT EXISTS idx_app_notifications_expires_at ON app_notifications(expires_at);
 
   CREATE TABLE IF NOT EXISTS care_items (
@@ -378,6 +385,14 @@ db.exec(`
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'resolved')),
     resolved_at TEXT
   );
+`);
+
+const aiMemoryColumns = db.prepare('PRAGMA table_info(ai_memories)').all() as { name: string }[];
+if (!aiMemoryColumns.some(column => column.name === 'expires_at')) db.exec('ALTER TABLE ai_memories ADD COLUMN expires_at TEXT');
+if (!aiMemoryColumns.some(column => column.name === 'status')) db.exec("ALTER TABLE ai_memories ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
+if (!aiMemoryColumns.some(column => column.name === 'resolved_at')) db.exec('ALTER TABLE ai_memories ADD COLUMN resolved_at TEXT');
+
+db.exec(`
   CREATE INDEX IF NOT EXISTS idx_ai_memories_updated_at ON ai_memories(updated_at DESC);
   CREATE INDEX IF NOT EXISTS idx_ai_memories_expires_at ON ai_memories(expires_at);
 
@@ -405,11 +420,5 @@ if (!db.prepare('SELECT 1 FROM schema_migrations WHERE name = ?').get(dailyRepor
   db.prepare('DELETE FROM daily_reports').run();
   db.prepare('INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)').run(dailyReportUtcMigration, new Date().toISOString());
 })();
-
-// 记忆过期字段：旧库可能没有 expires_at，按需补列（CREATE TABLE IF NOT EXISTS 不会为已存在的表加列）
-const aiMemoryColumns = db.prepare('PRAGMA table_info(ai_memories)').all() as { name: string }[];
-if (!aiMemoryColumns.some(column => column.name === 'expires_at')) db.exec('ALTER TABLE ai_memories ADD COLUMN expires_at TEXT');
-if (!aiMemoryColumns.some(column => column.name === 'status')) db.exec("ALTER TABLE ai_memories ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
-if (!aiMemoryColumns.some(column => column.name === 'resolved_at')) db.exec('ALTER TABLE ai_memories ADD COLUMN resolved_at TEXT');
 
 export function closeDatabaseForTests() { db.close(); }
