@@ -465,7 +465,24 @@ export default function App() {
   const [pushStatus, setPushStatus] = useState<PushStatus | null>(null);
   const [todayPlanStatus, setTodayPlanStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date()); const [historyMode, setHistoryMode] = useState<'care' | 'vaccine'>('care');
+  const chatHistoryPushed = useRef(false);
   useEffect(() => { tabRef.current = tab; }, [tab]);
+  useEffect(() => {
+    if (tab === 'chat' && !chatHistoryPushed.current) {
+      window.history.pushState({ babycareChat: true }, '');
+      chatHistoryPushed.current = true;
+    }
+  }, [tab]);
+  useEffect(() => {
+    const pop = () => {
+      if (tabRef.current === 'chat' && window.history.state?.babycareChat) {
+        chatHistoryPushed.current = false;
+        setTab('today');
+      }
+    };
+    window.addEventListener('popstate', pop);
+    return () => window.removeEventListener('popstate', pop);
+  }, []);
   useEffect(() => {
     const openNotification = (event: Event) => {
       const target = (event as CustomEvent<string>).detail;

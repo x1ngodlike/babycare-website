@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ChevronLeft } from 'lucide-react';
 import { api, ApiError } from '../api';
 import { familyMembers } from '../shared';
 import { confirmAction, EmptyState } from '../ui';
@@ -252,6 +253,8 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const sessionDropdownRef = useRef<HTMLDivElement | null>(null);
   const memberDropdownRef = useRef<HTMLDivElement | null>(null);
+  const sessionRequestId = useRef(0);
+  const messageRequestId = useRef(0);
 
   const displayUserName = superadmin
     ? (familyMembers.find(m => m.id === targetUserId)?.name || user.name)
@@ -260,13 +263,23 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
   const activeSession = useMemo(() => sessions.find(s => s.id === activeSessionId) || null, [sessions, activeSessionId]);
 
   const loadSessions = useCallback(async () => {
-    try { const res = await api.chatSessions(superadmin ? targetUserId : undefined); setSessions(res.sessions); }
-    catch (err) { setError(err instanceof Error ? err.message : '读取对话列表失败'); }
+    const reqId = ++sessionRequestId.current;
+    try {
+      const res = await api.chatSessions(superadmin ? targetUserId : undefined);
+      if (reqId === sessionRequestId.current) setSessions(res.sessions);
+    } catch (err) {
+      if (reqId === sessionRequestId.current) setError(err instanceof Error ? err.message : '读取对话列表失败');
+    }
   }, [superadmin, targetUserId]);
 
   const loadMessages = useCallback(async (sessionId: string) => {
-    try { const res = await api.chatMessages(sessionId); setMessages(res.messages); }
-    catch (err) { setError(err instanceof Error ? err.message : '读取消息失败'); }
+    const reqId = ++messageRequestId.current;
+    try {
+      const res = await api.chatMessages(sessionId);
+      if (reqId === messageRequestId.current) setMessages(res.messages);
+    } catch (err) {
+      if (reqId === messageRequestId.current) setError(err instanceof Error ? err.message : '读取消息失败');
+    }
   }, []);
 
   useEffect(() => { void loadSessions(); }, [loadSessions]);
@@ -369,7 +382,7 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
   return <div className="chat-page">
     <header className="chat-fullscreen-header">
       {onBack && <button type="button" className="chat-back-btn" onClick={onBack} aria-label="返回">
-        <span aria-hidden="true">‹</span>
+        <ChevronLeft aria-hidden="true" size={20} strokeWidth={2.2} />
       </button>}
       <div className="chat-header-title">
         <h1>AI 助手</h1>
@@ -389,7 +402,7 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
         {showMemberDropdown && <div className="chat-member-dropdown" role="listbox">
           <ul className="chat-member-dropdown-list">
             {familyMembers.map(m => <li key={m.id} className={targetUserId === m.id ? 'active' : ''} role="option" aria-selected={targetUserId === m.id}>
-              <button type="button" className="chat-member-item" onClick={() => { setTargetUserId(m.id); setActiveSessionId(null); setMessages([]); setSessions([]); setShowSessionDropdown(false); setShowMemberDropdown(false); }}>
+              <button type="button" className="chat-member-item" onClick={() => { sessionRequestId.current++; messageRequestId.current++; setTargetUserId(m.id); setActiveSessionId(null); setMessages([]); setSessions([]); setShowSessionDropdown(false); setShowMemberDropdown(false); }}>
                 <span className="chat-member-item-name">{m.name}</span>
                 {targetUserId === m.id && <span className="chat-member-item-check" aria-hidden="true">✓</span>}
               </button>
