@@ -93,7 +93,8 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
 }
 
 function renderRichText(text: string): React.ReactNode {
-  const lines = text.split('\n');
+  const normalized = text.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+  const lines = normalized.split('\n');
   const blocks: React.ReactNode[] = [];
   let paragraph: string[] = [];
   let listItems: string[] = [];
