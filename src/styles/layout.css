@@ -28,6 +28,20 @@
 .baby-hero.hero-watercolor.hero-evening { --hero-background: url('/hero/watercolor/evening.webp'); }
 .baby-hero.hero-watercolor.hero-night { --hero-background: url('/hero/watercolor/night.webp'); }
 
+/* Hero 软陶时光方案 */
+.baby-hero.hero-clay.hero-morning { --hero-background: url('/hero/clay/morning.webp'); }
+.baby-hero.hero-clay.hero-midday { --hero-background: url('/hero/clay/midday.webp'); }
+.baby-hero.hero-clay.hero-afternoon { --hero-background: url('/hero/clay/afternoon.webp'); }
+.baby-hero.hero-clay.hero-evening { --hero-background: url('/hero/clay/evening.webp'); }
+.baby-hero.hero-clay.hero-night { --hero-background: url('/hero/clay/night.webp'); }
+
+/* Hero 水墨丹青方案 */
+.baby-hero.hero-ink.hero-morning { --hero-background: url('/hero/ink/morning.webp'); }
+.baby-hero.hero-ink.hero-midday { --hero-background: url('/hero/ink/midday.webp'); }
+.baby-hero.hero-ink.hero-afternoon { --hero-background: url('/hero/ink/afternoon.webp'); }
+.baby-hero.hero-ink.hero-evening { --hero-background: url('/hero/ink/evening.webp'); }
+.baby-hero.hero-ink.hero-night { --hero-background: url('/hero/ink/night.webp'); }
+
 @keyframes hero-background-in { from { opacity: .72; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .baby-hero::after { animation: none; } }
 
