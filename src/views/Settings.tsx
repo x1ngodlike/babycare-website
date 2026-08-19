@@ -80,7 +80,7 @@ export default function SettingsView({ profile, careItems, vaccineCatalog, capab
       {canManage(user) && <section className="settings-menu" aria-label="照护设置"><SettingsEntry icon="medicine" title="用药护理" description="分类、计划与项目管理" status={`${careItems.filter(item => item.active && !isScheduleOver(item)).length} 项`} onClick={() => open('care-items')} /><SettingsEntry icon="vaccine" title="疫苗管理" description="目录与接种计划" status={`${vaccineCatalog.filter(item => item.active).length} 项`} onClick={() => open('vaccines')} /></section>}
       {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
       <section className="settings-menu" aria-label="APP 设置">
-        {nativeBridge && <SettingsEntry icon="server" title="服务器环境" description="切换局域网或外网连接" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} />}
+        {nativeBridge && <SettingsEntry icon="server" title="服务器环境" description="切换本地 / 远程连接方式" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} />}
         <SettingsEntry icon="refresh" title="清除缓存" description="清除本地缓存并刷新页面" showChevron={false} onClick={() => void (async () => {
           if (!await confirmAction({ title: '清除缓存并刷新？', description: '只清除本地缓存的静态资源，不会删除任何记录。', confirmLabel: '清除并刷新' })) return;
           try { caches.keys().then(keys => Promise.all(keys.filter(k => !k.includes('babycare-offline')).map(k => caches.delete(k)))); } catch { /* ignore */ }
@@ -88,7 +88,7 @@ export default function SettingsView({ profile, careItems, vaccineCatalog, capab
         })()} />
       </section>
       <section className="settings-menu" aria-label="外观设置"><SettingsEntry icon="monitor" title="外观主题" description="浅色 / 深色 / 跟随系统" status={theme === 'light' ? '浅色' : theme === 'dark' ? '深色' : '跟随系统'} onClick={() => open('appearance')} /></section>
-      <section className="settings-menu logout-menu" aria-label="账号操作"><SettingsEntry icon="logout" title="退出登录" description="退出当前家庭身份" danger showChevron={false} onClick={() => void (async () => { if (await confirmAction({ title: '退出登录？', description: '退出后需要重新输入密码才能进入。', confirmLabel: '退出登录', danger: true })) onLogout(); })()} /></section>
+      <section className="settings-menu logout-menu" aria-label="账号操作"><SettingsEntry icon="logout" title="退出登录" description="退出该家庭账号" danger showChevron={false} onClick={() => void (async () => { if (await confirmAction({ title: '退出登录？', description: '退出后需要重新输入密码才能进入。', confirmLabel: '退出登录', danger: true })) onLogout(); })()} /></section>
     </div>
   </div>;
 }

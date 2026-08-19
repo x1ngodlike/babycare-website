@@ -27,7 +27,8 @@ export const auditEntrySchema = z.object({
   id: z.number().int().optional(), recordId: z.string(),
   action: z.enum(['create', 'update', 'delete', 'restore', 'import']),
   actor: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']),
-  occurredAt: z.string().datetime({ offset: true }), snapshot: z.record(z.string(), z.unknown()).nullable()
+  occurredAt: z.string().datetime({ offset: true }), snapshot: z.record(z.string(), z.unknown()).nullable(),
+  changes: z.array(z.object({ field: z.string(), old: z.unknown(), new: z.unknown() })).nullable().optional()
 });
 
 export const careItemSchema = z.object({

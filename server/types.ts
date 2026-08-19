@@ -102,6 +102,12 @@ export interface CareRecord {
   deletedBy: AuditIdentity | null;
 }
 
+export interface AuditChange {
+  field: string;
+  old: unknown;
+  new: unknown;
+}
+
 export interface AuditEntry {
   id: number;
   recordId: string;
@@ -109,6 +115,7 @@ export interface AuditEntry {
   actor: AuditIdentity;
   occurredAt: string;
   snapshot: CareRecord | null;
+  changes: AuditChange[] | null;
 }
 
 export interface DraftRecord {

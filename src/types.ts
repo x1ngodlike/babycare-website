@@ -105,6 +105,12 @@ export interface CareRecord {
   deletedBy: AuditIdentity | null;
 }
 
+export interface AuditChange {
+  field: string;
+  old: unknown;
+  new: unknown;
+}
+
 export interface AuditEntry {
   id: number;
   recordId: string;
@@ -112,6 +118,7 @@ export interface AuditEntry {
   actor: AuditIdentity;
   occurredAt: string;
   snapshot: CareRecord | null;
+  changes: AuditChange[] | null;
 }
 
 export type AiMemoryCategory = 'preferences' | 'health' | 'notes';
@@ -156,4 +163,44 @@ export interface DraftRecord {
   bowelSize?: BowelSize | null;
   subject?: string | null;
   note?: string | null;
+}
+
+export interface GrowthCurveRecord {
+  id: string;
+  measuredOn: string;
+  ageMonths: number;
+  heightCm: number;
+  weightKg: number;
+  heightZ: number | null;
+  weightZ: number | null;
+  heightPercentile: number | null;
+  weightPercentile: number | null;
+  heightBand: string | null;
+  weightBand: string | null;
+  createdBy: AuditIdentity;
+}
+
+export interface GrowthReferenceAnchor {
+  ageMonths: number;
+  minus2sd: number;
+  minus1sd: number;
+  median: number;
+  plus1sd: number;
+  plus2sd: number;
+}
+
+export interface GrowthCurveData {
+  available: boolean;
+  reason?: 'no_sex' | 'no_records';
+  records?: GrowthCurveRecord[];
+  reference?: {
+    height: GrowthReferenceAnchor[];
+    weight: GrowthReferenceAnchor[];
+  };
+  meta?: {
+    sex: BabySex;
+    maxAgeMonths: number;
+    standardName: string;
+    recordCount: number;
+  };
 }

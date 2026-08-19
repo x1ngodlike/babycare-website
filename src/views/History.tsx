@@ -65,6 +65,7 @@ export function Timeline({ records, careItems, manager, emptyText = '这一天�
     const created = auditNames[record.createdBy || 'legacy'];
     const updated = auditNames[record.updatedBy || record.createdBy || 'legacy'];
     const changed = record.updatedBy && record.updatedBy !== record.createdBy;
+    const hasHistory = record.updatedAt !== record.createdAt;
     const items = [...(manager ? [{ label: '查看操作记录', onSelect: () => onAudit(record) }] : []), { label: '修改记录', onSelect: () => onEdit(record) }, ...(manager ? [{ label: '删除记录', danger: true, onSelect: () => onDelete(record) }] : [])];
     const occurredAt = new Date(record.occurredAt);
     const time = occurredAt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -73,7 +74,7 @@ export function Timeline({ records, careItems, manager, emptyText = '这一天�
     const auditLabel = `${created === '历史数据' ? '历史数据' : `${created}录入`}${changed ? ` · ${updated}修改` : ''}`;
     const hasExtraNote = Boolean(record.note);
     const typeWithCreator = <>{recordTypeName}<span className="record-creator"> · {created}</span></>;
-    return <article className={`timeline-item ${record.type}${hasExtraNote ? ' has-note' : ''}`} key={record.id}><div className={`time-col${searchMode ? ' search-time' : ''}`}><time>{searchMode && <span className="record-date">{date}</span>}<span>{time}</span></time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy">{compactMetadata && !hideMetadata ? <div className="record-meta-row"><small>{typeWithCreator}</small><em>{auditLabel}</em></div> : <small>{typeWithCreator}</small>}<strong><FeedingSummary record={record} careItems={careItems} /></strong>{record.note && <RecordNotePreview note={record.note} />}{!compactMetadata && !hideMetadata && <em>{auditLabel}</em>}</div><ActionMenu label={`${summary(record, careItems)}的操作菜单`} items={items} /></article>;
+    return <article className={`timeline-item ${record.type}${hasExtraNote ? ' has-note' : ''}`} key={record.id}><div className={`time-col${searchMode ? ' search-time' : ''}`}><time>{searchMode && <span className="record-date">{date}</span>}<span>{time}</span></time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy">{compactMetadata && !hideMetadata ? <div className="record-meta-row"><small>{typeWithCreator}</small><em>{auditLabel}</em></div> : <small>{typeWithCreator}</small>}<strong><FeedingSummary record={record} careItems={careItems} /></strong>{record.note && <RecordNotePreview note={record.note} />}{!compactMetadata && !hideMetadata && (hasHistory ? <button type="button" className="audit-history-btn" onClick={() => onAudit(record)} aria-label="查看操作记录"><em>{auditLabel}</em><span className="audit-history-tag">已修改</span></button> : <em>{auditLabel}</em>)}</div><ActionMenu label={`${summary(record, careItems)}的操作菜单`} items={items} /></article>;
   })}</div>;
 }
 

@@ -1,4 +1,4 @@
-import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthRecord, DraftMilestoneRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, ExtractedMemory, FamilyId, FamilyMemberPermission, GrowthRecord, MilestoneRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
+import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthRecord, DraftMilestoneRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, ExtractedMemory, FamilyId, FamilyMemberPermission, GrowthCurveData, GrowthRecord, MilestoneRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 
 export interface GrowthIndicatorAssessment {
   value: number;
@@ -116,6 +116,7 @@ export const api = {
   restoreGrowthRecord: (id: string) => request<GrowthRecord>(`/api/growth-records/${id}/restore`, { method: 'POST' }),
   purgeGrowthRecord: (id: string) => request<{ deleted: boolean }>(`/api/growth-records/${id}/permanent`, { method: 'DELETE' }),
   growthAssessment: () => request<GrowthAssessment>('/api/growth-assessment'),
+  growthCurve: () => request<GrowthCurveData>('/api/growth-curve'),
   generateGrowthEvaluation: (id: string) => request<{ evaluation: GrowthAssessmentEvaluation }>(`/api/growth-records/${id}/evaluation`, { method: 'POST' }),
   vaccineRecords: () => request<VaccineRecord[]>('/api/vaccine-records'),
   vaccineCatalog: () => request<VaccineCatalogItem[]>('/api/vaccine-catalog'),

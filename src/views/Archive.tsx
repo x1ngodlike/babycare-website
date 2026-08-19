@@ -10,7 +10,8 @@ import { VaccineArchiveSummary } from '../VaccineViews';
 import { MilestoneArchiveSummary, MilestoneHistory } from '../MilestoneCard';
 import { AvatarCropperModal } from '../AvatarCropper';
 import { auditNames, canManage, ChoiceField, sexLabels } from '../shared';
-import type { BabySex, GrowthRecord, Profile, SessionUser, VaccineCatalogItem, VaccineRecord } from '../types';
+import { GrowthChart } from './GrowthChart';
+import type { BabySex, GrowthCurveData, GrowthRecord, Profile, SessionUser, VaccineCatalogItem, VaccineRecord } from '../types';
 
 function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClose(): void; onSaved(value: Profile): void }) {
   const [form, setForm] = useState<Profile>({ ...profile, sex: profile.sex || 'unspecified', nickname: profile.nickname || '', caregiverTitle: profile.caregiverTitle || '妈妈', avatar: profile.avatar ?? null, birthTime: profile.birthTime || '' });
@@ -81,6 +82,7 @@ function GrowthDelta({ value, digits, unit }: { value: number; digits: number; u
 function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineRecords, vaccineCatalog, user, archiveMode, setArchiveMode, onOpenVaccines, onEditGrowth, onAddGrowth, onDeleteGrowth, onRestoreGrowth, onPurgeGrowth, onProfileSaved }: { profile: Profile; growthRecords: GrowthRecord[]; deletedGrowthRecords: GrowthRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; user: SessionUser; archiveMode: 'main' | 'milestone'; setArchiveMode(value: 'main' | 'milestone'): void; onOpenVaccines(): void; onEditGrowth(record: GrowthRecord): void; onAddGrowth(): void; onDeleteGrowth(record: GrowthRecord): Promise<void>; onRestoreGrowth(record: GrowthRecord): Promise<void>; onPurgeGrowth(record: GrowthRecord): Promise<void>; onProfileSaved(value: Profile): void }) {
   const [editingProfile, setEditingProfile] = useState(false); const [showDeleted, setShowDeleted] = useState(false);
   const [growthPage, setGrowthPage] = useState(1); const [deletedPage, setDeletedPage] = useState(1);
+  const [growthCurve, setGrowthCurve] = useState<GrowthCurveData | null>(null);
   const previousGrowthCount = useRef(growthRecords.length);
   const deletedArchivePushed = useRef(false);
   const todayGrowth = growthRecords.find(record => record.measuredOn === isoDay(new Date()));
@@ -94,6 +96,7 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
     previousGrowthCount.current = growthRecords.length;
   }, [growthPages, growthRecords.length]);
   useEffect(() => setDeletedPage(page => Math.min(page, deletedPages)), [deletedPages]);
+  useEffect(() => { if (archiveMode === 'main') api.growthCurve().then(setGrowthCurve).catch(() => undefined); }, [archiveMode, growthRecords.length]);
   useEffect(() => { const pop = () => { deletedArchivePushed.current = false; setShowDeleted(false); }; window.addEventListener('popstate', pop); return () => { window.removeEventListener('popstate', pop); if (deletedArchivePushed.current) window.history.back(); }; }, []);
   function openDeletedArchive() { window.history.pushState({ babycareGrowthDeleted: true }, ''); deletedArchivePushed.current = true; setShowDeleted(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   function closeDeletedArchive() { if (deletedArchivePushed.current && window.history.state?.babycareGrowthDeleted) window.history.back(); else { deletedArchivePushed.current = false; setShowDeleted(false); } }
@@ -107,11 +110,12 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
     <header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header>
     <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像">{profile.avatar ? <img src={profile.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}</div><div className="archive-profile-meta"><h2>{profile.name}{profile.nickname?.trim() ? <small className="nickname"> · {profile.nickname.trim()}</small> : null}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div></section>
     <GrowthAssessmentCard user={user} growthRecords={growthRecords} />
-    <VaccineArchiveSummary profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onOpen={onOpenVaccines} />
+    <GrowthChart data={growthCurve} />
     <MilestoneArchiveSummary profile={profile} onOpen={() => setArchiveMode('milestone')} />
+    <VaccineArchiveSummary profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onOpen={onOpenVaccines} />
     <section className="growth-history">
       <div className="section-title"><h2>成长记录</h2><div className="growth-head-actions">{canManage(user) && <button className="growth-deleted-toggle" onClick={openDeletedArchive}>已删除 {deletedGrowthRecords.length} 条</button>}<button className="btn secondary" onClick={() => todayGrowth ? onEditGrowth(todayGrowth) : onAddGrowth()}>{todayGrowth ? '修改成长' : '记录成长'}</button></div></div>
-      {growthRecords.length ? <div className="growth-list">{visibleGrowthRecords.map(record => { const recordIndex = growthRecords.findIndex(item => item.id === record.id); const previous = growthRecords[recordIndex + 1]; return <article key={record.id}><time>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}<small>{calculateAge(profile.birthDate, new Date(`${record.measuredOn}T12:00:00`))}</small><small>{auditNames[record.createdBy]}录入</small></time><div><span>身高</span><b>{record.heightCm} cm</b>{previous && <GrowthDelta value={record.heightCm - previous.heightCm} digits={1} unit="cm" />}</div><div><span>体重</span><b>{record.weightKg} kg</b>{previous && <GrowthDelta value={record.weightKg - previous.weightKg} digits={2} unit="kg" />}</div><ActionMenu label={`${record.measuredOn}成长记录操作`} items={[{ label: '修改记录', onSelect: () => onEditGrowth(record) }, ...(canManage(user) ? [{ label: '删除记录', danger: true, onSelect: () => onDeleteGrowth(record) }] : [])]} /></article>; })}</div> : <EmptyState title="还没有成长记录" description="可以从今日开始记录身高和体重。" image="/illustrations/empty-records.webp" />}
+      {growthRecords.length ? <div className="growth-list">{visibleGrowthRecords.map(record => { const recordIndex = growthRecords.findIndex(item => item.id === record.id); const previous = growthRecords[recordIndex + 1]; const curveRecord = growthCurve?.records?.find(r => r.id === record.id); return <article key={record.id}><time>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}<small>{calculateAge(profile.birthDate, new Date(`${record.measuredOn}T12:00:00`))}</small><small>{auditNames[record.createdBy]}录入</small></time><div><span>身高</span><b>{record.heightCm} cm</b>{previous && <GrowthDelta value={record.heightCm - previous.heightCm} digits={1} unit="cm" />}{curveRecord?.heightPercentile != null && <small className="growth-percentile">P{curveRecord.heightPercentile} · {curveRecord.heightBand}</small>}</div><div><span>体重</span><b>{record.weightKg} kg</b>{previous && <GrowthDelta value={record.weightKg - previous.weightKg} digits={2} unit="kg" />}{curveRecord?.weightPercentile != null && <small className="growth-percentile">P{curveRecord.weightPercentile} · {curveRecord.weightBand}</small>}</div><ActionMenu label={`${record.measuredOn}成长记录操作`} items={[{ label: '修改记录', onSelect: () => onEditGrowth(record) }, ...(canManage(user) ? [{ label: '删除记录', danger: true, onSelect: () => onDeleteGrowth(record) }] : [])]} /></article>; })}</div> : <EmptyState title="还没有成长记录" description="可以从今日开始记录身高和体重。" image="/illustrations/empty-records.webp" />}
       <Pagination page={growthPage} totalPages={growthPages} onChange={setGrowthPage} />
     </section>
     {editingProfile && <ProfileEditor profile={profile} onClose={() => setEditingProfile(false)} onSaved={onProfileSaved} />}

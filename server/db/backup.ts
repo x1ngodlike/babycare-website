@@ -78,7 +78,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
     const ids = [...new Set(payload.records.map(record => record.id))];
     const removeAudit = db.prepare('DELETE FROM record_audit WHERE record_id = ?');
     for (const id of ids) removeAudit.run(id);
-    for (const audit of payload.audits) addAudit(audit.recordId, audit.action, audit.actor, audit.snapshot, audit.occurredAt);
+    for (const audit of payload.audits) addAudit(audit.recordId, audit.action, audit.actor, audit.snapshot, audit.occurredAt, audit.changes ?? null);
   } else {
     for (const record of payload.records) addAudit(record.id, 'import', record.updatedBy || 'legacy', record);
   }
@@ -144,8 +144,8 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
   `);
   for (const record of payload.records) insertRecord.run({ ...record, occurredAt: canonicalInstant(record.occurredAt) });
   if (payload.audits?.length) {
-    const insertAudit = db.prepare('INSERT INTO record_audit (id, record_id, action, actor, occurred_at, snapshot) VALUES (@id, @recordId, @action, @actor, @occurredAt, @snapshot)');
-    for (const audit of payload.audits) insertAudit.run({ ...audit, snapshot: audit.snapshot ? JSON.stringify(audit.snapshot) : null });
+    const insertAudit = db.prepare('INSERT INTO record_audit (id, record_id, action, actor, occurred_at, snapshot, changes) VALUES (@id, @recordId, @action, @actor, @occurredAt, @snapshot, @changes)');
+    for (const audit of payload.audits) insertAudit.run({ ...audit, snapshot: audit.snapshot ? JSON.stringify(audit.snapshot) : null, changes: audit.changes ? JSON.stringify(audit.changes) : null });
   } else {
     for (const record of payload.records) addAudit(record.id, 'import', record.updatedBy || 'legacy', record);
   }

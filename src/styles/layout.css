@@ -77,6 +77,20 @@
 .baby-hero.hero-pony.hero-evening { --hero-background: url('/hero/pony/evening.webp'); }
 .baby-hero.hero-pony.hero-night { --hero-background: url('/hero/pony/night.webp'); }
 
+/* Hero 赛博甜梦方案 */
+.baby-hero.hero-cyber.hero-morning { --hero-background: url('/hero/cyber/morning.webp'); }
+.baby-hero.hero-cyber.hero-midday { --hero-background: url('/hero/cyber/midday.webp'); }
+.baby-hero.hero-cyber.hero-afternoon { --hero-background: url('/hero/cyber/afternoon.webp'); }
+.baby-hero.hero-cyber.hero-evening { --hero-background: url('/hero/cyber/evening.webp'); }
+.baby-hero.hero-cyber.hero-night { --hero-background: url('/hero/cyber/night.webp'); }
+
+/* Hero 童话甜梦方案 */
+.baby-hero.hero-tale.hero-morning { --hero-background: url('/hero/tale/morning.webp'); }
+.baby-hero.hero-tale.hero-midday { --hero-background: url('/hero/tale/midday.webp'); }
+.baby-hero.hero-tale.hero-afternoon { --hero-background: url('/hero/tale/afternoon.webp'); }
+.baby-hero.hero-tale.hero-evening { --hero-background: url('/hero/tale/evening.webp'); }
+.baby-hero.hero-tale.hero-night { --hero-background: url('/hero/tale/night.webp'); }
+
 @keyframes hero-background-in { from { opacity: .72; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .baby-hero::after { animation: none; } }
 
@@ -136,6 +150,30 @@
   border-radius: 8px;
   object-fit: cover;
   border: 1px solid var(--border);
+}
+.hero-bg-group + .hero-bg-group {
+  margin-top: 16px;
+}
+.hero-bg-group-title {
+  margin: 0 0 8px;
+  padding-left: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--ink-muted);
+}
+.hero-bg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-bg-row .hero-bg-item {
+  flex: 1;
+}
+.hero-bg-preview-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
 }
 .hero-bg-label {
   font-size: 14px;

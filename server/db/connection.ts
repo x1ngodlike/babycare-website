@@ -108,7 +108,14 @@ db.exec(`
     snapshot TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_record_audit_record_id ON record_audit(record_id, occurred_at DESC);
+`);
 
+const auditColumns = db.prepare('PRAGMA table_info(record_audit)').all() as { name: string }[];
+if (!auditColumns.some(column => column.name === 'changes')) {
+  db.exec('ALTER TABLE record_audit ADD COLUMN changes TEXT');
+}
+
+db.exec(`
   CREATE TABLE IF NOT EXISTS ai_settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     provider TEXT NOT NULL,

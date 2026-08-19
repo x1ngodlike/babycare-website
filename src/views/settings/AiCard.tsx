@@ -39,8 +39,8 @@ export function AiSettingsCard({ capabilities, onChanged }: { capabilities: Capa
   }
   return <section className="settings-card model-settings"><div className="setting-status"><h2>AI 模型设置</h2><span className={capabilities.aiEnabled ? 'on' : ''}>{capabilities.aiEnabled ? '已配置' : '未配置'}</span></div>
     <p>配置模型后，可为报告总结、成长分析和后续智能功能提供能力。</p>
+    <p className="field-help">默认 DeepSeek，也可填写兼容 OpenAI 的接口地址与模型。</p>
     <form onSubmit={save}>
-      <label>服务商<input value="DeepSeek" readOnly aria-readonly="true" /></label>
       <label>接口地址<input type="url" inputMode="url" value={baseUrl} onChange={e => setBaseUrl(e.target.value)} required /></label>
       <label>模型名称<input value={model} onChange={e => setModel(e.target.value)} required /></label>
       <label>API 密钥<div className="secret-field"><input type={showKey ? 'text' : 'password'} value={apiKey} onChange={e => setApiKey(e.target.value)} autoComplete="off" placeholder={settings?.configured ? `已保存 ${settings.keyHint}，留空不修改` : '请输入 DeepSeek API 密钥'} /><button type="button" onClick={() => setShowKey(value => !value)}>{showKey ? '隐藏' : '显示'}</button></div></label>

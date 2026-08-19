@@ -1,10 +1,18 @@
 import type { BabySex } from './types.js';
+import {
+  WHO_BOYS_WEIGHT, WHO_GIRLS_WEIGHT,
+  WHO_BOYS_LENGTH, WHO_GIRLS_LENGTH,
+  WHO_BOYS_HEIGHT, WHO_GIRLS_HEIGHT
+} from './who-standards-data.js';
 
 // 中国《7岁以下儿童生长标准》（WS/T 423-2022，国家卫健委 2022 发布、2023-03-01 实施）附录 B 标准差数值。
 // 行格式：[月龄, -2SD, -1SD, 中位数, +1SD, +2SD]；0-23 月龄逐月一行，2 岁起每 3 个月一行，相邻锚点线性插值。
 // 数据来源：国家卫生健康委员会官网发布 PDF 表 B.1（男童体重）、B.2（女童体重）、B.3（男童身长/身高）、B.4（女童身长/身高）。
 // 身长（卧位）用于 0-23 月，身高（站立）用于 2 岁及以上；判定界值按标准表 2（标准差法）：
 // <-2SD 下、-2SD≤·<-1SD 中下、-1SD≤·<+1SD 中、+1SD≤·<+2SD 中上、≥+2SD 上。
+
+// WHO《Child Growth Standards》（2006）数据见 who-standards-data.ts；
+// 体重 0-60 月、身长 0-24 月（卧位）、身高 24-60 月（站位）。曲线展示用，评估逻辑共用。
 
 export type GrowthBand = 'low' | 'below' | 'mid' | 'above' | 'high';
 
@@ -14,6 +22,28 @@ export interface IndicatorAssessment {
   band: GrowthBand;
   bandLabel: string;
   anchors: { minus2sd: number; minus1sd: number; median: number; plus1sd: number; plus2sd: number };
+}
+
+export interface ReferenceAnchor {
+  ageMonths: number;
+  minus2sd: number;
+  minus1sd: number;
+  median: number;
+  plus1sd: number;
+  plus2sd: number;
+}
+
+export interface GrowthStandard {
+  id: 'cn' | 'who';
+  name: string;
+  maxMonths: number;
+  boysWeight: readonly (readonly number[])[];
+  girlsWeight: readonly (readonly number[])[];
+  boysHeightLength: readonly (readonly number[])[];   // 0 .. switchMonth（身长/CN 全龄合表）
+  girlsHeightLength: readonly (readonly number[])[];
+  boysHeightStature?: readonly (readonly number[])[]; // switchMonth .. maxMonths（仅 WHO 身高）
+  girlsHeightStature?: readonly (readonly number[])[];
+  heightSwitchMonth?: number;
 }
 
 // [月龄, -2SD, -1SD, 中位数, +1SD, +2SD]，单位厘米（表 B.3）
@@ -120,8 +150,88 @@ const GIRLS_WEIGHT: readonly (readonly number[])[] = [
   [78, 16.8, 19.1, 21.8, 25.1, 28.9], [81, 17.1, 19.5, 22.4, 25.8, 29.8]
 ];
 
-// 标准表覆盖到 6 岁 9 月（81 月龄），标准本身适用于未满 7 周岁儿童。
-export const GROWTH_STANDARD_MAX_MONTHS = 81;
+// CN 标准：身长/身高合一表（0–81 月）；保留旧实现语义。
+export const CN_STANDARD: GrowthStandard = {
+  id: 'cn',
+  name: 'WS/T 423-2022',
+  maxMonths: 81,
+  boysWeight: BOYS_WEIGHT,
+  girlsWeight: GIRLS_WEIGHT,
+  boysHeightLength: BOYS_HEIGHT,
+  girlsHeightLength: GIRLS_HEIGHT
+};
+
+// WHO 标准：体重 0–60 月，身长 0–24 月（卧位）+ 身高 24–60 月（站位）。
+export const WHO_STANDARD: GrowthStandard = {
+  id: 'who',
+  name: 'WHO 儿童生长标准',
+  maxMonths: 60,
+  boysWeight: WHO_BOYS_WEIGHT,
+  girlsWeight: WHO_GIRLS_WEIGHT,
+  boysHeightLength: WHO_BOYS_LENGTH,
+  girlsHeightLength: WHO_GIRLS_LENGTH,
+  boysHeightStature: WHO_BOYS_HEIGHT,
+  girlsHeightStature: WHO_GIRLS_HEIGHT,
+  heightSwitchMonth: 24
+};
+
+// 向后兼容：旧代码以常量形式导入"标准覆盖月龄"，仍按 CN 算。
+export const GROWTH_STANDARD_MAX_MONTHS = CN_STANDARD.maxMonths;
+
+// z-score 转百分位（0-100），使用 Abramowitz-Stegun 近似，误差 < 7.5e-8
+export function zToPercentile(z: number): number {
+  if (z <= -3) return 0.1;
+  if (z >= 3) return 99.9;
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z * z / 2);
+  let prob = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  if (z > 0) prob = 1 - prob;
+  return Math.round(prob * 1000) / 10;
+}
+
+// 给定标准与性别/月龄，返回用于评估/插值的"身高"表（WHO 在切换月龄之后用 stature 表）。
+function heightTableFor(standard: GrowthStandard, sex: BabySex, ageMonths: number): readonly (readonly number[])[] {
+  const switchM = standard.heightSwitchMonth;
+  if (standard.boysHeightStature && standard.girlsHeightStature && switchM != null && ageMonths >= switchM) {
+    return sex === 'male' ? standard.boysHeightStature : standard.girlsHeightStature;
+  }
+  return sex === 'male' ? standard.boysHeightLength : standard.girlsHeightLength;
+}
+
+// 身高参考曲线在 WHO 下需要把身长（0–switchMonth）与身高（switchMonth+1..max）拼成一条连续序列，
+// 便于成长曲线一次绘制。CN 无身高/身长分段，直接返回单表。
+function heightReferenceTable(standard: GrowthStandard, sex: BabySex): readonly (readonly number[])[] {
+  const length = sex === 'male' ? standard.boysHeightLength : standard.girlsHeightLength;
+  if (!standard.boysHeightStature || !standard.girlsHeightStature || standard.heightSwitchMonth == null) {
+    return length;
+  }
+  const stature = sex === 'male' ? standard.boysHeightStature : standard.girlsHeightStature;
+  const switchM = standard.heightSwitchMonth;
+  return [...length.filter(row => row[0] <= switchM), ...stature.filter(row => row[0] > switchM)];
+}
+
+// 获取指定性别和指标的参考曲线锚点（过滤到 maxAgeMonths）
+export function getReferenceAnchors(
+  sex: BabySex,
+  indicator: 'height' | 'weight',
+  maxAgeMonths: number,
+  standard: GrowthStandard = CN_STANDARD
+): ReferenceAnchor[] {
+  if (sex !== 'male' && sex !== 'female') return [];
+  const table = indicator === 'height'
+    ? heightReferenceTable(standard, sex)
+    : (sex === 'male' ? standard.boysWeight : standard.girlsWeight);
+  return table
+    .filter(row => row[0] <= maxAgeMonths)
+    .map(row => ({
+      ageMonths: row[0],
+      minus2sd: row[1],
+      minus1sd: row[2],
+      median: row[3],
+      plus1sd: row[4],
+      plus2sd: row[5]
+    }));
+}
 
 const BAND_LABELS: Record<GrowthBand, string> = {
   low: '下',
@@ -131,8 +241,8 @@ const BAND_LABELS: Record<GrowthBand, string> = {
   high: '上'
 };
 
-function interpolateAnchors(table: readonly (readonly number[])[], ageMonths: number): number[] {
-  const clamped = Math.min(Math.max(ageMonths, 0), GROWTH_STANDARD_MAX_MONTHS);
+function interpolateAnchors(table: readonly (readonly number[])[], ageMonths: number, maxMonths: number): number[] {
+  const clamped = Math.min(Math.max(ageMonths, 0), maxMonths);
   let lower = 0;
   for (let index = table.length - 1; index >= 0; index -= 1) {
     if (table[index][0] <= clamped) { lower = index; break; }
@@ -172,8 +282,8 @@ function zFromAnchors(value: number, anchors: number[]): number {
   return 0;
 }
 
-export function assessIndicator(table: readonly (readonly number[])[], ageMonths: number, value: number): IndicatorAssessment {
-  const anchors = interpolateAnchors(table, ageMonths);
+export function assessIndicator(table: readonly (readonly number[])[], ageMonths: number, value: number, maxMonths: number): IndicatorAssessment {
+  const anchors = interpolateAnchors(table, ageMonths, maxMonths);
   const z = Math.round(zFromAnchors(value, anchors) * 100) / 100;
   const band = bandOf(z);
   return {
@@ -185,16 +295,16 @@ export function assessIndicator(table: readonly (readonly number[])[], ageMonths
   };
 }
 
-export function assessHeight(sex: BabySex, ageMonths: number, heightCm: number): IndicatorAssessment | null {
+export function assessHeight(sex: BabySex, ageMonths: number, heightCm: number, standard: GrowthStandard = CN_STANDARD): IndicatorAssessment | null {
   if (sex !== 'male' && sex !== 'female') return null;
-  if (ageMonths < 0 || ageMonths > GROWTH_STANDARD_MAX_MONTHS) return null;
-  return assessIndicator(sex === 'male' ? BOYS_HEIGHT : GIRLS_HEIGHT, ageMonths, heightCm);
+  if (ageMonths < 0 || ageMonths > standard.maxMonths) return null;
+  return assessIndicator(heightTableFor(standard, sex, ageMonths), ageMonths, heightCm, standard.maxMonths);
 }
 
-export function assessWeight(sex: BabySex, ageMonths: number, weightKg: number): IndicatorAssessment | null {
+export function assessWeight(sex: BabySex, ageMonths: number, weightKg: number, standard: GrowthStandard = CN_STANDARD): IndicatorAssessment | null {
   if (sex !== 'male' && sex !== 'female') return null;
-  if (ageMonths < 0 || ageMonths > GROWTH_STANDARD_MAX_MONTHS) return null;
-  return assessIndicator(sex === 'male' ? BOYS_WEIGHT : GIRLS_WEIGHT, ageMonths, weightKg);
+  if (ageMonths < 0 || ageMonths > standard.maxMonths) return null;
+  return assessIndicator(sex === 'male' ? standard.boysWeight : standard.girlsWeight, ageMonths, weightKg, standard.maxMonths);
 }
 
 // 奶量参考区间（每日总量，mL）：参考中国居民膳食指南与儿保常规建议，仅供参考。

@@ -87,7 +87,7 @@ export function ServerBackupCard({ onImported }: { onImported(): void | Promise<
   }
   return <><section className="settings-card backup-card"><div className="setting-status"><h2>备份状态与恢复</h2><span className="on">每 6 小时</span></div>
     <p>自动保存完整照护数据，最多保留最近 {status?.retention ?? 30} 份。可选择服务器备份进行完整恢复，操作前会先保存当前数据。</p>
-    <div className="backup-summary"><div><span>最近备份</span><b>{formatTime(status?.lastBackupAt ?? null)}</b></div><div><span>下次预计</span><b>{formatTime(status?.nextBackupAt ?? null)}</b></div><div><span>服务器备份</span><b>{status ? `${status.count} 份` : '读取中…'}</b></div><div><span>保存位置</span><b>{status?.directory || '/data/backups'}</b></div></div>
+    <div className="backup-summary"><div><span>最近备份</span><b>{formatTime(status?.lastBackupAt ?? null)}</b></div><div><span>下次预计</span><b>{formatTime(status?.nextBackupAt ?? null)}</b></div><div><span>服务器备份</span><b>{status ? `${status.count} 份` : '读取中…'}</b></div><div><span>保存位置</span><b>{status?.directory ? '由服务器自动托管' : '服务器托管'}</b></div></div>
     <div className="backup-actions">
       <button className="btn primary full" disabled={Boolean(busy)} onClick={createBackup}>{busy === 'backup' ? '备份中…' : '立即备份到服务器'}</button>
       <button className="btn secondary full" disabled={Boolean(busy) || !status?.count} onClick={() => setShowRestore(true)}>从服务器恢复</button>

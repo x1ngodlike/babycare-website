@@ -3,7 +3,7 @@ import { canonicalInstant } from '../shanghai-date.js';
 import { dateStringInTimeZone } from '../../shared/date.js';
 import { DuplicateSupplementError, CareItemInactiveError, RecordNotFoundError } from './errors.js';
 import { invalidateDailyReports } from './daily-reports.js';
-import type { AuditAction, AuditEntry, AuditIdentity, CareRecord } from '../types.js';
+import type { AuditAction, AuditChange, AuditEntry, AuditIdentity, CareRecord } from '../types.js';
 
 const columns = `
   id, type, occurred_at AS occurredAt, breast_milk_ml AS breastMilkMl,
@@ -16,9 +16,24 @@ function getRecord(id: string): CareRecord | null {
   return db.prepare(`SELECT ${columns} FROM care_records WHERE id = ?`).get(id) as CareRecord | undefined || null;
 }
 
-export function addAudit(recordId: string, action: AuditAction, actor: AuditIdentity, snapshot: CareRecord | null, occurredAt = new Date().toISOString()) {
-  db.prepare('INSERT INTO record_audit (record_id, action, actor, occurred_at, snapshot) VALUES (?, ?, ?, ?, ?)')
-    .run(recordId, action, actor, occurredAt, snapshot ? JSON.stringify(snapshot) : null);
+export function addAudit(recordId: string, action: AuditAction, actor: AuditIdentity, snapshot: CareRecord | null, occurredAt = new Date().toISOString(), changes: AuditChange[] | null = null) {
+  db.prepare('INSERT INTO record_audit (record_id, action, actor, occurred_at, snapshot, changes) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(recordId, action, actor, occurredAt, snapshot ? JSON.stringify(snapshot) : null, changes ? JSON.stringify(changes) : null);
+}
+
+const AUDIT_COMPARE_FIELDS: (keyof CareRecord)[] = ['type', 'occurredAt', 'breastMilkMl', 'formulaMl', 'supplement', 'bowelSize', 'subject', 'note'];
+
+function computeChanges(oldRecord: CareRecord | null | undefined, newRecord: CareRecord): AuditChange[] {
+  if (!oldRecord) return [];
+  const changes: AuditChange[] = [];
+  for (const field of AUDIT_COMPARE_FIELDS) {
+    const oldVal = oldRecord[field];
+    const newVal = newRecord[field];
+    if (oldVal !== newVal) {
+      changes.push({ field: field as string, old: oldVal, new: newVal });
+    }
+  }
+  return changes;
 }
 
 function ensureNoDuplicateSupplement(record: CareRecord) {
@@ -67,7 +82,8 @@ const saveRecordTransaction = db.transaction((record: CareRecord): CareRecord =>
     `).run(record);
   }
   const saved = getRecord(record.id)!;
-  addAudit(saved.id, existing ? 'update' : 'create', saved.updatedBy, saved);
+  const changes = existing ? computeChanges(existing, saved) : null;
+  addAudit(saved.id, existing ? 'update' : 'create', saved.updatedBy, saved, undefined, changes);
   invalidateDailyReports(existing?.occurredAt, saved.occurredAt);
   return saved;
 });
@@ -113,11 +129,11 @@ export function listDeletedRecords(): CareRecord[] {
 }
 
 export function listAudit(recordId: string): AuditEntry[] {
-  const rows = db.prepare(`SELECT id, record_id AS recordId, action, actor, occurred_at AS occurredAt, snapshot FROM record_audit WHERE record_id = ? ORDER BY occurred_at DESC, id DESC`).all(recordId) as (Omit<AuditEntry, 'snapshot'> & { snapshot: string | null })[];
-  return rows.map(row => ({ ...row, snapshot: row.snapshot ? JSON.parse(row.snapshot) as CareRecord : null }));
+  const rows = db.prepare(`SELECT id, record_id AS recordId, action, actor, occurred_at AS occurredAt, snapshot, changes FROM record_audit WHERE record_id = ? ORDER BY occurred_at DESC, id DESC`).all(recordId) as (Omit<AuditEntry, 'snapshot' | 'changes'> & { snapshot: string | null; changes: string | null })[];
+  return rows.map(row => ({ ...row, snapshot: row.snapshot ? JSON.parse(row.snapshot) as CareRecord : null, changes: row.changes ? JSON.parse(row.changes) as AuditChange[] : null }));
 }
 
 export function allAudit(): AuditEntry[] {
-  const rows = db.prepare(`SELECT id, record_id AS recordId, action, actor, occurred_at AS occurredAt, snapshot FROM record_audit ORDER BY occurred_at ASC, id ASC`).all() as (Omit<AuditEntry, 'snapshot'> & { snapshot: string | null })[];
-  return rows.map(row => ({ ...row, snapshot: row.snapshot ? JSON.parse(row.snapshot) as CareRecord : null }));
+  const rows = db.prepare(`SELECT id, record_id AS recordId, action, actor, occurred_at AS occurredAt, snapshot, changes FROM record_audit ORDER BY occurred_at ASC, id ASC`).all() as (Omit<AuditEntry, 'snapshot' | 'changes'> & { snapshot: string | null; changes: string | null })[];
+  return rows.map(row => ({ ...row, snapshot: row.snapshot ? JSON.parse(row.snapshot) as CareRecord : null, changes: row.changes ? JSON.parse(row.changes) as AuditChange[] : null }));
 }

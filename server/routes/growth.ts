@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getSessionUser, requireAdmin } from '../auth.js';
 import { generateGrowthEvaluation } from '../ai.js';
 import { getAiSettings, getProfile, listGrowthRecords, listRecords, purgeGrowthRecord, removeGrowthRecord, restoreGrowthRecord, saveGrowthEvaluation, saveGrowthRecord } from '../db/index.js';
-import { assessHeight, assessWeight, milkReferenceRange, GROWTH_STANDARD_MAX_MONTHS } from '../growth-standards.js';
+import { assessHeight, assessWeight, getReferenceAnchors, milkReferenceRange, GROWTH_STANDARD_MAX_MONTHS, WHO_STANDARD, zToPercentile } from '../growth-standards.js';
 import { normalizeGrowthRecord, calculateAgeText } from '../normalize.js';
 import { growthRecordSchema } from '../schemas.js';
 import { addDaysToDateString, shanghaiDateString, shanghaiDayUtcRange } from '../shanghai-date.js';
@@ -117,6 +117,50 @@ export function registerGrowthRoutes(app: Express, ctx: RouteContext) {
       weight,
       milk,
       evaluation: parseGrowthEvaluation(latest.evaluation, latest.evaluatedAt)
+    });
+  });
+
+  app.get('/api/growth-curve', (_req, res) => {
+    const profile = getProfile();
+    const records = listGrowthRecords().filter(r => !r.deletedAt).sort((a, b) => a.measuredOn.localeCompare(b.measuredOn));
+    if (profile.sex !== 'male' && profile.sex !== 'female') return res.json({ available: false, reason: 'no_sex' });
+    if (records.length === 0) return res.json({ available: false, reason: 'no_records' });
+    const latestRecord = records[records.length - 1];
+    const latestAgeMonths = ageMonthsAt(profile.birthDate, latestRecord.measuredOn);
+    // 成长曲线使用 WHO 标准；最大覆盖 60 月（5 岁），最小展示 6 月便于小月龄看清参考带。
+    const maxAgeMonths = Math.min(Math.max(6, Math.ceil(latestAgeMonths)), WHO_STANDARD.maxMonths);
+    const curveRecords = records.map(record => {
+      const ageMonths = ageMonthsAt(profile.birthDate, record.measuredOn);
+      const height = assessHeight(profile.sex, ageMonths, record.heightCm, WHO_STANDARD);
+      const weight = assessWeight(profile.sex, ageMonths, record.weightKg, WHO_STANDARD);
+      return {
+        id: record.id,
+        measuredOn: record.measuredOn,
+        ageMonths: Math.round(ageMonths * 10) / 10,
+        heightCm: record.heightCm,
+        weightKg: record.weightKg,
+        heightZ: height?.z ?? null,
+        weightZ: weight?.z ?? null,
+        heightPercentile: height ? zToPercentile(height.z) : null,
+        weightPercentile: weight ? zToPercentile(weight.z) : null,
+        heightBand: height?.bandLabel ?? null,
+        weightBand: weight?.bandLabel ?? null,
+        createdBy: record.createdBy
+      };
+    });
+    return res.json({
+      available: true,
+      records: curveRecords,
+      reference: {
+        height: getReferenceAnchors(profile.sex, 'height', maxAgeMonths, WHO_STANDARD),
+        weight: getReferenceAnchors(profile.sex, 'weight', maxAgeMonths, WHO_STANDARD)
+      },
+      meta: {
+        sex: profile.sex,
+        maxAgeMonths,
+        standardName: WHO_STANDARD.name,
+        recordCount: records.length
+      }
     });
   });
 
