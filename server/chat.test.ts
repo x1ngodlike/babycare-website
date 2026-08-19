@@ -57,7 +57,7 @@ describe('chat data context', () => {
 
 describe('chat structured output schema', () => {
   it('accepts a valid reply with memories and title', () => {
-    const parsed = chat.chatSchema.parse({ reply: '宝宝今日奶量正常。', memories: [{ category: 'preferences', content: '喜欢躺着喝奶' }], title: '今日奶量' });
+    const parsed = chat.chatSchema.parse({ reply: '宝宝今日奶量正常。', memories: [{ category: 'preferences', content: '喜欢躺着喝奶', expiresAt: null }], title: '今日奶量' });
     expect(parsed.reply).toBe('宝宝今日奶量正常。');
     expect(parsed.memories[0].category).toBe('preferences');
   });
@@ -123,7 +123,7 @@ describe('memory contradiction resolution', () => {
 
   it('resolves old memory when the model sets supersedes in its output', async () => {
     db.addMemory('宝宝肚子不舒服', 'health');
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ reply: '太好了，已经好了。', memories: [{ category: 'health', content: '宝宝肚子好了', supersedes: '宝宝肚子不舒服' }], title: '恢复情况' }) } }] }), { status: 200 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ reply: '太好了，已经好了。', memories: [{ category: 'health', content: '宝宝肚子好了', expiresAt: null, supersedes: '宝宝肚子不舒服' }], title: '恢复情况' }) } }] }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     const result = await chat.generateChatReply({ baseUrl: 'https://api.example.com', model: 'test', apiKey: 'secret' }, { userId: 'father', message: '宝宝肚子好了' });
     expect(result.resolvedMemories.length).toBe(1);
