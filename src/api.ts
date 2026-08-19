@@ -1,4 +1,4 @@
-import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthRecord, DraftMilestoneRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, FamilyId, FamilyMemberPermission, GrowthRecord, MilestoneRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
+import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthRecord, DraftMilestoneRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, ExtractedMemory, FamilyId, FamilyMemberPermission, GrowthRecord, MilestoneRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 
 export interface GrowthIndicatorAssessment {
   value: number;
@@ -99,7 +99,7 @@ export const api = {
   chatSessions: (userId?: FamilyId) => request<{ sessions: ChatSession[] }>(`/api/ai/chat/sessions${userId ? `?userId=${userId}` : ''}`),
   createChatSession: (userId?: FamilyId) => request<ChatSession>('/api/ai/chat/sessions', { method: 'POST', body: JSON.stringify({ userId }) }),
   deleteChatSession: (id: string) => request<{ deleted: boolean }>(`/api/ai/chat/sessions/${id}`, { method: 'DELETE' }),
-  chatMessages: (id: string) => request<{ messages: ChatMessage[] }>(`/api/ai/chat/sessions/${id}/messages`),
+  chatMessages: (id: string) => request<{ messages: ChatMessage[]; hints?: { messageId: string; memories: ExtractedMemory[]; resolved: { id: string; content: string }[] }[] }>(`/api/ai/chat/sessions/${id}/messages`),
   memories: (includeExpired = false) => request<{ memories: AiMemory[] }>(`/api/ai/memories${includeExpired ? '?includeExpired=1' : ''}`),
   addMemory: (content: string, category: 'preferences' | 'health' | 'notes', expiresAt?: string | null) => request<AiMemory>('/api/ai/memories', { method: 'POST', body: JSON.stringify({ content, category, expiresAt: expiresAt ?? null }) }),
   deleteMemory: (id: string) => request<{ deleted: boolean }>(`/api/ai/memories/${id}`, { method: 'DELETE' }),

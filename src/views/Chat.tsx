@@ -422,6 +422,7 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
   const memberDropdownRef = useRef<HTMLDivElement | null>(null);
   const sessionRequestId = useRef(0);
   const messageRequestId = useRef(0);
+  const suppressNextMessageLoad = useRef(false);
 
   const displayUserName = superadmin
     ? (familyMembers.find(m => m.id === targetUserId)?.name || user.name)
@@ -443,7 +444,23 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
     const reqId = ++messageRequestId.current;
     try {
       const res = await api.chatMessages(sessionId);
-      if (reqId === messageRequestId.current) setMessages(res.messages);
+      if (reqId === messageRequestId.current) {
+        if (suppressNextMessageLoad.current) {
+          suppressNextMessageLoad.current = false;
+          return;
+        }
+        setMessages(res.messages);
+        if (res.hints?.length) {
+          const ext: Record<string, ExtractedMemory[]> = {};
+          const resv: Record<string, { id: string; content: string }[]> = {};
+          for (const h of res.hints) {
+            if (h.memories.length) ext[h.messageId] = h.memories;
+            if (h.resolved.length) resv[h.messageId] = h.resolved;
+          }
+          setExtractedHints(prev => ({ ...prev, ...ext }));
+          setResolvedHints(prev => ({ ...prev, ...resv }));
+        }
+      }
     } catch (err) {
       if (reqId === messageRequestId.current) setError(err instanceof Error ? err.message : '读取消息失败');
     }
@@ -499,6 +516,7 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
   }, [showSessionDropdown, showMemberDropdown]);
 
   function selectSession(id: string) {
+    if (id === activeSessionId) { setShowSessionSheet(false); setShowSessionDropdown(false); return; }
     setActiveSessionId(id);
     setMessages([]);
     setError('');
@@ -517,6 +535,7 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
     setMessages(prev => [...prev, optimisticUser]);
     try {
       const res = await api.chat(trimmed, activeSessionId || undefined, superadmin ? targetUserId : undefined, superadmin ? displayUserName : undefined);
+      suppressNextMessageLoad.current = true;
       setActiveSessionId(res.sessionId);
       setSessions(prev => {
         const exists = prev.some(s => s.id === res.sessionId);
@@ -528,8 +547,8 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
         const withoutOptimistic = prev.filter(m => m.id !== optimisticUser.id);
         return [...withoutOptimistic, { ...optimisticUser, sessionId: res.sessionId }, assistant];
       });
-      if (res.extractedMemories.length) setExtractedHints(prev => ({ ...prev, [assistant.id]: res.extractedMemories }));
-      if (res.resolvedMemories.length) setResolvedHints(prev => ({ ...prev, [assistant.id]: res.resolvedMemories }));
+      if (res.extractedMemories?.length) setExtractedHints(prev => ({ ...prev, [assistant.id]: res.extractedMemories }));
+      if (res.resolvedMemories?.length) setResolvedHints(prev => ({ ...prev, [assistant.id]: res.resolvedMemories }));
     } catch (err) {
       setMessages(prev => prev.filter(m => m.id !== optimisticUser.id));
       setInput(trimmed);

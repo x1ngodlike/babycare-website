@@ -12,24 +12,24 @@ export function listMemories(includeExpired = false): AiMemory[] {
   return (includeExpired ? db.prepare(sql).all() : db.prepare(sql).all(nowIso)) as AiMemory[];
 }
 
-export function addMemory(content: string, category: AiMemoryCategory, expiresAt: string | null = null): AiMemory {
+export function addMemory(content: string, category: AiMemoryCategory, expiresAt: string | null = null, sourceMessageId: string | null = null): AiMemory {
   const now = new Date().toISOString();
   const id = randomUUID();
-  db.prepare("INSERT INTO ai_memories (id, content, category, created_at, updated_at, expires_at, status, resolved_at) VALUES (?, ?, ?, ?, ?, ?, 'active', NULL)").run(id, content, category, now, now, expiresAt);
+  db.prepare("INSERT INTO ai_memories (id, content, category, created_at, updated_at, expires_at, status, resolved_at, source_message_id) VALUES (?, ?, ?, ?, ?, ?, 'active', NULL, ?)").run(id, content, category, now, now, expiresAt, sourceMessageId);
   return { id, content, category, createdAt: now, updatedAt: now, expiresAt, status: 'active', resolvedAt: null };
 }
 
 /** 去重合并：同分类下内容（去空格后）已存在则只刷新 updated_at（并采纳新的过期时间、恢复为 active），否则新增。 */
-export function upsertMemory(content: string, category: AiMemoryCategory, expiresAt: string | null = null): AiMemory {
+export function upsertMemory(content: string, category: AiMemoryCategory, expiresAt: string | null = null, sourceMessageId: string | null = null): AiMemory {
   const normalized = content.trim();
   const existing = db.prepare('SELECT id, content, category, created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt, status, resolved_at AS resolvedAt FROM ai_memories WHERE category = ? AND TRIM(content) = ?').get(category, normalized) as AiMemory | undefined;
   const now = new Date().toISOString();
   if (existing) {
     const nextExpiry = expiresAt !== null ? expiresAt : existing.expiresAt;
-    db.prepare("UPDATE ai_memories SET updated_at = ?, expires_at = ?, status = 'active', resolved_at = NULL WHERE id = ?").run(now, nextExpiry, existing.id);
+    db.prepare("UPDATE ai_memories SET updated_at = ?, expires_at = ?, status = 'active', resolved_at = NULL, source_message_id = COALESCE(?, source_message_id) WHERE id = ?").run(now, nextExpiry, sourceMessageId, existing.id);
     return { ...existing, updatedAt: now, expiresAt: nextExpiry, status: 'active', resolvedAt: null };
   }
-  return addMemory(normalized, category, expiresAt);
+  return addMemory(normalized, category, expiresAt, sourceMessageId);
 }
 
 /** 备份恢复：按原字段（含 status / expiresAt / resolvedAt / 时间）完整写回，避免恢复后记忆被误判为 active。 */
@@ -86,7 +86,7 @@ function longestCommonSubstringLength(a: string, b: string): number {
  * 矛盾消解：把与 supersedes 文本高度重合的 active 记忆标记为「已作废」，返回被作废的记忆列表。
  * 匹配规则：归一化后最长公共子串 ≥ max(4, 较短者长度的 40%)，视为同一条被推翻的记忆。
  */
-export function resolveBySupersede(supersedes: string, excludeId?: string): AiMemory[] {
+export function resolveBySupersede(supersedes: string, excludeId?: string, sourceMessageId?: string): AiMemory[] {
   const phrase = normalizeForMatch(supersedes);
   if (phrase.length < 4) return [];
   const now = new Date().toISOString();
@@ -101,7 +101,7 @@ export function resolveBySupersede(supersedes: string, excludeId?: string): AiMe
     const lcs = longestCommonSubstringLength(phrase, norm);
     const threshold = Math.max(4, Math.ceil(Math.min(phrase.length, norm.length) * 0.4));
     if (lcs >= threshold) {
-      db.prepare("UPDATE ai_memories SET status = 'resolved', expires_at = ?, resolved_at = ?, updated_at = ? WHERE id = ?").run(now, now, now, m.id);
+      db.prepare("UPDATE ai_memories SET status = 'resolved', expires_at = ?, resolved_at = ?, updated_at = ?, source_message_id = COALESCE(?, source_message_id) WHERE id = ?").run(now, now, now, sourceMessageId, m.id);
       resolved.push({ ...m, status: 'resolved', resolvedAt: now, expiresAt: now, updatedAt: now });
     }
   }
@@ -148,6 +148,19 @@ export function deleteSession(id: string): boolean {
 
 export function listMessages(sessionId: string): ChatMessage[] {
   return db.prepare('SELECT id, session_id AS sessionId, role, content, created_at AS createdAt FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC').all(sessionId) as ChatMessage[];
+}
+
+export function listMessageMemories(sessionId: string): { messageId: string; memories: { id: string; content: string; category: AiMemoryCategory; expiresAt: string | null }[]; resolved: { id: string; content: string }[] }[] {
+  const messages = db.prepare("SELECT id FROM chat_messages WHERE session_id = ? AND role = 'assistant'").all(sessionId) as { id: string }[];
+  const result: { messageId: string; memories: { id: string; content: string; category: AiMemoryCategory; expiresAt: string | null }[]; resolved: { id: string; content: string }[] }[] = [];
+  for (const msg of messages) {
+    const memories = db.prepare("SELECT id, content, category, expires_at AS expiresAt FROM ai_memories WHERE source_message_id = ? AND status = 'active'").all(msg.id) as { id: string; content: string; category: AiMemoryCategory; expiresAt: string | null }[];
+    const resolved = db.prepare("SELECT id, content FROM ai_memories WHERE source_message_id = ? AND status = 'resolved'").all(msg.id) as { id: string; content: string }[];
+    if (memories.length > 0 || resolved.length > 0) {
+      result.push({ messageId: msg.id, memories, resolved });
+    }
+  }
+  return result;
 }
 
 export function addMessage(sessionId: string, role: 'user' | 'assistant', content: string): ChatMessage {

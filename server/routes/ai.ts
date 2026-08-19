@@ -4,7 +4,7 @@ import { getSessionUser, requireAdmin, requireSuperAdmin } from '../auth.js';
 import { testModelConnection } from '../ai.js';
 import { generateChatReply } from '../chat.js';
 import { generateDailyReportForDate, yesterdayInShanghai } from '../daily-report.js';
-import { addMemory, clearMemories, deleteMemory, deleteSession, getAiSettings, getDailyReport, getSession as getChatSession, listMemories, listMessages, listSessions, restoreMemoryById, saveAiSettings, createSession as createChatSession } from '../db/index.js';
+import { addMemory, clearMemories, deleteMemory, deleteSession, getAiSettings, getDailyReport, getSession as getChatSession, listMemories, listMessageMemories, listMessages, listSessions, restoreMemoryById, saveAiSettings, createSession as createChatSession } from '../db/index.js';
 import { aiSettingsSchema, chatMessageSchema, memoryInputSchema } from '../schemas.js';
 import type { FamilyId } from '../types.js';
 
@@ -98,7 +98,9 @@ export function registerAiRoutes(app: Express) {
     const session = getChatSession(parsed.data);
     if (!session) return res.status(404).json({ error: '会话不存在' });
     if (session.userId !== user.id && user.role !== 'superadmin') return res.status(403).json({ error: '只能查看自己的对话' });
-    return res.json({ messages: listMessages(parsed.data) });
+    const messages = listMessages(parsed.data);
+    const hints = listMessageMemories(parsed.data);
+    return res.json({ messages, hints });
   });
 
   app.delete('/api/ai/chat/sessions/:id', (req, res) => {

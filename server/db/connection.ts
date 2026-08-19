@@ -391,6 +391,7 @@ const aiMemoryColumns = db.prepare('PRAGMA table_info(ai_memories)').all() as { 
 if (!aiMemoryColumns.some(column => column.name === 'expires_at')) db.exec('ALTER TABLE ai_memories ADD COLUMN expires_at TEXT');
 if (!aiMemoryColumns.some(column => column.name === 'status')) db.exec("ALTER TABLE ai_memories ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
 if (!aiMemoryColumns.some(column => column.name === 'resolved_at')) db.exec('ALTER TABLE ai_memories ADD COLUMN resolved_at TEXT');
+if (!aiMemoryColumns.some(column => column.name === 'source_message_id')) db.exec('ALTER TABLE ai_memories ADD COLUMN source_message_id TEXT');
 
 // 数据迁移：为旧版 AI 修复前创建的健康类记忆设置默认有效期（14 天）
 // 仅处理 status = 'active' 且 expires_at 为 NULL 的健康类记录

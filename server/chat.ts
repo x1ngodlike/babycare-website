@@ -33,7 +33,7 @@ export const chatSchema = z.object({
   memories: z.array(z.object({
     category: z.enum(['preferences', 'health', 'notes']),
     content: z.string().trim().min(1).max(300),
-    expiresAt: z.string().datetime({ offset: true }).nullable(),
+    expiresAt: z.string().datetime({ offset: true }).nullable().optional(),
     supersedes: z.string().trim().max(300).optional()
   })).max(10),
   title: z.string().trim().max(40).optional()
@@ -184,7 +184,8 @@ export async function generateChatReply(
   const parsed = chatSchema.parse(JSON.parse(content) as unknown);
 
   addMessage(session.id, 'user', opts.message);
-  addMessage(session.id, 'assistant', parsed.reply);
+  const assistantMsg = addMessage(session.id, 'assistant', parsed.reply);
+  const assistantMessageId = assistantMsg.id;
 
   let title = session.title;
   if (parsed.title && (!session.title || session.title === '新对话')) {
@@ -202,11 +203,11 @@ export async function generateChatReply(
   const resolvedMemories: { id: string; content: string }[] = [];
   for (const m of safeMemories) {
     const expiresAt = m.expiresAt ?? null;
-    const saved = upsertMemory(m.content, m.category, expiresAt);
+    const saved = upsertMemory(m.content, m.category, expiresAt, assistantMessageId);
     extractedMemories.push({ category: m.category, content: m.content, expiresAt });
     // 矛盾消解：若本条新记忆推翻某条旧记忆，自动将旧记忆标记为已作废（排除刚写入的本条自身）
     if (m.supersedes && m.supersedes.trim()) {
-      const resolved = resolveBySupersede(m.supersedes.trim(), saved.id);
+      const resolved = resolveBySupersede(m.supersedes.trim(), saved.id, assistantMessageId);
       resolvedMemories.push(...resolved.map(r => ({ id: r.id, content: r.content })));
     }
   }

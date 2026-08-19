@@ -152,6 +152,7 @@ export interface AiMemory {
   expiresAt: string | null;
   status: 'active' | 'resolved';
   resolvedAt: string | null;
+  sourceMessageId?: string | null;
 }
 
 export interface ChatSession {
