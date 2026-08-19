@@ -392,6 +392,14 @@ if (!aiMemoryColumns.some(column => column.name === 'expires_at')) db.exec('ALTE
 if (!aiMemoryColumns.some(column => column.name === 'status')) db.exec("ALTER TABLE ai_memories ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
 if (!aiMemoryColumns.some(column => column.name === 'resolved_at')) db.exec('ALTER TABLE ai_memories ADD COLUMN resolved_at TEXT');
 
+// 数据迁移：为旧版 AI 修复前创建的健康类记忆设置默认有效期（14 天）
+// 仅处理 status = 'active' 且 expires_at 为 NULL 的健康类记录
+db.prepare(`
+  UPDATE ai_memories
+  SET expires_at = datetime(created_at, '+14 days')
+  WHERE category = 'health' AND status = 'active' AND expires_at IS NULL
+`).run();
+
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_ai_memories_updated_at ON ai_memories(updated_at DESC);
   CREATE INDEX IF NOT EXISTS idx_ai_memories_expires_at ON ai_memories(expires_at);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, Brain, Lightbulb, Trash2, XIcon, RotateCcw } from 'lucide-react';
+import { ChevronLeft, Brain, Lightbulb, Trash2, XIcon, RotateCcw, Archive } from 'lucide-react';
 import { api, ApiError } from '../api';
 import { familyMembers } from '../shared';
 import { confirmAction, EmptyState } from '../ui';
@@ -25,7 +25,7 @@ function relativeTime(iso: string): string {
   return formatChatTime(iso);
 }
 
-type ExpiryChoice = 'perm' | '3' | '7' | '30' | 'custom';
+type ExpiryChoice = 'perm' | '3' | '7' | '30';
 const EXPIRY_PRESETS: { key: ExpiryChoice; label: string; days: number | null }[] = [
   { key: 'perm', label: '永久', days: null },
   { key: '3', label: '3 天', days: 3 },
@@ -33,13 +33,7 @@ const EXPIRY_PRESETS: { key: ExpiryChoice; label: string; days: number | null }[
   { key: '30', label: '30 天', days: 30 }
 ];
 
-function computeExpiresAt(choice: ExpiryChoice, customDate: string): string | null {
-  if (choice === 'perm') return null;
-  if (choice === 'custom') {
-    if (!customDate) return null;
-    const d = new Date(`${customDate}T23:59:00`);
-    return Number.isNaN(d.getTime()) ? null : d.toISOString();
-  }
+function computeExpiresAt(choice: ExpiryChoice): string | null {
   const days = EXPIRY_PRESETS.find(p => p.key === choice)?.days;
   if (!days) return null;
   return new Date(Date.now() + days * 86400000).toISOString();
@@ -55,6 +49,15 @@ function formatExpiry(expiresAt: string | null | undefined): { text: string; exp
   if (days >= 1) return { text: `剩 ${days} 天`, expired: false };
   const hours = Math.floor(ms / 3600000);
   return { text: `剩 ${hours} 小时`, expired: false };
+}
+
+function originalDurationDays(createdAt: string, expiresAt: string | null | undefined): string {
+  if (!expiresAt) return '永久';
+  const from = new Date(createdAt).getTime();
+  const to = new Date(expiresAt).getTime();
+  if (Number.isNaN(from) || Number.isNaN(to)) return '';
+  const days = Math.max(1, Math.round((to - from) / 86400000));
+  return `${days}天期限`;
 }
 
 const SUGGESTIONS = [
@@ -155,22 +158,30 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<'all' | AiMemory['category']>('all');
   const [expiryChoice, setExpiryChoice] = useState<ExpiryChoice>('perm');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [includeExpired, setIncludeExpired] = useState(false);
+  const [showExpiredDialog, setShowExpiredDialog] = useState(false);
   const dialogRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return;
     setLoading(true); setError('');
-    api.memories(includeExpired).then(r => setMemories(r.memories)).catch(err => setError(err instanceof Error ? err.message : '读取失败')).finally(() => setLoading(false));
-  }, [open, includeExpired]);
+    api.memories(true).then(r => setMemories(r.memories ?? [])).catch(err => setError(err instanceof Error ? err.message : '读取失败')).finally(() => setLoading(false));
+  }, [open]);
+  const expiredMemories = useMemo(() => {
+    const now = Date.now();
+    return memories.filter(m => {
+      if (m.status === 'resolved') return true;
+      if (!m.expiresAt) return false;
+      const t = new Date(m.expiresAt).getTime();
+      return !Number.isNaN(t) && t <= now;
+    });
+  }, [memories]);
   async function add() {
     if (!content.trim()) return;
     setSaving(true); setError('');
-    const expiresAt = computeExpiresAt(expiryChoice, expiryDate);
+    const expiresAt = computeExpiresAt(expiryChoice);
     try {
       const memory = await api.addMemory(content.trim(), category, expiresAt);
       setMemories(prev => [memory, ...prev]);
-      setContent(''); setExpiryChoice('perm'); setExpiryDate('');
+      setContent(''); setExpiryChoice('perm');
     }
     catch (err) { setError(err instanceof Error ? err.message : '添加失败'); }
     finally { setSaving(false); }
@@ -188,7 +199,14 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
     catch (err) { setError(err instanceof Error ? err.message : '恢复失败'); }
   }
   const filtered = useMemo(() => {
-    const sorted = [...memories].sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category) || b.updatedAt.localeCompare(a.updatedAt));
+    const sorted = [...memories].filter(m => {
+      if (m.status === 'resolved') return false;
+      if (m.expiresAt) {
+        const t = new Date(m.expiresAt).getTime();
+        if (!Number.isNaN(t) && t <= Date.now()) return false;
+      }
+      return true;
+    }).sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category) || b.updatedAt.localeCompare(a.updatedAt));
     if (filter === 'all') return sorted;
     return sorted.filter(m => m.category === filter);
   }, [memories, filter]);
@@ -210,11 +228,16 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
       {error && <p className="error-text" role="alert">{error}</p>}
 
       <div className="memory-add-card">
-        <div className="memory-add-input">
-          <textarea rows={2} maxLength={200} placeholder="添加一条希望 AI 记住的要点…" value={content} onChange={e => setContent(e.target.value)} />
-          <span className="memory-char-count">{content.length}/200</span>
+        <div className="memory-add-row">
+          <div className="memory-add-input-wrap">
+            <textarea rows={2} maxLength={200} placeholder="添加一条希望 AI 记住的要点…" value={content} onChange={e => setContent(e.target.value)} />
+            <span className="memory-char-count">{content.length}/200</span>
+          </div>
+          <button type="button" className="btn primary memory-add-btn" disabled={saving || !content.trim()} onClick={() => void add()}>
+            {saving ? '保存中…' : '添加'}
+          </button>
         </div>
-        <div className="memory-add-actions">
+        <div className="memory-add-subrow">
           <div className="memory-category-tabs" role="radiogroup" aria-label="记忆分类">
             {categoryOrder.map(cat => (
               <button key={cat} type="button" role="radio" aria-checked={category === cat} className={`memory-category-tab ${category === cat ? 'selected' : ''}`} onClick={() => setCategory(cat)}>
@@ -222,20 +245,13 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
               </button>
             ))}
           </div>
-          <button type="button" className="btn primary memory-add-btn" disabled={saving || !content.trim()} onClick={() => void add()}>
-            {saving ? '保存中…' : '添加'}
-          </button>
-        </div>
-        <div className="memory-expiry-row">
-          <span className="memory-expiry-label">有效期</span>
           <div className="memory-expiry-tabs" role="radiogroup" aria-label="记忆有效期">
             {EXPIRY_PRESETS.map(p => (
-              <button key={p.key} type="button" role="radio" aria-checked={expiryChoice === p.key} className={`memory-expiry-tab ${expiryChoice === p.key ? 'selected' : ''}`} onClick={() => { setExpiryChoice(p.key); setExpiryDate(''); }}>
+              <button key={p.key} type="button" role="radio" aria-checked={expiryChoice === p.key} className={`memory-expiry-tab ${expiryChoice === p.key ? 'selected' : ''}`} onClick={() => setExpiryChoice(p.key)}>
                 {p.label}
               </button>
             ))}
           </div>
-          <input type="date" className="memory-expiry-date" value={expiryDate} min={new Date().toISOString().slice(0, 10)} onChange={e => { setExpiryDate(e.target.value); if (e.target.value) setExpiryChoice('custom'); }} aria-label="自定义过期日期" />
         </div>
       </div>
 
@@ -250,12 +266,17 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
               {categoryLabels[cat]} <span className="memory-count">{countByCategory[cat]}</span>
             </button>
           ))}
-          <label className="memory-include-expired">
-            <input type="checkbox" checked={includeExpired} onChange={e => setIncludeExpired(e.target.checked)} />
-            显示已过期/已作废
-          </label>
         </div>
       </div>}
+
+      {!loading && memories.length > 0 && (
+        <div className="memory-expired-bar">
+          <span className="memory-expired-hint">过期/作废的记忆</span>
+          <button type="button" className="memory-expired-entry" onClick={() => setShowExpiredDialog(true)}>
+            <Archive size={14} strokeWidth={2} /> 共 {expiredMemories.length} 条
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="memory-loading">
@@ -272,17 +293,26 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
         </div>
       ) : (
         <ul className="memory-list" role="list">
-          {filtered.map(m => (
-            <li key={m.id} className="memory-item">
+          {filtered.map(m => {
+            const exp = formatExpiry(m.expiresAt);
+            const statusText = m.status === 'resolved' ? '已作废' : (exp.text === '永久' ? '' : exp.text);
+            const durationLabel = originalDurationDays(m.createdAt, m.expiresAt);
+            return (
+            <li key={m.id} className={`memory-item cat-${m.category}`}>
+              <div className="memory-item-bar" aria-hidden="true" />
               <div className="memory-item-main">
-                <div className="memory-item-meta">
+                <div className="memory-item-head">
                   <span className={`memory-tag ${m.category}`}>{categoryLabels[m.category]}</span>
-                  <span className="memory-item-time" title={new Date(m.updatedAt).toLocaleString('zh-CN')}>{relativeTime(m.updatedAt)}</span>
-                  {m.status === 'resolved'
-                    ? <span className="memory-expiry-badge resolved">已作废</span>
-                    : <span className={`memory-expiry-badge ${formatExpiry(m.expiresAt).expired ? 'expired' : ''}`}>{formatExpiry(m.expiresAt).text}</span>}
+                  <span className={`memory-duration-tag ${durationLabel === '永久' ? 'perm' : ''}`}>{durationLabel}</span>
                 </div>
                 <p className="memory-item-text">{m.content}</p>
+                <div className="memory-item-meta">
+                  <span className="memory-item-time" title={new Date(m.updatedAt).toLocaleString('zh-CN')}>{relativeTime(m.updatedAt)}</span>
+                  {statusText && <>
+                    <span className="memory-item-sep">·</span>
+                    <span className={`memory-item-status ${m.status === 'resolved' ? 'resolved' : exp.expired ? 'expired' : ''}`}>{statusText}</span>
+                  </>}
+                </div>
               </div>
               <div className="memory-item-actions">
                 {m.status === 'resolved' && (
@@ -295,10 +325,55 @@ function MemoryManager({ open, onClose }: { open: boolean; onClose(): void }) {
                 </button>
               </div>
             </li>
-          ))}
+          );})}
         </ul>
       )}
     </section>
+
+    {showExpiredDialog && createPortal(<div className="modal-layer memory-expired-modal" onMouseDown={e => e.target === e.currentTarget && setShowExpiredDialog(false)}>
+      <section className="editor memory-expired-dialog" role="dialog" aria-modal="true" aria-labelledby="memory-expired-title">
+        <header className="memory-head">
+          <div className="memory-head-copy">
+            <p className="kicker">AI 记忆</p>
+            <h2 id="memory-expired-title">已过期 / 已作废</h2>
+            <p className="memory-subtitle">这些记忆不再被 AI 参考，可选择恢复或永久删除</p>
+          </div>
+          <button type="button" className="memory-close" onClick={() => setShowExpiredDialog(false)} aria-label="关闭">
+            <XIcon size={18} strokeWidth={2} />
+          </button>
+        </header>
+        <ul className="memory-list expired" role="list">
+          {expiredMemories.map(m => {
+            const durationLabel = originalDurationDays(m.createdAt, m.expiresAt);
+            return (
+            <li key={m.id} className={`memory-item cat-${m.category}`}>
+              <div className="memory-item-bar" aria-hidden="true" />
+              <div className="memory-item-main">
+                <div className="memory-item-head">
+                  <span className={`memory-tag ${m.category}`}>{categoryLabels[m.category]}</span>
+                  <span className={`memory-duration-tag ${durationLabel === '永久' ? 'perm' : ''}`}>{durationLabel}</span>
+                  <span className={`memory-item-status ${m.status === 'resolved' ? 'resolved' : 'expired'}`}>
+                    {m.status === 'resolved' ? '已作废' : '已过期'}
+                  </span>
+                </div>
+                <p className="memory-item-text">{m.content}</p>
+                <div className="memory-item-meta">
+                  <span className="memory-item-time" title={new Date(m.updatedAt).toLocaleString('zh-CN')}>{relativeTime(m.updatedAt)}</span>
+                </div>
+              </div>
+              <div className="memory-item-actions">
+                <button type="button" className="memory-item-restore" aria-label="恢复这条记忆" title="恢复（撤销作废）" onClick={() => void restore(m.id)}>
+                  <RotateCcw size={14} strokeWidth={2} />
+                </button>
+                <button type="button" className="memory-item-delete" aria-label="删除这条记忆" onClick={() => void remove(m.id)}>
+                  <Trash2 size={14} strokeWidth={2} />
+                </button>
+              </div>
+            </li>
+          );})}
+        </ul>
+      </section>
+    </div>, document.body)}
   </div>, document.body);
 }
 
