@@ -8,13 +8,108 @@
 .baby-hero {
   background: linear-gradient(135deg, #718d56 0%, #5f7b4d 58%, #789160 100%);
 }
-.baby-hero.hero-morning { --hero-background: url('/hero-morning.jpg'); }
-.baby-hero.hero-midday { --hero-background: url('/hero-midday.jpg'); }
-.baby-hero.hero-afternoon { --hero-background: url('/hero-afternoon.jpg'); }
-.baby-hero.hero-evening { --hero-background: url('/hero-evening.jpg'); }
-.baby-hero.hero-night { --hero-background: url('/hero-night.jpg'); }
+.baby-hero.hero-morning { --hero-background: url('/hero/default/morning.webp'); }
+.baby-hero.hero-midday { --hero-background: url('/hero/default/midday.webp'); }
+.baby-hero.hero-afternoon { --hero-background: url('/hero/default/afternoon.webp'); }
+.baby-hero.hero-evening { --hero-background: url('/hero/default/evening.webp'); }
+.baby-hero.hero-night { --hero-background: url('/hero/default/night.webp'); }
+
+/* Hero 折纸童趣方案 */
+.baby-hero.hero-paper.hero-morning { --hero-background: url('/hero/paper/morning.webp'); }
+.baby-hero.hero-paper.hero-midday { --hero-background: url('/hero/paper/midday.webp'); }
+.baby-hero.hero-paper.hero-afternoon { --hero-background: url('/hero/paper/afternoon.webp'); }
+.baby-hero.hero-paper.hero-evening { --hero-background: url('/hero/paper/evening.webp'); }
+.baby-hero.hero-paper.hero-night { --hero-background: url('/hero/paper/night.webp'); }
+
+/* Hero 手绘水彩方案 */
+.baby-hero.hero-watercolor.hero-morning { --hero-background: url('/hero/watercolor/morning.webp'); }
+.baby-hero.hero-watercolor.hero-midday { --hero-background: url('/hero/watercolor/midday.webp'); }
+.baby-hero.hero-watercolor.hero-afternoon { --hero-background: url('/hero/watercolor/afternoon.webp'); }
+.baby-hero.hero-watercolor.hero-evening { --hero-background: url('/hero/watercolor/evening.webp'); }
+.baby-hero.hero-watercolor.hero-night { --hero-background: url('/hero/watercolor/night.webp'); }
+
 @keyframes hero-background-in { from { opacity: .72; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .baby-hero::after { animation: none; } }
+
+/* Hero 背景方案列表 */
+.hero-bg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hero-bg-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  position: relative;
+}
+.hero-bg-item input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.hero-bg-item:hover {
+  border-color: var(--accent);
+}
+.hero-bg-item.selected {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+  box-shadow: 0 0 0 3px rgba(114, 145, 96, .15);
+}
+.hero-bg-checkmark {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  transition: border-color .15s, background .15s;
+}
+.hero-bg-item.selected .hero-bg-checkmark {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.hero-bg-thumb {
+  flex-shrink: 0;
+  width: 64px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+.hero-bg-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Hero 背景预览弹窗 */
+.hero-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.hero-preview-list .baby-hero {
+  position: relative;
+}
+.hero-preview-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
 
 .today-layout .today-plan-list article {
   grid-template-columns: 48px minmax(0, 1fr) auto;

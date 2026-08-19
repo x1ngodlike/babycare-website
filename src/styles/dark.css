@@ -17,6 +17,9 @@
     --line-strong: #434e47;
     --line-sage: #3a4a36;
     --focus: #7d9a66;
+    --accent: #7d9a66;
+    --border: #333d38;
+    --border-strong: #434e47;
     --surface-page: #1a1f1b;
     --surface-card: #242b25;
     --surface-subtle: #2d342d;
@@ -48,6 +51,9 @@ html[data-theme="dark"] {
   --line-strong: #434e47;
   --line-sage: #3a4a36;
   --focus: #7d9a66;
+  --accent: #7d9a66;
+  --border: #333d38;
+  --border-strong: #434e47;
   --surface-page: #1a1f1b;
   --surface-card: #242b25;
   --surface-subtle: #2d342d;
@@ -256,7 +262,7 @@ html[data-theme="dark"] {
   html:not([data-theme="light"]) .baby-hero::after {
     background:
       linear-gradient(90deg, rgba(26, 40, 28, .76) 0%, rgba(26, 40, 28, .5) 48%, rgba(26, 40, 28, .08) 100%),
-      var(--hero-background, url('/hero-midday.jpg')) center / cover no-repeat;
+      var(--hero-background, url('/hero/default/midday.webp')) center / cover no-repeat;
   }
   html:not([data-theme="light"]) .modal-layer { background: rgba(0, 0, 0, .6); }
   html:not([data-theme="light"]) .editor {
@@ -346,7 +352,7 @@ html[data-theme="dark"] {
   html:not([data-theme="light"]) .baby-hero::after {
     background:
       linear-gradient(90deg, rgba(26, 40, 28, .76) 0%, rgba(26, 40, 28, .5) 48%, rgba(26, 40, 28, .08) 100%),
-      var(--hero-background, url('/hero-midday.jpg')) center / cover no-repeat;
+      var(--hero-background, url('/hero/default/midday.webp')) center / cover no-repeat;
   }
   html:not([data-theme="light"]) .today-layout .baby-hero {
     background: linear-gradient(135deg, #3a4f36 0%, #2d3f2b 58%, #425740 100%);
@@ -763,7 +769,7 @@ html[data-theme="dark"] .app-nav .nav-add:active {
 html[data-theme="dark"] .baby-hero::after {
   background:
     linear-gradient(90deg, rgba(26, 40, 28, .76) 0%, rgba(26, 40, 28, .5) 48%, rgba(26, 40, 28, .08) 100%),
-    var(--hero-background, url('/hero-midday.jpg')) center / cover no-repeat;
+    var(--hero-background, url('/hero/default/midday.webp')) center / cover no-repeat;
 }
 html[data-theme="dark"] .modal-layer { background: rgba(0, 0, 0, .6); }
 html[data-theme="dark"] .editor {
