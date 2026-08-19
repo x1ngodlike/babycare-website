@@ -21,6 +21,8 @@ const HERO_BG_OPTIONS = [
   { value: 'hero-pixel', label: '像素萌兔', thumb: '/hero/pixel/morning.webp' },
   { value: 'hero-forest', label: '林间甜梦', thumb: '/hero/forest/morning.webp' },
   { value: 'hero-cloud', label: '云端甜梦', thumb: '/hero/cloud/morning.webp' },
+  { value: 'hero-cozy', label: '暖房甜梦', thumb: '/hero/cozy/morning.webp' },
+  { value: 'hero-pony', label: '星梦小马', thumb: '/hero/pony/morning.webp' },
 ];
 
 function PreviewHero({ profile, userId, periodKey, heroBg, hour }: { profile: Profile; userId: FamilyId; periodKey: string; heroBg: string; hour: number }) {
