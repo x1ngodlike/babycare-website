@@ -105,7 +105,7 @@ export function buildDataContext(): string {
   const avgDailyMl = daysWithFeed ? Math.round(totalMl / daysWithFeed) : 0;
   const avgDailyFeed = daysWithFeed ? Math.round(totalFeed / daysWithFeed) : 0;
 
-  const recent14 = days.slice(-14).map(day => {
+  const recentDays = days.slice(-90).map(day => {
     const a = dayMap.get(day)!;
     return `${day}：奶${a.breast + a.formula}ml/${a.feed}次，排便${a.bowel}，补充[${[...a.supplements].join('、')}]`;
   }).join('\n');
@@ -139,7 +139,7 @@ export function buildDataContext(): string {
     `【疫苗记录】\n${vaccineText}`,
     `【在用照护项目】${careText}`,
     `【喂养全期统计】记录区间 ${firstDay || '无'} ~ ${lastDay || '无'}，有喂奶记录的天数 ${daysWithFeed} 天，日均奶量 ${avgDailyMl}ml，日均喂奶 ${avgDailyFeed} 次，总排便 ${totalBowel} 次`,
-    `【最近 14 天每日汇总】\n${recent14 || '（无）'}`,
+    `【最近 90 天每日汇总】\n${recentDays || '（无）'}`,
     `【最近 30 天原始记录】\n${raw || '（无）'}`
   ].join('\n');
 }
@@ -204,6 +204,8 @@ export async function generateChatReply(
     console.error('[chat] 模型原始输出:', content.slice(0, 500));
     throw parseErr;
   }
+
+  parsed.reply = parsed.reply.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
 
   addMessage(session.id, 'user', opts.message);
   const assistantMsg = addMessage(session.id, 'assistant', parsed.reply);
