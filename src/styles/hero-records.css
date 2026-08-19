@@ -8,7 +8,7 @@
   height: auto;
   border-radius: 0;
   background:
-    linear-gradient(90deg, rgba(39, 64, 43, .76) 0%, rgba(39, 64, 43, .5) 48%, rgba(39, 64, 43, .08) 100%),
+    linear-gradient(90deg, rgba(20, 20, 20, .58) 0%, rgba(20, 20, 20, .32) 48%, rgba(20, 20, 20, .04) 100%),
     var(--hero-background, url('/hero/default/midday.webp')) center / cover no-repeat;
   opacity: 1;
   transform: none;

@@ -18,6 +18,7 @@ const HERO_BG_OPTIONS = [
   { value: 'hero-watercolor', label: '手绘水彩', thumb: '/hero/watercolor/morning.webp' },
   { value: 'hero-clay', label: '软陶时光', thumb: '/hero/clay/morning.webp' },
   { value: 'hero-ink', label: '水墨丹青', thumb: '/hero/ink/morning.webp' },
+  { value: 'hero-pixel', label: '像素萌兔', thumb: '/hero/pixel/morning.webp' },
 ];
 
 function PreviewHero({ profile, userId, periodKey, heroBg, hour }: { profile: Profile; userId: FamilyId; periodKey: string; heroBg: string; hour: number }) {

@@ -42,6 +42,13 @@
 .baby-hero.hero-ink.hero-evening { --hero-background: url('/hero/ink/evening.webp'); }
 .baby-hero.hero-ink.hero-night { --hero-background: url('/hero/ink/night.webp'); }
 
+/* Hero 像素萌兔方案 */
+.baby-hero.hero-pixel.hero-morning { --hero-background: url('/hero/pixel/morning.webp'); }
+.baby-hero.hero-pixel.hero-midday { --hero-background: url('/hero/pixel/midday.webp'); }
+.baby-hero.hero-pixel.hero-afternoon { --hero-background: url('/hero/pixel/afternoon.webp'); }
+.baby-hero.hero-pixel.hero-evening { --hero-background: url('/hero/pixel/evening.webp'); }
+.baby-hero.hero-pixel.hero-night { --hero-background: url('/hero/pixel/night.webp'); }
+
 @keyframes hero-background-in { from { opacity: .72; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .baby-hero::after { animation: none; } }
 

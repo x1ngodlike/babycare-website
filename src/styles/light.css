@@ -85,13 +85,13 @@ body {
   color: #f3f5eb;
   font-size: 13px;
   letter-spacing: .08em;
-  text-shadow: 0 1px 2px rgba(39, 55, 34, .18);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .30);
 }
 .hero-greeting-title {
   margin-bottom: 7px;
   font-size: clamp(28px, 5vw, 39px);
   letter-spacing: -.035em;
-  text-shadow: 0 2px 5px rgba(38, 53, 32, .24);
+  text-shadow: 0 2px 5px rgba(0, 0, 0, .30);
 }
 .hero-profile-line { margin-bottom: 10px; color: #f2f5eb; font-size: 15px; font-weight: 700; }
 .hero-status p { color: #edf2e8; font-size: 13px; }
@@ -774,7 +774,7 @@ html[data-theme="light"] .history-timeline .record-mark {
 }
 .today-layout .hero-greeting-title,
 .today-layout .hero-date-line,
-.today-layout .hero-status { text-shadow: 0 1px 3px rgba(21, 39, 26, .26); }
+.today-layout .hero-status { text-shadow: 0 1px 3px rgba(0, 0, 0, .30); }
 
 .archive-page > .page-head { padding-bottom: 0; }
 .today-main-column {
