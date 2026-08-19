@@ -13,6 +13,21 @@ function formatChatTime(iso: string): string {
   return new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
+function chatBubbleTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Date.now() - d.getTime();
+  if (diff < 60000) return '刚刚';
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yday = new Date(today.getTime() - 86400000);
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  if (target.getTime() === today.getTime()) return `${hh}:${mm}`;
+  if (target.getTime() === yday.getTime()) return `昨天 ${hh}:${mm}`;
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${hh}:${mm}`;
+}
+
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -653,6 +668,7 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
               ) : null}
             </div>
           )}
+          <span className="chat-bubble-time" title={new Date(m.createdAt).toLocaleString('zh-CN')}>{chatBubbleTime(m.createdAt)}</span>
         </div>
         {m.role === 'user' && renderAvatar(m.role, displayUserName)}
       </div>)}
