@@ -30,8 +30,11 @@ function modelSettings(input?: z.infer<typeof aiSettingsSchema>) {
 }
 
 function modelError(error: unknown) {
-  if (error instanceof z.ZodError) return '模型返回的数据格式不正确';
-  if (error instanceof SyntaxError) return '模型返回的内容不是有效数据';
+  if (error instanceof z.ZodError) {
+    console.error('[ai] ZodError issues:', JSON.stringify(error.issues));
+    return `模型返回格式不合法：${error.issues.map(i => `${i.path.join('.')} ${i.message}`).join('；')}`;
+  }
+  if (error instanceof SyntaxError) return '模型返回的内容不是有效 JSON';
   return error instanceof Error ? error.message : '模型服务暂时不可用';
 }
 

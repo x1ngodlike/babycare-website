@@ -43,6 +43,11 @@ function shanghaiHHmm(iso: string): string {
   return new Date(new Date(iso).getTime() + 8 * 3600_000).toISOString().slice(11, 16);
 }
 
+function shanghaiMMDD(iso: string): string {
+  const d = new Date(new Date(iso).getTime() + 8 * 3600_000);
+  return `${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
 /** 去除所有空白与标点，用于把记忆内容对齐到用户原话（防止 AI 改写/编造）。 */
 function normalizeForMatch(s: string): string {
   return s.replace(/[\s\p{P}]/gu, '');
@@ -106,13 +111,23 @@ export function buildDataContext(): string {
   }).join('\n');
 
   const since = addDaysToDateString(shanghaiDateString(), -29);
-  const raw = records.filter(r => r.occurredAt >= since).slice(-1000).map(r => {
+  const rawRecords = records.filter(r => r.occurredAt >= since).slice(-1000);
+  let lastDate = '';
+  const raw = rawRecords.map(r => {
+    const date = shanghaiMMDD(r.occurredAt);
     const t = shanghaiHHmm(r.occurredAt);
-    if (r.type === 'feeding') return `${t} 喂奶 母乳${r.breastMilkMl || 0}/奶粉${r.formulaMl || 0}ml`;
-    if (r.type === 'supplement') return `${t} 补充 ${r.supplement || ''}`;
-    if (r.type === 'bowel') return `${t} 排便 ${r.bowelSize || ''}`;
-    return `${t} 笔记 ${r.subject || ''}${r.note ? '：' + r.note : ''}`;
-  }).join('\n');
+    let line = '';
+    if (date !== lastDate) {
+      line = `\n${date} `;
+      lastDate = date;
+    } else {
+      line = '';
+    }
+    if (r.type === 'feeding') return line + `${t} 喂奶 母乳${r.breastMilkMl || 0}/奶粉${r.formulaMl || 0}ml`;
+    if (r.type === 'supplement') return line + `${t} 补充 ${r.supplement || ''}`;
+    if (r.type === 'bowel') return line + `${t} 排便 ${r.bowelSize || ''}`;
+    return line + `${t} 笔记 ${r.subject || ''}${r.note ? '：' + r.note : ''}`;
+  }).join('\n').trim();
 
   const growthText = growth.length ? growth.slice(-10).map(g => `${g.measuredOn} 身高${g.heightCm}cm 体重${g.weightKg}kg`).join('\n') : '（暂无生长记录）';
   const vaccineText = vaccines.length ? vaccines.map(v => `${v.vaccineName} 第${v.dose}剂 计划${v.plannedOn}${v.administeredOn ? ' 已接种' + v.administeredOn : (v.appointmentOn ? ' 预约' + v.appointmentOn : '')}`).join('\n') : '（暂无疫苗记录）';
@@ -181,7 +196,14 @@ export async function generateChatReply(
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: userContent }
   ], 1200);
-  const parsed = chatSchema.parse(JSON.parse(content) as unknown);
+  let parsed: z.infer<typeof chatSchema>;
+  try {
+    parsed = chatSchema.parse(JSON.parse(content) as unknown);
+  } catch (parseErr) {
+    console.error('[chat] 模型输出解析失败:', parseErr instanceof z.ZodError ? JSON.stringify(parseErr.issues, null, 2) : String(parseErr));
+    console.error('[chat] 模型原始输出:', content.slice(0, 500));
+    throw parseErr;
+  }
 
   addMessage(session.id, 'user', opts.message);
   const assistantMsg = addMessage(session.id, 'assistant', parsed.reply);
