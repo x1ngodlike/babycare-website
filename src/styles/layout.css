@@ -49,6 +49,20 @@
 .baby-hero.hero-pixel.hero-evening { --hero-background: url('/hero/pixel/evening.webp'); }
 .baby-hero.hero-pixel.hero-night { --hero-background: url('/hero/pixel/night.webp'); }
 
+/* Hero 林间甜梦方案 */
+.baby-hero.hero-forest.hero-morning { --hero-background: url('/hero/forest/morning.webp'); }
+.baby-hero.hero-forest.hero-midday { --hero-background: url('/hero/forest/midday.webp'); }
+.baby-hero.hero-forest.hero-afternoon { --hero-background: url('/hero/forest/afternoon.webp'); }
+.baby-hero.hero-forest.hero-evening { --hero-background: url('/hero/forest/evening.webp'); }
+.baby-hero.hero-forest.hero-night { --hero-background: url('/hero/forest/night.webp'); }
+
+/* Hero 云端甜梦方案 */
+.baby-hero.hero-cloud.hero-morning { --hero-background: url('/hero/cloud/morning.webp'); }
+.baby-hero.hero-cloud.hero-midday { --hero-background: url('/hero/cloud/midday.webp'); }
+.baby-hero.hero-cloud.hero-afternoon { --hero-background: url('/hero/cloud/afternoon.webp'); }
+.baby-hero.hero-cloud.hero-evening { --hero-background: url('/hero/cloud/evening.webp'); }
+.baby-hero.hero-cloud.hero-night { --hero-background: url('/hero/cloud/night.webp'); }
+
 @keyframes hero-background-in { from { opacity: .72; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .baby-hero::after { animation: none; } }
 
@@ -103,7 +117,8 @@
 .hero-bg-thumb {
   flex-shrink: 0;
   width: 64px;
-  height: 40px;
+  aspect-ratio: 2.5 / 1;
+  height: auto;
   border-radius: 8px;
   object-fit: cover;
   border: 1px solid var(--border);
