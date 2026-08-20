@@ -25,6 +25,54 @@ export const auditNames: Record<AuditIdentity, string> = { father: '爸爸', mot
 
 export const roleNames: Record<UserRole, string> = { superadmin: '超管', admin: '管理', member: '普通' };
 
+export type PermissionKey =
+  | 'view_records'
+  | 'edit_records'
+  | 'delete_records'
+  | 'edit_profile'
+  | 'manage_care_items'
+  | 'manage_vaccines'
+  | 'manage_feeding_settings'
+  | 'manage_push'
+  | 'manage_family'
+  | 'manage_ai'
+  | 'manage_backup'
+  | 'ai_memory'
+  | 'manage_growth'
+  | 'clear_cache';
+
+export type PermissionCategory = '照护记录' | '宝宝档案' | '照护管理' | '系统设置' | 'AI 对话';
+
+export interface PermissionItem {
+  key: PermissionKey;
+  category: PermissionCategory;
+  label: string;
+  description: string;
+}
+
+export const PERMISSION_ITEMS: PermissionItem[] = [
+  { key: 'view_records', category: '照护记录', label: '查看照护记录', description: '查看全部喂奶、护理、排便等照护记录' },
+  { key: 'edit_records', category: '照护记录', label: '添加/修改记录', description: '添加新记录或修改现有记录' },
+  { key: 'delete_records', category: '照护记录', label: '删除/恢复记录', description: '删除记录到回收站或恢复已删除记录' },
+  { key: 'edit_profile', category: '宝宝档案', label: '编辑宝宝资料', description: '修改姓名、生日、昵称等基础信息' },
+  { key: 'manage_growth', category: '宝宝档案', label: '记录成长数据', description: '测量并记录身高体重，生成 AI 生长评价' },
+  { key: 'manage_care_items', category: '照护管理', label: '管理用药护理项目', description: '添加/编辑/停用用药和护理项目' },
+  { key: 'manage_vaccines', category: '照护管理', label: '管理疫苗目录', description: '编辑疫苗分类和接种计划' },
+  { key: 'manage_feeding_settings', category: '照护管理', label: '喂养预测设置', description: '调整喂奶预测的提前准备时间' },
+  { key: 'manage_push', category: '系统设置', label: '消息推送配置', description: '配置推送通道和提醒规则' },
+  { key: 'manage_family', category: '系统设置', label: '成员权限管理', description: '修改家庭成员和角色权限' },
+  { key: 'manage_ai', category: '系统设置', label: 'AI 模型配置', description: '配置 AI 模型参数和智能功能' },
+  { key: 'manage_backup', category: '系统设置', label: '数据备份恢复', description: '数据备份、恢复、导入与导出' },
+  { key: 'clear_cache', category: '系统设置', label: '清除缓存', description: '清除本地缓存的静态资源' },
+  { key: 'ai_memory', category: 'AI 对话', label: 'AI 记忆管理', description: '在 AI 对话中管理长期记忆' },
+];
+
+export const PERMISSION_MATRIX: Record<UserRole, PermissionKey[]> = {
+  superadmin: PERMISSION_ITEMS.map(i => i.key),
+  admin: ['view_records', 'edit_records', 'delete_records', 'edit_profile', 'manage_growth', 'manage_care_items', 'manage_vaccines', 'manage_feeding_settings', 'manage_push', 'clear_cache', 'ai_memory'],
+  member: ['view_records', 'edit_records', 'manage_growth', 'clear_cache'],
+};
+
 export const sexLabels: Record<BabySex, string> = { male: '男宝宝', female: '女宝宝', unspecified: '性别未设置' };
 
 export const canManage = (user: SessionUser | null) => user?.role === 'superadmin' || user?.role === 'admin';

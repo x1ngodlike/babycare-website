@@ -181,6 +181,221 @@
   color: var(--ink);
 }
 
+/* 喂养预测准备时间选项 */
+.feed-prep-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.feed-prep-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  position: relative;
+}
+.feed-prep-item input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.feed-prep-item:hover {
+  border-color: var(--accent);
+}
+.feed-prep-item.selected {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+  box-shadow: 0 0 0 3px rgba(114, 145, 96, .15);
+}
+.feed-prep-checkmark {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  transition: border-color .15s, background .15s;
+}
+.feed-prep-item.selected .feed-prep-checkmark {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.feed-prep-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.feed-prep-setting {
+  margin-top: 16px;
+}
+.feed-prep-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
+.feed-prep-current {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  font-style: normal;
+}
+.feed-prep-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+/* 权限一览卡片 */
+.permission-card {
+  margin-top: 0;
+}
+.permission-table {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.permission-table-head {
+  display: grid;
+  grid-template-columns: 1fr repeat(3, 44px);
+  background: var(--surface-hover);
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--border);
+}
+.permission-col-name {
+  text-align: left;
+}
+.permission-col-role {
+  text-align: center;
+}
+.permission-category {
+  border-bottom: 1px solid var(--border);
+}
+.permission-category:last-child {
+  border-bottom: none;
+}
+.permission-category-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border);
+}
+.permission-row {
+  display: grid;
+  grid-template-columns: 1fr repeat(3, 44px);
+  padding: 6px 10px;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  transition: background .12s;
+}
+.permission-row:hover {
+  background: var(--surface-hover);
+}
+.permission-row-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.permission-row-name span {
+  font-weight: 500;
+  color: var(--ink);
+}
+.permission-row-name small {
+  font-size: 10px;
+  color: var(--ink-muted);
+  line-height: 1.3;
+}
+.permission-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  border-radius: 5px;
+  justify-self: center;
+  color: var(--accent);
+  background: rgba(114, 145, 96, 0.08);
+  transition: background .12s;
+}
+.permission-check svg {
+  width: 10px;
+  height: 10px;
+}
+.permission-check:not(.on) {
+  background: transparent;
+  color: var(--ink-muted);
+}
+.permission-check .dash {
+  font-size: 12px;
+  opacity: 0.4;
+}
+.permission-check.all {
+  background: var(--accent);
+  color: #fff;
+}
+.permission-check.all svg {
+  opacity: 1;
+}
+
+/* 移动端优化：权限列更紧凑，名称列更宽 */
+@media (max-width: 640px) {
+  .permission-table-head {
+    grid-template-columns: 1fr repeat(3, 36px);
+    padding: 6px 6px;
+    font-size: 10px;
+  }
+  .permission-category-head {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .permission-row {
+    grid-template-columns: 1fr repeat(3, 36px);
+    padding: 5px 6px;
+    gap: 1px;
+  }
+  .permission-row-name small {
+    font-size: 10px;
+  }
+  .permission-check {
+    width: 22px;
+    height: 20px;
+    border-radius: 4px;
+  }
+  .permission-check svg {
+    width: 9px;
+    height: 9px;
+  }
+  .permission-check .dash {
+    font-size: 11px;
+  }
+}
+
 /* Hero 背景预览弹窗 */
 .hero-preview-list {
   display: flex;

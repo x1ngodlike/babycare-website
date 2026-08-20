@@ -16,6 +16,19 @@ const alertLabels = {
   growth_spurt: '可能猛长期'
 };
 
+const FEED_PREP_KEY = 'babycare-feed-prep-minutes';
+const DEFAULT_PREP_MINUTES = 30;
+
+function getFeedPrepMinutes(): number {
+  try {
+    const raw = localStorage.getItem(FEED_PREP_KEY);
+    const val = raw ? parseInt(raw, 10) : DEFAULT_PREP_MINUTES;
+    return Math.max(0, Math.min(120, isNaN(val) ? DEFAULT_PREP_MINUTES : val));
+  } catch {
+    return DEFAULT_PREP_MINUTES;
+  }
+}
+
 export function PredictionBanner({ records, online }: { records: { occurredAt: string; breastMilkMl: number | null; formulaMl: number | null; type: string }[]; online: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const [aiPrediction, setAiPrediction] = useState<FeedingPrediction | null>(null);
@@ -38,16 +51,20 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
   if (!prediction.available) return null;
   if (!prediction.nextFeedAt) return null;
 
+  const prepMinutes = getFeedPrepMinutes();
   const now = new Date();
   const nextAt = new Date(prediction.nextFeedAt);
   const minutesUntil = Math.round((nextAt.getTime() - now.getTime()) / 60000);
   const overdue = minutesUntil < 0;
-  const soon = minutesUntil >= 0 && minutesUntil <= 30;
+  const soon = minutesUntil >= 0 && minutesUntil <= prepMinutes;
   const statusClass = overdue ? 'overdue' : soon ? 'soon' : 'upcoming';
 
   const lastFeedElapsed = prediction.lastFeedAt
     ? formatElapsed(prediction.lastFeedAt, now)
     : null;
+
+  const prepareAt = new Date(nextAt.getTime() - prepMinutes * 60000);
+  const displayAt = overdue ? nextAt : prepareAt;
 
   const confidencePercent = Math.round(prediction.confidence * 100);
   const upcomingCount = prediction.upcomingFeeds.length;
@@ -67,12 +84,12 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
           <div className="prediction-text">
             <span className="prediction-label">
               {lastFeedElapsed ? `距上次 ${lastFeedElapsed} · ` : ''}
-              {overdue ? '下次喂奶' : '预计喂奶'}
+              {overdue ? '下次喂奶' : '准备喂奶'}
             </span>
             <strong className="prediction-time">
-              {formatTimeShort(prediction.nextFeedAt!)}
+              {formatTimeShort(displayAt.toISOString())}
               <span className="prediction-duration">
-                {formatDurationFromNow(prediction.nextFeedAt!, now)}
+                {formatDurationFromNow(displayAt.toISOString(), now)}
               </span>
             </strong>
           </div>
