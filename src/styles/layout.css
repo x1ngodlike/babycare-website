@@ -254,7 +254,7 @@
   color: var(--accent);
   font-style: normal;
 }
-.feed-prep-hint {
+.settings-card .feed-prep-hint {
   margin: 10px 0 0;
   font-size: 12px;
   color: var(--ink-muted);
