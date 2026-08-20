@@ -227,7 +227,7 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
     const actor = getSessionUser(req)!.id;
     const type = (req.body?.type === 'manual' || req.body?.type === 'auto') ? req.body.type : 'manual';
     const result = writeServerBackup(exportPayload(), { directory: ctx.backupDirectory, type: type as BackupType });
-    addSystemAudit('backup', actor, { type, filename: result.filename });
+    addSystemAudit('backup', actor, { type, filename: result.name });
     res.status(201).json(result);
   });
 
@@ -263,7 +263,7 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
     const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, actor, true));
     const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, actor, true));
     const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, familyPermissions: parsed.data.familyPermissions, aiSettings: parsed.data.aiSettings, pushSettings: parsed.data.pushSettings, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports });
-    addSystemAudit('restore', actor, { filename: name, restoredRecords: records.length, restoredVaccines: vaccineRecords.length, restoredGrowth: growthRecords.length });
+    addSystemAudit('restore', actor, { filename: name, restoredRecords: records.length, restoredVaccines: vaccineRecords?.length ?? 0, restoredGrowth: growthRecords?.length ?? 0 });
     ctx.changeHub.broadcast('all');
     res.json({ ...result, restoredFrom: name, status: serverBackupStatus(ctx.backupDirectory) });
   });
@@ -286,7 +286,7 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
     const defaultProfile = { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null };
     const importPayload = { profile: parsed.data.profile || defaultProfile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, familyPermissions: parsed.data.familyPermissions, aiSettings: parsed.data.aiSettings, pushSettings: parsed.data.pushSettings, growthRecords, vaccineRecords, milestoneRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports };
     const result = mode === 'replace' ? replaceBackup(importPayload) : importBackup(importPayload);
-    addSystemAudit('import', actor, { mode, importedRecords: records.length, importedVaccines: vaccineRecords.length, importedGrowth: growthRecords.length, importedMilestones: milestoneRecords.length });
+    addSystemAudit('import', actor, { mode, importedRecords: records.length, importedVaccines: vaccineRecords?.length ?? 0, importedGrowth: growthRecords?.length ?? 0, importedMilestones: milestoneRecords?.length ?? 0 });
     ctx.changeHub.broadcast('all');
     res.json({ ...result, mode });
   });

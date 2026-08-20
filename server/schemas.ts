@@ -131,7 +131,7 @@ export const backupPayloadSchema = z.object({
   familyMembers: z.array(familyMemberSchema).max(4).optional(),
   familyPermissions: z.array(z.object({ id: z.enum(['father', 'mother', 'grandfather', 'grandmother']), role: z.enum(['superadmin', 'admin', 'member']) })).max(4).optional(),
   aiSettings: z.object({ provider: z.string().max(50), baseUrl: z.string().max(500), model: z.string().max(100), apiKey: z.string().max(500), updatedAt: z.string() }).optional(),
-  pushSettings: z.object({ enabled: z.boolean(), pushplusToken: z.string(), pushplusTopic: z.string(), morningDigestEnabled: z.boolean(), morningDigestTime: z.string(), feedingGapEnabled: z.boolean(), feedingGapLevel1Minutes: z.number().int(), feedingGapLevel2Minutes: z.number().int(), careItemEnabled: z.boolean(), pushSentFlags: z.record(z.unknown()), updatedAt: z.string() }).optional(),
+  pushSettings: z.object({ enabled: z.boolean(), pushplusToken: z.string(), pushplusTopic: z.string(), morningDigestEnabled: z.boolean(), morningDigestTime: z.string(), feedingGapEnabled: z.boolean(), feedingGapLevel1Minutes: z.number().int(), feedingGapLevel2Minutes: z.number().int(), careItemEnabled: z.boolean(), pushSentFlags: z.record(z.string(), z.unknown()), updatedAt: z.string() }).optional(),
   growthRecords: z.array(growthRecordSchema).max(1000).optional(),
   vaccineRecords: z.array(vaccineRecordSchema).max(1000).optional(),
   milestoneRecords: z.array(milestoneRecordSchema).max(1000).optional(),
