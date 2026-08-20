@@ -1043,6 +1043,17 @@ html[data-theme="dark"] .settings-card h2,
 html[data-theme="dark"] .settings-card h1 {
   color: var(--ink);
 }
+html[data-theme="dark"] .feed-prep-item.selected {
+  box-shadow: 0 0 0 3px rgba(114, 145, 96, .2);
+}
+html[data-theme="dark"] .feed-prep-current {
+  background: var(--sage);
+  color: var(--green-deep);
+  border-color: var(--line-sage);
+}
+html[data-theme="dark"] .feed-prep-header svg {
+  color: var(--green-deep);
+}
 html[data-theme="dark"] .close-btn {
   color: var(--muted);
 }

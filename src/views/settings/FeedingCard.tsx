@@ -32,8 +32,8 @@ export function FeedingSettingsCard() {
         <div className="feed-prep-setting">
           <div className="feed-prep-header">
             <Clock size={16} strokeWidth={1.8} />
-            <span>提前准备时间</span>
-            <em className="feed-prep-current">{prepMinutes} 分钟</em>
+            <span className="feed-prep-label">提前准备时间</span>
+            <span className="feed-prep-current" aria-live="polite">{prepMinutes} 分钟</span>
           </div>
           <div className="feed-prep-options" role="radiogroup" aria-label="提前准备时间">
             {PREP_OPTIONS.map(mins => (
