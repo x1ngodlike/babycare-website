@@ -187,10 +187,14 @@ export function feedingInsightsMessages(input: FeedingInsightsInput): { role: 's
   const periodLabelMap: Record<string, string> = { night: '凌晨', earlyMorning: '清晨', morning: '上午', midday: '中午', afternoon: '下午', evening: '晚上' };
   const periodGapsText = input.prediction.periodGaps.map(g => `${periodLabelMap[g.period] || g.period} ${g.count}次 中位${g.medianMinutes ? Math.round(g.medianMinutes) + '分钟' : '无数据'}`).join('；');
   const periodVolsText = input.prediction.periodVolumes.map(v => `${periodLabelMap[v.period] || v.period} ${v.count}次 中位${v.medianMl ? Math.round(v.medianMl) + 'mL' : '无数据'}`).join('；');
-  const recentText = input.recentFeedings.slice(-7).map(f => {
-    const time = new Date(f.occurredAt).toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' });
+  const recentText = input.recentFeedings.map(f => {
+    const d = new Date(new Date(f.occurredAt).toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hour = String(d.getHours()).padStart(2, '0');
+    const minute = String(d.getMinutes()).padStart(2, '0');
     const ml = (f.breastMilkMl || 0) + (f.formulaMl || 0);
-    return `${time} ${ml}mL${f.note ? ' 备注:' + f.note : ''}`;
+    return `${month}/${day} ${hour}:${minute} ${ml}mL${f.note ? ' 备注:' + f.note : ''}`;
   }).join('；');
   return [
     {

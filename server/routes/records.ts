@@ -88,7 +88,10 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
           dataDays: prediction.dataDays,
           dataFeeds: prediction.dataFeeds
         },
-        recentFeedings: records.slice(-7).map(r => ({
+        recentFeedings: records.filter(r => {
+          const t = new Date(r.occurredAt).getTime();
+          return t >= new Date(range.to).getTime() - 7 * 86400000;
+        }).map(r => ({
           occurredAt: r.occurredAt,
           breastMilkMl: r.breastMilkMl,
           formulaMl: r.formulaMl,
