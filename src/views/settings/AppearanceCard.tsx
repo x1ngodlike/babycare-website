@@ -35,6 +35,8 @@ const HERO_BG_GROUP_ORDER = [
   { key: 'pony', label: '小马系列' },
 ] as const;
 
+const HERO_PERIOD_HOURS: Record<string, number> = { morning: 7, midday: 12, afternoon: 15, evening: 20, night: 1 };
+
 function PreviewHero({ profile, userId, periodKey, heroBg, hour }: { profile: Profile; userId: FamilyId; periodKey: string; heroBg: string; hour: number }) {
   const { greeting, displayName } = getGreeting(profile, userId, hour);
   const d = new Date();
@@ -131,7 +133,7 @@ export function AppearanceSettingsCard({ theme, onChange, heroBg, onHeroBgChange
               userId={userId}
               periodKey={period.key}
               heroBg={previewTheme}
-              hour={currentHour}
+              hour={HERO_PERIOD_HOURS[period.key] ?? currentHour}
             />
           ))}
         </div>
