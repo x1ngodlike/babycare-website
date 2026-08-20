@@ -3,7 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '../../api';
 import { confirmAction, Modal } from '../../ui';
 import { Feedback } from './Feedback';
-import type { ServerBackupFile, ServerBackupStatus } from '../../types';
+import type { ServerBackupFile, ServerBackupStatus, SystemAuditEntry } from '../../types';
+import { Download, FileDown, FileUp, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 
 export function BackupRestoreDialog({ onClose, onRestored }: { onClose(): void; onRestored(status: ServerBackupStatus, message: string): void | Promise<void> }) {
   const [files, setFiles] = useState<ServerBackupFile[]>([]); const [selected, setSelected] = useState(''); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [deletingName, setDeletingName] = useState(''); const [error, setError] = useState('');
@@ -63,12 +64,14 @@ export function ImportModeDialog({ onClose, onConfirm, busy }: { onClose(): void
 
 export function ServerBackupCard({ onImported }: { onImported(): void | Promise<void> }) {
   const [status, setStatus] = useState<ServerBackupStatus | null>(null); const [busy, setBusy] = useState<'backup' | 'import' | 'export' | ''>(''); const [message, setMessage] = useState(''); const [showRestore, setShowRestore] = useState(false); const [pendingFile, setPendingFile] = useState<File | null>(null); const [showImportDialog, setShowImportDialog] = useState(false);
+  const [auditLog, setAuditLog] = useState<SystemAuditEntry[]>([]); const [auditLoading, setAuditLoading] = useState(false);
   const loadStatus = useCallback(async () => { const next = await api.backupStatus(); setStatus(next); }, []);
-  useEffect(() => { loadStatus().catch(() => setMessage('暂时无法读取服务器备份状态')); }, [loadStatus]);
+  const loadAuditLog = useCallback(async () => { setAuditLoading(true); try { const entries = await api.systemAudit(20); setAuditLog(entries); } catch { /* ignore */ } finally { setAuditLoading(false); } }, []);
+  useEffect(() => { loadStatus().catch(() => setMessage('暂时无法读取服务器备份状态')); loadAuditLog(); }, [loadStatus, loadAuditLog]);
   const formatTime = (value: string | null) => value ? new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '等待首次备份';
   async function createBackup() {
     setBusy('backup'); setMessage('');
-    try { const result = await api.createServerBackup(); setStatus(result.status); setMessage(`服务器备份已完成：${result.name}`); }
+    try { const result = await api.createServerBackup(); setStatus(result.status); setMessage(`服务器备份已完成：${result.name}`); loadAuditLog(); }
     catch (error) { setMessage(error instanceof Error ? error.message : '服务器备份失败'); }
     finally { setBusy(''); }
   }
@@ -81,7 +84,7 @@ export function ServerBackupCard({ onImported }: { onImported(): void | Promise<
     if (!pendingFile) return;
     setShowImportDialog(false);
     setBusy('import'); setMessage('');
-    try { const result = await api.importData(JSON.parse(await pendingFile.text()), mode); await loadStatus(); await onImported(); const modeLabel = mode === 'replace' ? '全量替换' : '增量合并'; setMessage(`${modeLabel}完成：${result.imported} 条记录${result.profileRestored ? '，宝宝资料已恢复' : ''}`); }
+    try { const result = await api.importData(JSON.parse(await pendingFile.text()), mode); await loadStatus(); await onImported(); const modeLabel = mode === 'replace' ? '全量替换' : '增量合并'; setMessage(`${modeLabel}完成：${result.imported} 条记录${result.profileRestored ? '，宝宝资料已恢复' : ''}`); loadAuditLog(); }
     catch (error) { setMessage(error instanceof Error ? error.message : '导入失败，请选择本应用导出的备份文件'); }
     finally { setBusy(''); setPendingFile(null); }
   }
@@ -93,10 +96,44 @@ export function ServerBackupCard({ onImported }: { onImported(): void | Promise<
       <button className="btn secondary full" disabled={Boolean(busy) || !status?.count} onClick={() => setShowRestore(true)}>从服务器恢复</button>
       <div className="backup-actions-divider" role="separator" aria-hidden="true" />
       <div className="backup-actions-row">
-        <button className="btn secondary wide" disabled={Boolean(busy)} onClick={async () => { setBusy('export'); setMessage(''); try { const res = await fetch('/api/export', { credentials: 'same-origin' }); if (!res.ok) throw new ApiError((await res.json()).error || '导出失败', res.status); const blob = new Blob([await res.text()], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `babycare-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url); setMessage('备份文件已下载'); } catch (error) { setMessage(error instanceof Error ? error.message : '导出失败'); } finally { setBusy(''); } }}>{busy === 'export' ? '导出中…' : '下载备份文件'}</button>
+        <button className="btn secondary wide" disabled={Boolean(busy)} onClick={async () => { setBusy('export'); setMessage(''); try { const res = await fetch('/api/export', { credentials: 'same-origin' }); if (!res.ok) throw new ApiError((await res.json()).error || '导出失败', res.status); const blob = new Blob([await res.text()], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `babycare-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url); setMessage('备份文件已下载'); loadAuditLog(); } catch (error) { setMessage(error instanceof Error ? error.message : '导出失败'); } finally { setBusy(''); } }}>{busy === 'export' ? '导出中…' : '下载备份文件'}</button>
         <label className={`btn secondary wide ${busy ? 'disabled' : ''}`}>导入备份文件<input className="sr-only" type="file" accept=".json" disabled={Boolean(busy)} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; selectFile(file); }} /></label>
       </div>
     </div>
+    <div className="audit-log-section">
+      <div className="audit-log-header"><h3>操作日志</h3><button type="button" className="audit-log-refresh" disabled={auditLoading} onClick={() => loadAuditLog()} aria-label="刷新日志">{auditLoading ? '…' : <RefreshCw size={14} />}</button></div>
+      {auditLoading && !auditLog.length ? <p className="audit-log-loading">正在加载日志…</p> : !auditLog.length ? <p className="audit-log-empty">暂无操作记录</p> :
+        <ul className="audit-log-list" role="list">
+          {auditLog.map(entry => {
+            const eventLabels: Record<string, { label: string; icon: typeof Download }> = {
+              backup: { label: '服务器备份', icon: Download },
+              restore: { label: '服务器恢复', icon: RotateCcw },
+              export: { label: '导出文件', icon: FileDown },
+              import: { label: '导入文件', icon: FileUp },
+              delete_backup: { label: '删除备份', icon: Trash2 },
+            };
+            const actorLabels: Record<string, string> = { father: '爸爸', mother: '妈妈', grandfather: '爷爷', grandmother: '奶奶', legacy: '系统' };
+            const conf = eventLabels[entry.eventType] ?? { label: entry.eventType, icon: Download };
+            const Icon = conf.icon;
+            const detailsText = (() => {
+              if (!entry.details) return '';
+              const d = entry.details;
+              if (d.name) return String(d.name);
+              if (d.imported) return `导入 ${d.imported} 条`;
+              if (d.status) return String(d.status);
+              return '';
+            })();
+            return <li key={entry.id} className={`audit-log-item ${entry.status === 'failure' ? 'failed' : ''}`}>
+              <span className="audit-log-icon" aria-hidden="true"><Icon size={16} /></span>
+              <div className="audit-log-info">
+                <div className="audit-log-top"><b>{conf.label}</b><span className={`audit-log-status ${entry.status}`}>{entry.status === 'success' ? '成功' : '失败'}</span></div>
+                <div className="audit-log-meta"><span>{actorLabels[entry.actor] ?? entry.actor}</span><time>{new Date(entry.occurredAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</time></div>
+                {detailsText && <p className="audit-log-details">{detailsText}</p>}
+              </div>
+            </li>;
+          })}
+        </ul>}
+    </div>
     <Feedback message={message} type={message.includes('失败') || message.includes('无法') ? 'error' : 'success'} onClose={() => setMessage('')} />
-  </section>{showRestore && <BackupRestoreDialog onClose={() => setShowRestore(false)} onRestored={async (nextStatus, nextMessage) => { setStatus(nextStatus); await onImported(); setMessage(nextMessage); }} />}{showImportDialog && <ImportModeDialog onClose={() => { setShowImportDialog(false); setPendingFile(null); }} onConfirm={confirmImport} busy={busy === 'import'} />}</>;
+  </section>{showRestore && <BackupRestoreDialog onClose={() => setShowRestore(false)} onRestored={async (nextStatus, nextMessage) => { setStatus(nextStatus); await onImported(); setMessage(nextMessage); loadAuditLog(); }} />}{showImportDialog && <ImportModeDialog onClose={() => { setShowImportDialog(false); setPendingFile(null); }} onConfirm={confirmImport} busy={busy === 'import'} />}</>;
 }

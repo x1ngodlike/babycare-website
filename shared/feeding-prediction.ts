@@ -1,4 +1,4 @@
-export type FeedingPeriod = 'night' | 'earlyMorning' | 'morning' | 'midday' | 'afternoon' | 'evening';
+export type FeedingPeriod = 'day' | 'night';
 
 export interface FeedingPredictionInput {
   occurredAt: string;
@@ -48,24 +48,15 @@ export interface UpcomingFeed {
   period: FeedingPeriod;
 }
 
-const periodDefs: { period: FeedingPeriod; startHour: number; endHour: number }[] = [
-  { period: 'night', startHour: 0, endHour: 5 },
-  { period: 'earlyMorning', startHour: 5, endHour: 8 },
-  { period: 'morning', startHour: 8, endHour: 11 },
-  { period: 'midday', startHour: 11, endHour: 14 },
-  { period: 'afternoon', startHour: 14, endHour: 18 },
-  { period: 'evening', startHour: 18, endHour: 24 }
-];
+const PERIODS: FeedingPeriod[] = ['day', 'night'];
 
 const SHANGHAI_TZ = 'Asia/Shanghai';
 
 function getPeriod(date: Date): FeedingPeriod {
   const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: SHANGHAI_TZ, hour: '2-digit', hour12: false });
   const hour = Number(formatter.format(date));
-  for (const def of periodDefs) {
-    if (hour >= def.startHour && hour < def.endHour) return def.period;
-  }
-  return 'evening';
+  if (hour >= 6 && hour < 22) return 'day';
+  return 'night';
 }
 
 function weightedMedian(
@@ -189,13 +180,13 @@ export function predictFeeding(
     periodVolumesMap.set(v.period, arr);
   }
 
-  const periodGaps: FeedingGapStats[] = periodDefs.map(def => {
-    const items = periodGapsMap.get(def.period) || [];
+  const periodGaps: FeedingGapStats[] = PERIODS.map(period => {
+    const items = periodGapsMap.get(period) || [];
     const vals = items.map(i => i.minutes);
     const dates = items.map(i => i.date);
     const med = weightedMedian(vals, dates);
     return {
-      period: def.period,
+      period,
       count: vals.length,
       medianMinutes: med,
       minMinutes: vals.length > 0 ? Math.min(...vals) : null,
@@ -203,11 +194,11 @@ export function predictFeeding(
     };
   }).filter(s => s.count > 0);
 
-  const periodVolumes: FeedingVolumeStats[] = periodDefs.map(def => {
-    const items = periodVolumesMap.get(def.period) || [];
+  const periodVolumes: FeedingVolumeStats[] = PERIODS.map(period => {
+    const items = periodVolumesMap.get(period) || [];
     const vals = items.map(i => i.ml);
     const dates = items.map(i => i.date);
-    return { period: def.period, count: vals.length, medianMl: weightedMedian(vals, dates) };
+    return { period, count: vals.length, medianMl: weightedMedian(vals, dates) };
   }).filter(s => s.count > 0);
 
   const allGapValues = gaps.map(g => g.minutes);
@@ -282,11 +273,10 @@ export function predictFeeding(
   };
 }
 
-function predictNextPeriod(currentPeriod: FeedingPeriod, now: Date): FeedingPeriod {
+function predictNextPeriod(_currentPeriod: FeedingPeriod, now: Date): FeedingPeriod {
   const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: SHANGHAI_TZ, hour: '2-digit', hour12: false });
   const currentHour = Number(formatter.format(now));
-  const def = periodDefs.find(d => currentHour >= d.startHour && currentHour < d.endHour);
-  return def ? def.period : currentPeriod;
+  return (currentHour >= 6 && currentHour < 22) ? 'day' : 'night';
 }
 
 function getGapForPrediction(afterTime: Date, periodGaps: FeedingGapStats[], overallMedian: number | null): number {
@@ -330,10 +320,6 @@ export function formatTimeShort(iso: string): string {
 }
 
 export const periodLabels: Record<FeedingPeriod, string> = {
-  night: '凌晨',
-  earlyMorning: '清晨',
-  morning: '上午',
-  midday: '中午',
-  afternoon: '下午',
-  evening: '晚上'
+  day: '白天',
+  night: '夜间'
 };

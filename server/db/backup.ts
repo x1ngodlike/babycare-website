@@ -7,10 +7,12 @@ import { addAudit } from './records.js';
 import { syncDefaultVaccineCatalog, systemVaccineIds } from './vaccines.js';
 import type { DailyReport } from './daily-reports.js';
 import type { AiMemory, AiMemoryCategory, AuditEntry, BabySex, CareItem, CareRecord, ChatMessage, ChatSession, FamilyMemberPermission, GrowthRecord, MilestoneRecord, VaccineCatalogItem, VaccineRecord } from '../types.js';
+import type { AiSettings } from './ai.js';
+import type { PushSettings } from './push.js';
 
 type ImportedMemory = { id: string; content: string; category: AiMemoryCategory; createdAt: string; updatedAt: string; expiresAt?: string | null; status?: 'active' | 'resolved'; resolvedAt?: string | null };
 
-type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: ImportedMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
+type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; familyPermissions?: Pick<FamilyMemberPermission, 'id' | 'role'>[]; aiSettings?: AiSettings; pushSettings?: PushSettings; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: ImportedMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
 type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
   if (payload.profile) saveProfile({ name: payload.profile.name, birthDate: payload.profile.birthDate, birthTime: payload.profile.birthTime, sex: payload.profile.sex ?? 'unspecified', nickname: payload.profile.nickname, caregiverTitle: payload.profile.caregiverTitle, avatar: payload.profile.avatar });
@@ -24,6 +26,23 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
       .run(item.id, item.name, item.category || (item.icon === 'medicine' ? 'medication' : 'care'), item.icon, item.sortOrder, item.active ? 1 : 0, item.scheduleType || 'as_needed', item.intervalDays || 1, item.scheduleStartDate || null, item.reminderTime || null, item.reminderTimes ? JSON.stringify(item.reminderTimes) : null, item.scheduleEndDate || null, item.weekDays ? JSON.stringify(item.weekDays) : null, item.patternDays ? JSON.stringify(item.patternDays) : null, item.createdAt, item.updatedAt);
   }
   if (payload.familyMembers?.length) replaceFamilyRoles(payload.familyMembers);
+  if (payload.familyPermissions?.length) replaceFamilyRoles(payload.familyPermissions);
+  if (payload.aiSettings) {
+    db.prepare(`INSERT INTO ai_settings (id, provider, base_url, model, api_key, updated_at) VALUES (1, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET provider=excluded.provider, base_url=excluded.base_url, model=excluded.model, api_key=excluded.api_key, updated_at=excluded.updated_at`)
+      .run(payload.aiSettings.provider, payload.aiSettings.baseUrl, payload.aiSettings.model, payload.aiSettings.apiKey, payload.aiSettings.updatedAt || new Date().toISOString());
+  }
+  if (payload.pushSettings) {
+    const ps = payload.pushSettings;
+    db.prepare(`INSERT INTO push_settings (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags, updated_at)
+      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled, pushplus_token=excluded.pushplus_token, pushplus_topic=excluded.pushplus_topic,
+        morning_digest_enabled=excluded.morning_digest_enabled, morning_digest_time=excluded.morning_digest_time,
+        feeding_gap_enabled=excluded.feeding_gap_enabled, feeding_gap_level1_minutes=excluded.feeding_gap_level1_minutes,
+        feeding_gap_level2_minutes=excluded.feeding_gap_level2_minutes, care_item_enabled=excluded.care_item_enabled,
+        push_sent_flags=excluded.push_sent_flags, updated_at=excluded.updated_at`)
+      .run(ps.enabled ? 1 : 0, ps.pushplusToken, ps.pushplusTopic, ps.morningDigestEnabled ? 1 : 0, ps.morningDigestTime, ps.feedingGapEnabled ? 1 : 0, ps.feedingGapLevel1Minutes, ps.feedingGapLevel2Minutes, ps.careItemEnabled ? 1 : 0, JSON.stringify(ps.pushSentFlags || {}), ps.updatedAt || new Date().toISOString());
+  }
   if (payload.growthRecords?.length) {
     const upsertGrowth = db.prepare(`INSERT INTO growth_records (id, measured_on, height_cm, weight_kg, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
       VALUES (@id, @measuredOn, @heightCm, @weightKg, @createdAt, @updatedAt, @createdBy, @updatedBy, @deletedAt, @deletedBy)
@@ -87,7 +106,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
 
-type ReplacePayload = { profile: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
+type ReplacePayload = { profile: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; familyPermissions?: Pick<FamilyMemberPermission, 'id' | 'role'>[]; aiSettings?: AiSettings; pushSettings?: PushSettings; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
 const replaceBackupTransaction = db.transaction((payload: ReplacePayload): ImportResult => {
   db.prepare('DELETE FROM record_audit').run();
   db.prepare('DELETE FROM care_records').run();
@@ -99,6 +118,23 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     for (const item of payload.careItems) insertItem.run(item.id, item.name, item.category || (item.icon === 'medicine' ? 'medication' : 'care'), item.icon, item.sortOrder, item.active ? 1 : 0, item.scheduleType || 'as_needed', item.intervalDays || 1, item.scheduleStartDate || null, item.reminderTime || null, item.reminderTimes ? JSON.stringify(item.reminderTimes) : null, item.scheduleEndDate || null, item.weekDays ? JSON.stringify(item.weekDays) : null, item.patternDays ? JSON.stringify(item.patternDays) : null, item.createdAt, item.updatedAt);
   }
   if (payload.familyMembers?.length) replaceFamilyRoles(payload.familyMembers);
+  if (payload.familyPermissions?.length) replaceFamilyRoles(payload.familyPermissions);
+  if (payload.aiSettings) {
+    db.prepare(`INSERT INTO ai_settings (id, provider, base_url, model, api_key, updated_at) VALUES (1, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET provider=excluded.provider, base_url=excluded.base_url, model=excluded.model, api_key=excluded.api_key, updated_at=excluded.updated_at`)
+      .run(payload.aiSettings.provider, payload.aiSettings.baseUrl, payload.aiSettings.model, payload.aiSettings.apiKey, payload.aiSettings.updatedAt || new Date().toISOString());
+  }
+  if (payload.pushSettings) {
+    const ps = payload.pushSettings;
+    db.prepare(`INSERT INTO push_settings (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags, updated_at)
+      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled, pushplus_token=excluded.pushplus_token, pushplus_topic=excluded.pushplus_topic,
+        morning_digest_enabled=excluded.morning_digest_enabled, morning_digest_time=excluded.morning_digest_time,
+        feeding_gap_enabled=excluded.feeding_gap_enabled, feeding_gap_level1_minutes=excluded.feeding_gap_level1_minutes,
+        feeding_gap_level2_minutes=excluded.feeding_gap_level2_minutes, care_item_enabled=excluded.care_item_enabled,
+        push_sent_flags=excluded.push_sent_flags, updated_at=excluded.updated_at`)
+      .run(ps.enabled ? 1 : 0, ps.pushplusToken, ps.pushplusTopic, ps.morningDigestEnabled ? 1 : 0, ps.morningDigestTime, ps.feedingGapEnabled ? 1 : 0, ps.feedingGapLevel1Minutes, ps.feedingGapLevel2Minutes, ps.careItemEnabled ? 1 : 0, JSON.stringify(ps.pushSentFlags || {}), ps.updatedAt || new Date().toISOString());
+  }
   db.prepare('DELETE FROM growth_records').run();
   if (payload.growthRecords?.length) {
     const insertGrowth = db.prepare(`INSERT INTO growth_records (id, measured_on, height_cm, weight_kg, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)

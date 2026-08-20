@@ -2,7 +2,8 @@
 import {
   allAudit, allChatMessages, allRecords, getProfile, listCareItems,
   listDailyReports, listFamilyMembers, listGrowthRecords, listMemories,
-  listMilestoneRecords, listSessions, listVaccineCatalog, listVaccineRecords
+  listMilestoneRecords, listSessions, listVaccineCatalog, listVaccineRecords,
+  getAiSettings, getPushSettings
 } from './db/index.js';
 
 function normalizeDateTime(value: string | null | undefined): string | null {
@@ -50,5 +51,8 @@ export function exportPayload() {
     updatedAt: normalizeDateTime(record.updatedAt) || new Date().toISOString()
   }));
   const profile = getProfile();
-  return { version: 10, exportedAt: new Date().toISOString(), profile: profile || { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null }, records, audits: allAudit(), careItems, familyMembers: listFamilyMembers(), growthRecords, vaccineRecords, milestoneRecords, vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports(), aiMemories: listMemories(true), chatSessions: listSessions(), chatMessages: allChatMessages() };
+  const aiSettings = getAiSettings();
+  const pushSettings = getPushSettings();
+  const familyPermissions = listFamilyMembers().map(({ id, role }) => ({ id, role }));
+  return { version: 11, exportedAt: new Date().toISOString(), profile: profile || { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null }, records, audits: allAudit(), careItems, familyMembers: listFamilyMembers(), familyPermissions, aiSettings, pushSettings, growthRecords, vaccineRecords, milestoneRecords, vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports(), aiMemories: listMemories(true), chatSessions: listSessions(), chatMessages: allChatMessages() };
 }

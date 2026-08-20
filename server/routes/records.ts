@@ -8,7 +8,7 @@ import {
   computeFeedingRecordsHash, getAiFeedingInsights, getAiSettings, getCareAdherence, getProfile,
   importBackup, listAudit, listCareItems, listDeletedRecords, listRecords, purgeRecord,
   removeRecord, reorderCareItems, replaceBackup, restoreRecord, saveAiFeedingInsights, saveCareItem,
-  saveRecord, setCareItemActive
+  saveRecord, setCareItemActive, addSystemAudit, listSystemAudit
 } from '../db/index.js';
 import { exportPayload } from '../export-payload.js';
 import { calculateAgeText, normalizeGrowthRecord, normalizeMilestoneRecord, normalizeRecord, normalizeVaccineRecord } from '../normalize.js';
@@ -213,7 +213,9 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
     return res.json(listAudit(parsed.data));
   });
 
-  app.get('/api/export', requireSuperAdmin, (_req, res) => {
+  app.get('/api/export', requireSuperAdmin, (req, res) => {
+    const actor = getSessionUser(req)!.id;
+    addSystemAudit('export', actor, { format: 'json' });
     res.setHeader('Content-Disposition', `attachment; filename="babycare-backup-${shanghaiDateString()}.json"`);
     res.json(exportPayload());
   });
@@ -222,52 +224,75 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
   app.get('/api/backups', requireSuperAdmin, (_req, res) => res.json(listServerBackups(ctx.backupDirectory)));
 
   app.post('/api/backups', requireSuperAdmin, (req, res) => {
+    const actor = getSessionUser(req)!.id;
     const type = (req.body?.type === 'manual' || req.body?.type === 'auto') ? req.body.type : 'manual';
     const result = writeServerBackup(exportPayload(), { directory: ctx.backupDirectory, type: type as BackupType });
+    addSystemAudit('backup', actor, { type, filename: result.filename });
     res.status(201).json(result);
   });
 
   app.delete('/api/backups/:name', requireSuperAdmin, (req, res) => {
+    const actor = getSessionUser(req)!.id;
     const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
     try {
       deleteServerBackup(name, ctx.backupDirectory);
+      addSystemAudit('delete_backup', actor, { filename: name });
       res.json({ deleted: true, status: serverBackupStatus(ctx.backupDirectory) });
     } catch (error) {
       if (error instanceof InvalidBackupNameError) return res.status(400).json({ error: error.message });
-      if (error instanceof BackupFileNotFoundError) return res.status(404).json({ error: error.message });
+      if (error instanceof BackupFileNotFoundError) {
+        addSystemAudit('delete_backup', actor, { filename: name }, 'failure');
+        return res.status(404).json({ error: error.message });
+      }
+      addSystemAudit('delete_backup', actor, { filename: name }, 'failure');
       res.status(500).json({ error: '删除备份失败' });
     }
   });
 
   app.post('/api/backups/:name/restore', requireSuperAdmin, (req, res) => {
+    const actor = getSessionUser(req)!.id;
     const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
     const parsed = backupPayloadSchema.safeParse(readServerBackup(name, ctx.backupDirectory));
-    if (!parsed.success || !parsed.data.profile) return res.status(400).json({ error: '服务器备份内容不完整，无法恢复' });
+    if (!parsed.success || !parsed.data.profile) {
+      addSystemAudit('restore', actor, { filename: name }, 'failure');
+      return res.status(400).json({ error: '服务器备份内容不完整，无法恢复' });
+    }
     writeServerBackup(exportPayload(), { directory: ctx.backupDirectory });
-    const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
+    const records = parsed.data.records.map(item => normalizeRecord(item, actor, true));
     const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
-    const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
-    const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, 'father', true));
-    const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports });
+    const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, actor, true));
+    const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, actor, true));
+    const result = replaceBackup({ profile: parsed.data.profile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, familyPermissions: parsed.data.familyPermissions, aiSettings: parsed.data.aiSettings, pushSettings: parsed.data.pushSettings, growthRecords, vaccineRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports });
+    addSystemAudit('restore', actor, { filename: name, restoredRecords: records.length, restoredVaccines: vaccineRecords.length, restoredGrowth: growthRecords.length });
     ctx.changeHub.broadcast('all');
     res.json({ ...result, restoredFrom: name, status: serverBackupStatus(ctx.backupDirectory) });
   });
 
   app.post('/api/import', requireSuperAdmin, (req, res) => {
+    const actor = getSessionUser(req)!.id;
     const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
     const { mode: _ignored, ...payload } = req.body;
     const parsed = backupPayloadSchema.safeParse(payload);
-    if (!parsed.success) return res.status(400).json({ error: '导入文件格式不正确' });
+    if (!parsed.success) {
+      addSystemAudit('import', actor, { mode }, 'failure');
+      return res.status(400).json({ error: '导入文件格式不正确' });
+    }
     writeServerBackup(exportPayload(), { directory: ctx.backupDirectory });
-    const records = parsed.data.records.map(item => normalizeRecord(item, 'father', true));
+    const records = parsed.data.records.map(item => normalizeRecord(item, actor, true));
     const audits = parsed.data.audits?.map(item => ({ ...item, id: item.id || 0, snapshot: item.snapshot as CareRecord | null })) as AuditEntry[] | undefined;
-    const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, 'father', true));
-    const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, 'father', true));
-    const milestoneRecords = parsed.data.milestoneRecords?.map(item => normalizeMilestoneRecord(item, 'father', true));
+    const growthRecords = parsed.data.growthRecords?.map(item => normalizeGrowthRecord(item, actor, true));
+    const vaccineRecords = parsed.data.vaccineRecords?.map(item => normalizeVaccineRecord(item, actor, true));
+    const milestoneRecords = parsed.data.milestoneRecords?.map(item => normalizeMilestoneRecord(item, actor, true));
     const defaultProfile = { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null };
-    const importPayload = { profile: parsed.data.profile || defaultProfile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, growthRecords, vaccineRecords, milestoneRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports };
+    const importPayload = { profile: parsed.data.profile || defaultProfile, records, audits, careItems: parsed.data.careItems as CareItem[] | undefined, familyMembers: parsed.data.familyMembers as FamilyMemberPermission[] | undefined, familyPermissions: parsed.data.familyPermissions, aiSettings: parsed.data.aiSettings, pushSettings: parsed.data.pushSettings, growthRecords, vaccineRecords, milestoneRecords, vaccineCatalog: parsed.data.vaccineCatalog as VaccineCatalogItem[] | undefined, dailyReports: parsed.data.dailyReports };
     const result = mode === 'replace' ? replaceBackup(importPayload) : importBackup(importPayload);
+    addSystemAudit('import', actor, { mode, importedRecords: records.length, importedVaccines: vaccineRecords.length, importedGrowth: growthRecords.length, importedMilestones: milestoneRecords.length });
     ctx.changeHub.broadcast('all');
     res.json({ ...result, mode });
+  });
+
+  app.get('/api/system-audit', requireSuperAdmin, (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    res.json(listSystemAudit(limit));
   });
 }

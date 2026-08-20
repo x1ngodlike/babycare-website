@@ -141,11 +141,7 @@ describe('formatTimeShort', () => {
 
 describe('periodLabels', () => {
   it('has labels for all periods', () => {
+    expect(periodLabels.day).toBeDefined();
     expect(periodLabels.night).toBeDefined();
-    expect(periodLabels.earlyMorning).toBeDefined();
-    expect(periodLabels.morning).toBeDefined();
-    expect(periodLabels.midday).toBeDefined();
-    expect(periodLabels.afternoon).toBeDefined();
-    expect(periodLabels.evening).toBeDefined();
   });
 });

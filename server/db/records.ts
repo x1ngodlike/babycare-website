@@ -3,7 +3,7 @@ import { canonicalInstant } from '../shanghai-date.js';
 import { dateStringInTimeZone } from '../../shared/date.js';
 import { DuplicateSupplementError, CareItemInactiveError, RecordNotFoundError } from './errors.js';
 import { invalidateDailyReports } from './daily-reports.js';
-import type { AuditAction, AuditChange, AuditEntry, AuditIdentity, CareRecord } from '../types.js';
+import type { AuditAction, AuditChange, AuditEntry, AuditIdentity, CareRecord, SystemAuditEntry, SystemAuditEventType } from '../types.js';
 
 const columns = `
   id, type, occurred_at AS occurredAt, breast_milk_ml AS breastMilkMl,
@@ -136,4 +136,14 @@ export function listAudit(recordId: string): AuditEntry[] {
 export function allAudit(): AuditEntry[] {
   const rows = db.prepare(`SELECT id, record_id AS recordId, action, actor, occurred_at AS occurredAt, snapshot, changes FROM record_audit ORDER BY occurred_at ASC, id ASC`).all() as (Omit<AuditEntry, 'snapshot' | 'changes'> & { snapshot: string | null; changes: string | null })[];
   return rows.map(row => ({ ...row, snapshot: row.snapshot ? JSON.parse(row.snapshot) as CareRecord : null, changes: row.changes ? JSON.parse(row.changes) as AuditChange[] : null }));
+}
+
+export function addSystemAudit(eventType: SystemAuditEventType, actor: AuditIdentity, details: Record<string, unknown> | null = null, status: 'success' | 'failure' = 'success', occurredAt = new Date().toISOString()) {
+  db.prepare('INSERT INTO system_audit (event_type, actor, occurred_at, details, status) VALUES (?, ?, ?, ?, ?)')
+    .run(eventType, actor, occurredAt, details ? JSON.stringify(details) : null, status);
+}
+
+export function listSystemAudit(limit = 50): SystemAuditEntry[] {
+  const rows = db.prepare(`SELECT id, event_type AS eventType, actor, occurred_at AS occurredAt, details, status FROM system_audit ORDER BY occurred_at DESC, id DESC LIMIT ?`).all(limit) as (Omit<SystemAuditEntry, 'details'> & { details: string | null })[];
+  return rows.map(row => ({ ...row, details: row.details ? JSON.parse(row.details) : null }));
 }

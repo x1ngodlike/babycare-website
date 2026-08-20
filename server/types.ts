@@ -118,6 +118,17 @@ export interface AuditEntry {
   changes: AuditChange[] | null;
 }
 
+export type SystemAuditEventType = 'export' | 'import' | 'backup' | 'restore' | 'delete_backup';
+
+export interface SystemAuditEntry {
+  id: number;
+  eventType: SystemAuditEventType;
+  actor: AuditIdentity;
+  occurredAt: string;
+  details: Record<string, unknown> | null;
+  status: 'success' | 'failure';
+}
+
 export interface DraftRecord {
   type: RecordType;
   occurredAt: string;

@@ -116,6 +116,19 @@ if (!auditColumns.some(column => column.name === 'changes')) {
 }
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS system_audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL CHECK (event_type IN ('export', 'import', 'backup', 'restore', 'delete_backup')),
+    actor TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    details TEXT,
+    status TEXT NOT NULL DEFAULT 'success'
+  );
+  CREATE INDEX IF NOT EXISTS idx_system_audit_event_type ON system_audit(event_type, occurred_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_system_audit_actor ON system_audit(actor, occurred_at DESC);
+`);
+
+db.exec(`
   CREATE TABLE IF NOT EXISTS ai_settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     provider TEXT NOT NULL,
