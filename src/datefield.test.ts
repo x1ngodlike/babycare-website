@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampDay, combineLocal, compareDay, isValidDay, monthGrid, shiftMonth, splitLocal } from './DateField';
+import { clampDay, combineLocal, compareDay, isValidDay, minutesAgoIso, monthGrid, shiftMonth, splitLocal } from './DateField';
 
 describe('isValidDay', () => {
   it('接受合法日期', () => {
@@ -86,5 +86,13 @@ describe('splitLocal / combineLocal', () => {
     expect(parts.day).toBe('2026-08-12');
     expect(parts.time).toBe('13:06');
     expect(combineLocal(parts.day, parts.time)).toBe(iso);
+  });
+});
+
+describe('minutesAgoIso', () => {
+  it('以点击时的当前时间向前计算', () => {
+    const now = new Date('2026-08-20T14:26:30.000Z').getTime();
+    expect(minutesAgoIso(10, now)).toBe('2026-08-20T14:16:30.000Z');
+    expect(minutesAgoIso(30, now)).toBe('2026-08-20T13:56:30.000Z');
   });
 });

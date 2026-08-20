@@ -1,22 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Clock } from 'lucide-react';
+import { getFeedPrepEnabled, getFeedPrepMinutes, setFeedPrepEnabled, setFeedPrepMinutes } from '../../feedingPreferences';
+import { Switch } from '../../ui';
 
-const FEED_PREP_KEY = 'babycare-feed-prep-minutes';
 const PREP_OPTIONS = [10, 15, 20, 30, 45, 60];
 
 export function FeedingSettingsCard() {
-  const [prepMinutes, setPrepMinutes] = useState<number>(30);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(FEED_PREP_KEY);
-      if (raw) setPrepMinutes(parseInt(raw, 10) || 30);
-    } catch { /* ignore */ }
-  }, []);
+  const [prepMinutes, setPrepMinutes] = useState(getFeedPrepMinutes);
+  const [prepEnabled, setPrepEnabled] = useState(getFeedPrepEnabled);
 
   function handlePrepChange(minutes: number) {
     setPrepMinutes(minutes);
-    try { localStorage.setItem(FEED_PREP_KEY, String(minutes)); } catch { /* ignore */ }
+    setFeedPrepMinutes(minutes);
+  }
+
+  function handlePrepToggle(enabled: boolean) {
+    setPrepEnabled(enabled);
+    setFeedPrepEnabled(enabled);
   }
 
   return (
@@ -27,15 +27,22 @@ export function FeedingSettingsCard() {
             <h2>喂养预测</h2>
           </div>
         </div>
-        <p>根据历史喂奶记录，预测下一次喂奶时间，并在此时间前提醒你准备奶瓶等。</p>
+        <p>根据历史喂奶记录，预测下一次喂奶时间。</p>
 
         <div className="feed-prep-setting">
+          <div className="feed-prep-toggle">
+            <div>
+              <b>提前准备喂养</b>
+              <small>关闭后，首页显示“下次喂养”，不再提前提醒</small>
+            </div>
+            <Switch checked={prepEnabled} label={`${prepEnabled ? '关闭' : '开启'}提前准备喂养`} onChange={handlePrepToggle} />
+          </div>
           <div className="feed-prep-header">
             <Clock size={16} strokeWidth={1.8} />
             <span className="feed-prep-label">提前准备时间</span>
-            <span className="feed-prep-current" aria-live="polite">{prepMinutes} 分钟</span>
+            <span className={`feed-prep-current${prepEnabled ? '' : ' disabled'}`} aria-live="polite">{prepEnabled ? `${prepMinutes} 分钟` : '已关闭'}</span>
           </div>
-          <div className="feed-prep-options" role="radiogroup" aria-label="提前准备时间">
+          <div className={`feed-prep-options${prepEnabled ? '' : ' disabled'}`} role="radiogroup" aria-label="提前准备时间" aria-disabled={!prepEnabled}>
             {PREP_OPTIONS.map(mins => (
               <label key={mins} className={`feed-prep-item${prepMinutes === mins ? ' selected' : ''}`}>
                 <input
@@ -43,6 +50,7 @@ export function FeedingSettingsCard() {
                   name="feed-prep"
                   value={mins}
                   checked={prepMinutes === mins}
+                  disabled={!prepEnabled}
                   onChange={() => handlePrepChange(mins)}
                   aria-label={`提前 ${mins} 分钟`}
                 />
@@ -53,7 +61,7 @@ export function FeedingSettingsCard() {
               </label>
             ))}
           </div>
-          <p className="feed-prep-hint">例如设置为 30 分钟，预测 15:01 喂奶，会在 14:31 开始显示「准备喂奶」提醒。</p>
+          <p className="feed-prep-hint">{prepEnabled ? `例如设置为 ${prepMinutes} 分钟，首页会提前 ${prepMinutes} 分钟显示“准备喂养”。` : '已保留原提前时间，重新开启后继续使用。'}</p>
         </div>
       </section>
     </>

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { blankDraft, hasEnteredContent, recordEditorTypeOrder, typeNames, selectableCareItems, careItemIconSources, ChoiceField } from '../shared';
 import { confirmAction, Modal, SegmentedControl, useDirtyClose } from '../ui';
-import { DateTimeField } from '../DateField';
+import { DateTimeField, minutesAgoIso } from '../DateField';
 import type { BowelSize, CareItem, CareItemCategory, DraftRecord, RecordType } from '../types';
 
 function CareItemChoiceField({ items, selected, onSelect }: { items: CareItem[]; selected?: string | null; onSelect(value: string): void }) {
@@ -12,6 +12,7 @@ function CareItemChoiceField({ items, selected, onSelect }: { items: CareItem[];
 
 export function RecordEditor({ initial, careItems, onClose, onSave }: { initial: DraftRecord; careItems: CareItem[]; onClose(): void; onSave(value: DraftRecord): Promise<void> }) {
   const [value, setValue] = useState(initial);
+  const [relativeMinutes, setRelativeMinutes] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const dirty = JSON.stringify(value) !== JSON.stringify(initial);
@@ -19,6 +20,7 @@ export function RecordEditor({ initial, careItems, onClose, onSave }: { initial:
   async function switchType(type: RecordType) {
     if (type === value.type) return;
     if (hasEnteredContent(value) && !await confirmAction({ title: `切换为“${typeNames[type]}”？`, description: '切换后会清空当前已填写的记录内容。', confirmLabel: '继续切换', danger: true })) return;
+    setRelativeMinutes(null);
     setValue({ ...blankDraft(type), id: value.id, occurredAt: value.occurredAt });
   }
   async function submit(event: React.FormEvent) {
@@ -38,7 +40,22 @@ export function RecordEditor({ initial, careItems, onClose, onSave }: { initial:
   return <Modal title={initial.id && 'createdAt' in initial ? '修改记录' : '添加记录'} onClose={() => void requestClose()}>
       <SegmentedControl className="type-switch" label="记录类型" value={value.type} options={recordEditorTypeOrder.map(type => ({ value: type, label: typeNames[type] }))} onChange={type => void switchType(type)} />
       <form className="editor-form" onSubmit={submit}>
-        <DateTimeField label="记录时间" max={new Date(Date.now() + 10 * 60 * 1000).toISOString()} value={value.occurredAt} onChange={occurredAt => setValue({ ...value, occurredAt })} />
+        <DateTimeField label="记录时间" max={new Date(Date.now() + 10 * 60 * 1000).toISOString()} value={value.occurredAt} onChange={occurredAt => { setRelativeMinutes(null); setValue({ ...value, occurredAt }); }} />
+        {value.type === 'feeding' && <div className="record-time-shortcuts">
+          <div role="group" aria-label="快速设置记录时间">
+            {[10, 15, 20, 25, 30].map(minutes => <button
+              type="button"
+              key={minutes}
+              className={relativeMinutes === minutes ? 'selected' : ''}
+              aria-pressed={relativeMinutes === minutes}
+              onClick={() => {
+                const nextMinutes = relativeMinutes === minutes ? null : minutes;
+                setRelativeMinutes(nextMinutes);
+                setValue({ ...value, occurredAt: minutesAgoIso(nextMinutes ?? 0) });
+              }}
+            >{minutes}分前</button>)}
+          </div>
+        </div>}
         {value.type === 'feeding' && <div className="input-pair"><label>母乳量（mL）<input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 90" value={value.breastMilkMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, breastMilkMl: e.target.value ? Number(e.target.value) : null }); }} /></label><label>奶粉量（mL）<input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 120" value={value.formulaMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, formulaMl: e.target.value ? Number(e.target.value) : null }); }} /></label></div>}
         {value.type === 'supplement' && <CareItemChoiceField items={selectableCareItems(careItems, value.supplement)} selected={value.supplement} onSelect={supplement => setValue({ ...value, supplement })} />}
         {value.type === 'bowel' && <ChoiceField label="排便量" values={['大', '中', '小'] as BowelSize[]} selected={value.bowelSize} onSelect={bowelSize => setValue({ ...value, bowelSize })} />}

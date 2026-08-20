@@ -64,6 +64,11 @@ export function combineLocal(day: string, time: string) {
   return new Date(`${day}T${time}:00`).toISOString();
 }
 
+/** 以当前时间为基准，返回若干分钟前的 ISO 时间戳。 */
+export function minutesAgoIso(minutesAgo: number, now = Date.now()) {
+  return new Date(now - minutesAgo * 60000).toISOString();
+}
+
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 const HOURS = Array.from({ length: 24 }, (_, index) => pad2(index));
 const MINUTES = Array.from({ length: 60 }, (_, index) => pad2(index));
@@ -239,8 +244,7 @@ export function DateTimeField({ label, value, onChange, max, disabled = false }:
     setOpen(false);
   }
   function quick(minutesAgo: number) {
-    const iso = new Date(Date.now() - minutesAgo * 60000).toISOString();
-    onChange(iso);
+    onChange(minutesAgoIso(minutesAgo));
     setOpen(false);
   }
   return <>
