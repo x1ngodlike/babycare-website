@@ -1,5 +1,5 @@
 // 宝宝档案视图（由 App.tsx 抽出，React.lazy 按需加载）
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type GrowthAssessment, type GrowthIndicatorAssessment } from '../api';
 import { calculateAge, isoDay } from '../date';
@@ -114,7 +114,7 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
     <MilestoneArchiveSummary profile={profile} onOpen={() => setArchiveMode('milestone')} />
     <VaccineArchiveSummary profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onOpen={onOpenVaccines} />
     <section className="growth-history">
-      <div className="section-title"><h2>成长记录</h2><div className="growth-head-actions">{canManage(user) && <button className="growth-deleted-toggle" onClick={openDeletedArchive}>已删除 {deletedGrowthRecords.length} 条</button>}<button className="btn secondary" onClick={() => todayGrowth ? onEditGrowth(todayGrowth) : onAddGrowth()}>{todayGrowth ? '修改成长' : '记录成长'}</button></div></div>
+      <div className="section-title"><h2>成长记录</h2><div className="growth-head-actions">{canManage(user) && <button className="deleted-records-link" onClick={openDeletedArchive}>已删除 {deletedGrowthRecords.length} 条</button>}<button className="btn secondary section-add-button" onClick={() => todayGrowth ? onEditGrowth(todayGrowth) : onAddGrowth()}>{!todayGrowth && <Plus aria-hidden="true" />}{todayGrowth ? '修改成长' : '记录成长'}</button></div></div>
       {growthRecords.length ? <div className="growth-list">{visibleGrowthRecords.map(record => { const recordIndex = growthRecords.findIndex(item => item.id === record.id); const previous = growthRecords[recordIndex + 1]; const curveRecord = growthCurve?.records?.find(r => r.id === record.id); return <article key={record.id}><time>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}<small>{calculateAge(profile.birthDate, new Date(`${record.measuredOn}T12:00:00`))}</small><small>{auditNames[record.createdBy]}录入</small></time><div><span>身高</span><b>{record.heightCm} cm</b>{previous && <GrowthDelta value={record.heightCm - previous.heightCm} digits={1} unit="cm" />}{curveRecord?.heightPercentile != null && <small className="growth-percentile">P{curveRecord.heightPercentile} · {curveRecord.heightBand}</small>}</div><div><span>体重</span><b>{record.weightKg} kg</b>{previous && <GrowthDelta value={record.weightKg - previous.weightKg} digits={2} unit="kg" />}{curveRecord?.weightPercentile != null && <small className="growth-percentile">P{curveRecord.weightPercentile} · {curveRecord.weightBand}</small>}</div><ActionMenu label={`${record.measuredOn}成长记录操作`} items={[{ label: '修改记录', onSelect: () => onEditGrowth(record) }, ...(canManage(user) ? [{ label: '删除记录', danger: true, onSelect: () => onDeleteGrowth(record) }] : [])]} /></article>; })}</div> : <EmptyState title="还没有成长记录" description="可以从今日开始记录身高和体重。" image="/illustrations/empty-records.webp" />}
       <Pagination page={growthPage} totalPages={growthPages} onChange={setGrowthPage} />
     </section>
@@ -158,14 +158,14 @@ function GrowthMilkBar({ milk }: { milk: NonNullable<GrowthAssessment['milk']> }
   const zoneRight = milk.referenceMax / domain * 100;
   const zoneLabelLeft = Math.min(78, Math.max(22, (zoneLeft + zoneRight) / 2));
   return <div className="ga-indicator">
-    <div className="ga-indicator-head"><span>奶量 · 近 7 天平均</span><b>{hasData ? `${milk.avgDailyMl} ml/天` : '暂无数据'}</b>{hasData && <em className={`ga-band ${inRange ? 'mid' : above ? 'high' : 'low'}`}>{inRange ? '参考范围内' : above ? '高于参考' : '低于参考'}</em>}</div>
+    <div className="ga-indicator-head"><span>奶量 · 近 7 天平均</span><b>{hasData ? `${milk.avgDailyMl} mL/天` : '暂无数据'}</b>{hasData && <em className={`ga-band ${inRange ? 'mid' : above ? 'high' : 'low'}`}>{inRange ? '参考范围内' : above ? '高于参考' : '低于参考'}</em>}</div>
     <div className="ga-track ga-track-milk" role="img" aria-label={`近 7 天平均每天奶量 ${milk.avgDailyMl} 毫升，参考范围 ${milk.referenceMin} 到 ${milk.referenceMax} 毫升${hasData ? inRange ? '，处于参考范围内' : above ? '，高于参考范围' : '，低于参考范围' : ''}`}>
       {above && <span className="ga-danger-zone" style={{ left: `${zoneRight}%`, width: `${100 - zoneRight}%` }} />}
       {below && <span className="ga-danger-zone" style={{ left: 0, width: `${zoneLeft}%` }} />}
       <span className="ga-zone" style={{ left: `${zoneLeft}%`, width: `${zoneRight - zoneLeft}%` }} />
       {hasData && <span className={`ga-marker${inRange ? '' : ' alert'}`} style={{ left: `${Math.min(98, Math.max(2, milk.avgDailyMl / domain * 100))}%` }} />}
     </div>
-    <div className="ga-scale ga-scale-milk"><span className="ga-zone-label" style={{ left: `${zoneLabelLeft}%` }}>参考 {milk.referenceMin}~{milk.referenceMax} ml</span></div>
+    <div className="ga-scale ga-scale-milk"><span className="ga-zone-label" style={{ left: `${zoneLabelLeft}%` }}>参考 {milk.referenceMin}–{milk.referenceMax} mL</span></div>
     <p className="ga-milk-note">{hasData ? `按近 7 天里 ${milk.daysCounted} 天有喂养记录的日总量取平均。` : '今天往前 7 天还没有喂奶记录，记录后会自动对比。'}</p>
   </div>;
 }

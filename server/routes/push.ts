@@ -18,7 +18,7 @@ export function registerPushRoutes(app: Express) {
 
   app.post('/api/push/settings', requireAdmin, express.json(), async (req, res) => {
     const body = req.body || {};
-    const { enabled, pushplusToken, pushplusTopic, morningDigestEnabled, morningDigestTime, feedingGapEnabled, feedingGapLevel1Minutes, feedingGapLevel2Minutes, careItemEnabled } = body;
+    const { enabled, pushplusToken, pushplusTopic, morningDigestEnabled, morningDigestTime, feedingGapEnabled, feedingGapLevel1Minutes, feedingGapLevel2Minutes, feedPrepEnabled, feedPrepMinutes, careItemEnabled } = body;
     if (enabled !== undefined && typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled 必须为布尔值' });
     if (pushplusToken !== undefined && typeof pushplusToken !== 'string') return res.status(400).json({ error: 'pushplusToken 必须为字符串' });
     if (pushplusTopic !== undefined && typeof pushplusTopic !== 'string') return res.status(400).json({ error: 'pushplusTopic 必须为字符串' });
@@ -33,6 +33,10 @@ export function registerPushRoutes(app: Express) {
     if (feedingGapLevel2Minutes !== undefined && (!Number.isSafeInteger(feedingGapLevel2Minutes) || feedingGapLevel2Minutes < 30)) {
       return res.status(400).json({ error: 'feedingGapLevel2Minutes 必须为大于等于 30 分钟的整数' });
     }
+    if (feedPrepEnabled !== undefined && typeof feedPrepEnabled !== 'boolean') return res.status(400).json({ error: 'feedPrepEnabled 必须为布尔值' });
+    if (feedPrepMinutes !== undefined && (!Number.isSafeInteger(feedPrepMinutes) || feedPrepMinutes < 0 || feedPrepMinutes > 120)) {
+      return res.status(400).json({ error: 'feedPrepMinutes 必须为 0 到 120 分钟的整数' });
+    }
     if (careItemEnabled !== undefined && typeof careItemEnabled !== 'boolean') return res.status(400).json({ error: 'careItemEnabled 必须为布尔值' });
     if (feedingGapLevel1Minutes !== undefined && feedingGapLevel2Minutes !== undefined && feedingGapLevel2Minutes <= feedingGapLevel1Minutes) {
       return res.status(400).json({ error: '重点提醒分钟数必须大于轻度提醒' });
@@ -43,7 +47,9 @@ export function registerPushRoutes(app: Express) {
         ...(pushplusTopic !== undefined ? { pushplusTopic } : {}), ...(morningDigestEnabled !== undefined ? { morningDigestEnabled } : {}),
         ...(morningDigestTime !== undefined ? { morningDigestTime } : {}), ...(feedingGapEnabled !== undefined ? { feedingGapEnabled } : {}),
         ...(feedingGapLevel1Minutes !== undefined ? { feedingGapLevel1Minutes } : {}),
-        ...(feedingGapLevel2Minutes !== undefined ? { feedingGapLevel2Minutes } : {}), ...(careItemEnabled !== undefined ? { careItemEnabled } : {})
+        ...(feedingGapLevel2Minutes !== undefined ? { feedingGapLevel2Minutes } : {}),
+        ...(feedPrepEnabled !== undefined ? { feedPrepEnabled } : {}), ...(feedPrepMinutes !== undefined ? { feedPrepMinutes } : {}),
+        ...(careItemEnabled !== undefined ? { careItemEnabled } : {})
       }));
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : '保存失败' });

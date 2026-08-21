@@ -51,6 +51,8 @@ export interface PushStatus {
   feedingGapEnabled: boolean;
   feedingGapLevel1Minutes: number;
   feedingGapLevel2Minutes: number;
+  feedPrepEnabled: boolean;
+  feedPrepMinutes: number;
   careItemEnabled: boolean;
   currentFeedingGapMinutes: number | null;
   feedingGapLevel: FeedingGapLevel;

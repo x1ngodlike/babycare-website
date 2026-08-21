@@ -57,7 +57,7 @@ export function ProfileSettingsCard({ profile, onSaved }: { profile: Profile; on
       <TimeField label="出生时间" value={form.birthTime ?? ''} onChange={birthTime => setForm({ ...form, birthTime })} required={false} />
       <Feedback message={error} type="error" onClose={() => setError('')} />
       <Feedback message={saved} type="success" onClose={() => setSaved('')} />
-      <footer className="editor-actions" style={{ marginTop: 16 }}><button className="btn primary" disabled={busy || avatarBusy}>{busy ? '保存中…' : '保存资料'}</button></footer>
+      <footer className="editor-actions single-action" style={{ marginTop: 16 }}><button className="btn primary full" disabled={busy || avatarBusy}>{busy ? '保存中…' : '保存资料'}</button></footer>
     </form>
     {cropperSrc && <AvatarCropperModal imageSrc={cropperSrc} onClose={() => setCropperSrc(null)} onConfirm={file => void onCropperConfirm(file)} />}
   </section>;

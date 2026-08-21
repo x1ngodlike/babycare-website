@@ -37,7 +37,7 @@ export function AiSettingsCard({ capabilities, onChanged }: { capabilities: Capa
     catch (err) { setStatus({ text: err instanceof Error ? err.message : '移除失败', error: true }); }
     finally { setBusy(''); }
   }
-  return <section className="settings-card model-settings"><div className="setting-status"><h2>AI 模型设置</h2><span className={capabilities.aiEnabled ? 'on' : ''}>{capabilities.aiEnabled ? '已配置' : '未配置'}</span></div>
+  return <section className="settings-card model-settings"><div className="setting-status"><h2>AI 模型设置</h2><span className={`status-badge ${capabilities.aiEnabled ? 'success' : 'neutral'}`}>{capabilities.aiEnabled ? '已配置' : '未配置'}</span></div>
     <p>配置模型后，可为报告总结、成长分析和后续智能功能提供能力。</p>
     <p className="field-help">默认 DeepSeek，也可填写兼容 OpenAI 的接口地址与模型。</p>
     <form onSubmit={save}>

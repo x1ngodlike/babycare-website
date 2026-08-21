@@ -4,26 +4,72 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --ink: #dde3dc;
-    --muted: #8a938b;
-    --text-secondary: #8a938b;
-    --text-tertiary: #6f7867;
-    --green: #7d9a66;
-    --green-deep: #a8c098;
+    --muted: #9da79e;
+    --text-secondary: #a7b0a8;
+    --text-tertiary: #8e988f;
+    --green: #86a370;
+    --green-deep: #b8cfaa;
     --sage: #3a4a36;
     --sage-soft: #2a3528;
     --orange: #e09958;
     --cream: #4a3f30;
-    --line: #333d38;
-    --line-strong: #434e47;
+    --line: #3d4941;
+    --line-strong: #556259;
     --line-sage: #3a4a36;
-    --focus: #7d9a66;
-    --accent: #7d9a66;
-    --border: #333d38;
-    --border-strong: #434e47;
+    --focus: #91b17b;
+    --accent: #86a370;
+    --border: #3d4941;
+    --border-strong: #556259;
     --surface-page: #1a1f1b;
-    --surface-card: #242b25;
-    --surface-subtle: #2d342d;
-    --surface-muted: #353d36;
+    --surface-card: #242c26;
+    --surface-subtle: #2d3730;
+    --surface-muted: #37423a;
+    --surface-control: #303932;
+    --surface-container: #242c26;
+    --surface-container-border: #3d4941;
+    --surface-interactive-hover: #2d3730;
+    --surface-interactive-active: #2a3528;
+    --surface-interactive-disabled: #37423a;
+    --overlay-backdrop: rgba(0, 0, 0, .6);
+    --divider: #3d4941;
+    --chevron: #8e988f;
+    --status-brand-bg: #2a3528;
+    --status-brand-text: #b8cfaa;
+    --status-success-bg: #2c4033;
+    --status-success-text: #9bc9a7;
+    --status-neutral-text: #a7b0a8;
+    --status-danger-text: #f08a80;
+    --surface-plan: #2c2924;
+    --surface-danger-soft: #3a2a28;
+    --surface-overdue-soft: #3d2d1e;
+    --surface-soon-soft: #3d3520;
+    --status-warning-bg: #3d3520;
+    --status-warning-text: #e0a868;
+    --status-danger-bg: #3d2a2a;
+    --status-neutral-bg: #37423a;
+    --status-error-bg: #3d2a2a;
+    --status-error-line: #684743;
+    --status-error-line-soft: #5a3f3c;
+    --status-error-text: #f08a80;
+    --line-plan: #5a4938;
+    --text-on-orange: #21170f;
+    --control-bg: #303932;
+    --control-bg-hover: #323b34;
+    --control-bg-disabled: #37423a;
+    --control-border: #556259;
+    --control-border-hover: #86a370;
+    --control-border-focus: #91b17b;
+    --control-placeholder: #8e988f;
+    --action-primary-bg: #d48540;
+    --action-primary-bg-hover: #c4792f;
+    --action-primary-bg-active: #ad6828;
+    --action-primary-border: #d48540;
+    --action-primary-text: #fff;
+    --action-secondary-bg: #242c26;
+    --action-secondary-bg-hover: #2d3730;
+    --action-secondary-bg-active: #37423a;
+    --action-secondary-border: #556259;
+    --action-secondary-text: #dde3dc;
     --danger: #e0736a;
     --white: #dde3dc;
     --tag-program-bg: #3a4a36;
@@ -31,6 +77,7 @@
     --tag-self-paid-bg: #4a3f30;
     --tag-self-paid-text: #e0a868;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 26px rgba(0, 0, 0, .25);
+    --shadow-container: 0 1px 2px rgba(0, 0, 0, .3);
     --shadow-float: 0 10px 28px rgba(0, 0, 0, .4), 0 2px 7px rgba(0, 0, 0, .3);
     color-scheme: dark;
   }
@@ -38,26 +85,72 @@
 
 html[data-theme="dark"] {
   --ink: #dde3dc;
-  --muted: #8a938b;
-  --text-secondary: #8a938b;
-  --text-tertiary: #6f7867;
-  --green: #7d9a66;
-  --green-deep: #a8c098;
+  --muted: #9da79e;
+  --text-secondary: #a7b0a8;
+  --text-tertiary: #8e988f;
+  --green: #86a370;
+  --green-deep: #b8cfaa;
   --sage: #3a4a36;
   --sage-soft: #2a3528;
   --orange: #e09958;
   --cream: #4a3f30;
-  --line: #333d38;
-  --line-strong: #434e47;
+  --line: #3d4941;
+  --line-strong: #556259;
   --line-sage: #3a4a36;
-  --focus: #7d9a66;
-  --accent: #7d9a66;
-  --border: #333d38;
-  --border-strong: #434e47;
+  --focus: #91b17b;
+  --accent: #86a370;
+  --border: #3d4941;
+  --border-strong: #556259;
   --surface-page: #1a1f1b;
-  --surface-card: #242b25;
-  --surface-subtle: #2d342d;
-  --surface-muted: #353d36;
+  --surface-card: #242c26;
+  --surface-subtle: #2d3730;
+  --surface-muted: #37423a;
+  --surface-control: #303932;
+  --surface-container: #242c26;
+  --surface-container-border: #3d4941;
+  --surface-interactive-hover: #2d3730;
+  --surface-interactive-active: #2a3528;
+  --surface-interactive-disabled: #37423a;
+  --overlay-backdrop: rgba(0, 0, 0, .6);
+  --divider: #3d4941;
+  --chevron: #8e988f;
+  --status-brand-bg: #2a3528;
+  --status-brand-text: #b8cfaa;
+  --status-success-bg: #2c4033;
+  --status-success-text: #9bc9a7;
+  --status-neutral-text: #a7b0a8;
+  --status-danger-text: #f08a80;
+  --surface-plan: #2c2924;
+  --surface-danger-soft: #3a2a28;
+  --surface-overdue-soft: #3d2d1e;
+  --surface-soon-soft: #3d3520;
+  --status-warning-bg: #3d3520;
+  --status-warning-text: #e0a868;
+  --status-danger-bg: #3d2a2a;
+  --status-neutral-bg: #37423a;
+  --status-error-bg: #3d2a2a;
+  --status-error-line: #684743;
+  --status-error-line-soft: #5a3f3c;
+  --status-error-text: #f08a80;
+  --line-plan: #5a4938;
+  --text-on-orange: #21170f;
+  --control-bg: #303932;
+  --control-bg-hover: #323b34;
+  --control-bg-disabled: #37423a;
+  --control-border: #556259;
+  --control-border-hover: #86a370;
+  --control-border-focus: #91b17b;
+  --control-placeholder: #8e988f;
+  --action-primary-bg: #d48540;
+  --action-primary-bg-hover: #c4792f;
+  --action-primary-bg-active: #ad6828;
+  --action-primary-border: #d48540;
+  --action-primary-text: #fff;
+  --action-secondary-bg: #242c26;
+  --action-secondary-bg-hover: #2d3730;
+  --action-secondary-bg-active: #37423a;
+  --action-secondary-border: #556259;
+  --action-secondary-text: #dde3dc;
   --danger: #e0736a;
   --white: #dde3dc;
   --tag-program-bg: #3a4a36;
@@ -65,525 +158,14 @@ html[data-theme="dark"] {
   --tag-self-paid-bg: #4a3f30;
   --tag-self-paid-text: #e0a868;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 26px rgba(0, 0, 0, .25);
+  --shadow-container: 0 1px 2px rgba(0, 0, 0, .3);
   --shadow-float: 0 10px 28px rgba(0, 0, 0, .4), 0 2px 7px rgba(0, 0, 0, .3);
+  background: var(--surface-page);
+  color: var(--ink);
   color-scheme: dark;
 }
 
-/* Dark mode hardcoded color overrides */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    background: var(--surface-page);
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) body {
-    background:
-      radial-gradient(circle at 8% 4%, rgba(125, 154, 102, .08) 0 10%, transparent 32%),
-      radial-gradient(circle at 95% 92%, rgba(125, 154, 102, .06), transparent 25%),
-      linear-gradient(180deg, #1e2420 0%, var(--surface-page) 46%, #181d19 100%);
-  }
-  html:not([data-theme="light"]) .app::before,
-  html:not([data-theme="light"]) .app::after {
-    background: rgba(125, 154, 102, .1);
-  }
-  html:not([data-theme="light"]) input,
-  html:not([data-theme="light"]) textarea,
-  html:not([data-theme="light"]) select {
-    background: #2a312a;
-    color: var(--ink);
-    border-color: var(--line-strong);
-  }
-  html:not([data-theme="light"]) .baby-hero {
-    background: linear-gradient(135deg, #3a4f36 0%, #2d3f2b 58%, #425740 100%);
-  }
-  html:not([data-theme="light"]) .baby-hero .kicker { color: #b4c7ad; text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
-  html:not([data-theme="light"]) .hero-profile-line,
-  html:not([data-theme="light"]) .hero-status p { color: #c5d3be; text-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
-  html:not([data-theme="light"]) .hero-greeting-title { text-shadow: 0 2px 5px rgba(0, 0, 0, .35); }
-  html:not([data-theme="light"]) .hero-avatar { background: #2a312a; border-color: rgba(168, 192, 152, .6); }
-  html:not([data-theme="light"]) .metric-band,
-  html:not([data-theme="light"]) .metric-band > div { background: var(--surface-card); }
-  html:not([data-theme="light"]) .network-pill,
-  html:not([data-theme="light"]) .user-pill {
-    background: rgba(42, 49, 42, .9);
-    border-color: rgba(67, 78, 71, .85);
-    color: var(--green);
-  }
-  html:not([data-theme="light"]) .network-pill::before { background: #7d9a66; }
-  html:not([data-theme="light"]) .today-workbench,
-  html:not([data-theme="light"]) .settings-card,
-  html:not([data-theme="light"]) .chart-card,
-  html:not([data-theme="light"]) .rhythm-list,
-  html:not([data-theme="light"]) .settings-menu,
-  html:not([data-theme="light"]) .account-card,
-  html:not([data-theme="light"]) .archive-profile,
-  html:not([data-theme="light"]) .growth-history,
-  html:not([data-theme="light"]) .growth-assessment-card,
-  html:not([data-theme="light"]) .growth-curve-card,
-  html:not([data-theme="light"]) .deleted-records,
-  html:not([data-theme="light"]) .trend-summary,
-  html:not([data-theme="light"]) .trend-total-details,
-  html:not([data-theme="light"]) .trend-period-nav,
-  html:not([data-theme="light"]) .pagination,
-  html:not([data-theme="light"]) .calendar-nav button,
-  html:not([data-theme="light"]) .trend-period-nav button,
-  html:not([data-theme="light"]) .filter-field select,
-  html:not([data-theme="light"]) .backup-file-select,
-  html:not([data-theme="light"]) .native-notification-row,
-  html:not([data-theme="light"]) .today-insights,
-  html:not([data-theme="light"]) .today-plan {
-    background: #2d2520;
-    border-color: #4d3f30;
-    box-shadow: var(--shadow-card);
-  }
-  html:not([data-theme="light"]) .backup-file-delete:hover {
-    background: #3a2a28;
-    color: var(--danger);
-  }
-  html:not([data-theme="light"]) .backup-type-tag.auto {
-    background: #3a3a3a;
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .import-mode-option {
-    background: var(--surface-card);
-    color: var(--text-primary);
-  }
-  html:not([data-theme="light"]) .import-mode-option:hover {
-    background: var(--surface-subtle);
-    border-color: var(--green);
-  }
-  html:not([data-theme="light"]) .import-mode-option.selected {
-    background: var(--surface-subtle);
-    border-color: var(--green);
-  }
-  html:not([data-theme="light"]) .import-mode-content p {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .audit-log-section {
-    border-top-color: var(--line);
-  }
-  html:not([data-theme="light"]) .audit-log-icon {
-    background: var(--surface-subtle);
-    color: var(--green);
-  }
-  html:not([data-theme="light"]) .audit-log-item.failed .audit-log-icon {
-    background: #3d2a2a;
-    color: var(--danger);
-  }
-  html:not([data-theme="light"]) .audit-log-status.success {
-    background: var(--surface-subtle);
-    color: var(--green);
-  }
-  html:not([data-theme="light"]) .audit-log-status.failure {
-    background: #3d2a2a;
-    color: var(--danger);
-  }
-  html:not([data-theme="light"]) .audit-log-item {
-    border-bottom-color: var(--line);
-  }
-  html:not([data-theme="light"]) .today-workbench .quick-section {
-    background: var(--surface-subtle);
-  }
-  html:not([data-theme="light"]) .quick-grid button {
-    background: var(--surface-subtle);
-    color: var(--ink);
-    border-color: var(--line);
-  }
-  html:not([data-theme="light"]) .quick-grid button:hover { background: var(--surface-muted); }
-  html:not([data-theme="light"]) .quick-grid button:active { background: var(--sage-soft); }
-  html:not([data-theme="light"]) .quick-grid b { color: #c5d3be; }
-  html:not([data-theme="light"]) .push-rule-row,
-  html:not([data-theme="light"]) .push-channel-row { border-color: var(--line); }
-  html:not([data-theme="light"]) .bar-track { background: var(--surface-subtle); }
-  html:not([data-theme="light"]) .segmented,
-  html:not([data-theme="light"]) .role-switch {
-    background: var(--surface-subtle);
-    border-color: var(--line-strong);
-  }
-  html:not([data-theme="light"]) .segment.active,
-  html:not([data-theme="light"]) .role-switch button.active {
-    background: var(--surface-card);
-    box-shadow: 0 0 0 1px var(--line);
-  }
-  html:not([data-theme="light"]) .btn.secondary {
-    background: var(--surface-card);
-    border-color: var(--line);
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .btn.primary {
-    background: var(--orange);
-    border-color: var(--orange);
-    color: #fff;
-  }
-  html:not([data-theme="light"]) .today-plan-list .btn.primary {
-    background: var(--orange);
-    border-color: var(--orange);
-    color: #fff;
-  }
-  html:not([data-theme="light"]) .btn.primary span,
-  html:not([data-theme="light"]) .btn.primary i {
-    color: #fff;
-  }
-  html:not([data-theme="light"]) .btn.danger-button.secondary {
-    background: transparent;
-    border-color: #5a3f3c;
-    color: var(--danger);
-  }
-  html:not([data-theme="light"]) .btn.danger-button.secondary:hover {
-    background: #3a2a28;
-  }
-  html:not([data-theme="light"]) .auth-page,
-  html:not([data-theme="light"]) .loading-page {
-    background:
-      radial-gradient(circle at 50% 12%, rgba(125, 154, 102, .12), transparent 36%),
-      linear-gradient(160deg, #1a1f1b, #222822);
-  }
-  html:not([data-theme="light"]) .auth-card {
-    background: var(--surface-card);
-    border-color: var(--line);
-  }
-  html:not([data-theme="light"]) .identity-picker button {
-    background: var(--surface-subtle);
-    border-color: var(--line);
-  }
-  html:not([data-theme="light"]) .identity-picker button.selected {
-    border-color: var(--orange);
-    background: rgba(224, 153, 88, 0.15);
-    color: var(--orange);
-  }
-  html:not([data-theme="light"]) .identity-picker button b {
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .identity-picker button small {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .app-nav {
-    background: rgba(36, 43, 37, .96);
-    border-color: var(--line);
-    box-shadow: 0 -4px 22px rgba(0, 0, 0, .35);
-  }
-  html:not([data-theme="light"]) .app-nav button { color: #8a938b; }
-  html:not([data-theme="light"]) .app-nav button:hover { background: var(--surface-subtle); }
-  html:not([data-theme="light"]) .app-nav button.active,
-  html:not([data-theme="light"]) .app-nav button.active:hover,
-  html:not([data-theme="light"]) .app-nav button.active:active { background: transparent; }
-  html:not([data-theme="light"]) .app-nav button.active { color: var(--green-deep); }
-  html:not([data-theme="light"]) .app-nav button.active img { filter: none; opacity: 1; }
-  html:not([data-theme="light"]) .app-nav button img { opacity: .4; filter: saturate(.5) brightness(.7); }
-  html:not([data-theme="light"]) .floating-add,
-  html:not([data-theme="light"]) .app-nav .nav-add {
-    background: linear-gradient(180deg, #d48540, #b86b28);
-    border-color: #3a2a1c;
-    color: #fff;
-  }
-  html:not([data-theme="light"]) .floating-add span,
-  html:not([data-theme="light"]) .app-nav .nav-add span {
-    color: #fff;
-  }
-  html:not([data-theme="light"]) .app-nav .nav-add:hover,
-  html:not([data-theme="light"]) .app-nav .nav-add:active {
-    background: linear-gradient(180deg, #e0944d, #c4792f);
-  }
-  html:not([data-theme="light"]) .baby-hero::after {
-    background:
-      linear-gradient(90deg, rgba(10, 10, 10, .68) 0%, rgba(10, 10, 10, .40) 48%, rgba(10, 10, 10, .06) 100%),
-      var(--hero-background, url('/hero/default/midday.webp')) center / cover no-repeat;
-  }
-  html:not([data-theme="light"]) .modal-layer { background: rgba(0, 0, 0, .6); }
-  html:not([data-theme="light"]) .editor {
-    background: var(--surface-card);
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .todo-list,
-  html:not([data-theme="light"]) .draggable-item,
-  html:not([data-theme="light"]) .draggable-placeholder {
-    background: var(--surface-card);
-    border-color: var(--line);
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .draggable-item {
-    border-color: var(--line-strong);
-  }
-  html:not([data-theme="light"]) .record-controls button,
-  html:not([data-theme="light"]) .text-button,
-  html:not([data-theme="light"]) .inline-back {
-    color: var(--green-deep);
-  }
-  html:not([data-theme="light"]) .settings-entry,
-  html:not([data-theme="light"]) .settings-menu {
-    background: var(--surface-card);
-    border-color: var(--line);
-  }
-  html:not([data-theme="light"]) .settings-menu-stack .settings-entry:hover {
-    background: var(--surface-subtle);
-  }
-  html:not([data-theme="light"]) .settings-menu-stack .settings-entry:active {
-    background: var(--sage-soft);
-  }
-  html:not([data-theme="light"]) .care-item-list article,
-  html:not([data-theme="light"]) .review-list article,
-  html:not([data-theme="light"]) .vaccine-list article,
-  html:not([data-theme="light"]) .vaccine-sheet-item,
-  html:not([data-theme="light"]) .vaccine-upcoming-list article {
-    background: var(--surface-card);
-    border-color: var(--line);
-  }
-  html:not([data-theme="light"]) .vaccine-calendar-grid > button {
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .vaccine-calendar-grid > button:hover {
-    background: var(--surface-subtle);
-  }
-  html:not([data-theme="light"]) .vaccine-agenda-list article.selected {
-    background: var(--sage-soft);
-  }
-  html:not([data-theme="light"]) .vaccine-date,
-  html:not([data-theme="light"]) .vaccine-calendar-week {
-    background: var(--sage-soft);
-    color: var(--green-deep);
-  }
-  html:not([data-theme="light"]) .ga-band.mid {
-    background: var(--sage);
-    color: var(--green-deep);
-  }
-  html:not([data-theme="light"]) .ga-band.below,
-  html:not([data-theme="light"]) .ga-band.above {
-    background: var(--cream);
-    color: #c98a4a;
-  }
-  html:not([data-theme="light"]) .ga-band.low,
-  html:not([data-theme="light"]) .ga-band.high {
-    background: #5a3330;
-    color: var(--danger);
-  }
-  html:not([data-theme="light"]) .ga-seg.core { background: var(--sage); }
-  html:not([data-theme="light"]) .ga-seg.edge { background: var(--cream); }
-  html:not([data-theme="light"]) .ga-track-milk { background: var(--surface-muted); }
-  html:not([data-theme="light"]) .ga-danger-zone { background: #5a3330; }
-  html:not([data-theme="light"]) .ga-zone { background: var(--sage); }
-  html:not([data-theme="light"]) .ga-marker {
-    background: var(--green-deep);
-    border-color: var(--surface-card);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
-  }
-  html:not([data-theme="light"]) .ga-marker.alert {
-    background: var(--danger);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
-  }
-  html:not([data-theme="light"]) .ga-scale,
-  html:not([data-theme="light"]) .ga-scale-milk {
-    color: var(--text-tertiary);
-  }
-  html:not([data-theme="light"]) .baby-hero::after {
-    background:
-      linear-gradient(90deg, rgba(10, 10, 10, .68) 0%, rgba(10, 10, 10, .40) 48%, rgba(10, 10, 10, .06) 100%),
-      var(--hero-background, url('/hero/default/midday.webp')) center / cover no-repeat;
-  }
-  html:not([data-theme="light"]) .today-layout .baby-hero {
-    background: linear-gradient(135deg, #3a4f36 0%, #2d3f2b 58%, #425740 100%);
-  }
-  html:not([data-theme="light"]) .today-insights {
-    background: var(--surface-card);
-  }
-  html:not([data-theme="light"]) .today-plan {
-    background: #2d2520;
-    border-color: #4d3f30;
-  }
-  html:not([data-theme="light"]) .today-plan > h2,
-  html:not([data-theme="light"]) .today-layout .today-plan > h2 {
-    color: #d9a46a;
-  }
-  html:not([data-theme="light"]) .today-plan-list article {
-    border-color: #4d3f30;
-  }
-  html:not([data-theme="light"]) .today-layout .today-plan-list .task-icon,
-  html:not([data-theme="light"]) .today-layout .today-plan-list .vaccine-task > img,
-  html:not([data-theme="light"]) .today-layout .today-plan-list .growth-task > img {
-    background: #3a3025;
-    border-color: #5a4a38;
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, .2);
-  }
-  html:not([data-theme="light"]) .today-layout .today-timeline .record-mark,
-  html:not([data-theme="light"]) .history-timeline .record-mark {
-    background: #3d4a35;
-    border-color: #54644a;
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, .2);
-  }
-  html:not([data-theme="light"]) .history-timeline .time-col i,
-  html:not([data-theme="light"]) .today-timeline .time-col i,
-  html:not([data-theme="light"]) .today-layout .today-timeline .time-col i {
-    background: var(--line);
-  }
-  html:not([data-theme="light"]) .history-timeline .record-copy small,
-  html:not([data-theme="light"]) .today-timeline .record-copy small {
-    color: #8fae7b;
-  }
-  html:not([data-theme="light"]) .draggable-item .drag-handle,
-  html:not([data-theme="light"]) .care-drag-handle {
-    background: transparent;
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .schedule-fields {
-    background: var(--surface-subtle);
-  }
-  html:not([data-theme="light"]) .meta-icon-btn {
-    background: var(--surface-subtle);
-    border-color: var(--line);
-  }
-  html:not([data-theme="light"]) .meta-icon-btn.selected {
-    background: var(--sage-soft);
-  }
-  html:not([data-theme="light"]) .meta-category-label {
-    background: var(--surface-subtle);
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .time-empty-state {
-    border-color: var(--line);
-  }
-  html:not([data-theme="light"]) .ga-note,
-  html:not([data-theme="light"]) .ga-eval-meta,
-  html:not([data-theme="light"]) .ga-disclaimer,
-  html:not([data-theme="light"]) .ga-milk-note {
-    color: var(--text-tertiary);
-  }
-  html:not([data-theme="light"]) .today-baby-summary img {
-    background: #2a312a;
-    border-color: rgba(168, 192, 152, .6);
-  }
-  html:not([data-theme="light"]) .today-workbench .today-profile-strip span,
-  html:not([data-theme="light"]) .today-baby-summary span {
-    color: var(--green-deep);
-  }
-  html:not([data-theme="light"]) .toast {
-    background: var(--ink);
-    color: #1a1f1b;
-  }
-  html:not([data-theme="light"]) .toast button {
-    background: #1a1f1b;
-    color: var(--green-deep);
-  }
-  html:not([data-theme="light"]) .kicker {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .archive-profile-summary {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .archive-profile h2 {
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .ga-indicator-head b {
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .ga-indicator-head span {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .vaccine-archive-count {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) time {
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) time small {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) b,
-  html:not([data-theme="light"]) strong {
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .growth-list time {
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .growth-list > article > div > b {
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .growth-delta.up {
-    color: var(--green-deep);
-  }
-  html:not([data-theme="light"]) .growth-delta.down {
-    color: var(--danger);
-  }
-  html:not([data-theme="light"]) .growth-delta.flat {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .btn.primary span,
-  html:not([data-theme="light"]) .btn.primary i {
-    color: var(--white);
-  }
-  html:not([data-theme="light"]) .bar-day > span {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .bar-value {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .account-card i {
-    color: var(--green-deep);
-    background: var(--surface-subtle);
-  }
-  html:not([data-theme="light"]) .choice-group button {
-    background: var(--surface-subtle);
-    border-color: var(--line);
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .choice-group button.selected {
-    border-color: var(--orange);
-    background: rgba(224, 153, 88, 0.15);
-    color: var(--orange);
-  }
-  html:not([data-theme="light"]) .care-choice-grid button {
-    background: var(--surface-subtle);
-    border-color: var(--line);
-    color: var(--ink);
-  }
-  html:not([data-theme="light"]) .care-choice-grid button.selected {
-    border-color: var(--orange);
-    background: rgba(224, 153, 88, 0.15);
-    color: var(--orange);
-  }
-  html:not([data-theme="light"]) .care-choice-groups .care-choice-grid button {
-    background: var(--surface-subtle);
-    border-color: var(--line);
-  }
-  html:not([data-theme="light"]) .care-choice-groups .care-choice-grid button.selected {
-    border-color: var(--orange);
-    background: rgba(224, 153, 88, 0.15);
-    color: var(--orange);
-    box-shadow: none;
-  }
-  html:not([data-theme="light"]) .segmented {
-    background: var(--surface-muted);
-    border-color: var(--line);
-  }
-  html:not([data-theme="light"]) .segmented button {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .segment.active {
-    background: var(--surface-card);
-    color: var(--green-deep);
-    box-shadow: 0 0 0 1px var(--line);
-  }
-  html:not([data-theme="light"]) .role-switch {
-    background: var(--surface-subtle);
-    border-color: var(--line-strong);
-  }
-  html:not([data-theme="light"]) .role-switch button {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .role-switch button.active {
-    background: var(--surface-card);
-    color: var(--green-deep);
-    box-shadow: 0 0 0 1px var(--line);
-  }
-  html:not([data-theme="light"]) .settings-entry em {
-    color: var(--muted);
-  }
-  html:not([data-theme="light"]) .settings-entry > i {
-    color: var(--muted);
-  }
-}
-
-html[data-theme="dark"] {
-  background: var(--surface-page);
-  color: var(--ink);
-}
+/* Component overrides use the resolved data-theme set by App.tsx. */
 html[data-theme="dark"] body {
   background:
     radial-gradient(circle at 8% 4%, rgba(125, 154, 102, .08) 0 10%, transparent 32%),
@@ -597,7 +179,7 @@ html[data-theme="dark"] .app::after {
 html[data-theme="dark"] input,
 html[data-theme="dark"] textarea,
 html[data-theme="dark"] select {
-  background: #2a312a;
+  background: var(--surface-control);
   color: var(--ink);
   border-color: var(--line-strong);
 }
@@ -608,7 +190,7 @@ html[data-theme="dark"] .baby-hero .kicker { color: #b4c7ad; text-shadow: 0 1px 
 html[data-theme="dark"] .hero-profile-line,
 html[data-theme="dark"] .hero-status p { color: #c5d3be; text-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
 html[data-theme="dark"] .hero-greeting-title { text-shadow: 0 2px 5px rgba(0, 0, 0, .35); }
-html[data-theme="dark"] .hero-avatar { background: #2a312a; border-color: rgba(168, 192, 152, .6); }
+html[data-theme="dark"] .hero-avatar { background: var(--surface-control); border-color: rgba(168, 192, 152, .6); }
 html[data-theme="dark"] .network-pill,
 html[data-theme="dark"] .user-pill {
   background: rgba(42, 49, 42, .9);
@@ -644,7 +226,7 @@ html[data-theme="dark"] .today-plan {
   box-shadow: var(--shadow-card);
 }
 html[data-theme="dark"] .backup-file-delete:hover {
-  background: #3a2a28;
+  background: var(--surface-danger-soft);
   color: var(--danger);
 }
 html[data-theme="dark"] .backup-type-tag.auto {
@@ -659,11 +241,11 @@ html[data-theme="dark"] .prediction-banner.soon {
   border-color: #6b5a2e;
   background: #35301a;
 }
-html[data-theme="dark"] .prediction-banner.overdue .prediction-icon { background: #3d2d1e; color: #e0894a; }
-html[data-theme="dark"] .prediction-banner.soon .prediction-icon { background: #3d3520; color: #d4a84a; }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-icon { background: var(--surface-overdue-soft); color: #e0894a; }
+html[data-theme="dark"] .prediction-banner.soon .prediction-icon { background: var(--surface-soon-soft); color: #d4a84a; }
 html[data-theme="dark"] .prediction-banner.overdue .prediction-label { color: #e0894a; }
 html[data-theme="dark"] .prediction-banner.overdue .prediction-time { color: #e0894a; }
-html[data-theme="dark"] .prediction-banner.overdue .prediction-upcoming-count { background: #3d2d1e; color: #e0894a; }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-upcoming-count { background: var(--surface-overdue-soft); color: #e0894a; }
 html[data-theme="dark"] .prediction-detail {
   background: var(--surface-subtle);
   border-top-color: var(--line);
@@ -694,11 +276,11 @@ html[data-theme="dark"] .prediction-banner.ai-predicted .prediction-time::after 
 }
 html[data-theme="dark"] .prediction-banner.ai-predicted.overdue .prediction-time::after {
   color: #e0894a;
-  background: #3d2d1e;
+  background: var(--surface-overdue-soft);
 }
 html[data-theme="dark"] .prediction-banner.ai-predicted.soon .prediction-time::after {
   color: #d4a84a;
-  background: #3d3520;
+  background: var(--surface-soon-soft);
 }
 html[data-theme="dark"] .prediction-upcoming-count { background: var(--sage-soft); color: var(--green); }
 html[data-theme="dark"] .import-mode-option {
@@ -746,28 +328,10 @@ html[data-theme="dark"] .quick-grid button:active { background: var(--sage-soft)
 html[data-theme="dark"] .quick-grid b { color: #c5d3be; }
 html[data-theme="dark"] .push-rule-row,
 html[data-theme="dark"] .push-channel-row { border-color: var(--line); }
-html[data-theme="dark"] .bar-track { background: var(--surface-subtle); }
-html[data-theme="dark"] .segmented,
-html[data-theme="dark"] .role-switch {
-  background: var(--surface-subtle);
-  border-color: var(--line-strong);
-}
-html[data-theme="dark"] .segment.active,
-html[data-theme="dark"] .role-switch button.active {
-  background: var(--surface-card);
-  box-shadow: 0 0 0 1px var(--line);
-}
-html[data-theme="dark"] .btn.secondary {
-  background: var(--surface-card);
-  color: var(--green-deep);
-}
 html[data-theme="dark"] .btn.danger-button.secondary {
   background: transparent;
   border-color: #5a3f3c;
   color: var(--danger);
-}
-html[data-theme="dark"] .btn.danger-button.secondary:hover {
-  background: #3a2a28;
 }
 html[data-theme="dark"] .auth-page,
 html[data-theme="dark"] .loading-page {
@@ -779,27 +343,19 @@ html[data-theme="dark"] .auth-card {
   background: var(--surface-card);
   border-color: var(--line);
 }
-html[data-theme="dark"] .identity-picker button {
-  background: var(--surface-subtle);
-  border-color: var(--line);
-}
-html[data-theme="dark"] .identity-picker button.selected {
-  border-color: var(--green);
-  background: var(--sage-soft);
-}
 html[data-theme="dark"] .app-nav {
   background: rgba(36, 43, 37, .96);
   border-color: var(--line);
   box-shadow: 0 -4px 22px rgba(0, 0, 0, .35);
 }
-html[data-theme="dark"] .app-nav button { color: #8a938b; }
+html[data-theme="dark"] .app-nav button { color: var(--text-secondary); }
 html[data-theme="dark"] .app-nav button:hover { background: var(--surface-subtle); }
 html[data-theme="dark"] .app-nav button.active,
 html[data-theme="dark"] .app-nav button.active:hover,
 html[data-theme="dark"] .app-nav button.active:active { background: transparent; }
 html[data-theme="dark"] .app-nav button.active { color: var(--green-deep); }
 html[data-theme="dark"] .app-nav button.active img { filter: none; opacity: 1; }
-html[data-theme="dark"] .app-nav button img { opacity: .4; filter: saturate(.5) brightness(.7); }
+html[data-theme="dark"] .app-nav button img { opacity: .68; filter: saturate(.72) brightness(.92); }
 html[data-theme="dark"] .floating-add,
 html[data-theme="dark"] .app-nav .nav-add {
   background: linear-gradient(180deg, #d48540, #b86b28);
@@ -857,15 +413,6 @@ html[data-theme="dark"] .vaccine-upcoming-list article {
   background: var(--surface-card);
   border-color: var(--line);
 }
-html[data-theme="dark"] .vaccine-calendar-grid > button {
-  color: var(--ink);
-}
-html[data-theme="dark"] .vaccine-calendar-grid > button:hover {
-  background: var(--surface-subtle);
-}
-html[data-theme="dark"] .vaccine-agenda-list article.selected {
-  background: var(--sage-soft);
-}
 html[data-theme="dark"] .vaccine-date,
 html[data-theme="dark"] .vaccine-calendar-week {
   background: var(--sage-soft);
@@ -902,22 +449,15 @@ html[data-theme="dark"] .ga-marker.alert {
 html[data-theme="dark"] .today-layout .baby-hero {
   background: linear-gradient(135deg, #3a4f36 0%, #2d3f2b 58%, #425740 100%);
 }
-html[data-theme="dark"] .today-plan {
-  background: #2d2520;
-  border-color: #4d3f30;
-}
 html[data-theme="dark"] .today-plan > h2,
 html[data-theme="dark"] .today-layout .today-plan > h2 {
   color: #d9a46a;
 }
-html[data-theme="dark"] .today-plan-list article {
-  border-color: #4d3f30;
-}
 html[data-theme="dark"] .today-layout .today-plan-list .task-icon,
 html[data-theme="dark"] .today-layout .today-plan-list .vaccine-task > img,
 html[data-theme="dark"] .today-layout .today-plan-list .growth-task > img {
-  background: #3a3025;
-  border-color: #5a4a38;
+  background: #3b342b;
+  border-color: #61513d;
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, .2);
 }
 html[data-theme="dark"] .today-layout .today-timeline .record-mark,
@@ -954,8 +494,6 @@ html[data-theme="dark"] .meta-icon-btn.selected {
 }
 html[data-theme="dark"] .time-empty-state {
   background: var(--surface-subtle);
-}
-html[data-theme="dark"] .time-empty-state {
   border-color: var(--line);
 }
 html[data-theme="dark"] .ga-note,
@@ -965,7 +503,7 @@ html[data-theme="dark"] .ga-milk-note {
   color: var(--text-tertiary);
 }
 html[data-theme="dark"] .today-baby-summary img {
-  background: #2a312a;
+  background: var(--surface-control);
   border-color: rgba(168, 192, 152, .6);
 }
 html[data-theme="dark"] .today-workbench .today-profile-strip span,
@@ -996,23 +534,8 @@ html[data-theme="dark"] .quick-grid button {
   color: var(--ink);
   border-color: var(--line);
 }
-html[data-theme="dark"] .quick-grid button:hover {
-  background: var(--surface-muted);
-}
-html[data-theme="dark"] .quick-grid button:active {
-  background: var(--sage-soft);
-}
-html[data-theme="dark"] .subpage-head > button {
-  background: var(--surface-card);
-  color: var(--green-deep);
-  border-color: var(--line);
-}
 html[data-theme="dark"] .subpage-head > button:hover {
   background: var(--surface-subtle);
-}
-html[data-theme="dark"] .vaccine-reminder-card {
-  background: var(--surface-card);
-  border-color: var(--line);
 }
 html[data-theme="dark"] .vaccine-reminder-card h2 {
   color: var(--ink);
@@ -1063,20 +586,20 @@ html[data-theme="dark"] .close-btn:hover {
   border-radius: 50%;
 }
 html[data-theme="dark"] .today-plan {
-  background: #2d2520;
-  border-color: #4d3f30;
+  background: var(--surface-plan);
+  border-color: var(--line-plan);
 }
 html[data-theme="dark"] .today-plan > .kicker {
   color: var(--muted);
 }
 html[data-theme="dark"] .today-plan-list article {
-  border-bottom-color: #4d3f30;
+  border-color: var(--line-plan);
 }
 html[data-theme="dark"] .today-plan-list b {
   color: #e8d5b8;
 }
 html[data-theme="dark"] .today-plan-list small {
-  color: var(--muted);
+  color: #b9ada0;
 }
 html[data-theme="dark"] .today-insights {
   background: var(--surface-card);
@@ -1085,10 +608,6 @@ html[data-theme="dark"] .today-insights {
 html[data-theme="dark"] .metric-band > div {
   color: var(--ink);
 }
-html[data-theme="dark"] .today-workbench .quick-section {
-  background: var(--surface-subtle);
-}
-
 /* Dark mode overrides for settings and profile */
 html[data-theme="dark"] .settings-menu {
   background: var(--surface-card);
@@ -1096,9 +615,6 @@ html[data-theme="dark"] .settings-menu {
 html[data-theme="dark"] .settings-entry {
   background: var(--surface-card);
   border-bottom-color: var(--line);
-}
-html[data-theme="dark"] .settings-entry > i {
-  color: var(--muted);
 }
 html[data-theme="dark"] .settings-entry:active {
   background: var(--sage-soft);
@@ -1131,24 +647,11 @@ html[data-theme="dark"] .form-switch-row {
   background: var(--surface-card);
   border-color: var(--line);
 }
-html[data-theme="dark"] .segmented {
-  background: var(--surface-muted);
-  border-color: var(--line);
-}
-html[data-theme="dark"] .segment.active {
-  background: var(--surface-card);
-  box-shadow: 0 0 0 1px var(--line);
-}
 html[data-theme="dark"] .segment.active span {
   color: var(--green-deep);
 }
 
 /* Dark mode overrides for subpage header */
-html[data-theme="dark"] .subpage-head > button {
-  background: var(--surface-card);
-  border-color: var(--line);
-  color: var(--green-deep);
-}
 html[data-theme="dark"] .subpage-head h1 {
   color: var(--ink);
 }
@@ -1241,9 +744,9 @@ html[data-theme="dark"] input[type="time"],
 html[data-theme="dark"] input:not([type]),
 html[data-theme="dark"] textarea,
 html[data-theme="dark"] select {
-  background: var(--surface-card);
-  border-color: var(--line);
-  color: var(--ink);
+  background: var(--control-bg);
+  border-color: var(--control-border);
+  color: var(--control-text);
 }
 html[data-theme="dark"] input::placeholder,
 html[data-theme="dark"] textarea::placeholder {
@@ -1256,9 +759,9 @@ html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
 
 /* Dark mode overrides for buttons */
 html[data-theme="dark"] .btn.primary {
-  background: var(--orange);
-  color: #fff;
-  border-color: var(--orange);
+  background: var(--action-primary-bg);
+  color: var(--action-primary-text);
+  border-color: var(--action-primary-border);
 }
 html[data-theme="dark"] .today-plan-list .btn.primary {
   background: var(--orange);
@@ -1266,16 +769,19 @@ html[data-theme="dark"] .today-plan-list .btn.primary {
   color: #fff;
 }
 html[data-theme="dark"] .btn.secondary {
-  background: var(--surface-card);
-  border-color: var(--line);
-  color: var(--ink);
+  background: var(--action-secondary-bg);
+  border-color: var(--action-secondary-border);
+  color: var(--action-secondary-text);
+}
+html[data-theme="dark"] .btn.secondary:not(:disabled):hover {
+  background: var(--action-secondary-bg-hover);
 }
 html[data-theme="dark"] .btn.ghost {
   color: var(--ink);
 }
 html[data-theme="dark"] .btn.primary span,
 html[data-theme="dark"] .btn.primary i {
-  color: #fff;
+  color: var(--action-primary-text);
 }
 
 /* Dark mode overrides for kicker and archive profile */
@@ -1392,10 +898,6 @@ html[data-theme="dark"] .vaccine-catalog-card {
   background: var(--surface-card);
   border-color: var(--line);
 }
-html[data-theme="dark"] .vaccine-reminder-card {
-  border-color: var(--line);
-  background: var(--surface-card);
-}
 html[data-theme="dark"] .vaccine-reminder-card h2,
 html[data-theme="dark"] .vaccine-next h2,
 html[data-theme="dark"] .vaccine-schedule-head h2 {
@@ -1414,17 +916,11 @@ html[data-theme="dark"] .vaccine-icon-action:hover {
   background: var(--surface-subtle);
   color: var(--green-deep);
 }
-html[data-theme="dark"] .vaccine-calendar-grid > button:hover {
-  background: var(--surface-subtle);
-}
 html[data-theme="dark"] .vaccine-calendar-grid > button.selected {
   background: var(--sage-soft);
 }
 html[data-theme="dark"] .vaccine-agenda-list time {
   background: var(--surface-subtle);
-}
-html[data-theme="dark"] .vaccine-agenda-list article.selected {
-  background: var(--sage-soft);
 }
 html[data-theme="dark"] .vaccine-editor select,
 html[data-theme="dark"] .vaccine-catalog-editor select {
@@ -1632,4 +1128,3 @@ html[data-theme="dark"] .subpage-head > button {
   color: var(--green-deep);
   border-color: var(--line);
 }
-

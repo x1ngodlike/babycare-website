@@ -1,9 +1,9 @@
 .ui-action-menu { position: relative; flex: none; display: grid; place-items: center; }
-.ui-action-trigger { width: var(--size-touch); height: var(--size-touch); padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-tertiary); cursor: pointer; display: grid; place-content: center; }
+.ui-action-trigger { width: var(--size-touch); height: var(--size-touch); padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-tertiary); cursor: pointer; display: grid; place-content: center; transition: background var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); }
 .ui-action-trigger:hover, .ui-action-trigger[aria-expanded="true"] { background: var(--surface-subtle); color: var(--green-deep); }
 .ui-action-trigger[aria-expanded="true"] .menu-dots i { background: var(--green-deep); }
-.ui-action-popover { position: absolute; z-index: 40; top: 40px; right: 0; width: 128px; padding: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface-card); box-shadow: var(--shadow-popover); }
-.ui-action-popover button { width: 100%; min-height: 44px; padding: 8px 10px; border: 0; border-radius: var(--radius-small); background: transparent; color: var(--ink); text-align: left; font-size: var(--text-label); line-height: 1.4; cursor: pointer; }
+.ui-action-popover { position: absolute; z-index: var(--layer-menu); top: 40px; right: 0; width: 128px; padding: var(--space-1); border: 1px solid var(--surface-container-border); border-radius: var(--radius-control); background: var(--surface-container); box-shadow: var(--shadow-popover); }
+.ui-action-popover button { width: 100%; min-height: var(--size-control); padding: 8px 10px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--ink); text-align: left; font-size: var(--text-body); line-height: 1.4; cursor: pointer; }
 .ui-action-popover button:hover { background: var(--surface-subtle); }
 .ui-action-popover button.danger { color: var(--danger); }
 
@@ -11,14 +11,23 @@
 .ui-segmented button { min-height: var(--size-touch); padding: 7px 10px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text-secondary); font-weight: 800; cursor: pointer; }
 .ui-segmented button.active { outline: 1px solid var(--line); background: var(--surface-card); color: var(--green-deep); }
 
+.status-badge { min-height: 24px; padding: 3px 8px; border: 1px solid transparent; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: var(--status-neutral-text); font-size: 11px; font-weight: 700; line-height: 1.4; white-space: nowrap; }
+.status-badge.brand { background: var(--status-brand-bg); color: var(--status-brand-text); }
+.status-badge.success { background: var(--status-success-bg); color: var(--status-success-text); }
+.status-badge.warning { background: var(--status-warning-bg); color: var(--status-warning-text); }
+.status-badge.danger { background: var(--status-error-bg); color: var(--status-danger-text); }
+.status-badge.neutral { background: var(--status-neutral-bg); color: var(--status-neutral-text); }
+.status-badge.disabled { background: var(--surface-interactive-disabled); color: var(--control-text-disabled); }
+.setting-status .status-badge, .account-card .status-badge { min-height: 24px; padding: 3px 8px; font-size: 11px; font-weight: 700; }
+
 .ui-switch { flex: none; width: 40px; height: 24px; padding: 0; border: 0; border-radius: 999px; background: #c4ccc3; cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: flex-start; transition: background .15s ease; justify-self: end; align-self: center; line-height: 1; }
 .ui-switch span { display: block; flex: 0 0 20px; width: 20px; height: 20px; margin: 2px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #23342a35; transition: transform .15s ease; }
 .ui-switch.on { background: var(--green); }
 .ui-switch.on span { transform: translateX(16px); }
 .ui-switch:disabled { opacity: .55; cursor: not-allowed; }
 
-.confirm-layer { z-index: 300; }
-.ui-confirm-dialog { width: min(420px, calc(100% - 28px)); padding: 20px; border-radius: var(--radius-dialog); background: var(--surface-card); box-shadow: var(--shadow-dialog); }
+.confirm-layer { z-index: var(--layer-critical); }
+.ui-confirm-dialog { width: min(420px, calc(100% - 28px)); padding: 20px; border: 1px solid var(--surface-container-border); border-radius: var(--radius-dialog); background: var(--surface-container); box-shadow: var(--shadow-dialog); }
 .ui-confirm-dialog header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .ui-confirm-dialog h2 { margin: 3px 0 0; font-size: var(--text-section); line-height: 1.3; }
 .ui-confirm-dialog p { margin: 14px 0 0; color: var(--text-secondary); font-size: var(--text-body); line-height: 1.6; white-space: pre-line; }
@@ -27,18 +36,19 @@
 .empty-state-action { margin-top: 16px; }
 
 @media (max-width: 520px) {
-  .ui-confirm-dialog { align-self: end; width: 100%; max-width: none; border-radius: var(--radius-dialog) var(--radius-dialog) 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  .ui-confirm-dialog { align-self: end; width: 100%; max-width: none; border-bottom: 0; border-radius: var(--radius-dialog) var(--radius-dialog) 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
 }
 
 /* 自研日期 / 时间选择器 */
-.picker-layer { z-index: 70; }
+.picker-layer { z-index: var(--layer-overlay); }
 .picker-sheet { width: min(430px, 100%); max-height: calc(100dvh - 24px); overflow-y: auto; }
 .picker-field { display: grid; gap: 7px; color: var(--ink); font-size: 14px; font-weight: 700; }
 .picker-optional { margin-left: 6px; color: var(--muted); font-size: 12px; font-weight: 400; }
-.picker-trigger { width: 100%; min-height: 48px; padding: 11px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: #fff; color: var(--ink); font-weight: 500; text-align: left; cursor: pointer; }
-.picker-trigger:hover { border-color: #aebfac; }
+.picker-trigger { width: 100%; min-height: var(--size-control); padding: 8px 12px; border: 1px solid var(--control-border); border-radius: var(--radius-control); background: var(--control-bg); color: var(--control-text); font-weight: 500; text-align: left; cursor: pointer; transition: background var(--motion-base) var(--ease-standard), border-color var(--motion-base) var(--ease-standard), box-shadow var(--motion-base) var(--ease-standard); }
+.picker-trigger:hover { border-color: var(--control-border-hover); }
+.picker-trigger:focus-visible { border-color: var(--control-border-focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 18%, transparent); }
 .picker-trigger.empty { color: var(--muted); }
-.picker-trigger:disabled { background: var(--surface-subtle); color: var(--muted); cursor: not-allowed; }
+.picker-trigger:disabled { background: var(--control-bg-disabled); color: var(--control-text-disabled); cursor: not-allowed; }
 .picker-calendar-nav { min-height: 44px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; text-align: center; }
 .picker-calendar-nav strong { font-size: 16px; }
 .picker-calendar-nav button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--green-deep); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
@@ -84,7 +94,7 @@
 /* Dark mode overrides */
 html[data-theme="dark"] .ui-switch { background: #3a423d; }
 html[data-theme="dark"] .ui-switch span { background: #e2e6df; }
-html[data-theme="dark"] .picker-trigger { background: var(--surface-card); border-color: var(--line-strong); color: var(--ink); }
+html[data-theme="dark"] .picker-trigger { background: var(--control-bg); border-color: var(--line-strong); color: var(--ink); }
 html[data-theme="dark"] .picker-trigger:hover { border-color: var(--green-deep); }
 html[data-theme="dark"] .picker-day { color: var(--ink); }
 html[data-theme="dark"] .picker-day:hover:not(:disabled) { background: var(--surface-subtle); }

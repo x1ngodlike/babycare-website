@@ -9,6 +9,7 @@
 | [`product.md`](./product.md) | 产品定位、业务规则、权限和功能边界 | 功能、流程、角色或规则变化 |
 | [`technical.md`](./technical.md) | 架构、数据、接口、同步、构建和部署 | API、数据结构、目录、调度或运行方式变化 |
 | [`ui-guidelines.md`](./ui-guidelines.md) | 视觉系统、组件、交互、响应式和无障碍 | 页面布局、组件规范或设计变量变化 |
+| [`current-ui-system.html`](./current-ui-system.html) | 当前视觉规范的 HTML 配色与组件预览 | 颜色、控件、图标或导航规格变化 |
 | [`../babycare.sh`](../babycare.sh) | Unraid 部署脚本（菜单、单命令、备份、状态） | 脚本功能、部署方式或菜单变化 |
 | [`../android-app/README.md`](../android-app/README.md) | Android 壳、服务器切换、构建和更新 | 原生代码、SDK、版本、权限或打包方式变化 |
 
@@ -21,4 +22,4 @@
 - 图片批量优化先运行 `npm run images:check`；只有确认目标后才运行会写入文件的 `npm run images:optimize`。
 - 当前明确不包含语音录入、语音转写、浏览器系统通知和多宝宝能力。
 
-文档基线：2026-08-18。
+文档基线：2026-08-21。

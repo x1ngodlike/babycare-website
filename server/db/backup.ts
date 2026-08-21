@@ -34,14 +34,15 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
   }
   if (payload.pushSettings) {
     const ps = payload.pushSettings;
-    db.prepare(`INSERT INTO push_settings (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags, updated_at)
-      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    db.prepare(`INSERT INTO push_settings (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, feed_prep_enabled, feed_prep_minutes, care_item_enabled, push_sent_flags, updated_at)
+      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled, pushplus_token=excluded.pushplus_token, pushplus_topic=excluded.pushplus_topic,
         morning_digest_enabled=excluded.morning_digest_enabled, morning_digest_time=excluded.morning_digest_time,
         feeding_gap_enabled=excluded.feeding_gap_enabled, feeding_gap_level1_minutes=excluded.feeding_gap_level1_minutes,
-        feeding_gap_level2_minutes=excluded.feeding_gap_level2_minutes, care_item_enabled=excluded.care_item_enabled,
+        feeding_gap_level2_minutes=excluded.feeding_gap_level2_minutes, feed_prep_enabled=excluded.feed_prep_enabled, feed_prep_minutes=excluded.feed_prep_minutes,
+        care_item_enabled=excluded.care_item_enabled,
         push_sent_flags=excluded.push_sent_flags, updated_at=excluded.updated_at`)
-      .run(ps.enabled ? 1 : 0, ps.pushplusToken, ps.pushplusTopic, ps.morningDigestEnabled ? 1 : 0, ps.morningDigestTime, ps.feedingGapEnabled ? 1 : 0, ps.feedingGapLevel1Minutes, ps.feedingGapLevel2Minutes, ps.careItemEnabled ? 1 : 0, JSON.stringify(ps.pushSentFlags || {}), ps.updatedAt || new Date().toISOString());
+      .run(ps.enabled ? 1 : 0, ps.pushplusToken, ps.pushplusTopic, ps.morningDigestEnabled ? 1 : 0, ps.morningDigestTime, ps.feedingGapEnabled ? 1 : 0, ps.feedingGapLevel1Minutes, ps.feedingGapLevel2Minutes, (ps.feedPrepEnabled ?? true) ? 1 : 0, ps.feedPrepMinutes ?? 30, ps.careItemEnabled ? 1 : 0, JSON.stringify(ps.pushSentFlags || {}), ps.updatedAt || new Date().toISOString());
   }
   if (payload.growthRecords?.length) {
     const upsertGrowth = db.prepare(`INSERT INTO growth_records (id, measured_on, height_cm, weight_kg, created_at, updated_at, created_by, updated_by, deleted_at, deleted_by)
@@ -126,14 +127,15 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
   }
   if (payload.pushSettings) {
     const ps = payload.pushSettings;
-    db.prepare(`INSERT INTO push_settings (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags, updated_at)
-      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    db.prepare(`INSERT INTO push_settings (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, feed_prep_enabled, feed_prep_minutes, care_item_enabled, push_sent_flags, updated_at)
+      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled, pushplus_token=excluded.pushplus_token, pushplus_topic=excluded.pushplus_topic,
         morning_digest_enabled=excluded.morning_digest_enabled, morning_digest_time=excluded.morning_digest_time,
         feeding_gap_enabled=excluded.feeding_gap_enabled, feeding_gap_level1_minutes=excluded.feeding_gap_level1_minutes,
-        feeding_gap_level2_minutes=excluded.feeding_gap_level2_minutes, care_item_enabled=excluded.care_item_enabled,
+        feeding_gap_level2_minutes=excluded.feeding_gap_level2_minutes, feed_prep_enabled=excluded.feed_prep_enabled, feed_prep_minutes=excluded.feed_prep_minutes,
+        care_item_enabled=excluded.care_item_enabled,
         push_sent_flags=excluded.push_sent_flags, updated_at=excluded.updated_at`)
-      .run(ps.enabled ? 1 : 0, ps.pushplusToken, ps.pushplusTopic, ps.morningDigestEnabled ? 1 : 0, ps.morningDigestTime, ps.feedingGapEnabled ? 1 : 0, ps.feedingGapLevel1Minutes, ps.feedingGapLevel2Minutes, ps.careItemEnabled ? 1 : 0, JSON.stringify(ps.pushSentFlags || {}), ps.updatedAt || new Date().toISOString());
+      .run(ps.enabled ? 1 : 0, ps.pushplusToken, ps.pushplusTopic, ps.morningDigestEnabled ? 1 : 0, ps.morningDigestTime, ps.feedingGapEnabled ? 1 : 0, ps.feedingGapLevel1Minutes, ps.feedingGapLevel2Minutes, (ps.feedPrepEnabled ?? true) ? 1 : 0, ps.feedPrepMinutes ?? 30, ps.careItemEnabled ? 1 : 0, JSON.stringify(ps.pushSentFlags || {}), ps.updatedAt || new Date().toISOString());
   }
   db.prepare('DELETE FROM growth_records').run();
   if (payload.growthRecords?.length) {

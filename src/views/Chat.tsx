@@ -636,7 +636,7 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
       <section className="mobile-sheet" onClick={e => e.stopPropagation()}>
         <header className="mobile-sheet-header">
           <h3>选择对话</h3>
-          <button type="button" className="close-btn" onClick={() => setShowSessionSheet(false)}>×</button>
+          <button type="button" className="close-btn" aria-label="关闭会话列表" onClick={() => setShowSessionSheet(false)}><XIcon aria-hidden="true" /></button>
         </header>
         <ul className="mobile-sheet-list">
           {sessions.map(s => <li key={s.id} className={activeSessionId === s.id ? 'active' : ''}>
@@ -704,12 +704,12 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
     <div className="chat-input-bar">
       <div className="chat-input-wrapper">
         <textarea ref={inputRef} rows={1} maxLength={2000} placeholder={capabilities.aiEnabled ? '输入问题…' : 'AI 模型未配置'} value={input} disabled={loading || !capabilities.aiEnabled} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} />
-        {input && <button type="button" className="chat-input-clear" onClick={() => setInput('')} aria-label="清空">×</button>}
+        {input && <button type="button" className="chat-input-clear" onClick={() => setInput('')} aria-label="清空"><XIcon aria-hidden="true" /></button>}
       </div>
       <button type="button" className="btn primary" disabled={loading || !input.trim() || !capabilities.aiEnabled} onClick={() => void send()}>{loading ? '思考中…' : '发送'}</button>
     </div>
 
-    {error && createPortal(<div className="chat-error-toast" role="alert"><span>{error}</span><button type="button" aria-label="关闭" onClick={() => setError('')}>×</button></div>, document.body)}
+    {error && createPortal(<div className="chat-error-toast" role="alert"><span>{error}</span><button type="button" aria-label="关闭" onClick={() => setError('')}><XIcon aria-hidden="true" /></button></div>, document.body)}
     <MemoryManager open={showMemoryManager} onClose={() => setShowMemoryManager(false)} />
   </div>;
 }

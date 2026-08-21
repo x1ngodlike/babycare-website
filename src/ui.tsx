@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Inbox, X } from 'lucide-react';
 
 export type ConfirmOptions = {
   title: string;
@@ -45,7 +46,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const close = (result: boolean) => { request?.resolve(result); setRequest(null); };
   useDialogFocus(dialogRef, () => request && close(false), Boolean(request));
-  return <>{children}{request && <div className="modal-layer confirm-layer" onMouseDown={event => event.target === event.currentTarget && close(false)}><section ref={dialogRef} className="ui-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby={request.options.description ? 'confirm-description' : undefined}><header><h2 id="confirm-title">{request.options.title}</h2><button type="button" className="close-btn" onClick={() => close(false)} aria-label="关闭">×</button></header>{request.options.description && <p id="confirm-description">{request.options.description}</p>}<footer><button type="button" className="btn secondary" onClick={() => close(false)}>{request.options.cancelLabel || '取消'}</button><button type="button" className={`btn ${request.options.danger ? 'danger-button' : 'primary'}`} onClick={() => close(true)}>{request.options.confirmLabel || '确认'}</button></footer></section></div>}</>;
+  return <>{children}{request && <div className="modal-layer confirm-layer" onMouseDown={event => event.target === event.currentTarget && close(false)}><section ref={dialogRef} className="ui-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby={request.options.description ? 'confirm-description' : undefined}><header><h2 id="confirm-title">{request.options.title}</h2><button type="button" className="close-btn" onClick={() => close(false)} aria-label="关闭"><X aria-hidden="true" /></button></header>{request.options.description && <p id="confirm-description">{request.options.description}</p>}<footer><button type="button" className="btn secondary" onClick={() => close(false)}>{request.options.cancelLabel || '取消'}</button><button type="button" className={`btn ${request.options.danger ? 'danger-button' : 'primary'}`} onClick={() => close(true)}>{request.options.confirmLabel || '确认'}</button></footer></section></div>}</>;
 }
 
 export type ActionMenuItem = { label: string; onSelect(): void | Promise<void>; danger?: boolean };
@@ -99,7 +100,7 @@ export function Switch({ checked, label, onChange, disabled = false }: { checked
 }
 
 export function EmptyState({ title, description, image, action }: { title: string; description?: string; image?: string; action?: React.ReactNode }) {
-  return <div className="empty-state">{image ? <img className="empty-state-image" src={image} alt="" /> : <span aria-hidden="true">○</span>}<h3>{title}</h3>{description && <p>{description}</p>}{action && <div className="empty-state-action">{action}</div>}</div>;
+  return <div className="empty-state">{image ? <img className="empty-state-image" src={image} alt="" /> : <span className="empty-state-placeholder" aria-hidden="true"><Inbox /></span>}<h3>{title}</h3>{description && <p>{description}</p>}{action && <div className="empty-state-action">{action}</div>}</div>;
 }
 
 // ----- 弹窗与脏关闭确认（由各视图弹窗抽出，行为与原实现一致） -----
@@ -130,7 +131,7 @@ export function Modal({ title, kicker, headerExtra, onClose, children, className
   return (
     <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && requestClose()}>
       <section ref={dialogRef} className={`editor ${className}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <header className="editor-head"><div>{kicker && <p className="kicker">{kicker}</p>}<h2 id={titleId}>{title}</h2>{headerExtra}</div><button className="close-btn" disabled={busy} onClick={requestClose} aria-label="关闭">×</button></header>
+        <header className="editor-head"><div>{kicker && <p className="kicker">{kicker}</p>}<h2 id={titleId}>{title}</h2>{headerExtra}</div><button className="close-btn" disabled={busy} onClick={requestClose} aria-label="关闭"><X aria-hidden="true" /></button></header>
         {children}
       </section>
     </div>

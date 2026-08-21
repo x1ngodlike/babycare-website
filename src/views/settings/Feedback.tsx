@@ -1,5 +1,6 @@
 // 设置页通用的成功/错误反馈条（由 Settings.tsx 抽出，逻辑不变）
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 
 export function Feedback({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose?: () => void }) {
   const [displayMessage, setDisplayMessage] = useState(message);
@@ -36,7 +37,7 @@ export function Feedback({ message, type, onClose }: { message: string; type: 's
 
   if (!displayMessage) return null;
 
-  const className = `${type === 'success' ? 'success-text' : 'error-text'} ${leaving ? 'leaving' : 'show'}`;
+  const className = `ui-feedback ${type === 'success' ? 'success-text' : 'error-text'} ${leaving ? 'leaving' : 'show'}`;
 
   return (
     <p className={className} role={type === 'error' ? 'alert' : 'status'} onClick={handleClose}>
@@ -46,7 +47,7 @@ export function Feedback({ message, type, onClose }: { message: string; type: 's
         className="feedback-close"
         aria-label="关闭"
         onClick={e => { e.stopPropagation(); handleClose(); }}
-      >×</button>
+      ><X aria-hidden="true" /></button>
     </p>
   );
 }

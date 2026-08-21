@@ -58,7 +58,7 @@ src/
   offline.ts             本地缓存和离线写队列
   DateField.tsx          日期/时间选择器
   ui.tsx / ui.css        通用组件
-  styles/                base / layout / light / hero-records / dark / charts / chat / milestone（按 import 顺序保持覆盖语义）
+  styles/                foundations / base / layout / light / hero-records / dark / charts / chat / milestone / components（按 import 顺序保持覆盖语义）
 
 server/
   index.ts               Express 入口：中间件、鉴权顺序、静态服务、错误处理与启动

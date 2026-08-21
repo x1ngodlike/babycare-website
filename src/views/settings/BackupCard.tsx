@@ -88,7 +88,7 @@ export function ServerBackupCard({ onImported }: { onImported(): void | Promise<
     catch (error) { setMessage(error instanceof Error ? error.message : '导入失败，请选择本应用导出的备份文件'); }
     finally { setBusy(''); setPendingFile(null); }
   }
-  return <><section className="settings-card backup-card"><div className="setting-status"><h2>备份状态与恢复</h2><span className="on">每 6 小时</span></div>
+  return <><section className="settings-card backup-card"><div className="setting-status"><h2>备份状态与恢复</h2><span className="status-badge brand">每 6 小时</span></div>
     <p>自动保存完整照护数据，最多保留最近 {status?.retention ?? 30} 份。可选择服务器备份进行完整恢复，操作前会先保存当前数据。</p>
     <div className="backup-summary"><div><span>最近备份</span><b>{formatTime(status?.lastBackupAt ?? null)}</b></div><div><span>下次预计</span><b>{formatTime(status?.nextBackupAt ?? null)}</b></div><div><span>服务器备份</span><b>{status ? `${status.count} 份` : '读取中…'}</b></div><div><span>保存位置</span><b>{status?.directory ? '由服务器自动托管' : '服务器托管'}</b></div></div>
     <div className="backup-actions">
@@ -126,7 +126,7 @@ export function ServerBackupCard({ onImported }: { onImported(): void | Promise<
             return <li key={entry.id} className={`audit-log-item ${entry.status === 'failure' ? 'failed' : ''}`}>
               <span className="audit-log-icon" aria-hidden="true"><Icon size={16} /></span>
               <div className="audit-log-info">
-                <div className="audit-log-top"><b>{conf.label}</b><span className={`audit-log-status ${entry.status}`}>{entry.status === 'success' ? '成功' : '失败'}</span></div>
+                <div className="audit-log-top"><b>{conf.label}</b><span className={`status-badge audit-log-status ${entry.status === 'success' ? 'success' : 'danger'}`}>{entry.status === 'success' ? '成功' : '失败'}</span></div>
                 <div className="audit-log-meta"><span>{actorLabels[entry.actor] ?? entry.actor}</span><time>{new Date(entry.occurredAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</time></div>
                 {detailsText && <p className="audit-log-details">{detailsText}</p>}
               </div>

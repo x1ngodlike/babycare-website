@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Bot, ChevronDown, ChevronUp, Milk, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
 import { api, type FeedingPrediction } from './api';
-import { getFeedPrepEnabled, getFeedPrepMinutes } from './feedingPreferences';
 import { predictFeeding, formatTimeShort, formatElapsed, formatDurationFromNow, periodLabels, type FeedingPredictionInput } from '../shared/feeding-prediction';
 
 const alertIcons = {
@@ -17,7 +16,7 @@ const alertLabels = {
   growth_spurt: '可能猛长期'
 };
 
-export function PredictionBanner({ records, online }: { records: { occurredAt: string; breastMilkMl: number | null; formulaMl: number | null; type: string }[]; online: boolean }) {
+export function PredictionBanner({ records, online, prepEnabled, prepMinutes }: { records: { occurredAt: string; breastMilkMl: number | null; formulaMl: number | null; type: string }[]; online: boolean; prepEnabled: boolean; prepMinutes: number }) {
   const [expanded, setExpanded] = useState(false);
   const [aiPrediction, setAiPrediction] = useState<FeedingPrediction | null>(null);
   const aiInsights = aiPrediction?.aiInsights;
@@ -39,8 +38,6 @@ export function PredictionBanner({ records, online }: { records: { occurredAt: s
   if (!prediction.available) return null;
   if (!prediction.nextFeedAt) return null;
 
-  const prepMinutes = getFeedPrepMinutes();
-  const prepEnabled = getFeedPrepEnabled();
   const now = new Date();
   const nextAt = new Date(prediction.nextFeedAt);
   const minutesUntil = Math.round((nextAt.getTime() - now.getTime()) / 60000);

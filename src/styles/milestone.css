@@ -6,9 +6,9 @@
 .milestone-summary-row .ms-summary-who { margin-left: auto; white-space: nowrap; }
 .milestone-summary-done { color: var(--green-deep); font-weight: 700; }
 .ms-summary-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; font-size: 13px; line-height: 1; flex-shrink: 0; }
-.ms-summary-badge.ms-pending { background: #fff4e6; }
-.ms-summary-badge.ms-upcoming { background: #eef1eb; }
-.ms-summary-badge.ms-late { background: #f4dfdc; }
+.ms-summary-badge.ms-pending { background: var(--status-warning-bg); }
+.ms-summary-badge.ms-upcoming { background: var(--status-neutral-bg); }
+.ms-summary-badge.ms-late { background: var(--status-danger-bg); }
 
 .milestone-badge { position: relative; flex-shrink: 0; border-radius: 50%; overflow: hidden; background: #fff; }
 .milestone-badge .badge-icon { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
@@ -21,10 +21,9 @@
 .ms-summary-who { color: var(--muted); font-size: 11px; font-weight: 600; margin-left: auto; }
 .ms-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 4px; font-size: 11px; font-weight: 700; line-height: 1; flex-shrink: 0; }
 .ms-tag-achieved { background: var(--sage-soft); color: var(--green-deep); }
-.ms-tag-pending { background: #fff4e6; color: #b5691f; }
-.ms-tag-upcoming { background: #eef1eb; color: var(--muted); }
-.ms-tag-late { background: #f4dfdc; color: var(--danger); }
-.ms-note { display: block; color: var(--muted); font-size: 11px; font-style: italic; margin-top: 2px; line-height: 1.4; }
+.ms-tag-pending { background: var(--status-warning-bg); color: var(--status-warning-text); }
+.ms-tag-upcoming { background: var(--status-neutral-bg); color: var(--muted); }
+.ms-tag-late { background: var(--status-danger-bg); color: var(--danger); }
 
 /* Milestone history page */
 .milestone-progress-bar { margin: 8px 0 14px; display: grid; gap: 6px; }
@@ -53,12 +52,12 @@
 .ms-who-range { color: var(--muted); font-size: 12px; font-weight: 500; }
 .ms-date { display: inline-flex; align-items: center; gap: 4px; color: var(--ink); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .ms-age { color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
-.ms-note { display: block; color: var(--muted); font-size: 12px; font-style: italic; line-height: 1.4; }
+.ms-note { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-style: italic; line-height: 1.4; }
 .ms-status { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
 .ms-status.ms-achieved { background: var(--sage-soft); color: var(--green-deep); }
-.ms-status.ms-pending { background: #fff4e6; color: #b5691f; }
-.ms-status.ms-late { background: #f4dfdc; color: var(--danger); }
-.ms-status.ms-upcoming { background: #eef1eb; color: var(--muted); }
+.ms-status.ms-pending { background: var(--status-warning-bg); color: var(--status-warning-text); }
+.ms-status.ms-late { background: var(--status-danger-bg); color: var(--danger); }
+.ms-status.ms-upcoming { background: var(--status-neutral-bg); color: var(--muted); }
 .ms-actions { display: inline-flex; align-items: center; gap: 4px; }
 .ms-btn { min-height: 28px; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--radius-control); background: #fff; color: var(--green-deep); font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; transition: background .15s, border-color .15s; white-space: nowrap; }
 .ms-btn:hover { background: var(--sage-soft); border-color: var(--sage); }
@@ -112,4 +111,3 @@ html[data-theme="dark"] .milestone-badge.ms-badge-achieved { box-shadow: 0 2px 6
   html[data-theme="dark"] .ms-actions { border-top-color: var(--line); }
   html[data-theme="dark"] .ms-summary-who { margin-left: auto; }
 }
-

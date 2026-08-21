@@ -31,6 +31,8 @@ export interface PushStatus {
   feedingGapEnabled: boolean;
   feedingGapLevel1Minutes: number;
   feedingGapLevel2Minutes: number;
+  feedPrepEnabled: boolean;
+  feedPrepMinutes: number;
   careItemEnabled: boolean;
   currentFeedingGapMinutes: number | null;
   feedingGapLevel: FeedingGapLevel;
@@ -98,6 +100,8 @@ export function getPushStatus(): PushStatus {
     feedingGapEnabled: settings.feedingGapEnabled,
     feedingGapLevel1Minutes: settings.feedingGapLevel1Minutes,
     feedingGapLevel2Minutes: settings.feedingGapLevel2Minutes,
+    feedPrepEnabled: settings.feedPrepEnabled,
+    feedPrepMinutes: settings.feedPrepMinutes,
     careItemEnabled: settings.careItemEnabled,
     currentFeedingGapMinutes: info.gapMinutes,
     feedingGapLevel: (flags.feedingGapNotifiedLevel && level !== 'none') ? flags.feedingGapNotifiedLevel : level,
@@ -105,7 +109,7 @@ export function getPushStatus(): PushStatus {
   };
 }
 
-export async function updatePushSettings(input: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: boolean }) {
+export async function updatePushSettings(input: { enabled?: boolean; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: boolean; morningDigestTime?: string; feedingGapEnabled?: boolean; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; feedPrepEnabled?: boolean; feedPrepMinutes?: number; careItemEnabled?: boolean }) {
   savePushSettings(input);
   startPushScheduler();
   return getPushStatus();

@@ -631,13 +631,6 @@
 .app-nav .nav-add:active { background: linear-gradient(180deg, #fa963d, #e87928); }
 .app-nav .nav-add span { font-size: 30px; font-weight: 400; line-height: 1; transform: translateY(-1px); }
 
-@media (min-width: 760px) {
-  .main-content { padding-top: max(20px, calc(env(safe-area-inset-top) + 12px)); }
-}
-@media (max-width: 340px) {
-  .care-choice-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
 .today-layout .today-plan-list .task-icon,
 .today-layout .today-plan-list .vaccine-task > img,
 .today-layout .today-plan-list .growth-task > img,
@@ -654,25 +647,4 @@
   box-shadow:
     inset 0 2px 5px rgba(105, 90, 65, .12),
     inset 0 -1px 2px rgba(255, 255, 255, .82);
-}
-.today-layout .today-plan-list .task-icon,
-.today-layout .today-plan-list .vaccine-task > img,
-.today-layout .today-plan-list .growth-task > img { border-radius: 14px; }
-.today-layout .today-timeline .record-mark,
-.history-timeline .record-mark { border-radius: 12px; }
-.history-timeline .timeline-item { grid-template-columns: 48px minmax(0, 1fr) 44px; }
-
-.app-nav .nav-add {
-  align-self: center;
-  margin-top: 0;
-}
-
-@media (max-width: 520px) {
-  .main-content { padding-top: max(16px, env(safe-area-inset-top)); }
-  .top-status { top: max(16px, env(safe-area-inset-top)); }
-  .app-nav {
-    width: 100%;
-    border-right: 0;
-    border-left: 0;
-  }
 }

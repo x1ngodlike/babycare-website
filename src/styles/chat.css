@@ -64,7 +64,6 @@
 .mobile-sheet-layer { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.4); display: flex; align-items: flex-end; justify-content: center; animation: fadeIn .2s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .mobile-sheet { width: 100%; max-width: 500px; max-height: 70vh; background: var(--surface-card); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; animation: slideUp .25s ease; padding-bottom: env(safe-area-inset-bottom); }
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .mobile-sheet-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); }
 .mobile-sheet-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
 .mobile-sheet-header .close-btn { width: 32px; height: 32px; border: 0; background: transparent; font-size: 24px; color: var(--muted); cursor: pointer; }
@@ -137,7 +136,7 @@
 .chat-input-clear { position: absolute; right: 10px; bottom: 10px; width: 20px; height: 20px; border: 0; border-radius: 50%; background: #e0e2de; color: #666; font-size: 14px; line-height: 1; cursor: pointer; display: grid; place-content: center; transition: background .15s ease; }
 .chat-input-clear:hover { background: #c9cbc6; }
 .chat-input-bar .btn { min-height: 0; height: 42px; padding: 0 20px; border-radius: 24px; flex-shrink: 0; }
-.chat-error-toast { position: fixed; z-index: 250; left: 50%; top: calc(64px + env(safe-area-inset-top)); transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 10px 14px; border-radius: 999px; background: #fbeae7; color: #8b2a1e; border: 1px solid #e2b3ab; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(139,42,30,.12); }
+.chat-error-toast { position: fixed; z-index: 250; left: 50%; top: calc(64px + env(safe-area-inset-top)); transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 10px 14px; border-radius: 999px; background: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-line); font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(139,42,30,.12); }
 .chat-error-toast button { width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 18px; cursor: pointer; }
 .memory-modal { z-index: 200; }
 
@@ -204,10 +203,10 @@
   margin: 0;
   padding: 10px 16px;
   border-radius: 0;
-  background: #fbeae7;
+  background: var(--status-error-bg);
   color: var(--danger);
   font-size: 13px;
-  border-bottom: 1px solid #f0d6d3;
+  border-bottom: 1px solid var(--status-error-line-soft);
 }
 
 .memory-add-card {
@@ -222,8 +221,12 @@
 }
 
 .memory-add-input-wrap {
+  flex: 1;
+  min-width: 0;
   position: relative;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 .memory-add-input-wrap textarea::placeholder { color: var(--text-tertiary); }
 .memory-char-count {
@@ -240,15 +243,6 @@
   display: flex;
   align-items: flex-end;
   gap: 10px;
-}
-
-.memory-add-input-wrap {
-  flex: 1;
-  min-width: 0;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
 }
 
 .memory-add-input-wrap textarea {
@@ -469,7 +463,7 @@
   line-height: 1.4;
 }
 .memory-tag.health {
-  background: #fbeae7;
+  background: var(--status-error-bg);
   color: #c85a3c;
 }
 .memory-tag.preferences {
@@ -613,7 +607,7 @@
 }
 
 .memory-list.expired .memory-item-head .memory-item-status.expired {
-  background: #fbeae7;
+  background: var(--status-error-bg);
   color: #c85a3c;
 }
 
@@ -667,7 +661,7 @@
   transition: background .15s ease, color .15s ease;
 }
 .memory-item-delete:hover {
-  background: #fbeae7;
+  background: var(--status-error-bg);
   color: var(--danger);
 }
 .memory-item-delete:focus-visible {
@@ -1043,4 +1037,3 @@ html[data-theme="dark"] .chat-back-btn { background: var(--surface-card); border
   html:not([data-theme='light']) .chat-member-trigger { background: var(--surface-card); border-color: var(--line); }
   html:not([data-theme='light']) .chat-member-dropdown { background: var(--surface-card); border-color: var(--line); box-shadow: 0 12px 32px rgba(0, 0, 0, .4); }
 }
-

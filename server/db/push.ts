@@ -17,13 +17,15 @@ export interface PushSettings {
   feedingGapEnabled: boolean;
   feedingGapLevel1Minutes: number;
   feedingGapLevel2Minutes: number;
+  feedPrepEnabled: boolean;
+  feedPrepMinutes: number;
   careItemEnabled: boolean;
   pushSentFlags: PushSentFlags;
   updatedAt: string;
 }
 
 export function getPushSettings(): PushSettings {
-  const row = db.prepare('SELECT enabled, pushplus_token AS pushplusToken, pushplus_topic AS pushplusTopic, morning_digest_enabled AS morningDigestEnabled, morning_digest_time AS morningDigestTime, feeding_gap_enabled AS feedingGapEnabled, feeding_gap_level1_minutes AS feedingGapLevel1Minutes, feeding_gap_level2_minutes AS feedingGapLevel2Minutes, care_item_enabled AS careItemEnabled, push_sent_flags AS pushSentFlags, updated_at AS updatedAt FROM push_settings WHERE id = 1').get() as { enabled: number; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: number; morningDigestTime?: string; feedingGapEnabled?: number; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; careItemEnabled?: number; pushSentFlags?: string; updatedAt: string } | undefined;
+  const row = db.prepare('SELECT enabled, pushplus_token AS pushplusToken, pushplus_topic AS pushplusTopic, morning_digest_enabled AS morningDigestEnabled, morning_digest_time AS morningDigestTime, feeding_gap_enabled AS feedingGapEnabled, feeding_gap_level1_minutes AS feedingGapLevel1Minutes, feeding_gap_level2_minutes AS feedingGapLevel2Minutes, feed_prep_enabled AS feedPrepEnabled, feed_prep_minutes AS feedPrepMinutes, care_item_enabled AS careItemEnabled, push_sent_flags AS pushSentFlags, updated_at AS updatedAt FROM push_settings WHERE id = 1').get() as { enabled: number; pushplusToken?: string; pushplusTopic?: string; morningDigestEnabled?: number; morningDigestTime?: string; feedingGapEnabled?: number; feedingGapLevel1Minutes?: number; feedingGapLevel2Minutes?: number; feedPrepEnabled?: number; feedPrepMinutes?: number; careItemEnabled?: number; pushSentFlags?: string; updatedAt: string } | undefined;
   const envEnabled = process.env.PUSH_ENABLED === 'true';
   function parseFlags(raw: string | undefined): PushSentFlags {
     if (!raw) return {};
@@ -48,6 +50,8 @@ export function getPushSettings(): PushSettings {
       feedingGapEnabled: true,
       feedingGapLevel1Minutes: 150,
       feedingGapLevel2Minutes: 180,
+      feedPrepEnabled: true,
+      feedPrepMinutes: 30,
       careItemEnabled: true,
       pushSentFlags: {},
       updatedAt: new Date().toISOString()
@@ -62,13 +66,15 @@ export function getPushSettings(): PushSettings {
     feedingGapEnabled: row.feedingGapEnabled === undefined ? true : Boolean(row.feedingGapEnabled),
     feedingGapLevel1Minutes: Number.isSafeInteger(row.feedingGapLevel1Minutes) && row.feedingGapLevel1Minutes! > 0 ? row.feedingGapLevel1Minutes! : 150,
     feedingGapLevel2Minutes: Number.isSafeInteger(row.feedingGapLevel2Minutes) && row.feedingGapLevel2Minutes! > 0 ? row.feedingGapLevel2Minutes! : 180,
+    feedPrepEnabled: row.feedPrepEnabled === undefined ? true : Boolean(row.feedPrepEnabled),
+    feedPrepMinutes: Number.isSafeInteger(row.feedPrepMinutes) && row.feedPrepMinutes! >= 0 && row.feedPrepMinutes! <= 120 ? row.feedPrepMinutes! : 30,
     careItemEnabled: row.careItemEnabled === undefined ? true : Boolean(row.careItemEnabled),
     pushSentFlags: parseFlags(row.pushSentFlags),
     updatedAt: row.updatedAt
   };
 }
 
-export function savePushSettings(input: Partial<Pick<PushSettings, 'enabled' | 'pushplusToken' | 'pushplusTopic' | 'morningDigestEnabled' | 'morningDigestTime' | 'feedingGapEnabled' | 'feedingGapLevel1Minutes' | 'feedingGapLevel2Minutes' | 'careItemEnabled'>>): PushSettings {
+export function savePushSettings(input: Partial<Pick<PushSettings, 'enabled' | 'pushplusToken' | 'pushplusTopic' | 'morningDigestEnabled' | 'morningDigestTime' | 'feedingGapEnabled' | 'feedingGapLevel1Minutes' | 'feedingGapLevel2Minutes' | 'feedPrepEnabled' | 'feedPrepMinutes' | 'careItemEnabled'>>): PushSettings {
   const current = getPushSettings();
   const enabled = input.enabled === undefined ? current.enabled : input.enabled;
   const pushplusToken = input.pushplusToken === undefined ? current.pushplusToken : input.pushplusToken.trim();
@@ -78,16 +84,18 @@ export function savePushSettings(input: Partial<Pick<PushSettings, 'enabled' | '
   const feedingGapEnabled = input.feedingGapEnabled === undefined ? current.feedingGapEnabled : input.feedingGapEnabled;
   const feedingGapLevel1Minutes = input.feedingGapLevel1Minutes === undefined ? current.feedingGapLevel1Minutes : input.feedingGapLevel1Minutes;
   const feedingGapLevel2Minutes = input.feedingGapLevel2Minutes === undefined ? current.feedingGapLevel2Minutes : input.feedingGapLevel2Minutes;
+  const feedPrepEnabled = input.feedPrepEnabled === undefined ? current.feedPrepEnabled : input.feedPrepEnabled;
+  const feedPrepMinutes = input.feedPrepMinutes === undefined ? current.feedPrepMinutes : input.feedPrepMinutes;
   const careItemEnabled = input.careItemEnabled === undefined ? current.careItemEnabled : input.careItemEnabled;
   const updatedAt = new Date().toISOString();
-  const info = db.prepare('UPDATE push_settings SET enabled = ?, pushplus_token = ?, pushplus_topic = ?, morning_digest_enabled = ?, morning_digest_time = ?, feeding_gap_enabled = ?, feeding_gap_level1_minutes = ?, feeding_gap_level2_minutes = ?, care_item_enabled = ?, updated_at = ? WHERE id = 1')
-    .run(enabled ? 1 : 0, pushplusToken, pushplusTopic, morningDigestEnabled ? 1 : 0, morningDigestTime, feedingGapEnabled ? 1 : 0, feedingGapLevel1Minutes, feedingGapLevel2Minutes, careItemEnabled ? 1 : 0, updatedAt);
+  const info = db.prepare('UPDATE push_settings SET enabled = ?, pushplus_token = ?, pushplus_topic = ?, morning_digest_enabled = ?, morning_digest_time = ?, feeding_gap_enabled = ?, feeding_gap_level1_minutes = ?, feeding_gap_level2_minutes = ?, feed_prep_enabled = ?, feed_prep_minutes = ?, care_item_enabled = ?, updated_at = ? WHERE id = 1')
+    .run(enabled ? 1 : 0, pushplusToken, pushplusTopic, morningDigestEnabled ? 1 : 0, morningDigestTime, feedingGapEnabled ? 1 : 0, feedingGapLevel1Minutes, feedingGapLevel2Minutes, feedPrepEnabled ? 1 : 0, feedPrepMinutes, careItemEnabled ? 1 : 0, updatedAt);
   if (!info.changes) {
     db.prepare(`
       INSERT INTO push_settings
-        (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags, updated_at)
-        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(enabled ? 1 : 0, pushplusToken, pushplusTopic, morningDigestEnabled ? 1 : 0, morningDigestTime, feedingGapEnabled ? 1 : 0, feedingGapLevel1Minutes, feedingGapLevel2Minutes, careItemEnabled ? 1 : 0, '{}', updatedAt);
+        (id, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, feed_prep_enabled, feed_prep_minutes, care_item_enabled, push_sent_flags, updated_at)
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(enabled ? 1 : 0, pushplusToken, pushplusTopic, morningDigestEnabled ? 1 : 0, morningDigestTime, feedingGapEnabled ? 1 : 0, feedingGapLevel1Minutes, feedingGapLevel2Minutes, feedPrepEnabled ? 1 : 0, feedPrepMinutes, careItemEnabled ? 1 : 0, '{}', updatedAt);
   }
   return getPushSettings();
 }

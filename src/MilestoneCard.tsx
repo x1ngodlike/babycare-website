@@ -89,7 +89,7 @@ export function MilestoneArchiveSummary({ profile, onOpen }: { profile: Profile;
       <div className="section-title">
         <h2>发育里程碑</h2>
         <button className="text-button vaccine-archive-link" onClick={onOpen}>
-          查看全部 <span aria-hidden="true">›</span>
+          查看全部 <ChevronRight aria-hidden="true" />
         </button>
       </div>
       <div className="milestone-summary-rows">

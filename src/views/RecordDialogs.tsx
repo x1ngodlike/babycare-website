@@ -18,7 +18,7 @@ function formatAuditValue(field: string, value: unknown): string {
     case 'type': return typeNames[value as RecordType] || String(value);
     case 'occurredAt':
       return new Date(String(value)).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
-    case 'breastMilkMl': case 'formulaMl': return `${value} ml`;
+    case 'breastMilkMl': case 'formulaMl': return `${value} mL`;
     default: return String(value);
   }
 }

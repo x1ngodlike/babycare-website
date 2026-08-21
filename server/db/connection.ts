@@ -162,6 +162,8 @@ db.exec(`
     feeding_gap_enabled INTEGER NOT NULL DEFAULT 1,
     feeding_gap_level1_minutes INTEGER NOT NULL DEFAULT 150,
     feeding_gap_level2_minutes INTEGER NOT NULL DEFAULT 180,
+    feed_prep_enabled INTEGER NOT NULL DEFAULT 1,
+    feed_prep_minutes INTEGER NOT NULL DEFAULT 30,
     care_item_enabled INTEGER NOT NULL DEFAULT 1,
     push_sent_flags TEXT NOT NULL DEFAULT '{}',
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -361,12 +363,14 @@ if (!pushSettingsColumns.some(column => column.name === 'morning_digest_time')) 
 if (!pushSettingsColumns.some(column => column.name === 'feeding_gap_enabled')) db.exec('ALTER TABLE push_settings ADD COLUMN feeding_gap_enabled INTEGER NOT NULL DEFAULT 1');
 if (!pushSettingsColumns.some(column => column.name === 'feeding_gap_level1_minutes')) db.exec('ALTER TABLE push_settings ADD COLUMN feeding_gap_level1_minutes INTEGER NOT NULL DEFAULT 150');
 if (!pushSettingsColumns.some(column => column.name === 'feeding_gap_level2_minutes')) db.exec('ALTER TABLE push_settings ADD COLUMN feeding_gap_level2_minutes INTEGER NOT NULL DEFAULT 180');
+if (!pushSettingsColumns.some(column => column.name === 'feed_prep_enabled')) db.exec('ALTER TABLE push_settings ADD COLUMN feed_prep_enabled INTEGER NOT NULL DEFAULT 1');
+if (!pushSettingsColumns.some(column => column.name === 'feed_prep_minutes')) db.exec('ALTER TABLE push_settings ADD COLUMN feed_prep_minutes INTEGER NOT NULL DEFAULT 30');
 if (!pushSettingsColumns.some(column => column.name === 'push_sent_flags')) db.exec("ALTER TABLE push_settings ADD COLUMN push_sent_flags TEXT NOT NULL DEFAULT '{}'");
 if (!pushSettingsColumns.some(column => column.name === 'care_item_enabled')) db.exec('ALTER TABLE push_settings ADD COLUMN care_item_enabled INTEGER NOT NULL DEFAULT 1');
 // 启动时确保 id=1 的唯一行存在：修复历史库 NOT NULL 无 DEFAULT 导致 INSERT OR IGNORE 被吞、上行缺失的问题
 db.prepare(`
   INSERT OR IGNORE INTO push_settings
-    (id, updated_at, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, care_item_enabled, push_sent_flags)
+    (id, updated_at, enabled, pushplus_token, pushplus_topic, morning_digest_enabled, morning_digest_time, feeding_gap_enabled, feeding_gap_level1_minutes, feeding_gap_level2_minutes, feed_prep_enabled, feed_prep_minutes, care_item_enabled, push_sent_flags)
     VALUES (1, COALESCE((SELECT updated_at FROM push_settings WHERE id = 1), ''),
             COALESCE((SELECT enabled FROM push_settings WHERE id = 1), 0),
             COALESCE((SELECT pushplus_token FROM push_settings WHERE id = 1), ''),
@@ -376,6 +380,8 @@ db.prepare(`
             COALESCE((SELECT feeding_gap_enabled FROM push_settings WHERE id = 1), 1),
             COALESCE((SELECT feeding_gap_level1_minutes FROM push_settings WHERE id = 1), 150),
             COALESCE((SELECT feeding_gap_level2_minutes FROM push_settings WHERE id = 1), 180),
+            COALESCE((SELECT feed_prep_enabled FROM push_settings WHERE id = 1), 1),
+            COALESCE((SELECT feed_prep_minutes FROM push_settings WHERE id = 1), 30),
             COALESCE((SELECT care_item_enabled FROM push_settings WHERE id = 1), 1),
             COALESCE((SELECT push_sent_flags FROM push_settings WHERE id = 1), '{}'))
 `).run();

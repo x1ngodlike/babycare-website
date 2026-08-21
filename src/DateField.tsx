@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { isoDay } from './date';
 import { useDialogFocus } from './ui';
@@ -178,7 +178,7 @@ function PickerSheet({ title, onClose, children, footer }: { title: string; onCl
   useDialogFocus(dialogRef, onClose);
   return <div className="modal-layer picker-layer" onMouseDown={event => event.target === event.currentTarget && onClose()}>
     <section ref={dialogRef} className="editor picker-sheet" role="dialog" aria-modal="true" aria-label={title}>
-      <header className="editor-head"><h2>{title}</h2><button type="button" className="close-btn" onClick={onClose} aria-label="关闭">×</button></header>
+      <header className="editor-head"><h2>{title}</h2><button type="button" className="close-btn" onClick={onClose} aria-label="关闭"><X aria-hidden="true" /></button></header>
       {children}
       {footer && <footer className="picker-actions">{footer}</footer>}
     </section>
