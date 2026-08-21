@@ -113,9 +113,7 @@ export function MilestoneArchiveSummary({ profile, onOpen }: { profile: Profile;
   return <section className="vaccine-archive-summary milestone-summary growth-summary">
     <div className="section-title"><h2>成长指南</h2><button className="text-button vaccine-archive-link" onClick={onOpen}>打开指南 <ChevronRight aria-hidden="true" /></button></div>
     <button type="button" className="growth-summary-body" onClick={onOpen}>
-      <span className="growth-summary-icon"><Sparkles aria-hidden="true" /></span>
       <span className="growth-summary-copy"><strong>{stage.label} · {stage.title}</strong><small>{DEFAULT_GUIDE_REGION}</small><span>{observed} 项能力记录 · {dueTasks} 件近期事项 · 本季建议已更新</span></span>
-      <ChevronRight aria-hidden="true" />
     </button>
   </section>;
 }

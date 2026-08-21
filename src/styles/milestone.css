@@ -1,7 +1,7 @@
 .growth-summary-body {
   width: 100%; border: 0; background: transparent; color: inherit; cursor: pointer;
-  display: grid; grid-template-columns: 44px minmax(0, 1fr) 20px; align-items: center;
-  gap: 12px; padding: 10px 0 2px; text-align: left;
+  display: grid; grid-template-columns: minmax(0, 1fr); align-items: center;
+  gap: 12px; padding: 0 0 2px; margin-top: 12px; text-align: left;
 }
 .growth-summary-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--sage-soft); color: var(--green-deep); display: grid; place-items: center; }
 .growth-summary-icon svg { width: 20px; }
