@@ -6,13 +6,13 @@ import { restoreMemory } from './chat.js';
 import { addAudit } from './records.js';
 import { syncDefaultVaccineCatalog, systemVaccineIds } from './vaccines.js';
 import type { DailyReport } from './daily-reports.js';
-import type { AiMemory, AiMemoryCategory, AuditEntry, BabySex, CareItem, CareRecord, ChatMessage, ChatSession, FamilyMemberPermission, GrowthRecord, MilestoneRecord, VaccineCatalogItem, VaccineRecord } from '../types.js';
+import type { AiMemory, AiMemoryCategory, AuditEntry, BabySex, CareItem, CareRecord, ChatMessage, ChatSession, FamilyMemberPermission, GrowthGuideEntry, GrowthRecord, MilestoneRecord, VaccineCatalogItem, VaccineRecord } from '../types.js';
 import type { AiSettings } from './ai.js';
 import type { PushSettings } from './push.js';
 
 type ImportedMemory = { id: string; content: string; category: AiMemoryCategory; createdAt: string; updatedAt: string; expiresAt?: string | null; status?: 'active' | 'resolved'; resolvedAt?: string | null };
 
-type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; familyPermissions?: Pick<FamilyMemberPermission, 'id' | 'role'>[]; aiSettings?: AiSettings; pushSettings?: PushSettings; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: ImportedMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
+type ImportPayload = { profile?: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; familyPermissions?: Pick<FamilyMemberPermission, 'id' | 'role'>[]; aiSettings?: AiSettings; pushSettings?: PushSettings; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; growthGuideEntries?: GrowthGuideEntry[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: ImportedMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
 type ImportResult = { imported: number; profileRestored: boolean };
 const importBackupTransaction = db.transaction((payload: ImportPayload): ImportResult => {
   if (payload.profile) saveProfile({ name: payload.profile.name, birthDate: payload.profile.birthDate, birthTime: payload.profile.birthTime, sex: payload.profile.sex ?? 'unspecified', nickname: payload.profile.nickname, caregiverTitle: payload.profile.caregiverTitle, avatar: payload.profile.avatar });
@@ -67,6 +67,13 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
         deleted_at=excluded.deleted_at, deleted_by=excluded.deleted_by`);
     for (const record of payload.milestoneRecords) upsertMilestone.run(record);
   }
+  if (payload.growthGuideEntries?.length) {
+    const upsertGuideEntry = db.prepare(`INSERT INTO growth_guide_entries (item_key, kind, state, completed_at, created_at, updated_at, created_by, updated_by)
+      VALUES (@itemKey, @kind, @state, @completedAt, @createdAt, @updatedAt, @createdBy, @updatedBy)
+      ON CONFLICT(item_key) DO UPDATE SET kind=excluded.kind, state=excluded.state, completed_at=excluded.completed_at,
+        updated_at=excluded.updated_at, updated_by=excluded.updated_by`);
+    for (const entry of payload.growthGuideEntries) upsertGuideEntry.run(entry);
+  }
   if (payload.vaccineCatalog?.length) {
     const upsertCatalog = db.prepare(`INSERT INTO vaccine_catalog (id, name, category, short_name, description, dose_count, interval_summary, active, sort_order, is_system) VALUES (@id, @name, @category, @shortName, @description, @doseCount, @intervalSummary, @active, @sortOrder, @isSystem) ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, short_name=excluded.short_name, description=excluded.description, dose_count=excluded.dose_count, interval_summary=excluded.interval_summary, active=excluded.active, sort_order=excluded.sort_order, is_system=excluded.is_system`);
     for (const item of payload.vaccineCatalog) upsertCatalog.run({ ...item, active: item.active ? 1 : 0, isSystem: systemVaccineIds.has(item.id) ? 1 : 0 });
@@ -107,7 +114,7 @@ const importBackupTransaction = db.transaction((payload: ImportPayload): ImportR
 });
 export function importBackup(payload: ImportPayload): ImportResult { return importBackupTransaction(payload); }
 
-type ReplacePayload = { profile: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; familyPermissions?: Pick<FamilyMemberPermission, 'id' | 'role'>[]; aiSettings?: AiSettings; pushSettings?: PushSettings; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
+type ReplacePayload = { profile: { name: string; birthDate: string; birthTime?: string | null; sex?: BabySex; nickname?: string; caregiverTitle?: string; avatar?: string | null }; records: CareRecord[]; audits?: AuditEntry[]; careItems?: CareItem[]; familyMembers?: FamilyMemberPermission[]; familyPermissions?: Pick<FamilyMemberPermission, 'id' | 'role'>[]; aiSettings?: AiSettings; pushSettings?: PushSettings; growthRecords?: GrowthRecord[]; vaccineRecords?: VaccineRecord[]; milestoneRecords?: MilestoneRecord[]; growthGuideEntries?: GrowthGuideEntry[]; vaccineCatalog?: VaccineCatalogItem[]; dailyReports?: DailyReport[]; aiMemories?: AiMemory[]; chatSessions?: ChatSession[]; chatMessages?: ChatMessage[] };
 const replaceBackupTransaction = db.transaction((payload: ReplacePayload): ImportResult => {
   db.prepare('DELETE FROM record_audit').run();
   db.prepare('DELETE FROM care_records').run();
@@ -154,6 +161,12 @@ const replaceBackupTransaction = db.transaction((payload: ReplacePayload): Impor
     const insertMilestone = db.prepare(`INSERT INTO milestones (id, milestone_key, category, achieved_on, note, photo, created_at, updated_at, created_by, deleted_at, deleted_by)
       VALUES (@id, @milestoneKey, @category, @achievedOn, @note, @photo, @createdAt, @updatedAt, @createdBy, @deletedAt, @deletedBy)`);
     for (const record of payload.milestoneRecords) insertMilestone.run(record);
+  }
+  db.prepare('DELETE FROM growth_guide_entries').run();
+  if (payload.growthGuideEntries?.length) {
+    const insertGuideEntry = db.prepare(`INSERT INTO growth_guide_entries (item_key, kind, state, completed_at, created_at, updated_at, created_by, updated_by)
+      VALUES (@itemKey, @kind, @state, @completedAt, @createdAt, @updatedAt, @createdBy, @updatedBy)`);
+    for (const entry of payload.growthGuideEntries) insertGuideEntry.run(entry);
   }
   if (payload.vaccineCatalog?.length) {
     db.prepare('DELETE FROM vaccine_catalog').run();

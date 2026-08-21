@@ -73,7 +73,7 @@ export function Timeline({ records, careItems, manager, emptyText = '这一天�
     const recordTypeName = record.type === 'supplement' ? (careItemCategory(record.supplement, careItems) === 'care' ? '护理' : '用药') : typeNames[record.type];
     const auditLabel = `${created === '历史数据' ? '历史数据' : `${created}录入`}${changed ? ` · ${updated}修改` : ''}`;
     const hasExtraNote = Boolean(record.note);
-    const typeWithCreator = <>{recordTypeName}<span className="record-creator"> · {created}</span>{hasHistory && !compactMetadata && !hideMetadata && <span className="audit-history-tag">已修改</span>}</>;
+    const typeWithCreator = <>{recordTypeName}<span className="record-creator">· {created}</span>{hasHistory && !compactMetadata && !hideMetadata && <span className="audit-history-tag">已修改</span>}</>;
     return <article className={`timeline-item ${record.type}${hasExtraNote ? ' has-note' : ''}`} key={record.id}><div className={`time-col${searchMode ? ' search-time' : ''}`}><time>{searchMode && <span className="record-date">{date}</span>}<span>{time}</span></time><i /></div><img className="record-mark" src={careItemIcon(record, careItems)} alt="" /><div className="record-copy">{compactMetadata && !hideMetadata ? <div className="record-meta-row"><small>{typeWithCreator}</small><em>{auditLabel}</em></div> : <small>{typeWithCreator}</small>}<strong><FeedingSummary record={record} careItems={careItems} /></strong>{record.note && <RecordNotePreview note={record.note} />}</div><ActionMenu label={`${summary(record, careItems)}的操作菜单`} items={items} /></article>;
   })}</div>;
 }

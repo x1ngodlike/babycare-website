@@ -288,6 +288,18 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_milestones_achieved_on ON milestones(achieved_on DESC);
   CREATE INDEX IF NOT EXISTS idx_milestones_key ON milestones(milestone_key);
+
+  CREATE TABLE IF NOT EXISTS growth_guide_entries (
+    item_key TEXT PRIMARY KEY,
+    kind TEXT NOT NULL CHECK (kind IN ('task', 'shopping')),
+    state TEXT NOT NULL CHECK (state IN ('done', 'skip')),
+    completed_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    updated_by TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_growth_guide_entries_completed_at ON growth_guide_entries(completed_at DESC);
 `);
 
 const growthTableColumns = db.prepare('PRAGMA table_info(growth_records)').all() as { name: string }[];

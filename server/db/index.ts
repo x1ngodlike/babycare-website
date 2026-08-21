@@ -13,4 +13,5 @@ export * from './push.js';
 export * from './daily-reports.js';
 export * from './chat.js';
 export * from './milestones.js';
+export * from './growth-guide.js';
 export * from './backup.js';

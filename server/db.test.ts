@@ -211,6 +211,17 @@ describe('record reliability', () => {
     db.setFamilyRole('grandfather', 'member');
   });
 
+  it('shares growth guide task and shopping states across family members', () => {
+    const task = db.saveGrowthGuideEntry({ itemKey: 'newborn-insurance', kind: 'task', state: 'done', completedAt: '2026-08-10T08:00:00.000Z' }, 'mother');
+    expect(task).toMatchObject({ itemKey: 'newborn-insurance', kind: 'task', state: 'done', createdBy: 'mother', updatedBy: 'mother' });
+    const updated = db.saveGrowthGuideEntry({ itemKey: 'newborn-insurance', kind: 'task', state: 'skip', completedAt: '2026-08-11T08:00:00.000Z' }, 'father');
+    expect(updated).toMatchObject({ state: 'skip', createdBy: 'mother', updatedBy: 'father', completedAt: '2026-08-11T08:00:00.000Z' });
+    db.saveGrowthGuideEntry({ itemKey: 'shop:play-mat', kind: 'shopping', state: 'done' }, 'grandmother');
+    expect(db.listGrowthGuideEntries().map((entry: { itemKey: string }) => entry.itemKey)).toEqual(expect.arrayContaining(['newborn-insurance', 'shop:play-mat']));
+    expect(db.removeGrowthGuideEntry('newborn-insurance')).toBe(true);
+    expect(db.removeGrowthGuideEntry('newborn-insurance')).toBe(false);
+  });
+
   it('permanently removes only records already in the recycle bin', () => {
     const item = record({ id: '88888888-8888-4888-8888-888888888888', type: 'feeding', supplement: null, breastMilkMl: 80 });
     db.saveRecord(item);

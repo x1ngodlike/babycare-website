@@ -2,7 +2,7 @@
 import {
   allAudit, allChatMessages, allRecords, getProfile, listCareItems,
   listDailyReports, listFamilyMembers, listGrowthRecords, listMemories,
-  listMilestoneRecords, listSessions, listVaccineCatalog, listVaccineRecords,
+  listGrowthGuideEntries, listMilestoneRecords, listSessions, listVaccineCatalog, listVaccineRecords,
   getAiSettings, getPushSettings
 } from './db/index.js';
 
@@ -50,9 +50,15 @@ export function exportPayload() {
     createdAt: normalizeDateTime(record.createdAt) || new Date().toISOString(),
     updatedAt: normalizeDateTime(record.updatedAt) || new Date().toISOString()
   }));
+  const growthGuideEntries = listGrowthGuideEntries().map(entry => ({
+    ...entry,
+    completedAt: normalizeDateTime(entry.completedAt),
+    createdAt: normalizeDateTime(entry.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeDateTime(entry.updatedAt) || new Date().toISOString()
+  }));
   const profile = getProfile();
   const aiSettings = getAiSettings();
   const pushSettings = getPushSettings();
   const familyPermissions = listFamilyMembers().map(({ id, role }) => ({ id, role }));
-  return { version: 11, exportedAt: new Date().toISOString(), profile: profile || { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null }, records, audits: allAudit(), careItems, familyMembers: listFamilyMembers(), familyPermissions, aiSettings, pushSettings, growthRecords, vaccineRecords, milestoneRecords, vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports(), aiMemories: listMemories(true), chatSessions: listSessions(), chatMessages: allChatMessages() };
+  return { version: 12, exportedAt: new Date().toISOString(), profile: profile || { name: '宝宝', birthDate: new Date().toISOString().slice(0, 10), birthTime: null, sex: 'unspecified' as const, nickname: '', caregiverTitle: '', avatar: null }, records, audits: allAudit(), careItems, familyMembers: listFamilyMembers(), familyPermissions, aiSettings, pushSettings, growthRecords, vaccineRecords, milestoneRecords, growthGuideEntries, vaccineCatalog: listVaccineCatalog(true), dailyReports: listDailyReports(), aiMemories: listMemories(true), chatSessions: listSessions(), chatMessages: allChatMessages() };
 }

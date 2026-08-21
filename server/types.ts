@@ -59,7 +59,7 @@ export interface VaccineCatalogItem {
   isSystem: boolean;
 }
 
-export type MilestoneCategory = 'gross_motor' | 'fine_motor' | 'language' | 'cognitive' | 'social';
+export type MilestoneCategory = 'gross_motor' | 'fine_motor' | 'language' | 'cognitive' | 'social' | 'self_care';
 
 export interface MilestoneRecord {
   id: string;
@@ -82,6 +82,25 @@ export interface DraftMilestoneRecord {
   achievedOn: string;
   note?: string | null;
   photo?: string | null;
+}
+
+export type GrowthGuideEntryKind = 'task' | 'shopping';
+export type GrowthGuideEntryState = 'done' | 'skip';
+export interface GrowthGuideEntry {
+  itemKey: string;
+  kind: GrowthGuideEntryKind;
+  state: GrowthGuideEntryState;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: AuditIdentity;
+  updatedBy: AuditIdentity;
+}
+export interface DraftGrowthGuideEntry {
+  itemKey: string;
+  kind: GrowthGuideEntryKind;
+  state: GrowthGuideEntryState;
+  completedAt?: string | null;
 }
 
 export interface CareRecord {

@@ -1,4 +1,4 @@
-import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthRecord, DraftMilestoneRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, ExtractedMemory, FamilyId, FamilyMemberPermission, GrowthCurveData, GrowthRecord, MilestoneRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, SystemAuditEntry, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
+import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthGuideEntry, DraftGrowthRecord, DraftMilestoneRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, ExtractedMemory, FamilyId, FamilyMemberPermission, GrowthCurveData, GrowthGuideEntry, GrowthRecord, MilestoneRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, SystemAuditEntry, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 
 export interface GrowthIndicatorAssessment {
   value: number;
@@ -135,6 +135,9 @@ export const api = {
   deleteMilestoneRecord: (id: string) => request<{ deleted: boolean; record: MilestoneRecord }>(`/api/milestone-records/${id}`, { method: 'DELETE' }),
   restoreMilestoneRecord: (id: string) => request<MilestoneRecord>(`/api/milestone-records/${id}/restore`, { method: 'POST' }),
   purgeMilestoneRecord: (id: string) => request<{ deleted: boolean }>(`/api/milestone-records/${id}/permanent`, { method: 'DELETE' }),
+  growthGuideEntries: () => request<GrowthGuideEntry[]>('/api/growth-guide-entries'),
+  saveGrowthGuideEntry: (entry: DraftGrowthGuideEntry) => request<GrowthGuideEntry>(`/api/growth-guide-entries/${encodeURIComponent(entry.itemKey)}`, { method: 'PUT', body: JSON.stringify(entry) }),
+  deleteGrowthGuideEntry: (itemKey: string) => request<{ deleted: boolean }>(`/api/growth-guide-entries/${encodeURIComponent(itemKey)}`, { method: 'DELETE' }),
   familyMembers: () => request<FamilyMemberPermission[]>('/api/family-members'),
   updateFamilyRole: (id: Exclude<FamilyId, 'father'>, role: Exclude<UserRole, 'superadmin'>) => request<FamilyMemberPermission>(`/api/family-members/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
   records: (from: string, to: string) => request<CareRecord[]>(`/api/records?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),

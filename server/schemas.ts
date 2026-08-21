@@ -113,6 +113,17 @@ export const milestoneRecordSchema = z.object({
   deletedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).nullable().optional()
 });
 
+export const growthGuideEntrySchema = z.object({
+  itemKey: z.string().trim().min(1).max(100),
+  kind: z.enum(['task', 'shopping']),
+  state: z.enum(['done', 'skip']),
+  completedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }).optional(),
+  updatedAt: z.string().datetime({ offset: true }).optional(),
+  createdBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).optional(),
+  updatedBy: z.enum(['father', 'mother', 'grandfather', 'grandmother', 'legacy']).optional()
+});
+
 export const vaccineCatalogInputSchema = z.object({
   name: z.string().trim().min(1, '请填写疫苗名称').max(50, '疫苗名称过长'),
   category: z.enum(['program', 'self_paid']),
@@ -135,6 +146,7 @@ export const backupPayloadSchema = z.object({
   growthRecords: z.array(growthRecordSchema).max(1000).optional(),
   vaccineRecords: z.array(vaccineRecordSchema).max(1000).optional(),
   milestoneRecords: z.array(milestoneRecordSchema).max(1000).optional(),
+  growthGuideEntries: z.array(growthGuideEntrySchema).max(1000).optional(),
   vaccineCatalog: z.array(z.object({ id: z.string().min(1).max(50), name: z.string().min(1).max(50), category: z.enum(['program', 'self_paid']), shortName: z.string().max(30).nullable(), description: z.string().max(300), doseCount: z.number().int().min(1).max(20).nullable(), intervalSummary: z.string().max(200), active: z.boolean(), sortOrder: z.number().int().min(0).max(9999), isSystem: z.boolean().optional().default(false) })).max(100).optional(),
   dailyReports: z.array(z.object({
     reportDate: z.string(), summary: z.string(), suggestions: z.array(z.string()), model: z.string(), generatedAt: z.string()
