@@ -419,7 +419,6 @@
   align-items: flex-start;
   gap: 12px;
   transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-  overflow: hidden;
 }
 .memory-item:hover {
   border-color: var(--line-strong);
