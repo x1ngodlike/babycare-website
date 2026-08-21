@@ -68,11 +68,11 @@ export function RecordEditor({ initial, careItems, onClose, onSave }: { initial:
         {value.type === 'feeding' && <div className="input-pair">
           <label>母乳量（mL）
             <input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 90" value={value.breastMilkMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, breastMilkMl: e.target.value ? Number(e.target.value) : null }); }} />
-            {prediction?.commonBreastValues && prediction.commonBreastValues.length > 0 && <div className="quick-values"><span>常用</span>{prediction.commonBreastValues.map(v => <button type="button" key={v} className="quick-value-btn" onClick={() => setValue({ ...value, breastMilkMl: v })}>{v}</button>)}</div>}
+            {prediction?.commonBreastValues && prediction.commonBreastValues.length > 0 && <div className="quick-values"><span>常用</span><div>{prediction.commonBreastValues.map(v => <button type="button" key={v} className="quick-value-btn" onClick={() => setValue({ ...value, breastMilkMl: v })}>{v}</button>)}</div></div>}
           </label>
           <label>奶粉量（mL）
             <input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 120" value={value.formulaMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, formulaMl: e.target.value ? Number(e.target.value) : null }); }} />
-            {prediction?.commonFormulaValues && prediction.commonFormulaValues.length > 0 && <div className="quick-values"><span>常用</span>{prediction.commonFormulaValues.map(v => <button type="button" key={v} className="quick-value-btn" onClick={() => setValue({ ...value, formulaMl: v })}>{v}</button>)}</div>}
+            {prediction?.commonFormulaValues && prediction.commonFormulaValues.length > 0 && <div className="quick-values"><span>常用</span><div>{prediction.commonFormulaValues.map(v => <button type="button" key={v} className="quick-value-btn" onClick={() => setValue({ ...value, formulaMl: v })}>{v}</button>)}</div></div>}
           </label>
         </div>}
         {value.type === 'supplement' && <CareItemChoiceField items={selectableCareItems(careItems, value.supplement)} selected={value.supplement} onSelect={supplement => setValue({ ...value, supplement })} />}
