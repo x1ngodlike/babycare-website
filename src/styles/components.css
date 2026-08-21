@@ -231,7 +231,6 @@ textarea,
 select,
 .picker-trigger,
 .picker-quick button,
-.record-time-shortcuts button,
 .choice-group button,
 .care-choice-groups .care-choice-grid button {
   border-radius: var(--radius-control);
@@ -239,14 +238,12 @@ select,
 }
 
 .picker-quick button:hover:not(:disabled):not(.selected),
-.record-time-shortcuts button:hover:not(:disabled):not(.selected),
 .choice-group button:hover:not(:disabled):not(.selected),
 .care-choice-groups .care-choice-grid button:hover:not(:disabled):not(.selected) {
   background: var(--surface-interactive-hover);
 }
 
 .picker-quick button.selected,
-.record-time-shortcuts button.selected,
 .choice-group button.selected,
 .care-choice-groups .care-choice-grid button.selected {
   border-color: var(--green);
@@ -256,7 +253,6 @@ select,
 
 .picker-trigger:disabled,
 .picker-quick button:disabled,
-.record-time-shortcuts button:disabled,
 .choice-group button:disabled,
 .care-choice-groups .care-choice-grid button:disabled {
   background-color: var(--control-bg-disabled);
