@@ -1,8 +1,9 @@
 // 照护记录编辑器（由 App.tsx 抽出，逻辑不变）
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { blankDraft, hasEnteredContent, recordEditorTypeOrder, typeNames, selectableCareItems, careItemIconSources, ChoiceField } from '../shared';
 import { confirmAction, Modal, SegmentedControl, useDirtyClose } from '../ui';
 import { DateTimeField, minutesAgoIso } from '../DateField';
+import { api, type FeedingPrediction } from '../api';
 import type { BowelSize, CareItem, CareItemCategory, DraftRecord, RecordType } from '../types';
 
 function CareItemChoiceField({ items, selected, onSelect }: { items: CareItem[]; selected?: string | null; onSelect(value: string): void }) {
@@ -15,8 +16,16 @@ export function RecordEditor({ initial, careItems, onClose, onSave }: { initial:
   const [relativeMinutes, setRelativeMinutes] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [prediction, setPrediction] = useState<FeedingPrediction | null>(null);
   const dirty = JSON.stringify(value) !== JSON.stringify(initial);
   const requestClose = useDirtyClose(dirty, onClose);
+
+  useEffect(() => {
+    if (value.type === 'feeding' && !('createdAt' in initial)) {
+      api.feedingPrediction().then(data => setPrediction(data)).catch(() => setPrediction(null));
+    }
+  }, [value.type, initial.id]);
+
   async function switchType(type: RecordType) {
     if (type === value.type) return;
     if (hasEnteredContent(value) && !await confirmAction({ title: `切换为“${typeNames[type]}”？`, description: '切换后会清空当前已填写的记录内容。', confirmLabel: '继续切换', danger: true })) return;
@@ -37,7 +46,7 @@ export function RecordEditor({ initial, careItems, onClose, onSave }: { initial:
     try { await onSave(value); onClose(); }
     catch (err) { setError(err instanceof Error ? err.message : '保存失败'); setBusy(false); }
   }
-  return <Modal title={initial.id && 'createdAt' in initial ? '修改记录' : '添加记录'} onClose={() => void requestClose()}>
+  return <Modal title={initial.id && 'createdAt' in initial ? '修改记录' : '添加记录'} kicker="照护记录" onClose={() => void requestClose()}>
       <SegmentedControl className="type-switch" label="记录类型" value={value.type} options={recordEditorTypeOrder.map(type => ({ value: type, label: typeNames[type] }))} onChange={type => void switchType(type)} />
       <form className="editor-form" onSubmit={submit}>
         <DateTimeField label="记录时间" max={new Date(Date.now() + 10 * 60 * 1000).toISOString()} value={value.occurredAt} onChange={occurredAt => { setRelativeMinutes(null); setValue({ ...value, occurredAt }); }} />
@@ -56,11 +65,20 @@ export function RecordEditor({ initial, careItems, onClose, onSave }: { initial:
             >{minutes}分前</button>)}
           </div>
         </div>}
-        {value.type === 'feeding' && <div className="input-pair"><label>母乳量（mL）<input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 90" value={value.breastMilkMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, breastMilkMl: e.target.value ? Number(e.target.value) : null }); }} /></label><label>奶粉量（mL）<input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 120" value={value.formulaMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, formulaMl: e.target.value ? Number(e.target.value) : null }); }} /></label></div>}
+        {value.type === 'feeding' && <div className="input-pair">
+          <label>母乳量（mL）
+            <input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 90" value={value.breastMilkMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, breastMilkMl: e.target.value ? Number(e.target.value) : null }); }} />
+            {prediction?.commonBreastValues && prediction.commonBreastValues.length > 0 && <div className="quick-values"><span>常用</span>{prediction.commonBreastValues.map(v => <button type="button" key={v} className="quick-value-btn" onClick={() => setValue({ ...value, breastMilkMl: v })}>{v}</button>)}</div>}
+          </label>
+          <label>奶粉量（mL）
+            <input inputMode="numeric" type="number" min="0" max="500" placeholder="例如 120" value={value.formulaMl ?? ''} aria-invalid={error.includes('母乳或奶粉量') || undefined} onChange={e => { setError(''); setValue({ ...value, formulaMl: e.target.value ? Number(e.target.value) : null }); }} />
+            {prediction?.commonFormulaValues && prediction.commonFormulaValues.length > 0 && <div className="quick-values"><span>常用</span>{prediction.commonFormulaValues.map(v => <button type="button" key={v} className="quick-value-btn" onClick={() => setValue({ ...value, formulaMl: v })}>{v}</button>)}</div>}
+          </label>
+        </div>}
         {value.type === 'supplement' && <CareItemChoiceField items={selectableCareItems(careItems, value.supplement)} selected={value.supplement} onSelect={supplement => setValue({ ...value, supplement })} />}
         {value.type === 'bowel' && <ChoiceField label="排便量" values={['大', '中', '小'] as BowelSize[]} selected={value.bowelSize} onSelect={bowelSize => setValue({ ...value, bowelSize })} />}
         {value.type === 'note' && <label>事项内容<input maxLength={100} placeholder="例如：换床单、剪指甲" value={value.subject ?? ''} aria-invalid={error.includes('事项内容') || undefined} onChange={e => { setError(''); setValue({ ...value, subject: e.target.value }); }} /></label>}
-        <label>补充说明（选填）<textarea rows={3} maxLength={200} placeholder={value.type === 'supplement' ? '可记录服用或护理后的情况' : value.type === 'note' ? '可补充事项细节' : '可留空'} value={value.note ?? ''} onChange={e => setValue({ ...value, note: e.target.value })} /></label>
+        <label>补充说明（选填）<textarea rows={2} maxLength={200} placeholder={value.type === 'supplement' ? '可记录服用或护理后的情况' : value.type === 'note' ? '可补充事项细节' : '可留空'} value={value.note ?? ''} onChange={e => setValue({ ...value, note: e.target.value })} /></label>
         {error && <p className="error-text" role="alert">{error}</p>}
         <footer className="editor-actions"><button type="button" className="btn secondary" onClick={() => void requestClose()}>取消</button><button className="btn primary" disabled={busy}>{busy ? '保存中…' : '保存记录'}</button></footer>
       </form>

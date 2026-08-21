@@ -44,6 +44,10 @@ export interface FeedingPrediction {
   nextFeedLatest: string | null;
   gapMinutes: number | null;
   volumeMl: number | null;
+  breastMl: number | null;
+  formulaMl: number | null;
+  commonBreastValues: number[];
+  commonFormulaValues: number[];
   confidence: number;
   upcomingFeeds: FeedingPredictionUpcoming[];
   periodGaps: { period: string; count: number; medianMinutes: number | null; minMinutes: number | null; maxMinutes: number | null }[];
