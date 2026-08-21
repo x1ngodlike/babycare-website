@@ -82,7 +82,7 @@ export function PredictionBanner({ records, online, prepEnabled, prepMinutes }: 
         </div>
         <div className="prediction-right">
           <div className="prediction-stats">
-            {prediction.volumeMl !== null && <span>约 {prediction.volumeMl} mL</span>}
+            {prediction.volumeMl !== null && <span>约{prediction.volumeMl}mL</span>}
           </div>
           {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
@@ -122,7 +122,7 @@ export function PredictionBanner({ records, online, prepEnabled, prepMinutes }: 
                     </span>
                     <span className="feed-period">{periodLabels[feed.period]}</span>
                   </span>
-                  {feed.estimatedMl !== null && <span className="feed-vol">约 {feed.estimatedMl} mL</span>}
+                  {feed.estimatedMl !== null && <span className="feed-vol">约{feed.estimatedMl}mL</span>}
                   <span className="feed-duration">{formatDurationFromNow(feed.predictedAt, now)}</span>
                 </li>
               ))}
