@@ -341,7 +341,9 @@ export function MilestoneHistory({ profile, manager, onBack }: { profile: Profil
     await api.deleteMilestoneRecord(record.id); setEditing(null); await load();
   }
 
-  return <div className="page-stack milestone-history-page growth-guide-page">
+  const stageIndex = GROWTH_STAGES.findIndex(s => s.id === stage.id);
+
+  return <div className="page-stack milestone-history-page growth-guide-page" data-stage={stageIndex + 1}>
     <header className="guide-topbar"><button type="button" className="guide-back" onClick={onBack} aria-label="返回档案"><ArrowLeft aria-hidden="true" /></button><div><span>宝宝档案</span><h1>成长指南</h1></div><span className="guide-region"><MapPin aria-hidden="true" />余杭区</span></header>
 
     <nav ref={stageNavRef} className="guide-stage-nav" aria-label="选择成长阶段">{GROWTH_STAGES.map((item, index) => {
@@ -365,7 +367,7 @@ export function MilestoneHistory({ profile, manager, onBack }: { profile: Profil
 
       {activeTab === 'abilities' && <section className="guide-section ability-section" aria-labelledby="guide-ability-title"><GuideHeading eyebrow="成长观察" title="宝宝可能会什么" id="guide-ability-title" icon={<Baby />} /><p className="guide-section-intro">这是本阶段常见的能力参考，不是必须完成的测试。已记录能力优先展示。</p>{loading ? <div className="guide-skeleton"><span /><span /><span /></div> : <><ul className="guide-ability-list">{visibleAbilities.map(definition => {
         const record = recordMap.get(definition.key) ?? null;
-        return <li key={definition.key} className={record ? 'observed' : ''}><MilestoneBadge milestoneKey={definition.key} status={record ? 'achieved' : stageRelation === 'current' ? 'pending' : 'upcoming'} /><div><strong>{definition.label}</strong><p>{definition.description}</p><small>{record ? `${formatRecordDate(record.achievedOn)}记录 · ${MILESTONE_CATEGORY_LABELS[definition.category]}` : `${formatWholeMonths(definition.whoMonthsRange)}常见 · ${stageRelation === 'current' ? '最近可以留意' : stageRelation === 'past' ? '当时的能力参考' : '提前了解'}`}</small></div>{manager && (record ? <button type="button" className="guide-recorded-button" aria-label="宝宝会了" onClick={() => setEditing({ definition, record })}><Check /><span>宝宝会了</span></button> : <button type="button" className="guide-record-button" onClick={() => setEditing({ definition, record: null })}>记录</button>)}</li>;
+        return <li key={definition.key} className={record ? 'observed' : ''}><MilestoneBadge milestoneKey={definition.key} status={record ? 'achieved' : stageRelation === 'current' ? 'pending' : 'upcoming'} /><div><strong>{definition.label}</strong><p>{definition.description}</p><small>{record ? `${formatRecordDate(record.achievedOn)}记录 · ${MILESTONE_CATEGORY_LABELS[definition.category]}` : `${formatWholeMonths(definition.whoMonthsRange)}常见 · ${MILESTONE_CATEGORY_LABELS[definition.category]} · ${stageRelation === 'current' ? '最近可以留意' : stageRelation === 'past' ? '当时的能力参考' : '提前了解'}`}</small></div>{manager && (record ? <button type="button" className="guide-recorded-button" aria-label="宝宝会了" onClick={() => setEditing({ definition, record })}><Check /><span>宝宝会了</span></button> : <button type="button" className="guide-record-button" onClick={() => setEditing({ definition, record: null })}>记录</button>)}</li>;
       })}</ul>{relevantAbilities.length > 4 && <button type="button" className="guide-expand-button" aria-expanded={abilitiesExpanded} onClick={() => setAbilitiesExpanded(value => !value)}>{abilitiesExpanded ? '收起能力列表' : `查看本阶段全部 ${relevantAbilities.length} 项`}<ChevronDown /></button>}</>}</section>}
 
       {activeTab === 'tasks' && <section className="guide-section" aria-labelledby="guide-tasks-title"><GuideHeading eyebrow={DEFAULT_GUIDE_REGION} title="本阶段办事提醒" id="guide-tasks-title" icon={<CalendarCheck />} /><div className="guide-task-list">{activeTasks.map(task => {
