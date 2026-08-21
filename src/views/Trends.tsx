@@ -112,7 +112,7 @@ export default function TrendsView({ records }: { records: CareRecord[] }) {
   const chartTitle = mode === 'seven' ? '每日奶量' : mode === 'month' ? '每周奶量' : '最近六个月奶量';
   const detailLabel = mode === 'seven' ? '查看每日数据' : mode === 'month' ? '查看每周数据' : '查看每月数据';
   const totalLabel = mode === 'seven' ? '七日总奶量' : mode === 'month' ? '本月总奶量' : '累计总奶量';
-  const description = mode === 'seven' ? '最近七天数据，图表按天展示；点上方箭头可切换查看其他日期。' : mode === 'month' ? '月度汇总按自然月；每周奶量按周一至周日，跨月周按完整周统计。' : '汇总开始记录至今的全部照护数据。';
+  const description = mode === 'seven' ? '近 7 天喂养趋势。' : mode === 'month' ? '本月喂养趋势。' : '全部喂养数据汇总。';
   const sevenRangeLabel = `${sevenDays[0].toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} – ${sevenDays[6].toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}`;
   const canShiftForward = selectedIso < todayIso;
   const shiftDay = (offset: number) => setSelectedDay(value => addDays(value, offset));

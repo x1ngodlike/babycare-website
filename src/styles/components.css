@@ -325,6 +325,7 @@ select,
 .app-nav { z-index: var(--layer-navigation); }
 .floating-add { z-index: var(--layer-floating); }
 .floating-add svg { width: 20px; height: 20px; flex: none; stroke-width: var(--icon-stroke); }
+.mobile-week-strip { display: none; }
 .ui-action-popover { z-index: var(--layer-menu); }
 .picker-layer { z-index: var(--layer-overlay); }
 .modal-layer,
@@ -332,6 +333,22 @@ select,
 .confirm-layer { z-index: var(--layer-critical); }
 
 @media (max-width: 520px) {
+  .desktop-week-strip { display: none; }
+  .mobile-week-strip {
+    display: grid;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 24px) / 7);
+    gap: 4px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-week-strip::-webkit-scrollbar { display: none; }
+  .mobile-week-strip button { scroll-snap-align: center; }
+
   .ui-segmented button,
   .choice-group button,
   .role-switch button { min-height: var(--size-touch); }

@@ -25,7 +25,7 @@ function clusterRecords(list: CareRecord[]): RecordCluster[] {
 
 const hhmm = (at: string) => new Date(at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-export default function HistoryOverview({ records, careItems, selected, onShiftWeek }: { records: CareRecord[]; careItems: CareItem[]; selected: Date; onShiftWeek(offset: number): void }) {
+export default function HistoryOverview({ records, careItems, selected, onShiftDay }: { records: CareRecord[]; careItems: CareItem[]; selected: Date; onShiftDay(offset: number): void }) {
   const [tipId, setTipId] = useState<string | null>(null);
   const todayKey = isoDay(new Date());
   const yesterdayKey = isoDay(addDays(new Date(), -1));
@@ -55,7 +55,7 @@ export default function HistoryOverview({ records, careItems, selected, onShiftW
     return null;
   }, [tipId, days, byDay]);
   return <section className="overview-panel" aria-label="七日照护总览">
-    <div className="calendar-nav"><button onClick={() => onShiftWeek(-7)} aria-label="向前七天"><ChevronLeft size={18} strokeWidth={2.2} /></button><strong>{rangeLabel}</strong><button onClick={() => onShiftWeek(7)} aria-label="向后七天"><ChevronRight size={18} strokeWidth={2.2} /></button></div>
+    <div className="calendar-nav"><button onClick={() => onShiftDay(-1)} aria-label="向前一天"><ChevronLeft size={18} strokeWidth={2.2} /></button><strong>{rangeLabel}</strong><button onClick={() => onShiftDay(1)} aria-label="向后一天"><ChevronRight size={18} strokeWidth={2.2} /></button></div>
     <div className="overview-days">
       <span aria-hidden="true" />
       {days.map(day => { const key = isoDay(day); const isToday = key === todayKey; const count = byDay.get(key)?.length || 0; const label = day.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }); return <div key={key} className={`overview-day ${isToday ? 'today' : ''}`} aria-label={`${label}，${count} 条记录`}><b>{isToday ? '今天' : key === yesterdayKey ? '昨天' : day.toLocaleDateString('zh-CN', { weekday: 'short' })}</b><span>{label}</span></div>; })}
