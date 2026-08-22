@@ -94,13 +94,9 @@ public final class MainActivity extends Activity {
             return;
         }
 
-        // 根据网络环境智能选择：
-        // WiFi 已连接 → 优先局域网 → 失败尝试外网
-        // WiFi 未连接 → 直接尝试外网
-        boolean wifiConnected = isWifiConnected();
-        
-        if (wifiConnected && !lanUrl.isEmpty()) {
-            // WiFi 已连接，优先尝试局域网
+        // 智能选择：优先 ping 局域网，失败再尝试外网
+        if (!lanUrl.isEmpty()) {
+            // 先尝试局域网
             probeAndConnect(lanUrl, () -> {
                 // 局域网失败，尝试外网
                 if (!publicUrl.isEmpty()) {
@@ -108,25 +104,13 @@ public final class MainActivity extends Activity {
                         runOnUiThread(() -> showConnectionError("局域网和外网均无法连接，请检查网络或切换服务器"))
                     );
                 } else {
-                    runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"));
+                    runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查网络或切换服务器"));
                 }
             });
         } else if (!publicUrl.isEmpty()) {
-            // WiFi 未连接或未配置局域网，直接尝试外网
-            probeAndConnect(publicUrl, () -> {
-                // 外网失败，如果 WiFi 可用且有局域网配置，回退尝试局域网
-                if (isWifiConnected() && !lanUrl.isEmpty()) {
-                    probeAndConnect(lanUrl, () ->
-                        runOnUiThread(() -> showConnectionError("外网和局域网均无法连接，请检查网络或切换服务器"))
-                    );
-                } else {
-                    runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"));
-                }
-            });
-        } else {
-            // 没有外网配置，只能尝试局域网
-            probeAndConnect(lanUrl, () -> 
-                runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"))
+            // 只配置了外网，直接尝试
+            probeAndConnect(publicUrl, () -> 
+                runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"))
             );
         }
     }
@@ -179,42 +163,46 @@ public final class MainActivity extends Activity {
             return; // 冷却时间内，不处理
         }
 
-        boolean wifiConnected = isWifiConnected();
-        ServerConfig.Environment currentEnv = ServerConfig.environment(this);
-
-        // 如果当前使用的是局域网，但 WiFi 已断开，自动切换到外网
-        if (currentEnv == ServerConfig.Environment.LAN && !wifiConnected) {
-            String lanUrl = ServerConfig.lanUrl(this);
-            String publicUrl = ServerConfig.publicUrl(this);
-            
-            // 只有外网地址配置了才切换
-            if (publicUrl != null && !publicUrl.isEmpty()) {
-                // 探测外网是否可用
-                ServerConfig.probe(publicUrl, success -> {
-                    if (success) {
-                        ServerConfig.save(MainActivity.this, publicUrl, lanUrl, ServerConfig.Environment.PUBLIC);
-                        lastAutoSwitchTime = System.currentTimeMillis();
-                        wasUsingLan = false;
-                        runOnUiThread(this::loadSelectedServer);
-                    } else {
-                        // 外网也不可用，显示错误页
-                        runOnUiThread(() -> showConnectionError("局域网不可用，外网也无法连接，请检查网络或切换服务器"));
-                    }
-                });
-                return;
-            } else {
-                // 没有外网地址，显示错误页
-                runOnUiThread(() -> showConnectionError("WiFi 已断开，且未配置外网服务器，请切换服务器"));
-            }
+        String lanUrl = ServerConfig.lanUrl(this);
+        String publicUrl = ServerConfig.publicUrl(this);
+        
+        // 网络变化时，重新探测服务器可用性
+        if (!lanUrl.isEmpty()) {
+            // 先尝试局域网
+            ServerConfig.probe(lanUrl, lanSuccess -> {
+                if (lanSuccess) {
+                    // 局域网可用
+                    ServerConfig.save(MainActivity.this, publicUrl, lanUrl, ServerConfig.Environment.LAN);
+                    lastAutoSwitchTime = System.currentTimeMillis();
+                    runOnUiThread(MainActivity.this::loadSelectedServer);
+                } else if (!publicUrl.isEmpty()) {
+                    // 局域网不可用，尝试外网
+                    ServerConfig.probe(publicUrl, publicSuccess -> {
+                        if (publicSuccess) {
+                            ServerConfig.save(MainActivity.this, publicUrl, lanUrl, ServerConfig.Environment.PUBLIC);
+                            lastAutoSwitchTime = System.currentTimeMillis();
+                            runOnUiThread(MainActivity.this::loadSelectedServer);
+                        } else {
+                            // 都不可用，显示错误页
+                            runOnUiThread(() -> showConnectionError("网络已变化，但无法连接服务器，请检查网络或切换服务器"));
+                        }
+                    });
+                } else {
+                    runOnUiThread(() -> showConnectionError("网络已变化，但无法连接服务器，请检查网络或切换服务器"));
+                }
+            });
+        } else if (!publicUrl.isEmpty()) {
+            // 只配置了外网
+            ServerConfig.probe(publicUrl, success -> {
+                if (success) {
+                    ServerConfig.save(MainActivity.this, publicUrl, lanUrl, ServerConfig.Environment.PUBLIC);
+                    lastAutoSwitchTime = System.currentTimeMillis();
+                    runOnUiThread(MainActivity.this::loadSelectedServer);
+                } else {
+                    runOnUiThread(() -> showConnectionError("网络已变化，但无法连接服务器，请检查网络或切换服务器"));
+                }
+            });
         }
-
-        // 如果 WiFi 重新连接，且之前使用的是局域网（自动切换前），提示用户可切回
-        if (wifiConnected && wasUsingLan && currentEnv == ServerConfig.Environment.PUBLIC) {
-            wasUsingLan = false; // 重置，避免重复提示
-            // 不自动切回，因为用户可能已经习惯外网，需要手动切换
-        }
-
-        wasUsingLan = wifiConnected && ServerConfig.environment(this) == ServerConfig.Environment.LAN;
     }
 
     private boolean isWifiConnected() {
@@ -502,35 +490,20 @@ public final class MainActivity extends Activity {
             return;
         }
 
-        // 根据网络环境智能选择（与 onCreate 逻辑一致）
-        boolean wifiConnected = isWifiConnected();
-        
-        if (wifiConnected && !lanUrl.isEmpty()) {
-            // WiFi 已连接，优先尝试局域网
+        // 智能选择：优先 ping 局域网，失败再尝试外网（与 onCreate 逻辑一致）
+        if (!lanUrl.isEmpty()) {
             probeAndConnect(lanUrl, () -> {
                 if (!publicUrl.isEmpty()) {
                     probeAndConnect(publicUrl, () -> 
                         runOnUiThread(() -> showConnectionError("局域网和外网均无法连接，请检查网络或切换服务器"))
                     );
                 } else {
-                    runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"));
+                    runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查网络或切换服务器"));
                 }
             });
         } else if (!publicUrl.isEmpty()) {
-            // WiFi 未连接或未配置局域网，直接尝试外网
-            probeAndConnect(publicUrl, () -> {
-                if (isWifiConnected() && !lanUrl.isEmpty()) {
-                    probeAndConnect(lanUrl, () ->
-                        runOnUiThread(() -> showConnectionError("外网和局域网均无法连接，请检查网络或切换服务器"))
-                    );
-                } else {
-                    runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"));
-                }
-            });
-        } else {
-            // 没有外网配置，只能尝试局域网
-            probeAndConnect(lanUrl, () -> 
-                runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"))
+            probeAndConnect(publicUrl, () -> 
+                runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"))
             );
         }
     }
