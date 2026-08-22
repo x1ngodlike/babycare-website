@@ -217,14 +217,32 @@ export default function App() {
   useEffect(() => {
     if (connection.status === 'connected' && connection.currentServer) {
       setBaseUrl(connection.currentServer.url);
+      if (connection.isNative) setOnline(true);
     } else if (connection.status === 'failed') {
       setBaseUrl('');
+      if (connection.isNative) setOnline(false);
     }
   }, [connection.status, connection.currentServer]);
 
   useEffect(() => {
     api.session().then(value => { setAuthenticated(value.authenticated); setCurrentUser(value.user); if (value.user) { rememberUser(value.user); setRecords(getCachedRecords(value.user.id)); } })
-      .catch(() => { const remembered = getRememberedUser(); if (remembered) { setCurrentUser(remembered); setAuthenticated(true); setOfflineSession(true); setOnline(false); setRecords(getCachedRecords(remembered.id)); setPendingCount(getOutbox(remembered.id).length); } else { setAuthenticated(false); setCurrentUser(null); } });
+      .catch(() => { 
+        const remembered = getRememberedUser(); 
+        if (remembered) { 
+          setCurrentUser(remembered); 
+          setAuthenticated(true); 
+          setOfflineSession(true); 
+          // APP 环境下不立即设置 online=false，等 useAutoConnect 的结果
+          if (!connection.isNative || connection.status !== 'connecting') {
+            setOnline(false);
+          }
+          setRecords(getCachedRecords(remembered.id)); 
+          setPendingCount(getOutbox(remembered.id).length); 
+        } else { 
+          setAuthenticated(false); 
+          setCurrentUser(null); 
+        } 
+      });
   }, []);
 
   useEffect(() => {
