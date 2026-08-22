@@ -86,8 +86,58 @@ public final class MainActivity extends Activity {
         configureWebView();
         registerNetworkCallback();
 
-        if (ServerConfig.selectedUrl(this).isEmpty()) showServerDialog(true);
-        else loadSelectedServer();
+        String selectedUrl = ServerConfig.selectedUrl(this);
+        if (selectedUrl.isEmpty()) {
+            showServerDialog(true); // 首次使用，未配置
+        } else {
+            // 智能降级：优先连接局域网，失败尝试外网
+            String lanUrl = ServerConfig.lanUrl(this);
+            String publicUrl = ServerConfig.publicUrl(this);
+            ServerConfig.Environment env = ServerConfig.environment(this);
+            
+            // 如果配置了局域网，优先尝试
+            if (!lanUrl.isEmpty() && !publicUrl.isEmpty()) {
+                // 两个都配置了，先尝试当前选择的环境
+                probeAndConnect(selectedUrl, () -> {
+                    // 当前选择的失败，尝试另一个
+                    String fallbackUrl = env == ServerConfig.Environment.LAN ? publicUrl : lanUrl;
+                    probeAndConnect(fallbackUrl, () -> {
+                        // 都失败，显示错误页
+                        String errorMsg = env == ServerConfig.Environment.LAN
+                            ? "局域网和外网均无法连接，请检查网络或切换服务器"
+                            : "外网和局域网均无法连接，请检查网络或切换服务器";
+                        runOnUiThread(() -> showConnectionError(errorMsg));
+                    });
+                });
+            } else if (!lanUrl.isEmpty()) {
+                // 只配置了局域网
+                probeAndConnect(lanUrl, () -> {
+                    runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"));
+                });
+            } else if (!publicUrl.isEmpty()) {
+                // 只配置了外网
+                probeAndConnect(publicUrl, () -> {
+                    runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"));
+                });
+            } else {
+                showServerDialog(true); // 都为空，需要配置
+            }
+        }
+    }
+
+    private void probeAndConnect(String url, Runnable onFail) {
+        ServerConfig.probe(url, success -> {
+            if (success) {
+                // 连接成功，自动更新环境选择
+                ServerConfig.Environment newEnv = url.equals(ServerConfig.lanUrl(this)) 
+                    ? ServerConfig.Environment.LAN 
+                    : ServerConfig.Environment.PUBLIC;
+                ServerConfig.save(this, ServerConfig.publicUrl(this), ServerConfig.lanUrl(this), newEnv);
+                runOnUiThread(() -> loadSelectedServer());
+            } else {
+                onFail.run();
+            }
+        });
     }
 
     private void registerNetworkCallback() {
@@ -133,11 +183,22 @@ public final class MainActivity extends Activity {
             
             // 只有外网地址配置了才切换
             if (publicUrl != null && !publicUrl.isEmpty()) {
-                ServerConfig.save(this, publicUrl, lanUrl, ServerConfig.Environment.PUBLIC);
-                lastAutoSwitchTime = System.currentTimeMillis();
-                wasUsingLan = false;
-                loadSelectedServer();
+                // 探测外网是否可用
+                ServerConfig.probe(publicUrl, success -> {
+                    if (success) {
+                        ServerConfig.save(MainActivity.this, publicUrl, lanUrl, ServerConfig.Environment.PUBLIC);
+                        lastAutoSwitchTime = System.currentTimeMillis();
+                        wasUsingLan = false;
+                        runOnUiThread(this::loadSelectedServer);
+                    } else {
+                        // 外网也不可用，显示错误页
+                        runOnUiThread(() -> showConnectionError("局域网不可用，外网也无法连接，请检查网络或切换服务器"));
+                    }
+                });
                 return;
+            } else {
+                // 没有外网地址，显示错误页
+                runOnUiThread(() -> showConnectionError("WiFi 已断开，且未配置外网服务器，请切换服务器"));
             }
         }
 
@@ -236,7 +297,7 @@ public final class MainActivity extends Activity {
         errorView.addView(errorMessage, messageParams);
 
         Button retry = createButton("重新连接");
-        retry.setOnClickListener(view -> loadSelectedServer());
+        retry.setOnClickListener(view -> retryConnection());
         errorView.addView(retry, matchWrap(dp(0), dp(18)));
 
         Button change = createButton("更换服务器");
@@ -421,6 +482,44 @@ public final class MainActivity extends Activity {
         webView.setVisibility(View.GONE);
         errorMessage.setText(message);
         errorView.setVisibility(View.VISIBLE);
+    }
+
+    private void retryConnection() {
+        errorView.setVisibility(View.GONE);
+        webView.setVisibility(View.VISIBLE);
+        
+        String selectedUrl = ServerConfig.selectedUrl(this);
+        if (selectedUrl.isEmpty()) {
+            showServerDialog(true);
+            return;
+        }
+
+        String lanUrl = ServerConfig.lanUrl(this);
+        String publicUrl = ServerConfig.publicUrl(this);
+        ServerConfig.Environment env = ServerConfig.environment(this);
+        
+        if (!lanUrl.isEmpty() && !publicUrl.isEmpty()) {
+            // 两个都配置了，先尝试当前选择的环境
+            probeAndConnect(selectedUrl, () -> {
+                String fallbackUrl = env == ServerConfig.Environment.LAN ? publicUrl : lanUrl;
+                probeAndConnect(fallbackUrl, () -> {
+                    String errorMsg = env == ServerConfig.Environment.LAN
+                        ? "局域网和外网均无法连接，请检查网络或切换服务器"
+                        : "外网和局域网均无法连接，请检查网络或切换服务器";
+                    runOnUiThread(() -> showConnectionError(errorMsg));
+                });
+            });
+        } else if (!lanUrl.isEmpty()) {
+            probeAndConnect(lanUrl, () -> 
+                runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"))
+            );
+        } else if (!publicUrl.isEmpty()) {
+            probeAndConnect(publicUrl, () -> 
+                runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"))
+            );
+        } else {
+            showServerDialog(true);
+        }
     }
 
     private void showServerDialog(boolean required) {

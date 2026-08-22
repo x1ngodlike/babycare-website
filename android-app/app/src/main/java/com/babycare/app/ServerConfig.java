@@ -3,12 +3,18 @@ package com.babycare.app;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 final class ServerConfig {
+    interface ProbeCallback {
+        void onResult(boolean success);
+    }
+
     enum Environment {
         PUBLIC("外网"),
         LAN("局域网");
@@ -129,5 +135,27 @@ final class ServerConfig {
         return first == 10
             || (first == 172 && second >= 16 && second <= 31)
             || (first == 192 && second == 168);
+    }
+
+    static void probe(String url, ProbeCallback callback) {
+        new Thread(() -> {
+            boolean success = false;
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) new URL(url + "/api/health").openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Accept", "application/json");
+                connection.setInstanceFollowRedirects(false);
+                int status = connection.getResponseCode();
+                success = status >= 200 && status < 300;
+            } catch (Exception ignored) {
+                // 连接失败
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+            callback.onResult(success);
+        }).start();
     }
 }
