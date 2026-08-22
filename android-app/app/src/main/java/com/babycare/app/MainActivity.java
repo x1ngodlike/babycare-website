@@ -10,6 +10,10 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -65,6 +69,11 @@ public final class MainActivity extends Activity {
     private TextView errorMessage;
     private ValueCallback<Uri[]> fileChooserCallback;
     private String pendingNotificationTarget;
+    private ConnectivityManager connectivityManager;
+    private ConnectivityManager.NetworkCallback networkCallback;
+    private boolean wasUsingLan = false;
+    private long lastAutoSwitchTime = 0;
+    private static final long AUTO_SWITCH_COOLDOWN_MS = 3000; // 3秒冷却时间，防止频繁切换
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,9 +84,85 @@ public final class MainActivity extends Activity {
         AppNotificationPoller.start(this);
         captureNotificationTarget(getIntent());
         configureWebView();
+        registerNetworkCallback();
 
         if (ServerConfig.selectedUrl(this).isEmpty()) showServerDialog(true);
         else loadSelectedServer();
+    }
+
+    private void registerNetworkCallback() {
+        connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                runOnUiThread(() -> handleNetworkChange());
+            }
+
+            @Override
+            public void onLost(Network network) {
+                runOnUiThread(() -> handleNetworkChange());
+            }
+
+            @Override
+            public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
+                runOnUiThread(() -> handleNetworkChange());
+            }
+        };
+
+        NetworkRequest request = new NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build();
+        connectivityManager.registerNetworkCallback(request, networkCallback);
+
+        // 初始化当前网络状态
+        wasUsingLan = isWifiConnected() && ServerConfig.environment(this) == ServerConfig.Environment.LAN;
+    }
+
+    private void handleNetworkChange() {
+        if (System.currentTimeMillis() - lastAutoSwitchTime < AUTO_SWITCH_COOLDOWN_MS) {
+            return; // 冷却时间内，不处理
+        }
+
+        boolean wifiConnected = isWifiConnected();
+        ServerConfig.Environment currentEnv = ServerConfig.environment(this);
+
+        // 如果当前使用的是局域网，但 WiFi 已断开，自动切换到外网
+        if (currentEnv == ServerConfig.Environment.LAN && !wifiConnected) {
+            String lanUrl = ServerConfig.lanUrl(this);
+            String publicUrl = ServerConfig.publicUrl(this);
+            
+            // 只有外网地址配置了才切换
+            if (publicUrl != null && !publicUrl.isEmpty()) {
+                ServerConfig.save(this, publicUrl, lanUrl, ServerConfig.Environment.PUBLIC);
+                lastAutoSwitchTime = System.currentTimeMillis();
+                wasUsingLan = false;
+                loadSelectedServer();
+                return;
+            }
+        }
+
+        // 如果 WiFi 重新连接，且之前使用的是局域网（自动切换前），提示用户可切回
+        if (wifiConnected && wasUsingLan && currentEnv == ServerConfig.Environment.PUBLIC) {
+            wasUsingLan = false; // 重置，避免重复提示
+            // 不自动切回，因为用户可能已经习惯外网，需要手动切换
+        }
+
+        wasUsingLan = wifiConnected && ServerConfig.environment(this) == ServerConfig.Environment.LAN;
+    }
+
+    private boolean isWifiConnected() {
+        if (connectivityManager == null) return false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Network network = connectivityManager.getActiveNetwork();
+            if (network == null) return false;
+            NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+            return capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+        } else {
+            // 旧版本API
+            @SuppressWarnings("deprecation")
+            android.net.NetworkInfo wifiInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            return wifiInfo != null && wifiInfo.isConnected();
+        }
     }
 
     private void configureSystemBars() {
@@ -666,6 +751,14 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (networkCallback != null && connectivityManager != null) {
+            try {
+                connectivityManager.unregisterNetworkCallback(networkCallback);
+            } catch (Exception ignored) {
+                // 忽略注销异常
+            }
+            networkCallback = null;
+        }
         if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
         fileChooserCallback = null;
         networkExecutor.shutdownNow();

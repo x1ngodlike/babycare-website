@@ -24,6 +24,15 @@ export interface ConnectionState {
 const PING_TIMEOUT = 5000;
 const PING_PATH = '/api/health';
 
+function isNativeApp(): boolean {
+  try {
+    const bridge = (window as Window & { BabyCareNative?: Record<string, unknown> }).BabyCareNative;
+    return Boolean(bridge);
+  } catch {
+    return false;
+  }
+}
+
 async function pingServer(url: string, timeoutMs = PING_TIMEOUT): Promise<boolean> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -42,17 +51,43 @@ async function pingServer(url: string, timeoutMs = PING_TIMEOUT): Promise<boolea
 }
 
 export function useAutoConnect() {
-  const [state, setState] = useState<ConnectionState>(() => ({
-    status: 'connecting',
-    currentServer: null,
-    mode: getStoredMode(),
-    servers: getServerList(),
-    lastConnectedId: getLastConnectedId(),
-  }));
+  const isNative = isNativeApp();
+  
+  const [state, setState] = useState<ConnectionState>(() => {
+    // 非原生环境（Web版本）直接标记为已连接，使用相对路径
+    if (!isNative) {
+      return {
+        status: 'connected',
+        currentServer: null,
+        mode: 'auto',
+        servers: [],
+        lastConnectedId: null,
+      };
+    }
+    return {
+      status: 'connecting',
+      currentServer: null,
+      mode: getStoredMode(),
+      servers: getServerList(),
+      lastConnectedId: getLastConnectedId(),
+    };
+  });
 
   const reconnectTimerRef = useRef<number | null>(null);
 
   const tryConnect = useCallback(async (mode?: ServerMode) => {
+    // 非原生环境直接返回已连接
+    if (!isNativeApp()) {
+      setState({
+        status: 'connected',
+        currentServer: null,
+        mode: 'auto',
+        servers: [],
+        lastConnectedId: null,
+      });
+      return null;
+    }
+
     const currentMode = mode ?? getStoredMode();
     const servers = getServerList();
     const customUrl = getCustomUrl();
@@ -82,7 +117,7 @@ export function useAutoConnect() {
     } else {
       // auto mode: prioritize current server (if available), then try LAN first, then WAN
       
-      // If we're in a native environment and have a current URL, try that first
+      // If we have a current URL, try that first
       if (currentUrl) {
         const currentServer = servers.find(s => s.url === currentUrl);
         if (currentServer) {
@@ -198,10 +233,12 @@ export function useAutoConnect() {
   }, [tryConnect]);
 
   useEffect(() => {
+    if (!isNative) return;
     void tryConnect();
-  }, [tryConnect]);
+  }, [isNative, tryConnect]);
 
   useEffect(() => {
+    if (!isNative) return;
     if (state.status === 'failed' && !reconnectTimerRef.current) {
       reconnectTimerRef.current = window.setInterval(() => {
         void tryConnect();
@@ -216,10 +253,11 @@ export function useAutoConnect() {
         reconnectTimerRef.current = null;
       }
     };
-  }, [state.status, tryConnect]);
+  }, [isNative, state.status, tryConnect]);
 
   return {
     ...state,
+    isNative,
     tryConnect,
     setMode,
     reconnect,
