@@ -2,7 +2,7 @@
 // 视图组件已拆到 src/views/（Today / History / RecordEditor / RecordDialogs / Settings / Trends / Archive / Chat）。
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import { api, ApiError } from './api';
+import { api, ApiError, setBaseUrl } from './api';
 import { addDays, isoDay } from './date';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
@@ -16,6 +16,7 @@ import { TodayView } from './views/Today';
 import { HistoryView } from './views/History';
 import { RecordEditor } from './views/RecordEditor';
 import { AuditDialog, GrowthEditor } from './views/RecordDialogs';
+import { useAutoConnect } from './hooks/useAutoConnect';
 import type { Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineRecord, FamilyId, GrowthRecord, Profile, PushStatus, SessionUser, Supplement, VaccineCatalogItem, VaccineRecord } from './types';
 
 // 低频页面按需加载，配合 main.tsx 空闲预取与 Service Worker 运行时缓存
@@ -53,6 +54,7 @@ function Login({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
 }
 
 export default function App() {
+  const connection = useAutoConnect();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01', sex: 'unspecified', nickname: '', caregiverTitle: '妈妈', avatar: null });
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
@@ -213,6 +215,14 @@ export default function App() {
   }, [currentUser, reloadRecords]);
 
   useEffect(() => {
+    if (connection.status === 'connected' && connection.currentServer) {
+      setBaseUrl(connection.currentServer.url);
+    } else if (connection.status === 'failed') {
+      setBaseUrl('');
+    }
+  }, [connection.status, connection.currentServer]);
+
+  useEffect(() => {
     api.session().then(value => { setAuthenticated(value.authenticated); setCurrentUser(value.user); if (value.user) { rememberUser(value.user); setRecords(getCachedRecords(value.user.id)); } })
       .catch(() => { const remembered = getRememberedUser(); if (remembered) { setCurrentUser(remembered); setAuthenticated(true); setOfflineSession(true); setOnline(false); setRecords(getCachedRecords(remembered.id)); setPendingCount(getOutbox(remembered.id).length); } else { setAuthenticated(false); setCurrentUser(null); } });
   }, []);
@@ -276,7 +286,8 @@ export default function App() {
     if (!authenticated || !currentUser) return;
     let eventTimer: number | null = null;
     const pendingScope: { value: ChangeScope } = { value: 'all' };
-    const source = typeof EventSource === 'undefined' ? null : new EventSource('/api/events');
+    const baseUrl = connection.status === 'connected' && connection.currentServer ? connection.currentServer.url : '';
+    const source = typeof EventSource === 'undefined' ? null : new EventSource(baseUrl + '/api/events');
     const scheduleRefresh = (scope: ChangeScope) => {
       pendingScope.value = scope;
       if (eventTimer) clearTimeout(eventTimer);
@@ -308,7 +319,7 @@ export default function App() {
       if (eventTimer) clearTimeout(eventTimer);
       clearInterval(pollTimer); source?.close(); document.removeEventListener('visibilitychange', visibility);
     };
-  }, [authenticated, currentUser, refreshAll, refreshRecords, refreshProfile]);
+  }, [authenticated, currentUser, connection.status, connection.currentServer, refreshAll, refreshRecords, refreshProfile]);
 
   async function saveOne(input: DraftRecord) {
     if (!currentUser) throw new Error('请先登录');
@@ -396,10 +407,11 @@ export default function App() {
   if (authenticated === null) return <main className="loading-page"><img src="/bear-bottle.png" alt="" /><p>正在打开照护记录…</p></main>;
   if (!authenticated || !currentUser) return <Login onSuccess={user => { rememberUser(user); setCurrentUser(user); setRecords(getCachedRecords(user.id)); setAuthenticated(true); setOfflineSession(false); }} />;
   const currentMember = familyMembers.find(member => member.id === currentUser.id)!;
-  const connectionLabel = offlineSession ? '离线身份' : !online ? '离线' : pendingCount ? `待同步 ${pendingCount} 条` : refreshing ? '正在更新' : '已连接';
+  const isConnectionFailed = connection.status === 'failed';
+  const connectionLabel = isConnectionFailed ? '连接失败' : offlineSession ? '离线身份' : !online ? '离线' : pendingCount ? `待同步 ${pendingCount} 条` : refreshing ? '正在更新' : '已连接';
   const pullLabel = pull.phase === 'refreshing' ? '正在更新' : pull.phase === 'done' ? '已更新' : pull.phase === 'ready' ? '松开刷新' : '继续下拉刷新';
   const pullOffset = pull.phase === 'refreshing' || pull.phase === 'done' ? 8 : Math.min(8, pull.distance - 44);
-  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}{!isChatPage && <div className="top-status"><button className="user-pill" onClick={() => setTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button>{(!online || pendingCount > 0 || refreshing || offlineSession) && <div className={`network-pill ${online ? refreshing ? 'syncing' : '' : 'offline'}`} role="status" aria-live="polite">{connectionLabel}</div>}</div>}
+  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}{!isChatPage && <div className="top-status"><button className="user-pill" onClick={() => setTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button>{(isConnectionFailed || !online || pendingCount > 0 || refreshing || offlineSession) && <div className={`network-pill ${isConnectionFailed ? 'offline' : online ? refreshing ? 'syncing' : '' : 'offline'}`} role="status" aria-live="polite">{connectionLabel}</div>}</div>}
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status" aria-live="polite"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}><X aria-hidden="true" /></button></div>}
     <main className={`main-content${isChatPage ? ' chat-page-fullscreen' : ''}`}>
       <Suspense fallback={null}>
