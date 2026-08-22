@@ -1,5 +1,15 @@
 import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthGuideEntry, DraftGrowthRecord, DraftMilestoneRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, ExtractedMemory, FamilyId, FamilyMemberPermission, GrowthCurveData, GrowthGuideEntry, GrowthRecord, MilestoneRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, SystemAuditEntry, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
 
+let currentBaseUrl = '';
+
+export function setBaseUrl(url: string): void {
+  currentBaseUrl = url.replace(/\/$/, '');
+}
+
+function getBaseUrl(): string {
+  return currentBaseUrl;
+}
+
 export interface GrowthIndicatorAssessment {
   value: number;
   z: number;
@@ -75,9 +85,11 @@ export class ApiError extends Error {
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const base = getBaseUrl();
+  const fullUrl = base ? base + url : url;
   const isFormData = options?.body instanceof FormData;
   const defaultHeaders: Record<string, string> = isFormData ? {} : { 'Content-Type': 'application/json' };
-  const response = await fetch(url, {
+  const response = await fetch(fullUrl, {
     credentials: 'same-origin',
     headers: { ...defaultHeaders, ...options?.headers },
     ...options

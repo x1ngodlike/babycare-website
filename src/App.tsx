@@ -2,7 +2,7 @@
 // 视图组件已拆到 src/views/（Today / History / RecordEditor / RecordDialogs / Settings / Trends / Archive / Chat）。
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import { api, ApiError } from './api';
+import { api, ApiError, setBaseUrl } from './api';
 import { addDays, isoDay } from './date';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
@@ -16,6 +16,7 @@ import { TodayView } from './views/Today';
 import { HistoryView } from './views/History';
 import { RecordEditor } from './views/RecordEditor';
 import { AuditDialog, GrowthEditor } from './views/RecordDialogs';
+import { useAutoConnect } from './hooks/useAutoConnect';
 import type { Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineRecord, FamilyId, GrowthRecord, Profile, PushStatus, SessionUser, Supplement, VaccineCatalogItem, VaccineRecord } from './types';
 
 // 低频页面按需加载，配合 main.tsx 空闲预取与 Service Worker 运行时缓存
@@ -53,6 +54,7 @@ function Login({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
 }
 
 export default function App() {
+  const connection = useAutoConnect();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01', sex: 'unspecified', nickname: '', caregiverTitle: '妈妈', avatar: null });
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
@@ -112,6 +114,17 @@ export default function App() {
   const [theme, setTheme] = useState<ThemeMode>(() => { try { return (localStorage.getItem('babycare-theme') as ThemeMode) || 'system'; } catch { return 'system'; } });
   const [heroBg, setHeroBg] = useState<string>(() => { try { return localStorage.getItem('babycare-hero-bg') || 'auto'; } catch { return 'auto'; } });
   const refreshingRef = useRef(false);
+
+  useEffect(() => {
+    if (connection.status === 'connected' && connection.currentServer) {
+      setBaseUrl(connection.currentServer.url);
+    } else if (connection.status === 'failed') {
+      setBaseUrl('');
+      if (tabRef.current !== 'settings') {
+        setTab('settings');
+      }
+    }
+  }, [connection.status, connection.currentServer]);
 
   const updateLocalRecords = useCallback((userId: string, updater: (items: CareRecord[]) => CareRecord[]) => {
     setRecords(items => { const next = updater(items).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)); cacheRecords(userId, next); return next; });
@@ -276,7 +289,9 @@ export default function App() {
     if (!authenticated || !currentUser) return;
     let eventTimer: number | null = null;
     const pendingScope: { value: ChangeScope } = { value: 'all' };
-    const source = typeof EventSource === 'undefined' ? null : new EventSource('/api/events');
+    const baseUrl = connection.currentServer?.url ?? '';
+    const eventUrl = baseUrl ? baseUrl + '/api/events' : '/api/events';
+    const source = typeof EventSource === 'undefined' ? null : new EventSource(eventUrl);
     const scheduleRefresh = (scope: ChangeScope) => {
       pendingScope.value = scope;
       if (eventTimer) clearTimeout(eventTimer);
@@ -308,7 +323,7 @@ export default function App() {
       if (eventTimer) clearTimeout(eventTimer);
       clearInterval(pollTimer); source?.close(); document.removeEventListener('visibilitychange', visibility);
     };
-  }, [authenticated, currentUser, refreshAll, refreshRecords, refreshProfile]);
+  }, [authenticated, currentUser, refreshAll, refreshRecords, refreshProfile, connection.currentServer?.url]);
 
   async function saveOne(input: DraftRecord) {
     if (!currentUser) throw new Error('请先登录');
@@ -396,10 +411,10 @@ export default function App() {
   if (authenticated === null) return <main className="loading-page"><img src="/bear-bottle.png" alt="" /><p>正在打开照护记录…</p></main>;
   if (!authenticated || !currentUser) return <Login onSuccess={user => { rememberUser(user); setCurrentUser(user); setRecords(getCachedRecords(user.id)); setAuthenticated(true); setOfflineSession(false); }} />;
   const currentMember = familyMembers.find(member => member.id === currentUser.id)!;
-  const connectionLabel = offlineSession ? '离线身份' : !online ? '离线' : pendingCount ? `待同步 ${pendingCount} 条` : refreshing ? '正在更新' : '已连接';
+  const connectionLabel = offlineSession ? '离线身份' : !online ? '离线' : pendingCount ? `待同步 ${pendingCount} 条` : refreshing ? '正在更新' : connection.currentServer ? `已连接·${connection.currentServer.name}` : connection.status === 'failed' ? '连接失败' : '已连接';
   const pullLabel = pull.phase === 'refreshing' ? '正在更新' : pull.phase === 'done' ? '已更新' : pull.phase === 'ready' ? '松开刷新' : '继续下拉刷新';
   const pullOffset = pull.phase === 'refreshing' || pull.phase === 'done' ? 8 : Math.min(8, pull.distance - 44);
-  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}{!isChatPage && <div className="top-status"><button className="user-pill" onClick={() => setTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button>{(!online || pendingCount > 0 || refreshing || offlineSession) && <div className={`network-pill ${online ? refreshing ? 'syncing' : '' : 'offline'}`} role="status" aria-live="polite">{connectionLabel}</div>}</div>}
+  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}{!isChatPage && <div className="top-status"><button className="user-pill" onClick={() => setTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button>{(!online || pendingCount > 0 || refreshing || offlineSession || connection.status === 'failed') && <div className={`network-pill ${online ? refreshing ? 'syncing' : '' : 'offline'}`} role="status" aria-live="polite">{connectionLabel}</div>}</div>}
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status" aria-live="polite"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}><X aria-hidden="true" /></button></div>}
     <main className={`main-content${isChatPage ? ' chat-page-fullscreen' : ''}`}>
       <Suspense fallback={null}>
@@ -408,7 +423,7 @@ export default function App() {
       {tab === 'chat' && <ChatView user={currentUser} capabilities={capabilities} online={online} onBack={() => setTab('today')} />}
       {tab === 'trends' && <TrendsView records={records} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} archiveMode={archiveMode} setArchiveMode={setArchiveMode} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
-      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} heroBg={heroBg} onHeroBgChange={setHeroBg} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
+      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} heroBg={heroBg} onHeroBgChange={setHeroBg} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} connection={connection} />}
       </Suspense>
     </main>
     {!isChatPage && <nav className="app-nav" aria-label="主要导航">

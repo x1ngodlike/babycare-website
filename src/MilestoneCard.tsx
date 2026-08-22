@@ -342,7 +342,7 @@ export function MilestoneHistory({ profile, manager, onBack }: { profile: Profil
   const stageIndex = GROWTH_STAGES.findIndex(s => s.id === stage.id);
 
   return <div className="page-stack milestone-history-page growth-guide-page" data-stage={stageIndex + 1}>
-    <header className="guide-topbar"><button type="button" className="guide-back" onClick={onBack} aria-label="返回档案"><ArrowLeft aria-hidden="true" /></button><div><span>宝宝档案</span><h1>成长指南</h1></div><span className="guide-region"><MapPin aria-hidden="true" />余杭区</span></header>
+    <header className="guide-topbar"><button type="button" className="guide-back" onClick={onBack} aria-label="返回档案"><ArrowLeft aria-hidden="true" /></button><div><span>宝宝档案</span><h1>成长指南</h1></div><span className="guide-region"><MapPin aria-hidden="true" />杭州市</span></header>
 
     <nav ref={stageNavRef} className="guide-stage-nav" aria-label="选择成长阶段">{GROWTH_STAGES.map((item, index) => {
       const relation = index < currentStageIndex ? '已走过' : index === currentStageIndex ? '当前' : '接下来';
@@ -352,7 +352,7 @@ export function MilestoneHistory({ profile, manager, onBack }: { profile: Profil
     <section className="guide-stage-hero" aria-labelledby="guide-stage-title"><div className="guide-stage-main"><span className="guide-stage-label">{stage.label} · {stageRelation === 'current' ? `${profile.name}当前阶段` : stageRelation === 'past' ? '已走过的阶段' : '提前了解'}</span><h2 id="guide-stage-title">{stage.title}</h2><p>{stage.summary}</p>{stageRelation !== 'current' && <em className="guide-stage-context">{stageRelation === 'past' ? '这里展示宝宝当时所处阶段的参考内容。' : '接下来可能进入这一阶段，提前了解即可，不需要预先训练。'}</em>}<span className="guide-location"><MapPin aria-hidden="true" />默认地区：{DEFAULT_GUIDE_REGION}</span></div><dl className="guide-overview-stats"><div><dt>本阶段已记录</dt><dd>{stageObservedCount}<small>项</small></dd></div><div><dt>相关事项</dt><dd>{activeTasks.length}<small>件</small></dd></div><div><dt>已准备</dt><dd>{completedCount}<small>件</small></dd></div></dl></section>
 
     <section className="guide-priority" aria-labelledby="guide-priority-title"><GuideHeading eyebrow={stageRelation === 'current' ? '现在最值得关注' : stage.label} title={stageRelation === 'current' ? '最近优先处理' : '本阶段重点'} id="guide-priority-title" /><div className="guide-priority-grid">
-      {activeTasks.slice(0, 1).map(task => <article key={task.id}><span className="guide-priority-icon task"><ClipboardCheck /></span><div><small>余杭办事</small><strong>{task.title}</strong><p>{task.timing}</p></div></article>)}
+      {activeTasks.slice(0, 1).map(task => <article key={task.id}><span className="guide-priority-icon task"><ClipboardCheck /></span><div><small>杭州办事</small><strong>{task.title}</strong><p>{task.timing}</p></div></article>)}
       <article><span className="guide-priority-icon season"><Sun /></span><div><small>{seasonItems[0].season}照护</small><strong>{seasonItems[0].title}</strong><p>{seasonItems[0].description}</p></div></article>
       {stage.shopping.filter(item => item.level === 'needed').slice(0, 1).map(item => <article key={item.id}><span className="guide-priority-icon shopping"><PackageCheck /></span><div><small>提前准备</small><strong>{item.title}</strong><p>{item.reason}</p></div></article>)}
     </div></section>

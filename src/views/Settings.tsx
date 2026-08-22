@@ -5,9 +5,11 @@ import { Baby, Bell, Bot, ChevronRight, LogOut, Monitor, Pill, RefreshCw, Save, 
 import { getNativeNotificationPermission } from '../native';
 import { canManage, familyMembers, isScheduleOver, roleNames, type ThemeMode } from '../shared';
 import { confirmAction } from '../ui';
+import { useAutoConnect } from '../hooks/useAutoConnect';
 import { ProfileSettingsCard } from './settings/ProfileCard';
 import { AiSettingsCard } from './settings/AiCard';
 import { ServerBackupCard } from './settings/BackupCard';
+import { ServerSettingsCard } from './settings/ServerCard';
 import { CareAdherenceCard, CareItemsCard } from './settings/CareItemsCard';
 import { FamilyPermissionsCard } from './settings/FamilyCard';
 import { VaccineSettingsCard } from './settings/VaccineCard';
@@ -45,7 +47,7 @@ function SettingsEntry({ icon, title, description, status, danger = false, showC
   return <button type="button" className={`settings-entry${danger ? ' danger' : ''}`} onClick={onClick}><span className="settings-entry-icon"><SettingsIcon name={icon} /></span><span><b>{title}</b><small>{description}</small></span><em>{status || ''}</em><i className="settings-entry-chevron" aria-hidden="true">{showChevron && <ChevronRight />}</i></button>;
 }
 
-export default function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, pushStatus, theme, onThemeChange, heroBg, onHeroBgChange, onProfileSaved, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; pushStatus: PushStatus | null; theme: ThemeMode; onThemeChange(value: ThemeMode): void; heroBg: string; onHeroBgChange(value: string): void; onProfileSaved(value: Profile): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSavePush(data: PushSettingsPatch): Promise<PushStatus> }) {
+export default function SettingsView({ profile, careItems, vaccineCatalog, capabilities, user, pushStatus, theme, onThemeChange, heroBg, onHeroBgChange, onProfileSaved, onVaccineCatalogChanged, onCapabilitiesChanged, onCareItemsChanged, onImported, onLogout, onRefreshPush, onTestMorning, onTestFeedingGap, onTestCareItem, onSavePush, connection }: { profile: Profile; careItems: CareItem[]; vaccineCatalog: VaccineCatalogItem[]; capabilities: Capabilities; user: SessionUser; pushStatus: PushStatus | null; theme: ThemeMode; onThemeChange(value: ThemeMode): void; heroBg: string; onHeroBgChange(value: string): void; onProfileSaved(value: Profile): void; onVaccineCatalogChanged(): Promise<void>; onCapabilitiesChanged(): Promise<void>; onCareItemsChanged(): Promise<void>; onImported(): void | Promise<void>; onLogout(): void; onRefreshPush(): Promise<void>; onTestMorning(): Promise<{ message: string }>; onTestFeedingGap(level: 'level1' | 'level2'): Promise<{ message: string }>; onTestCareItem(): Promise<{ message: string }>; onSavePush(data: PushSettingsPatch): Promise<PushStatus>; connection?: ReturnType<typeof useAutoConnect> }) {
   const [section, setSection] = useState<SettingsSection>('root'); const pushedRef = useRef(false);
   const nativeBridge = window.BabyCareNative;
   const nativeNotificationsAvailable = Boolean(nativeBridge?.getNotificationPermissionStatus && nativeBridge?.requestNotificationPermission && nativeBridge?.showTestNotification && nativeBridge?.getAppNotificationSettings && nativeBridge?.saveAppNotificationSettings);
@@ -83,6 +85,7 @@ export default function SettingsView({ profile, careItems, vaccineCatalog, capab
       {canManage(user) && <section className="settings-menu" aria-label="照护设置"><SettingsEntry icon="medicine" title="用药护理" description="分类、计划与项目管理" status={`${careItems.filter(item => item.active && !isScheduleOver(item)).length} 项`} onClick={() => open('care-items')} /><SettingsEntry icon="vaccine" title="疫苗管理" description="目录与接种计划" status={`${vaccineCatalog.filter(item => item.active).length} 项`} onClick={() => open('vaccines')} /><SettingsEntry icon="timer" title="喂养设置" description="喂奶预测与提前准备提醒" status={!pushStatus ? '读取中' : pushStatus.feedPrepEnabled ? '已开启' : '已关闭'} onClick={() => open('feeding')} /></section>}
       {user.role === 'superadmin' && <section className="settings-menu" aria-label="系统设置"><SettingsEntry icon="ai" title="AI 模型" description="模型配置与智能功能" status={capabilities.aiEnabled ? '已配置' : '未配置'} onClick={() => open('ai')} /><SettingsEntry icon="backup" title="数据备份" description="备份、恢复、导入与导出" status="每 6 小时" onClick={() => open('backup')} /></section>}
       <section className="settings-menu" aria-label="APP 设置">
+        {connection && <ServerSettingsCard connection={connection} />}
         {nativeBridge && <SettingsEntry icon="server" title="服务器环境" description="切换本地 / 远程连接方式" status={nativeEnvironment} onClick={() => nativeBridge.openServerSettings()} />}
         <SettingsEntry icon="refresh" title="清除缓存" description="清除本地缓存并刷新页面" showChevron={false} onClick={() => void (async () => {
           if (!await confirmAction({ title: '清除缓存并刷新？', description: '只清除本地缓存的静态资源，不会删除任何记录。', confirmLabel: '清除并刷新' })) return;
