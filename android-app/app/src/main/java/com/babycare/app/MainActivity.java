@@ -86,42 +86,48 @@ public final class MainActivity extends Activity {
         configureWebView();
         registerNetworkCallback();
 
-        String selectedUrl = ServerConfig.selectedUrl(this);
-        if (selectedUrl.isEmpty()) {
+        String lanUrl = ServerConfig.lanUrl(this);
+        String publicUrl = ServerConfig.publicUrl(this);
+        
+        if (lanUrl.isEmpty() && publicUrl.isEmpty()) {
             showServerDialog(true); // 首次使用，未配置
-        } else {
-            // 智能降级：优先连接局域网，失败尝试外网
-            String lanUrl = ServerConfig.lanUrl(this);
-            String publicUrl = ServerConfig.publicUrl(this);
-            ServerConfig.Environment env = ServerConfig.environment(this);
-            
-            // 如果配置了局域网，优先尝试
-            if (!lanUrl.isEmpty() && !publicUrl.isEmpty()) {
-                // 两个都配置了，先尝试当前选择的环境
-                probeAndConnect(selectedUrl, () -> {
-                    // 当前选择的失败，尝试另一个
-                    String fallbackUrl = env == ServerConfig.Environment.LAN ? publicUrl : lanUrl;
-                    probeAndConnect(fallbackUrl, () -> {
-                        // 都失败，显示错误页
-                        String errorMsg = env == ServerConfig.Environment.LAN
-                            ? "局域网和外网均无法连接，请检查网络或切换服务器"
-                            : "外网和局域网均无法连接，请检查网络或切换服务器";
-                        runOnUiThread(() -> showConnectionError(errorMsg));
-                    });
-                });
-            } else if (!lanUrl.isEmpty()) {
-                // 只配置了局域网
-                probeAndConnect(lanUrl, () -> {
+            return;
+        }
+
+        // 根据网络环境智能选择：
+        // WiFi 已连接 → 优先局域网 → 失败尝试外网
+        // WiFi 未连接 → 直接尝试外网
+        boolean wifiConnected = isWifiConnected();
+        
+        if (wifiConnected && !lanUrl.isEmpty()) {
+            // WiFi 已连接，优先尝试局域网
+            probeAndConnect(lanUrl, () -> {
+                // 局域网失败，尝试外网
+                if (!publicUrl.isEmpty()) {
+                    probeAndConnect(publicUrl, () -> 
+                        runOnUiThread(() -> showConnectionError("局域网和外网均无法连接，请检查网络或切换服务器"))
+                    );
+                } else {
                     runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"));
-                });
-            } else if (!publicUrl.isEmpty()) {
-                // 只配置了外网
-                probeAndConnect(publicUrl, () -> {
+                }
+            });
+        } else if (!publicUrl.isEmpty()) {
+            // WiFi 未连接或未配置局域网，直接尝试外网
+            probeAndConnect(publicUrl, () -> {
+                // 外网失败，如果 WiFi 可用且有局域网配置，回退尝试局域网
+                if (isWifiConnected() && !lanUrl.isEmpty()) {
+                    probeAndConnect(lanUrl, () ->
+                        runOnUiThread(() -> showConnectionError("外网和局域网均无法连接，请检查网络或切换服务器"))
+                    );
+                } else {
                     runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"));
-                });
-            } else {
-                showServerDialog(true); // 都为空，需要配置
-            }
+                }
+            });
+        } else {
+            // 没有外网配置，只能尝试局域网
+            probeAndConnect(lanUrl, () -> 
+                runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"))
+            );
         }
     }
 
@@ -488,37 +494,44 @@ public final class MainActivity extends Activity {
         errorView.setVisibility(View.GONE);
         webView.setVisibility(View.VISIBLE);
         
-        String selectedUrl = ServerConfig.selectedUrl(this);
-        if (selectedUrl.isEmpty()) {
+        String lanUrl = ServerConfig.lanUrl(this);
+        String publicUrl = ServerConfig.publicUrl(this);
+        
+        if (lanUrl.isEmpty() && publicUrl.isEmpty()) {
             showServerDialog(true);
             return;
         }
 
-        String lanUrl = ServerConfig.lanUrl(this);
-        String publicUrl = ServerConfig.publicUrl(this);
-        ServerConfig.Environment env = ServerConfig.environment(this);
+        // 根据网络环境智能选择（与 onCreate 逻辑一致）
+        boolean wifiConnected = isWifiConnected();
         
-        if (!lanUrl.isEmpty() && !publicUrl.isEmpty()) {
-            // 两个都配置了，先尝试当前选择的环境
-            probeAndConnect(selectedUrl, () -> {
-                String fallbackUrl = env == ServerConfig.Environment.LAN ? publicUrl : lanUrl;
-                probeAndConnect(fallbackUrl, () -> {
-                    String errorMsg = env == ServerConfig.Environment.LAN
-                        ? "局域网和外网均无法连接，请检查网络或切换服务器"
-                        : "外网和局域网均无法连接，请检查网络或切换服务器";
-                    runOnUiThread(() -> showConnectionError(errorMsg));
-                });
+        if (wifiConnected && !lanUrl.isEmpty()) {
+            // WiFi 已连接，优先尝试局域网
+            probeAndConnect(lanUrl, () -> {
+                if (!publicUrl.isEmpty()) {
+                    probeAndConnect(publicUrl, () -> 
+                        runOnUiThread(() -> showConnectionError("局域网和外网均无法连接，请检查网络或切换服务器"))
+                    );
+                } else {
+                    runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"));
+                }
             });
-        } else if (!lanUrl.isEmpty()) {
+        } else if (!publicUrl.isEmpty()) {
+            // WiFi 未连接或未配置局域网，直接尝试外网
+            probeAndConnect(publicUrl, () -> {
+                if (isWifiConnected() && !lanUrl.isEmpty()) {
+                    probeAndConnect(lanUrl, () ->
+                        runOnUiThread(() -> showConnectionError("外网和局域网均无法连接，请检查网络或切换服务器"))
+                    );
+                } else {
+                    runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"));
+                }
+            });
+        } else {
+            // 没有外网配置，只能尝试局域网
             probeAndConnect(lanUrl, () -> 
                 runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查 WiFi 和服务器状态"))
             );
-        } else if (!publicUrl.isEmpty()) {
-            probeAndConnect(publicUrl, () -> 
-                runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"))
-            );
-        } else {
-            showServerDialog(true);
         }
     }
 
