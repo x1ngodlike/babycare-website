@@ -193,7 +193,7 @@ public final class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " BabyCareAndroid/1.3.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " BabyCareAndroid/1.4.0");
         webView.addJavascriptInterface(new NativeBridge(), "BabyCareNative");
 
         CookieManager cookieManager = CookieManager.getInstance();
@@ -464,6 +464,16 @@ public final class MainActivity extends Activity {
         @JavascriptInterface
         public void openServerSettings() {
             runOnUiThread(() -> showServerDialog(false));
+        }
+
+        @JavascriptInterface
+        public String getServerInfo() {
+            String lanUrl = ServerConfig.lanUrl(MainActivity.this);
+            String publicUrl = ServerConfig.publicUrl(MainActivity.this);
+            ServerConfig.Environment env = ServerConfig.environment(MainActivity.this);
+            String currentUrl = ServerConfig.selectedUrl(MainActivity.this);
+            return String.format("{\"lanUrl\":\"%s\",\"publicUrl\":\"%s\",\"environment\":\"%s\",\"currentUrl\":\"%s\"}",
+                lanUrl, publicUrl, env.name(), currentUrl);
         }
 
         @JavascriptInterface

@@ -6,6 +6,7 @@ import {
   getCustomUrl,
   getLastConnectedId,
   setLastConnectedId,
+  getCurrentServerUrl,
   type ServerEndpoint,
   type ServerMode,
 } from '../config/servers';
@@ -20,7 +21,7 @@ export interface ConnectionState {
   lastConnectedId: string | null;
 }
 
-const PING_TIMEOUT = 3000;
+const PING_TIMEOUT = 5000;
 const PING_PATH = '/api/health';
 
 async function pingServer(url: string, timeoutMs = PING_TIMEOUT): Promise<boolean> {
@@ -55,6 +56,7 @@ export function useAutoConnect() {
     const currentMode = mode ?? getStoredMode();
     const servers = getServerList();
     const customUrl = getCustomUrl();
+    const currentUrl = getCurrentServerUrl();
 
     setState(prev => ({ ...prev, status: 'connecting' }));
 
@@ -78,12 +80,54 @@ export function useAutoConnect() {
         }
       }
     } else {
-      const lanServer = servers.find(s => s.type === 'lan');
-      const wanServer = servers.find(s => s.type === 'wan');
+      // auto mode: prioritize current server (if available), then try LAN first, then WAN
+      
+      // If we're in a native environment and have a current URL, try that first
+      if (currentUrl) {
+        const currentServer = servers.find(s => s.url === currentUrl);
+        if (currentServer) {
+          targetServer = currentServer;
+          const ok = await pingServer(currentServer.url, PING_TIMEOUT);
+          if (ok) {
+            setLastConnectedId(currentServer.id);
+            setState(prev => ({
+              ...prev,
+              status: 'connected',
+              currentServer,
+              mode: 'auto',
+              servers,
+              lastConnectedId: currentServer.id,
+            }));
+            return currentServer;
+          }
+        } else {
+          // current URL not in server list, try pinging it directly
+          const ok = await pingServer(currentUrl, PING_TIMEOUT);
+          if (ok) {
+            const newServer: ServerEndpoint = {
+              id: 'current',
+              name: '当前服务器',
+              url: currentUrl,
+              type: 'lan',
+            };
+            setState(prev => ({
+              ...prev,
+              status: 'connected',
+              currentServer: newServer,
+              mode: 'auto',
+              servers: [...servers, newServer],
+              lastConnectedId: 'current',
+            }));
+            return newServer;
+          }
+        }
+      }
 
+      // Try LAN first
+      const lanServer = servers.find(s => s.type === 'lan');
       if (lanServer) {
         targetServer = lanServer;
-        const ok = await pingServer(lanServer.url, 2000);
+        const ok = await pingServer(lanServer.url, PING_TIMEOUT);
         if (ok) {
           setLastConnectedId(lanServer.id);
           setState(prev => ({
@@ -98,9 +142,11 @@ export function useAutoConnect() {
         }
       }
 
+      // Try WAN
+      const wanServer = servers.find(s => s.type === 'wan');
       if (wanServer) {
         targetServer = wanServer;
-        const ok = await pingServer(wanServer.url, 2000);
+        const ok = await pingServer(wanServer.url, PING_TIMEOUT);
         if (ok) {
           setLastConnectedId(wanServer.id);
           setState(prev => ({
@@ -115,25 +161,7 @@ export function useAutoConnect() {
         }
       }
 
-      const results = await Promise.all(
-        servers.map(async s => ({ server: s, ok: await pingServer(s.url) }))
-      );
-      const connected = results.find(r => r.ok);
-
-      if (connected) {
-        targetServer = connected.server;
-        setLastConnectedId(connected.server.id);
-        setState(prev => ({
-          ...prev,
-          status: 'connected',
-          currentServer: connected.server,
-          mode: 'auto',
-          servers,
-          lastConnectedId: connected.server.id,
-        }));
-        return connected.server;
-      }
-
+      // All servers failed
       setState(prev => ({
         ...prev,
         status: 'failed',
