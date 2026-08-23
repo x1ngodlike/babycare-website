@@ -95,8 +95,9 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     const isCare = item.category === 'care';
     const reminders = getCareItemReminderTimes(item);
     const timeDisplay = timeLabel ? `今日 ${timeLabel}` : reminders.length > 0 ? `今日 ${reminders.join(' · ')}` : '今日';
+    const isOverdue = timeLabel ? timeLabel < (new Date().toTimeString().slice(0, 5)) : false;
     return <article key={`medicine:${item.id}${timeLabel ? ':' + timeLabel : ''}`}>
-      <img className="task-icon medicine" src={careItemIconSources[item.icon]} alt="" />
+      <img className={`task-icon medicine${isOverdue ? ' overdue' : ''}`} src={careItemIconSources[item.icon]} alt="" />
       <div><b>{item.name}</b><small>{timeDisplay} · {isCare ? '待完成' : '待记录'}</small></div>
       <div className="today-plan-actions">
         <button className="btn primary" aria-label={`记录${item.name}${isCare ? '已完成' : '已服用'}`} disabled={Boolean(savingSupplement)} onClick={() => void addSupplement(item.name)}>
@@ -119,7 +120,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
         ? `建议日${timing.label}`
         : '建议今日';
     const appointmentLabel = hadAppointmentOverdue ? '改约' : '预约';
-    return <article className="vaccine-task" key={`vaccine:${item.key}`}><img className="task-icon vaccine" src="/icons/task-vaccine-normalized.png" alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{statusLabel}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`${appointmentLabel}${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>{appointmentLabel}</button>}<button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>接种</button></div></article>;
+    return <article className={`vaccine-task${overdue ? ' overdue' : ''}`} key={`vaccine:${item.key}`}><img className="task-icon vaccine" src="/icons/task-vaccine-normalized.png" alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{statusLabel}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`${appointmentLabel}${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>{appointmentLabel}</button>}<button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>接种</button></div></article>;
   }
   return <div className="today-layout">
     <div className="today-profile-strip" aria-label={`宝宝信息，${getAgeProfileLine(profile.birthDate, profile.name)}`}>

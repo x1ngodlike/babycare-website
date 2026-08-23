@@ -477,14 +477,61 @@
   height: 48px;
   padding: 0;
   box-sizing: border-box;
-  border: 1px solid #ece4d7;
+  border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 14px;
-  background: #fff8ed;
+  background: linear-gradient(135deg, rgba(255, 248, 237, 0.95) 0%, rgba(255, 243, 224, 0.85) 100%);
+  backdrop-filter: blur(8px) saturate(1.3);
+  -webkit-backdrop-filter: blur(8px) saturate(1.3);
   object-fit: contain;
   filter: none;
   box-shadow:
-    inset 0 2px 5px rgba(105, 90, 65, .12),
-    inset 0 -1px 2px rgba(255, 255, 255, .8);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px rgba(105, 90, 65, 0.08),
+    0 2px 8px rgba(105, 90, 65, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  cursor: pointer;
+}
+.today-layout .today-plan-list .task-icon:hover,
+.today-layout .today-plan-list .vaccine-task > img:hover,
+.today-layout .today-plan-list .growth-task > img:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 2px rgba(105, 90, 65, 0.1),
+    0 6px 16px rgba(105, 90, 65, 0.15);
+}
+.today-layout .today-plan-list .task-icon:active,
+.today-layout .today-plan-list .vaccine-task > img:active,
+.today-layout .today-plan-list .growth-task > img:active {
+  transform: scale(0.92);
+  box-shadow:
+    inset 0 2px 4px rgba(105, 90, 65, 0.15),
+    0 1px 3px rgba(105, 90, 65, 0.08);
+}
+.today-layout .today-plan-list .task-icon.overdue,
+.today-layout .today-plan-list .vaccine-task.overdue > img {
+  border-color: rgba(220, 80, 60, 0.6);
+  background: linear-gradient(135deg, rgba(255, 240, 235, 0.95) 0%, rgba(255, 220, 210, 0.85) 100%);
+  animation: overdue-pulse 2s ease-in-out infinite;
+}
+.today-layout .today-plan-list .task-icon.completed {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+  pointer-events: none;
+}
+@keyframes overdue-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 2px rgba(220, 80, 60, 0.1),
+      0 2px 8px rgba(220, 80, 60, 0.15);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 2px rgba(220, 80, 60, 0.15),
+      0 2px 16px rgba(220, 80, 60, 0.3);
+  }
 }
 
 .today-layout .today-timeline .record-mark,
@@ -493,14 +540,26 @@
   height: 48px;
   padding: 0;
   box-sizing: border-box;
-  border: 1px solid #e8e4d9;
+  border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 12px;
-  background: #fffaf2;
+  background: linear-gradient(135deg, rgba(255, 250, 242, 0.95) 0%, rgba(250, 243, 230, 0.85) 100%);
+  backdrop-filter: blur(8px) saturate(1.3);
+  -webkit-backdrop-filter: blur(8px) saturate(1.3);
   object-fit: contain;
   filter: none;
   box-shadow:
-    inset 0 2px 5px rgba(105, 90, 65, .12),
-    inset 0 -1px 2px rgba(255, 255, 255, .82);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px rgba(105, 90, 65, 0.08),
+    0 2px 8px rgba(105, 90, 65, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.today-layout .today-timeline .record-mark:hover,
+.history-timeline .record-mark:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 2px rgba(105, 90, 65, 0.1),
+    0 4px 12px rgba(105, 90, 65, 0.12);
 }
 
 .history-timeline .timeline { position: relative; }

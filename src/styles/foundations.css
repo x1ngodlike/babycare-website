@@ -111,6 +111,15 @@
   --shadow-dialog: 0 18px 50px #18231c38;
   --shadow-container: none;
 
+  /* Glass morphism */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-hover: rgba(255, 255, 255, 0.82);
+  --glass-bg-strong: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-blur: 16px;
+  --glass-saturate: 1.4;
+  --glass-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
+
   --layer-content: 0;
   --layer-sticky: 20;
   --layer-navigation: 25;
