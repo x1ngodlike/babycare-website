@@ -165,42 +165,42 @@ public final class MainActivity extends Activity {
 
         String lanUrl = ServerConfig.lanUrl(this);
         String publicUrl = ServerConfig.publicUrl(this);
+        String currentUrl = ServerConfig.selectedUrl(this);
         
         // 网络变化时，重新探测服务器可用性
         if (!lanUrl.isEmpty()) {
             // 先尝试局域网
             ServerConfig.probe(lanUrl, lanSuccess -> {
-                if (lanSuccess) {
-                    // 局域网可用
-                    ServerConfig.save(MainActivity.this, publicUrl, lanUrl, ServerConfig.Environment.LAN);
+                String newUrl = lanSuccess ? lanUrl : (!publicUrl.isEmpty() ? publicUrl : "");
+                
+                if (newUrl.isEmpty()) {
+                    // 都不可用，显示错误页
+                    runOnUiThread(() -> showConnectionError("网络已变化，但无法连接服务器，请检查网络或切换服务器"));
+                    return;
+                }
+                
+                // 关键：只有 URL 变化时才重载页面
+                if (!newUrl.equals(currentUrl)) {
+                    ServerConfig.Environment newEnv = newUrl.equals(lanUrl) 
+                        ? ServerConfig.Environment.LAN 
+                        : ServerConfig.Environment.PUBLIC;
+                    ServerConfig.save(MainActivity.this, publicUrl, lanUrl, newEnv);
                     lastAutoSwitchTime = System.currentTimeMillis();
                     runOnUiThread(MainActivity.this::loadSelectedServer);
-                } else if (!publicUrl.isEmpty()) {
-                    // 局域网不可用，尝试外网
-                    ServerConfig.probe(publicUrl, publicSuccess -> {
-                        if (publicSuccess) {
-                            ServerConfig.save(MainActivity.this, publicUrl, lanUrl, ServerConfig.Environment.PUBLIC);
-                            lastAutoSwitchTime = System.currentTimeMillis();
-                            runOnUiThread(MainActivity.this::loadSelectedServer);
-                        } else {
-                            // 都不可用，显示错误页
-                            runOnUiThread(() -> showConnectionError("网络已变化，但无法连接服务器，请检查网络或切换服务器"));
-                        }
-                    });
-                } else {
-                    runOnUiThread(() -> showConnectionError("网络已变化，但无法连接服务器，请检查网络或切换服务器"));
                 }
+                // URL 没变，什么都不做，避免无谓刷新
             });
         } else if (!publicUrl.isEmpty()) {
             // 只配置了外网
             ServerConfig.probe(publicUrl, success -> {
-                if (success) {
+                if (success && !publicUrl.equals(currentUrl)) {
                     ServerConfig.save(MainActivity.this, publicUrl, lanUrl, ServerConfig.Environment.PUBLIC);
                     lastAutoSwitchTime = System.currentTimeMillis();
                     runOnUiThread(MainActivity.this::loadSelectedServer);
-                } else {
+                } else if (!success) {
                     runOnUiThread(() -> showConnectionError("网络已变化，但无法连接服务器，请检查网络或切换服务器"));
                 }
+                // URL 没变，什么都不做
             });
         }
     }
