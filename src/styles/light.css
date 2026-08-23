@@ -187,9 +187,18 @@ body {
 .today-plan-list article { min-height: 68px; border-color: #eee1d4; }
 .today-plan-list .task-icon { filter: drop-shadow(0 3px 3px rgba(74, 65, 48, .12)); }
 .today-plan-list .btn.primary {
-  border-color: #d6732b;
-  background: #e97e2f;
+  border: none;
+  background: linear-gradient(135deg, #f0983d 0%, #e97e2f 100%);
   color: #fff;
+  box-shadow: 0 1px 3px rgba(233, 126, 47, 0.2);
+}
+.today-plan-list .btn.primary:not(:disabled):hover {
+  background: linear-gradient(135deg, #f5a94d 0%, #d6732b 100%);
+  box-shadow: 0 2px 5px rgba(233, 126, 47, 0.25);
+}
+.today-plan-list .btn.primary:not(:disabled):active {
+  background: linear-gradient(135deg, #e97e2f 0%, #c56624 100%);
+  box-shadow: 0 1px 2px rgba(233, 126, 47, 0.2);
 }
 .today-insights { margin-top: 10px; border-color: #e5e1d7; background: rgba(255, 253, 250, .96); overflow: hidden; }
 .today-insights > .info-summary-row, .today-insights > .info-summary-static { min-height: 52px; padding: 10px 13px; }

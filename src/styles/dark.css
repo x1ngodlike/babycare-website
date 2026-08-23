@@ -764,9 +764,18 @@ html[data-theme="dark"] .btn.primary {
   border-color: var(--action-primary-border);
 }
 html[data-theme="dark"] .today-plan-list .btn.primary {
-  background: var(--orange);
-  border-color: var(--orange);
+  border: none;
+  background: linear-gradient(135deg, #f0983d 0%, #e97e2f 100%);
   color: #fff;
+  box-shadow: 0 1px 3px rgba(233, 126, 47, 0.3);
+}
+html[data-theme="dark"] .today-plan-list .btn.primary:not(:disabled):hover {
+  background: linear-gradient(135deg, #f5a94d 0%, #d6732b 100%);
+  box-shadow: 0 2px 5px rgba(233, 126, 47, 0.4);
+}
+html[data-theme="dark"] .today-plan-list .btn.primary:not(:disabled):active {
+  background: linear-gradient(135deg, #e97e2f 0%, #c56624 100%);
+  box-shadow: 0 1px 2px rgba(233, 126, 47, 0.3);
 }
 html[data-theme="dark"] .btn.secondary {
   background: var(--action-secondary-bg);
