@@ -159,11 +159,14 @@
 .native-notification-row > div:first-child { display: grid; gap: 3px; }
 .native-notification-row small, .form-switch-row small { color: var(--muted); font-size: 12px; line-height: 1.45; }
 .native-notification-controls { display: flex; align-items: center; gap: 9px; }
-.native-notification-controls .btn { min-height: 36px; padding: 6px 12px; }
+.native-notification-controls .btn { width: 52px; min-width: 52px; min-height: 44px; padding: 6px 8px; white-space: nowrap; }
 
 @media (max-width: 520px) {
-  .native-notification-row { align-items: start; }
+  .native-notification-row { align-items: start; gap: 9px; padding-inline: 11px; }
   .native-notification-controls { flex-direction: column; align-items: flex-end; }
+  .native-notification-card > .native-notification-enable { width: 100%; justify-self: stretch; }
+  .push-channel-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .push-channel-head .app-notification-settings-button { min-width: 76px; padding-inline: 10px; font-size: 12px; }
   .today-layout .today-timeline .timeline-item,
   .history-timeline .timeline-item {
     grid-template-columns: 46px 48px minmax(0, 1fr) 36px;
@@ -172,4 +175,3 @@
   .today-layout .today-timeline .time-col i,
   .history-timeline .time-col i { left: 22px; }
 }
-

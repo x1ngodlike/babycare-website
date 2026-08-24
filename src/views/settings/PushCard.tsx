@@ -254,7 +254,7 @@ export function PushSettingsCard({ pushStatus, onRefresh, onTestMorning, onTestF
       <div className="push-channel-row">
         <div className="push-channel-head">
           <div><b>APP 通知</b><small>推送到本机通知栏，每类提醒可在每台手机上单独开关</small></div>
-          {onOpenAppNotifications ? <button type="button" className="btn secondary" onClick={onOpenAppNotifications}>本机设置</button> : <span className="status-badge neutral push-channel-badge">仅 APP 内</span>}
+          {onOpenAppNotifications ? <button type="button" className="btn secondary app-notification-settings-button" onClick={onOpenAppNotifications}>本机设置</button> : <span className="status-badge neutral push-channel-badge">仅 APP 内</span>}
         </div>
       </div>
     </section>

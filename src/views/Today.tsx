@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { api } from '../api';
 import { getCareItemReminderTimes, isCareItemDue } from '../careSchedule';
+import { canAutoOpenDailyReport, millisecondsUntilDailyReportAutoOpen } from '../dailyReport';
 import { isoDay } from '../date';
 import { formatTimeShort } from '../../shared/feeding-prediction';
 import { PredictionBanner } from '../PredictionBanner';
@@ -19,6 +20,7 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
+  const [autoOpenReady, setAutoOpenReady] = useState(() => canAutoOpenDailyReport());
   const load = useCallback(() => {
     if (!online) { setLoading(false); return; }
     setLoading(true); setError('');
@@ -34,12 +36,22 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId 
   useEffect(() => {
     try { setSeenVersion(localStorage.getItem(seenStorageKey) || ''); } catch { setSeenVersion(''); }
   }, [seenStorageKey]);
+  useEffect(() => {
+    if (autoOpenReady) return;
+    const delay = millisecondsUntilDailyReportAutoOpen();
+    const timer = window.setTimeout(() => setAutoOpenReady(true), Math.min(delay + 50, 2_147_483_647));
+    return () => window.clearTimeout(timer);
+  }, [autoOpenReady]);
   const openReport = useCallback(() => {
     if (!data) return;
     try { localStorage.setItem(seenStorageKey, `${data.date}:${data.generatedAt}`); } catch { /* report remains available without persistence */ }
     setSeenVersion(`${data.date}:${data.generatedAt}`);
     setOpen(true);
   }, [data, seenStorageKey]);
+  useEffect(() => {
+    if (!autoOpenReady || !reportVersion || seenVersion === reportVersion || open) return;
+    openReport();
+  }, [autoOpenReady, open, openReport, reportVersion, seenVersion]);
   async function generate() {
     setBusy(true); setError('');
     try { const result = await api.generateDailyReport(); setData({ date: result.date, summary: result.summary, suggestions: result.suggestions, model: result.model, generatedAt: result.generatedAt }); }

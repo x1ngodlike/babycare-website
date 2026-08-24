@@ -40,7 +40,7 @@ export function NativeNotificationSettingsCard({ superadmin }: { superadmin: boo
   ];
   return <section className="settings-card native-notification-card">
     <div className="setting-status"><div><h2>APP 通知</h2><p>每台手机可单独选择接收哪些提醒。</p></div><span className={`status-badge ${permission === 'granted' ? 'success' : 'neutral'}`}>{permission === 'granted' ? '已允许' : '待开启'}</span></div>
-    {permission !== 'granted' && <button type="button" className="btn primary" onClick={requestPermission}>开启 APP 通知</button>}
+    {permission !== 'granted' && <button type="button" className="btn primary native-notification-enable" onClick={requestPermission}>开启 APP 通知</button>}
     <div className="form-switch-row"><div><label>接收 APP 通知</label><small>关闭后，当前手机不显示任何照护通知</small></div><Switch checked={settings.all} label="接收 APP 通知" onChange={value => change('all', value)} /></div>
     <div className="native-notification-list">{rows.map(row => <div className="native-notification-row" key={row.key}><div><b>{row.label}</b><small>{row.description}</small></div><div className="native-notification-controls"><Switch checked={settings[row.key]} label={`${settings[row.key] ? '关闭' : '开启'}${row.label}`} disabled={!settings.all} onChange={value => change(row.key, value)} />{superadmin && <button type="button" className="btn secondary" disabled={permission !== 'granted' || !settings.all || !settings[row.key]} onClick={() => testNotification(row.key, row.label)}>测试</button>}</div></div>)}</div>
     <div className="native-notification-info"><p>早报、喂奶和照护提醒由 APP 约每 15 分钟同步一次，可能略有延迟；疫苗预约提醒保存在当前手机。设置不影响 PushPlus。</p></div>
