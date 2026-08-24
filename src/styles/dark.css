@@ -386,7 +386,7 @@ html[data-theme="dark"] .baby-hero::after {
     var(--hero-background, url('/hero/default/midday.webp')) center / cover no-repeat;
 }
 html[data-theme="dark"] .modal-layer {
-  --modal-backdrop-filter: blur(10px) saturate(1.04);
+  --modal-backdrop-filter: blur(6px) saturate(1.02);
   background: rgba(0, 0, 0, 0.62);
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -394,7 +394,7 @@ html[data-theme="dark"] .modal-layer {
 }
 @media (min-width: 760px) {
   html[data-theme="dark"] .modal-layer {
-    --modal-backdrop-filter: blur(12px) saturate(1.04);
+    --modal-backdrop-filter: blur(8px) saturate(1.02);
   }
 }
 html[data-theme="dark"] .editor {
