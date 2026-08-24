@@ -1,7 +1,8 @@
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { isoDay } from './date';
-import { useDialogFocus } from './ui';
+import { useDialogFocus, useModalLayerLock } from './ui';
 
 /* ---------- 纯逻辑（可单测） ---------- */
 
@@ -27,6 +28,12 @@ export function compareDay(a: string, b: string) {
 export function shiftMonth(year: number, month: number, delta: number) {
   const total = year * 12 + month + delta;
   return { year: Math.floor(total / 12), month: ((total % 12) + 12) % 12 };
+}
+
+export function monthIntersectsRange(year: number, month: number, min?: string, max?: string) {
+  const firstDay = `${year}-${pad2(month + 1)}-01`;
+  const lastDay = isoDay(new Date(year, month + 1, 0));
+  return (!min || compareDay(lastDay, min) >= 0) && (!max || compareDay(firstDay, max) <= 0);
 }
 
 export type DayCell = { day: string; inMonth: boolean };
@@ -84,10 +91,10 @@ function Calendar({ day, min, max, onPick }: { day: string; min?: string; max?: 
   });
   const gridRef = useRef<HTMLDivElement | null>(null);
   const cells = monthGrid(view.year, view.month);
-  const firstDay = `${view.year}-${pad2(view.month + 1)}-01`;
-  const prevMonthLastDay = isoDay(new Date(view.year, view.month, 0)); // 当月第 0 天 = 上月最后一天
-  const canPrev = !min || compareDay(prevMonthLastDay, min) >= 0;
-  const canNext = !max || compareDay(firstDay, max) <= 0;
+  const prevMonth = shiftMonth(view.year, view.month, -1);
+  const nextMonth = shiftMonth(view.year, view.month, 1);
+  const canPrev = monthIntersectsRange(prevMonth.year, prevMonth.month, min, max);
+  const canNext = monthIntersectsRange(nextMonth.year, nextMonth.month, min, max);
   const inRange = (dayValue: string) => (!min || compareDay(dayValue, min) >= 0) && (!max || compareDay(dayValue, max) <= 0);
   const focusDay = (dayValue: string) => gridRef.current?.querySelector<HTMLButtonElement>(`button[data-day="${dayValue}"]`)?.focus();
 
@@ -175,14 +182,28 @@ function TimeColumns({ value, onChange }: { value: string; onChange(value: strin
 
 function PickerSheet({ title, onClose, children, footer }: { title: string; onClose(): void; children: React.ReactNode; footer?: React.ReactNode }) {
   const dialogRef = useRef<HTMLElement | null>(null);
+  useModalLayerLock();
+  useEffect(() => {
+    const backgroundLayers = [...document.querySelectorAll<HTMLElement>('.modal-layer:not(.picker-layer)')];
+    const previous = backgroundLayers.map(layer => ({ layer, inert: layer.inert, ariaHidden: layer.getAttribute('aria-hidden') }));
+    backgroundLayers.forEach(layer => {
+      layer.inert = true;
+      layer.setAttribute('aria-hidden', 'true');
+    });
+    return () => previous.forEach(({ layer, inert, ariaHidden }) => {
+      layer.inert = inert;
+      if (ariaHidden === null) layer.removeAttribute('aria-hidden');
+      else layer.setAttribute('aria-hidden', ariaHidden);
+    });
+  }, []);
   useDialogFocus(dialogRef, onClose);
-  return <div className="modal-layer picker-layer" onMouseDown={event => event.target === event.currentTarget && onClose()}>
+  return createPortal(<div className="modal-layer picker-layer" onMouseDown={event => event.target === event.currentTarget && onClose()}>
     <section ref={dialogRef} className="editor picker-sheet" role="dialog" aria-modal="true" aria-label={title}>
       <header className="editor-head"><h2>{title}</h2><button type="button" className="close-btn" onClick={onClose} aria-label="关闭"><X aria-hidden="true" /></button></header>
       {children}
       {footer && <footer className="picker-actions">{footer}</footer>}
     </section>
-  </div>;
+  </div>, document.body);
 }
 
 function FieldShell({ label, required, display, placeholder, disabled, onOpen }: { label: string; required: boolean; display: string; placeholder: string; disabled?: boolean; onOpen(): void }) {

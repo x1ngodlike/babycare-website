@@ -19,7 +19,7 @@ let savedRootInert = false;
 let savedBodyStyles: Pick<CSSStyleDeclaration, 'position' | 'top' | 'width' | 'overflow' | 'paddingRight'> | null = null;
 let savedHtmlOverflow = '';
 
-function useModalLayerLock() {
+export function useModalLayerLock() {
   useEffect(() => {
     const root = document.getElementById('root');
     if (openModalCount === 0) {
@@ -76,8 +76,15 @@ export function useDialogFocus(ref: React.RefObject<HTMLElement | null>, onClose
     if (!active) return;
     const previous = document.activeElement as HTMLElement | null;
     const focusable = () => [...(ref.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [href]') || [])];
+    const isTopmost = () => {
+      const currentLayer = ref.current?.closest<HTMLElement>('.modal-layer');
+      if (!currentLayer) return true;
+      const layers = [...document.querySelectorAll<HTMLElement>('.modal-layer')].filter(layer => !layer.inert && layer.getAttribute('aria-hidden') !== 'true');
+      return layers[layers.length - 1] === currentLayer;
+    };
     focusable()[0]?.focus();
     const keydown = (event: KeyboardEvent) => {
+      if (!isTopmost()) return;
       if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); return; }
       if (event.key !== 'Tab') return;
       const items = focusable(); if (!items.length) return;

@@ -1024,6 +1024,16 @@ html[data-theme="dark"] .schedule-warning {
 html[data-theme="dark"] .settings-menu-stack .settings-entry.danger:hover {
   background: var(--surface-subtle);
 }
+html[data-theme="dark"] .settings-menu-stack .settings-entry.danger:active {
+  background: var(--surface-muted);
+}
+html[data-theme="dark"] .settings-menu-stack .settings-entry.danger b,
+html[data-theme="dark"] .settings-menu-stack .settings-entry.danger .settings-entry-icon {
+  color: var(--status-danger-text);
+}
+html[data-theme="dark"] .settings-menu-stack .settings-entry.danger small {
+  color: var(--status-danger-text);
+}
 html[data-theme="dark"] .btn.danger-button.secondary:hover {
   background: var(--surface-subtle);
 }

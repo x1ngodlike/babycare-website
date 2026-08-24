@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampDay, combineLocal, compareDay, isValidDay, minutesAgoIso, monthGrid, shiftMonth, splitLocal } from './DateField';
+import { clampDay, combineLocal, compareDay, isValidDay, minutesAgoIso, monthGrid, monthIntersectsRange, shiftMonth, splitLocal } from './DateField';
 
 describe('isValidDay', () => {
   it('接受合法日期', () => {
@@ -43,6 +43,18 @@ describe('shiftMonth', () => {
     expect(shiftMonth(2026, 0, -1)).toEqual({ year: 2025, month: 11 });
     expect(shiftMonth(2025, 11, 1)).toEqual({ year: 2026, month: 0 });
     expect(shiftMonth(2026, 0, -13)).toEqual({ year: 2024, month: 11 });
+  });
+});
+
+describe('monthIntersectsRange', () => {
+  it('最大日期在当前月时禁止进入下个月', () => {
+    expect(monthIntersectsRange(2026, 7, undefined, '2026-08-24')).toBe(true);
+    expect(monthIntersectsRange(2026, 8, undefined, '2026-08-24')).toBe(false);
+  });
+  it('最小日期之后的月份保持可访问', () => {
+    expect(monthIntersectsRange(2026, 6, '2026-08-10')).toBe(false);
+    expect(monthIntersectsRange(2026, 7, '2026-08-10')).toBe(true);
+    expect(monthIntersectsRange(2026, 8, '2026-08-10')).toBe(true);
   });
 });
 

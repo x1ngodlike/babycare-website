@@ -210,6 +210,8 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 .guide-history-icon.ability { background: var(--sage-soft); color: var(--green-deep); }
 .guide-history-icon.task { background: #e8edf2; color: #456175; }
 .guide-history-icon.shopping { background: #f7eadb; color: #8c572f; }
+html[data-theme="dark"] .guide-history-icon.task { border: 1px solid #3d5667; background: #293944; color: #a9cde6; }
+html[data-theme="dark"] .guide-history-icon.shopping { border: 1px solid #5d4938; background: #3c3027; color: #efb77f; }
 .guide-history-list time { color: var(--muted); font-size: 10px; font-weight: 700; }
 .guide-history-list h3 { margin: 2px 0; font-size: 14px; line-height: 1.4; }
 .guide-history-list p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
