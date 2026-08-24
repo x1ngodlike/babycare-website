@@ -76,7 +76,7 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
 
 function GrowthDelta({ value, digits, unit }: { value: number; digits: number; unit: string }) {
   const direction = value > 0 ? 'up' : value < 0 ? 'down' : 'flat';
-  return <small className={`growth-delta ${direction}`} aria-label={`较上次${value > 0 ? '增加' : value < 0 ? '减少' : '无变化'}${Math.abs(value).toFixed(digits)}${unit}`}>{value > 0 ? '+' : ''}{value.toFixed(digits)} {unit}</small>;
+  return <small className={`growth-delta ${direction}`} aria-label={`较上次${value > 0 ? '增加' : value < 0 ? '减少' : '无变化'}${Math.abs(value).toFixed(digits)}${unit}`}>{value > 0 ? '+' : ''}{value.toFixed(digits)}</small>;
 }
 
 function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineRecords, vaccineCatalog, user, archiveMode, setArchiveMode, onOpenVaccines, onEditGrowth, onAddGrowth, onDeleteGrowth, onRestoreGrowth, onPurgeGrowth, onProfileSaved }: { profile: Profile; growthRecords: GrowthRecord[]; deletedGrowthRecords: GrowthRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; user: SessionUser; archiveMode: 'main' | 'milestone'; setArchiveMode(value: 'main' | 'milestone'): void; onOpenVaccines(): void; onEditGrowth(record: GrowthRecord): void; onAddGrowth(): void; onDeleteGrowth(record: GrowthRecord): Promise<void>; onRestoreGrowth(record: GrowthRecord): Promise<void>; onPurgeGrowth(record: GrowthRecord): Promise<void>; onProfileSaved(value: Profile): void }) {
@@ -115,7 +115,21 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
     <GrowthChart data={growthCurve} />
     <section className="growth-history">
       <div className="section-title"><h2>成长记录</h2><div className="growth-head-actions">{canManage(user) && <button className="deleted-records-link" onClick={openDeletedArchive}>已删除 {deletedGrowthRecords.length} 条</button>}<button className="btn secondary section-add-button" onClick={() => todayGrowth ? onEditGrowth(todayGrowth) : onAddGrowth()}>{!todayGrowth && <Plus aria-hidden="true" />}{todayGrowth ? '修改成长' : '记录成长'}</button></div></div>
-      {growthRecords.length ? <div className="growth-list">{visibleGrowthRecords.map(record => { const recordIndex = growthRecords.findIndex(item => item.id === record.id); const previous = growthRecords[recordIndex + 1]; const curveRecord = growthCurve?.records?.find(r => r.id === record.id); return <article key={record.id}><time>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}<small>{calculateAge(profile.birthDate, new Date(`${record.measuredOn}T12:00:00`))}</small><small>{auditNames[record.createdBy]}录入</small></time><div><span>身高</span><b>{record.heightCm} cm</b>{previous && <GrowthDelta value={record.heightCm - previous.heightCm} digits={1} unit="cm" />}{curveRecord?.heightPercentile != null && <small className="growth-percentile">P{curveRecord.heightPercentile} · {curveRecord.heightBand}</small>}</div><div><span>体重</span><b>{record.weightKg} kg</b>{previous && <GrowthDelta value={record.weightKg - previous.weightKg} digits={2} unit="kg" />}{curveRecord?.weightPercentile != null && <small className="growth-percentile">P{curveRecord.weightPercentile} · {curveRecord.weightBand}</small>}</div><ActionMenu label={`${record.measuredOn}成长记录操作`} items={[{ label: '修改记录', onSelect: () => onEditGrowth(record) }, ...(canManage(user) ? [{ label: '删除记录', danger: true, onSelect: () => onDeleteGrowth(record) }] : [])]} /></article>; })}</div> : <EmptyState title="还没有成长记录" description="可以从今日开始记录身高和体重。" image="/illustrations/empty-records.webp" />}
+      {growthRecords.length ? <div className="growth-list" role="table" aria-label="成长记录">
+        <div className="growth-list-head" role="row"><span role="columnheader">日期</span><span role="columnheader">身高</span><span role="columnheader">体重</span><span role="columnheader" className="sr-only">操作</span></div>
+        {visibleGrowthRecords.map(record => {
+          const recordIndex = growthRecords.findIndex(item => item.id === record.id);
+          const previous = growthRecords[recordIndex + 1];
+          const curveRecord = growthCurve?.records?.find(r => r.id === record.id);
+          const measuredAt = new Date(`${record.measuredOn}T12:00:00`);
+          return <article key={record.id} role="row">
+            <time role="cell">{measuredAt.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}<small>{calculateAge(profile.birthDate, measuredAt)} · {auditNames[record.createdBy]}</small></time>
+            <div className="growth-metric" role="cell"><div className="growth-value-line"><b>{record.heightCm} cm</b>{previous && <GrowthDelta value={record.heightCm - previous.heightCm} digits={1} unit="cm" />}</div>{curveRecord?.heightPercentile != null && <small className="growth-percentile">P{curveRecord.heightPercentile} · {curveRecord.heightBand}</small>}</div>
+            <div className="growth-metric" role="cell"><div className="growth-value-line"><b>{record.weightKg} kg</b>{previous && <GrowthDelta value={record.weightKg - previous.weightKg} digits={2} unit="kg" />}</div>{curveRecord?.weightPercentile != null && <small className="growth-percentile">P{curveRecord.weightPercentile} · {curveRecord.weightBand}</small>}</div>
+            <div className="growth-row-actions" role="cell"><ActionMenu label={`${record.measuredOn}成长记录操作`} items={[{ label: '修改记录', onSelect: () => onEditGrowth(record) }, ...(canManage(user) ? [{ label: '删除记录', danger: true, onSelect: () => onDeleteGrowth(record) }] : [])]} /></div>
+          </article>;
+        })}
+      </div> : <EmptyState title="还没有成长记录" description="可以从今日开始记录身高和体重。" image="/illustrations/empty-records.webp" />}
       <Pagination page={growthPage} totalPages={growthPages} onChange={setGrowthPage} />
     </section>
     {editingProfile && <ProfileEditor profile={profile} onClose={() => setEditingProfile(false)} onSaved={onProfileSaved} />}

@@ -888,11 +888,11 @@ html[data-theme="dark"] .growth-list time {
   color: var(--ink);
 }
 html[data-theme="dark"] .growth-list time small,
-html[data-theme="dark"] .growth-list > article > div > span,
-html[data-theme="dark"] .growth-list > article > div > small {
+html[data-theme="dark"] .growth-metric > small,
+html[data-theme="dark"] .growth-list-head {
   color: var(--muted);
 }
-html[data-theme="dark"] .growth-list > article > div > b {
+html[data-theme="dark"] .growth-value-line b {
   color: var(--ink);
 }
 html[data-theme="dark"] .growth-delta.up {
