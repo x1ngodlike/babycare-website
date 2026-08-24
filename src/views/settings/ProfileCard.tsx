@@ -4,7 +4,7 @@ import { api } from '../../api';
 import { isoDay } from '../../date';
 import { cacheProfile } from '../../offline';
 import { ChoiceField, sexLabels } from '../../shared';
-import { confirmAction } from '../../ui';
+import { confirmAction, ImageWithFallback } from '../../ui';
 import { DateField, TimeField } from '../../DateField';
 import { AvatarCropperModal } from '../../AvatarCropper';
 import { Feedback } from './Feedback';
@@ -46,7 +46,7 @@ export function ProfileSettingsCard({ profile, onSaved }: { profile: Profile; on
     <p>用于问候语、档案页和疫苗提醒。昵称和头像用于首页展示。</p>
     <form onSubmit={submit}>
       <div className="avatar-upload-area">
-        <div className="avatar-preview" aria-label="当前头像">{form.avatar ? <img src={form.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}</div>
+        <div className="avatar-preview" aria-label="当前头像"><ImageWithFallback src={form.avatar || undefined} fallbackSrc="/bear-bottle.png" alt="" /></div>
         <div className="avatar-actions"><button type="button" className="btn secondary" onClick={pickFile} disabled={avatarBusy}>{avatarBusy ? '处理中…' : '上传头像'}</button>{form.avatar && <button type="button" className="btn danger-button secondary" onClick={() => void removeAvatarClick()} disabled={avatarBusy}>移除</button>}</div>
         <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
       </div>

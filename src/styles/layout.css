@@ -512,7 +512,7 @@
 .today-layout .today-plan-list .vaccine-task.overdue > img {
   border-color: rgba(220, 80, 60, 0.6);
   background: linear-gradient(135deg, rgba(255, 240, 235, 0.95) 0%, rgba(255, 220, 210, 0.85) 100%);
-  animation: overdue-pulse 2s ease-in-out infinite;
+  animation: overdue-pulse 2s ease-in-out 2;
 }
 .today-layout .today-plan-list .task-icon.completed {
   opacity: 0.45;

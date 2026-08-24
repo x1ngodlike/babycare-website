@@ -98,8 +98,13 @@
   --motion-fast: 160ms;
   --motion-base: 200ms;
   --motion-moderate: 240ms;
+  --motion-page: 160ms;
+  --motion-sheet-enter: 240ms;
+  --motion-sheet-exit: 180ms;
   --ease-standard: cubic-bezier(.38, 0, .24, 1);
   --ease-out: cubic-bezier(0, 0, .15, 1);
+  --ease-enter: cubic-bezier(.22, .61, .36, 1);
+  --ease-exit: cubic-bezier(.4, 0, 1, 1);
 
   --text-page: clamp(28px, 7vw, 32px);
   --text-section: 20px;

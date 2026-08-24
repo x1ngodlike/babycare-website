@@ -1,6 +1,6 @@
 // 应用主组件：会话、数据加载、实时刷新、离线同步与页面切换。
 // 视图组件已拆到 src/views/（Today / History / RecordEditor / RecordDialogs / Settings / Trends / Archive / Chat）。
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { api, ApiError, setBaseUrl } from './api';
 import { addDays, isoDay } from './date';
@@ -68,6 +68,24 @@ export default function App() {
   const [pushStatus, setPushStatus] = useState<PushStatus | null>(null);
   const [todayPlanStatus, setTodayPlanStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [tab, setTab] = useState<Tab>('today'); const [selectedDate, setSelectedDate] = useState(new Date()); const [historyMode, setHistoryMode] = useState<'care' | 'vaccine'>('care'); const [archiveMode, setArchiveMode] = useState<'main' | 'milestone'>('main');
+  const tabScrollPositions = useRef<Partial<Record<Tab, number>>>({ today: 0 });
+  const pendingTabScroll = useRef<number | null>(null);
+  const goToTab = useCallback((next: Tab, restorePosition = true) => {
+    if (next === tab) {
+      if (!restorePosition) window.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
+    tabScrollPositions.current[tab] = window.scrollY;
+    pendingTabScroll.current = restorePosition ? (tabScrollPositions.current[next] ?? 0) : 0;
+    setTab(next);
+  }, [tab]);
+  useLayoutEffect(() => {
+    if (pendingTabScroll.current === null) return;
+    const top = pendingTabScroll.current;
+    pendingTabScroll.current = null;
+    const frame = window.requestAnimationFrame(() => window.scrollTo({ top, behavior: 'auto' }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [tab]);
   const chatHistoryPushed = useRef(false);
   useEffect(() => { tabRef.current = tab; }, [tab]);
   useEffect(() => {
@@ -80,33 +98,32 @@ export default function App() {
     const pop = () => {
       if (tabRef.current === 'chat' && window.history.state?.babycareChat) {
         chatHistoryPushed.current = false;
-        setTab('today');
+        goToTab('today');
       }
     };
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
-  }, []);
+  }, [goToTab]);
   useEffect(() => {
     (window as Window & { babycareHandleBack?: () => boolean }).babycareHandleBack = () => {
       if (tabRef.current === 'chat') {
         chatHistoryPushed.current = false;
-        setTab('today');
+        goToTab('today');
         return true;
       }
       return false;
     };
     return () => { delete (window as Window & { babycareHandleBack?: () => boolean }).babycareHandleBack; };
-  }, []);
+  }, [goToTab]);
   useEffect(() => {
     const openNotification = (event: Event) => {
       const target = (event as CustomEvent<string>).detail;
-      if (target === 'vaccine') { setHistoryMode('vaccine'); setTab('history'); }
-      else setTab('today');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (target === 'vaccine') { setHistoryMode('vaccine'); goToTab('history', false); }
+      else goToTab('today', false);
     };
     window.addEventListener('babycare:native-notification-open', openNotification);
     return () => window.removeEventListener('babycare:native-notification-open', openNotification);
-  }, []);
+  }, [goToTab]);
   const [editor, setEditor] = useState<DraftRecord | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
   const [growthEditor, setGrowthEditor] = useState<GrowthRecord | 'new' | null>(null);
   const [vaccineEditor, setVaccineEditor] = useState<VaccineEditorState | null>(null);
@@ -415,7 +432,7 @@ export default function App() {
   }
   async function removeVaccine(record: VaccineRecord) { if (!await confirmAction({ title: `删除“${record.vaccineName} · 第${record.dose}剂”？`, description: '删除后无法恢复，确定删除这条接种记录吗？', confirmLabel: '确认删除', danger: true })) return; try { await api.deleteVaccineRecord(record.id); await loadVaccineRecords(); setToast({ message: '疫苗记录已删除' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '删除失败' }); } }
   async function cancelVaccineAppointment(item: VaccinePlanItem) { const record = item.record; if (!record?.appointmentOn || !await confirmAction({ title: `取消“${item.vaccineName} · 第${item.dose}剂”的预约？`, description: item.hasSuggestedDate ? '仅清除门诊预约时间，系统建议接种日期仍会保留。' : '这项门诊预约和对应提醒将一起移除。', confirmLabel: '取消预约', danger: true })) return; try { if (item.hasSuggestedDate) await api.updateVaccineRecord(record.id, { id: record.id, vaccineName: record.vaccineName, category: record.category, dose: record.dose, plannedOn: record.plannedOn, appointmentOn: null, appointmentTime: null, administeredOn: record.administeredOn, note: record.note }); else await api.deleteVaccineRecord(record.id); await loadVaccineRecords(); setToast({ message: '门诊预约已取消' }); } catch (error) { setToast({ message: error instanceof Error ? error.message : '取消预约失败' }); } }
-  function openVaccines() { setHistoryMode('vaccine'); setTab('history'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  function openVaccines() { setHistoryMode('vaccine'); goToTab('history', false); }
 
   const todayRecords = useMemo(() => records.filter(r => isoDay(new Date(r.occurredAt)) === isoDay(new Date())), [records]);
   const weeklyGrowth = growthRecords.find(record => weekContains(record));
@@ -429,16 +446,18 @@ export default function App() {
   const connectionLabel = isConnectionFailed ? '连接失败' : offlineSession ? '离线身份' : !online ? '离线' : pendingCount ? `待同步 ${pendingCount} 条` : refreshing ? '正在更新' : '已连接';
   const pullLabel = pull.phase === 'refreshing' ? '正在更新' : pull.phase === 'done' ? '已更新' : pull.phase === 'ready' ? '松开刷新' : '继续下拉刷新';
   const pullOffset = pull.phase === 'refreshing' || pull.phase === 'done' ? 8 : Math.min(8, pull.distance - 44);
-  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}{!isChatPage && <div className="top-status"><button className="user-pill" onClick={() => setTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button>{(isConnectionFailed || !online || pendingCount > 0 || refreshing || offlineSession) && <div className={`network-pill ${isConnectionFailed ? 'offline' : online ? refreshing ? 'syncing' : '' : 'offline'}`} role="status" aria-live="polite">{connectionLabel}</div>}</div>}
+  return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}{!isChatPage && <div className="top-status"><button className="user-pill" onClick={() => goToTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button>{(isConnectionFailed || !online || pendingCount > 0 || refreshing || offlineSession) && <div className={`network-pill ${isConnectionFailed ? 'offline' : online ? refreshing ? 'syncing' : '' : 'offline'}`} role="status" aria-live="polite">{connectionLabel}</div>}</div>}
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status" aria-live="polite"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}><X aria-hidden="true" /></button></div>}
     <main className={`main-content${isChatPage ? ' chat-page-fullscreen' : ''}`}>
       <Suspense fallback={null}>
-      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} allowReportAutoOpen={!editor && !growthEditor && !vaccineEditor && !auditRecord} weeklyGrowth={weeklyGrowth} feedPrepEnabled={pushStatus?.feedPrepEnabled ?? true} feedPrepMinutes={pushStatus?.feedPrepMinutes ?? 30} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} heroBg={heroBg} onOpenSettings={() => setTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
+      <div className={`tab-page${isChatPage ? ' chat-tab-page' : ''}`} key={tab}>
+      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} weeklyGrowth={weeklyGrowth} feedPrepEnabled={pushStatus?.feedPrepEnabled ?? true} feedPrepMinutes={pushStatus?.feedPrepMinutes ?? 30} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} heroBg={heroBg} onOpenSettings={() => goToTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
       {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} profile={profile} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} />}
-      {tab === 'chat' && <ChatView user={currentUser} capabilities={capabilities} online={online} onBack={() => setTab('today')} />}
+      {tab === 'chat' && <ChatView user={currentUser} capabilities={capabilities} online={online} onBack={() => goToTab('today')} />}
       {tab === 'trends' && <TrendsView records={records} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} archiveMode={archiveMode} setArchiveMode={setArchiveMode} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
       {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} heroBg={heroBg} onHeroBgChange={setHeroBg} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
+      </div>
       </Suspense>
     </main>
     {!isChatPage && <nav className="app-nav" aria-label="主要导航">
@@ -449,7 +468,7 @@ export default function App() {
         ['trends', '/icons/nav-trends.png', '趋势'],
         ['archive', '/icons/nav-archive.png', '档案']
       ] as [Tab, string, string][]).map(([value, icon, label]) => (
-        <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}>
+        <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => goToTab(value)}>
           <img src={icon} alt="" />
           <b>{label}</b>
         </button>

@@ -7,13 +7,13 @@ import { isoDay } from '../date';
 import { formatTimeShort } from '../../shared/feeding-prediction';
 import { PredictionBanner } from '../PredictionBanner';
 import { careItemCategory, careItemIconSources, getAgeProfileLine, getGreeting, getHeroPeriod, isScheduleOver } from '../shared';
-import { Modal } from '../ui';
+import { ImageWithFallback, Modal } from '../ui';
 import { buildVaccinePlan, vaccineTimingStatus, type VaccinePlanItem } from '../vaccines';
 import { VaccineReminderCard } from '../VaccineViews';
 import { Timeline } from './History';
 import type { Capabilities, CareItem, CareRecord, FamilyId, GrowthRecord, Profile, RecordType, Supplement, VaccineCatalogItem, VaccineRecord } from '../types';
 
-function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId, allowAutoOpen }: { capabilities: Capabilities; online: boolean; onOpenSettings(): void; superadmin: boolean; userId: FamilyId; allowAutoOpen: boolean }) {
+function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId }: { capabilities: Capabilities; online: boolean; onOpenSettings(): void; superadmin: boolean; userId: FamilyId }) {
   const [data, setData] = useState<{ date: string; summary: string; suggestions: string[]; model: string; generatedAt: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -28,16 +28,18 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId,
   useEffect(() => { load(); }, [load]);
   const reportVersion = data ? `${data.date}:${data.generatedAt}` : '';
   const seenStorageKey = `babycare:daily-report-seen:${userId}`;
+  const [seenVersion, setSeenVersion] = useState(() => {
+    try { return localStorage.getItem(seenStorageKey) || ''; } catch { return ''; }
+  });
+  useEffect(() => {
+    try { setSeenVersion(localStorage.getItem(seenStorageKey) || ''); } catch { setSeenVersion(''); }
+  }, [seenStorageKey]);
   const openReport = useCallback(() => {
     if (!data) return;
-    localStorage.setItem(seenStorageKey, `${data.date}:${data.generatedAt}`);
+    try { localStorage.setItem(seenStorageKey, `${data.date}:${data.generatedAt}`); } catch { /* report remains available without persistence */ }
+    setSeenVersion(`${data.date}:${data.generatedAt}`);
     setOpen(true);
   }, [data, seenStorageKey]);
-  useEffect(() => {
-    if (!data || !allowAutoOpen || localStorage.getItem(seenStorageKey) === reportVersion) return;
-    const timer = window.setTimeout(openReport, 500);
-    return () => window.clearTimeout(timer);
-  }, [allowAutoOpen, data, openReport, reportVersion, seenStorageKey]);
   async function generate() {
     setBusy(true); setError('');
     try { const result = await api.generateDailyReport(); setData({ date: result.date, summary: result.summary, suggestions: result.suggestions, model: result.model, generatedAt: result.generatedAt }); }
@@ -46,8 +48,9 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId,
   }
   const [year, month, day] = data ? data.date.split('-').map(Number) : [0, 0, 0];
   const weekday = data ? ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date(`${data.date}T00:00:00`).getDay()] : '';
+  const hasNewReport = Boolean(reportVersion && seenVersion !== reportVersion);
   if (data) return <>
-    <button type="button" className="daily-report collapsed info-summary-row" aria-label="查看昨日报告" onClick={openReport}><span className="info-row-label">昨日报告</span><span className="info-row-value">{data.summary}</span><ChevronRight className="info-row-chevron" aria-hidden="true" size={16} strokeWidth={2} /></button>
+    <button type="button" className={`daily-report collapsed info-summary-row${hasNewReport ? ' has-new-report' : ''}`} aria-label={`查看昨日报告${hasNewReport ? '，有新内容' : ''}`} onClick={openReport}><span className="info-row-label">昨日报告{hasNewReport && <i className="report-new-badge">新</i>}</span><span className="info-row-value">{data.summary}</span><ChevronRight className="info-row-chevron" aria-hidden="true" size={16} strokeWidth={2} /></button>
     {open && <Modal className="info-sheet" title="昨日报告" kicker={`${year}年${month}月${day}日 · ${weekday}`} onClose={() => setOpen(false)}><p className="dr-summary">{data.summary}</p>{data.suggestions.length > 0 && <ul className="dr-suggestions">{data.suggestions.map((item, index) => <li key={index}>{item}</li>)}</ul>}<div className="dr-footer"><small>{data.generatedAt ? `生成于 ${new Date(data.generatedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}` : ''}</small></div>{superadmin && <button type="button" className="btn secondary full" disabled={busy || !online} onClick={generate}>{busy ? '重新生成中…' : '重新生成报告'}</button>}</Modal>}
   </>;
   return (
@@ -55,7 +58,7 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId,
   );
 }
 
-export function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCatalog, careItems, todayPlanStatus, capabilities, online, heroBg, onOpenSettings, onCompleteVaccine, onAppointmentVaccine, manager, superadmin, userId, allowReportAutoOpen, weeklyGrowth, feedPrepEnabled, feedPrepMinutes, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; recentRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; careItems: CareItem[]; todayPlanStatus: 'loading' | 'ready' | 'error'; capabilities: Capabilities; online: boolean; heroBg: string; onOpenSettings(): void; onCompleteVaccine(item: VaccinePlanItem): void; onAppointmentVaccine(item: VaccinePlanItem): void; manager: boolean; superadmin: boolean; userId: FamilyId; allowReportAutoOpen: boolean; weeklyGrowth?: GrowthRecord; feedPrepEnabled: boolean; feedPrepMinutes: number; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+export function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCatalog, careItems, todayPlanStatus, capabilities, online, heroBg, onOpenSettings, onCompleteVaccine, onAppointmentVaccine, manager, superadmin, userId, weeklyGrowth, feedPrepEnabled, feedPrepMinutes, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; recentRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; careItems: CareItem[]; todayPlanStatus: 'loading' | 'ready' | 'error'; capabilities: Capabilities; online: boolean; heroBg: string; onOpenSettings(): void; onCompleteVaccine(item: VaccinePlanItem): void; onAppointmentVaccine(item: VaccinePlanItem): void; manager: boolean; superadmin: boolean; userId: FamilyId; weeklyGrowth?: GrowthRecord; feedPrepEnabled: boolean; feedPrepMinutes: number; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [savingSupplement, setSavingSupplement] = useState<Supplement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   useEffect(() => {
@@ -124,7 +127,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
   }
   return <div className="today-layout">
     <div className="today-profile-strip" aria-label={`宝宝信息，${getAgeProfileLine(profile.birthDate, profile.name)}`}>
-      <div className="today-baby-summary">{profile.avatar ? <img src={profile.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}<span>{getAgeProfileLine(profile.birthDate, profile.name)}</span></div>
+      <div className="today-baby-summary"><ImageWithFallback src={profile.avatar || undefined} fallbackSrc="/bear-bottle.png" alt="" /><span>{getAgeProfileLine(profile.birthDate, profile.name)}</span></div>
     </div>
     <div className="today-main-column">
     <div className="today-workbench">
@@ -138,7 +141,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     {todayPlanStatus === 'ready' && (pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日待办</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item, task.time) : renderVaccineTask(task.item))}{untimedCareItems.map(item => renderMedicineTask(item))}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img className="task-icon growth" src="/icons/task-growth-normalized.png" alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>测量</button></div></article>}</div></section>}
     <div className="today-insights" aria-label="今日信息">
       {todayPlanStatus === 'ready' && <VaccineReminderCard profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onComplete={onCompleteVaccine} onAppointment={onAppointmentVaccine} />}
-      <DailyReport capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} superadmin={superadmin} userId={userId} allowAutoOpen={allowReportAutoOpen} />
+      <DailyReport capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} superadmin={superadmin} userId={userId} />
     </div>
     </div>
     <div className="today-timeline"><div className="section-title"><h2>今日记录</h2><span>{records.length} 条</span></div><Timeline records={[...records].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))} careItems={careItems} manager={manager} emptyText="今日还没有记录" emptyAction={<button className="btn secondary" onClick={() => onAdd('feeding')}>记录喂奶</button>} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} hideMetadata /></div>

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type GrowthAssessment, type GrowthIndicatorAssessment } from '../api';
 import { calculateAge, isoDay } from '../date';
 import { cacheProfile } from '../offline';
-import { ActionMenu, confirmAction, EmptyState, Modal, useDirtyClose } from '../ui';
+import { ActionMenu, confirmAction, EmptyState, ImageWithFallback, Modal, useDirtyClose } from '../ui';
 import { DateField, TimeField } from '../DateField';
 import { VaccineArchiveSummary } from '../VaccineViews';
 import { MilestoneArchiveSummary, MilestoneHistory } from '../MilestoneCard';
@@ -49,7 +49,7 @@ function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClos
   return <Modal title="修改基本资料" kicker="宝宝档案" onClose={() => void requestClose()}><form className="editor-form" onSubmit={submit}>
     <div className="avatar-upload-area">
       <div className="avatar-preview" aria-label="当前头像">
-        {form.avatar ? <img src={form.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}
+        <ImageWithFallback src={form.avatar || undefined} fallbackSrc="/bear-bottle.png" alt="" />
       </div>
       <div className="avatar-actions">
         <button type="button" className="btn secondary" onClick={pickFile} disabled={avatarBusy}>{avatarBusy ? '处理中…' : '上传头像'}</button>
@@ -108,7 +108,7 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
 
   return <div className="page-stack archive-page">
     <header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header>
-    <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像">{profile.avatar ? <img src={profile.avatar} alt="" /> : <img src="/bear-bottle.png" alt="" />}</div><div className="archive-profile-meta"><h2>{profile.name}{profile.nickname?.trim() ? <small className="nickname"> · {profile.nickname.trim()}</small> : null}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div></section>
+    <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像"><ImageWithFallback src={profile.avatar || undefined} fallbackSrc="/bear-bottle.png" alt="" /></div><div className="archive-profile-meta"><h2>{profile.name}{profile.nickname?.trim() ? <small className="nickname"> · {profile.nickname.trim()}</small> : null}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div></section>
     <MilestoneArchiveSummary profile={profile} onOpen={() => setArchiveMode('milestone')} />
     <VaccineArchiveSummary profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onOpen={onOpenVaccines} />
     <GrowthAssessmentCard user={user} growthRecords={growthRecords} />

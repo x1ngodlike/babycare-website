@@ -695,7 +695,8 @@ export default function ChatView({ user, capabilities, online, onBack }: { user:
       {loading && <div className="chat-msg-row assistant">
         {renderAvatar('assistant', displayUserName)}
         <div className="chat-bubble assistant loading">
-          <span /><span /><span />
+          <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+          <span className="chat-loading-label">正在整理宝宝记录…</span>
         </div>
       </div>}
       <div ref={messagesEndRef} />
