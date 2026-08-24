@@ -12,6 +12,59 @@ export type ConfirmOptions = {
 
 let confirmationHandler: (options: ConfirmOptions) => Promise<boolean> = async options => window.confirm([options.title, options.description].filter(Boolean).join('\n\n'));
 
+let openModalCount = 0;
+let lockedScrollY = 0;
+let savedRootAriaHidden: string | null = null;
+let savedRootInert = false;
+let savedBodyStyles: Pick<CSSStyleDeclaration, 'position' | 'top' | 'width' | 'overflow' | 'paddingRight'> | null = null;
+let savedHtmlOverflow = '';
+
+function useModalLayerLock() {
+  useEffect(() => {
+    const root = document.getElementById('root');
+    if (openModalCount === 0) {
+      lockedScrollY = window.scrollY;
+      savedRootAriaHidden = root?.getAttribute('aria-hidden') ?? null;
+      savedRootInert = root?.hasAttribute('inert') ?? false;
+      savedHtmlOverflow = document.documentElement.style.overflow;
+      savedBodyStyles = {
+        position: document.body.style.position,
+        top: document.body.style.top,
+        width: document.body.style.width,
+        overflow: document.body.style.overflow,
+        paddingRight: document.body.style.paddingRight,
+      };
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${lockedScrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
+      if (root) {
+        root.setAttribute('aria-hidden', 'true');
+        root.setAttribute('inert', '');
+        root.inert = true;
+      }
+    }
+    openModalCount += 1;
+    return () => {
+      openModalCount = Math.max(0, openModalCount - 1);
+      if (openModalCount > 0 || !savedBodyStyles) return;
+      document.documentElement.style.overflow = savedHtmlOverflow;
+      Object.assign(document.body.style, savedBodyStyles);
+      if (root) {
+        root.inert = savedRootInert;
+        if (!savedRootInert) root.removeAttribute('inert');
+        if (savedRootAriaHidden === null) root.removeAttribute('aria-hidden');
+        else root.setAttribute('aria-hidden', savedRootAriaHidden);
+      }
+      window.scrollTo(0, lockedScrollY);
+      savedBodyStyles = null;
+    };
+  }, []);
+}
+
 export function confirmAction(options: ConfirmOptions) {
   return confirmationHandler(options);
 }
@@ -47,17 +100,33 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!request) return;
     const root = document.getElementById('root');
-    if (!root) return;
-    const previousAriaHidden = root.getAttribute('aria-hidden');
-    const wasInert = root.hasAttribute('inert');
-    root.setAttribute('aria-hidden', 'true');
-    root.setAttribute('inert', '');
-    root.inert = true;
+    const backgroundLayers = [...document.querySelectorAll<HTMLElement>('.modal-layer:not(.confirm-layer)')];
+    const previousAriaHidden = root?.getAttribute('aria-hidden') ?? null;
+    const wasInert = root?.hasAttribute('inert') ?? false;
+    const layerStates = backgroundLayers.map(layer => ({ layer, ariaHidden: layer.getAttribute('aria-hidden'), inert: layer.hasAttribute('inert') }));
+    if (root) {
+      root.setAttribute('aria-hidden', 'true');
+      root.setAttribute('inert', '');
+      root.inert = true;
+    }
+    backgroundLayers.forEach(layer => {
+      layer.setAttribute('aria-hidden', 'true');
+      layer.setAttribute('inert', '');
+      layer.inert = true;
+    });
     return () => {
-      root.inert = false;
-      if (!wasInert) root.removeAttribute('inert');
-      if (previousAriaHidden === null) root.removeAttribute('aria-hidden');
-      else root.setAttribute('aria-hidden', previousAriaHidden);
+      if (root) {
+        root.inert = wasInert;
+        if (!wasInert) root.removeAttribute('inert');
+        if (previousAriaHidden === null) root.removeAttribute('aria-hidden');
+        else root.setAttribute('aria-hidden', previousAriaHidden);
+      }
+      layerStates.forEach(({ layer, ariaHidden, inert }) => {
+        layer.inert = inert;
+        if (!inert) layer.removeAttribute('inert');
+        if (ariaHidden === null) layer.removeAttribute('aria-hidden');
+        else layer.setAttribute('aria-hidden', ariaHidden);
+      });
     };
   }, [request]);
   const close = (result: boolean) => { request?.resolve(result); setRequest(null); };
@@ -163,17 +232,19 @@ export function Modal({ title, kicker, headerExtra, onClose, children, className
 }) {
   const dialogRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+  useModalLayerLock();
   const requestClose = useCallback(() => {
     if (busy || dialogRef.current?.closest('.modal-layer')?.classList.contains('closing')) return;
     onClose();
   }, [busy, onClose]);
   useDialogFocus(dialogRef, requestClose);
-  return (
+  return createPortal(
     <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && requestClose()}>
       <section ref={dialogRef} className={`editor ${className}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className="editor-head"><div>{kicker && <p className="kicker">{kicker}</p>}<h2 id={titleId}>{title}</h2>{headerExtra}</div><button className="close-btn" disabled={busy} onClick={requestClose} aria-label="关闭"><X aria-hidden="true" /></button></header>
         {children}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

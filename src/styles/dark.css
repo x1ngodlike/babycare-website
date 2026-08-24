@@ -387,8 +387,14 @@ html[data-theme="dark"] .baby-hero::after {
 }
 html[data-theme="dark"] .modal-layer {
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+@media (min-width: 760px) {
+  html[data-theme="dark"] .modal-layer {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 }
 html[data-theme="dark"] .editor {
   background: var(--surface-card);
