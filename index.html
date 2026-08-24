@@ -8,6 +8,13 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icon-192.png" />
     <title>宝宝照护记录</title>
+    <style>
+      html, body, #root { min-height: 100%; margin: 0; background: #f7f7f0; }
+      html[data-theme="dark"], html[data-theme="dark"] body, html[data-theme="dark"] #root { background: #1a1f1b; }
+      .boot-shell { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 12px; color: #5e6d62; font: 14px/1.5 Inter, "PingFang SC", "Microsoft YaHei", sans-serif; }
+      .boot-shell img { width: 92px; height: 92px; object-fit: contain; }
+      html[data-theme="dark"] .boot-shell { color: #a7b0a8; }
+    </style>
     <script>
       (() => {
         try {
@@ -40,7 +47,7 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><main class="boot-shell"><img src="/bear-bottle.png" alt="" /><span>正在打开照护记录…</span></main></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

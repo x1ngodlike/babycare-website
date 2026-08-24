@@ -35,18 +35,19 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
+
+  // 页面外壳和静态资源优先使用本地缓存，弱网下立即显示；网络响应仅在后台刷新缓存。
+  const cacheKey = request.mode === 'navigate' ? '/' : request;
+  const networkUpdate = fetch(request).then(async (response) => {
+    if (response.ok && (response.type === 'basic' || response.type === 'default')) {
+      const cache = await caches.open(CACHE);
+      await cache.put(cacheKey, response.clone());
+      await trimCache(cache);
+    }
+    return response;
+  });
+  event.waitUntil(networkUpdate.then(() => undefined).catch(() => undefined));
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        // 只缓存成功响应，避免把错误页或 404 写入缓存
-        if (response.ok && (response.type === 'basic' || response.type === 'default')) {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy).then(() => trimCache(cache)));
-        }
-        return response;
-      })
-      .catch(() =>
-        caches.match(request).then((match) => match || (request.mode === 'navigate' ? caches.match('/') : undefined))
-      )
+    caches.match(cacheKey).then((cached) => cached || networkUpdate)
   );
 });

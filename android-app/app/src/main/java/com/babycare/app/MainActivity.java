@@ -65,6 +65,7 @@ public final class MainActivity extends Activity {
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
     private WebView webView;
     private ProgressBar progressBar;
+    private LinearLayout launchView;
     private LinearLayout errorView;
     private TextView errorMessage;
     private ValueCallback<Uri[]> fileChooserCallback;
@@ -73,6 +74,7 @@ public final class MainActivity extends Activity {
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean wasUsingLan = false;
     private long lastAutoSwitchTime = 0;
+    private boolean hasVisiblePage = false;
     private static final long AUTO_SWITCH_COOLDOWN_MS = 3000; // 3秒冷却时间，防止频繁切换
 
     @Override
@@ -94,25 +96,11 @@ public final class MainActivity extends Activity {
             return;
         }
 
-        // 智能选择：优先 ping 局域网，失败再尝试外网
-        if (!lanUrl.isEmpty()) {
-            // 先尝试局域网
-            probeAndConnect(lanUrl, () -> {
-                // 局域网失败，尝试外网
-                if (!publicUrl.isEmpty()) {
-                    probeAndConnect(publicUrl, () -> 
-                        runOnUiThread(() -> showConnectionError("局域网和外网均无法连接，请检查网络或切换服务器"))
-                    );
-                } else {
-                    runOnUiThread(() -> showConnectionError("无法连接局域网服务器，请检查网络或切换服务器"));
-                }
-            });
-        } else if (!publicUrl.isEmpty()) {
-            // 只配置了外网，直接尝试
-            probeAndConnect(publicUrl, () -> 
-                runOnUiThread(() -> showConnectionError("无法连接外网服务器，请检查网络或切换服务器"))
-            );
+        // 外网场景不再先等待局域网探测；直接打开上次页面，由网页缓存立即提供首屏。
+        if (!isWifiConnected() && !publicUrl.isEmpty() && ServerConfig.environment(this) != ServerConfig.Environment.PUBLIC) {
+            ServerConfig.save(this, publicUrl, lanUrl, ServerConfig.Environment.PUBLIC);
         }
+        loadSelectedServer();
     }
 
     private void probeAndConnect(String url, Runnable onFail) {
@@ -252,7 +240,28 @@ public final class MainActivity extends Activity {
         root.setFitsSystemWindows(true);
 
         webView = new WebView(this);
+        webView.setBackgroundColor(getColor(R.color.brand_background));
         root.addView(webView, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+
+        launchView = new LinearLayout(this);
+        launchView.setOrientation(LinearLayout.VERTICAL);
+        launchView.setGravity(Gravity.CENTER);
+        launchView.setPadding(dp(32), dp(32), dp(32), dp(32));
+        launchView.setBackgroundColor(getColor(R.color.brand_background));
+        ProgressBar launchSpinner = new ProgressBar(this);
+        launchSpinner.setIndeterminate(true);
+        launchSpinner.setIndeterminateTintList(ColorStateList.valueOf(getColor(R.color.brand_primary)));
+        launchView.addView(launchSpinner, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        TextView launchMessage = new TextView(this);
+        launchMessage.setText("正在打开照护记录…");
+        launchMessage.setTextSize(15);
+        launchMessage.setTextColor(getColor(R.color.brand_text_secondary));
+        launchMessage.setGravity(Gravity.CENTER);
+        launchView.addView(launchMessage, matchWrap(dp(14), 0));
+        root.addView(launchView, new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         ));
@@ -357,11 +366,20 @@ public final class MainActivity extends Activity {
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 errorView.setVisibility(View.GONE);
                 webView.setVisibility(View.VISIBLE);
+                if (!hasVisiblePage) launchView.setVisibility(View.VISIBLE);
                 progressBar.setVisibility(View.VISIBLE);
             }
 
             @Override
+            public void onPageCommitVisible(WebView view, String url) {
+                hasVisiblePage = true;
+                launchView.setVisibility(View.GONE);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
+                hasVisiblePage = true;
+                launchView.setVisibility(View.GONE);
                 progressBar.setVisibility(View.GONE);
                 CookieManager.getInstance().flush();
                 dispatchNotificationTarget();
@@ -468,11 +486,13 @@ public final class MainActivity extends Activity {
         }
         errorView.setVisibility(View.GONE);
         webView.setVisibility(View.VISIBLE);
+        if (!hasVisiblePage) launchView.setVisibility(View.VISIBLE);
         webView.loadUrl(server + "/");
     }
 
     private void showConnectionError(String message) {
         progressBar.setVisibility(View.GONE);
+        launchView.setVisibility(View.GONE);
         webView.setVisibility(View.GONE);
         errorMessage.setText(message);
         errorView.setVisibility(View.VISIBLE);

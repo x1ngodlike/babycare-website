@@ -54,11 +54,12 @@ function Login({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
 }
 
 export default function App() {
+  const [startupUser] = useState<SessionUser | null>(() => window.BabyCareNative ? getRememberedUser() : null);
   const connection = useAutoConnect();
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+  const [authenticated, setAuthenticated] = useState<boolean | null>(() => startupUser ? true : null);
   const [profile, setProfile] = useState<Profile>(getCachedProfile() || { name: '示例宝宝', birthDate: '2026-01-01', sex: 'unspecified', nickname: '', caregiverTitle: '妈妈', avatar: null });
-  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
-  const [records, setRecords] = useState<CareRecord[]>([]);
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(startupUser);
+  const [records, setRecords] = useState<CareRecord[]>(() => startupUser ? getCachedRecords(startupUser.id) : []);
   const tabRef = useRef<Tab>('today');
   const [deletedRecords, setDeletedRecords] = useState<CareRecord[]>([]); const [careItems, setCareItems] = useState<CareItem[]>([]);
   const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([]); const [deletedGrowthRecords, setDeletedGrowthRecords] = useState<GrowthRecord[]>([]);
@@ -127,7 +128,7 @@ export default function App() {
   const [editor, setEditor] = useState<DraftRecord | null>(null); const [auditRecord, setAuditRecord] = useState<CareRecord | null>(null);
   const [growthEditor, setGrowthEditor] = useState<GrowthRecord | 'new' | null>(null);
   const [vaccineEditor, setVaccineEditor] = useState<VaccineEditorState | null>(null);
-  const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(false); const [pendingCount, setPendingCount] = useState(0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
+  const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(Boolean(startupUser)); const [pendingCount, setPendingCount] = useState(() => startupUser ? getOutbox(startupUser.id).length : 0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
   const [theme, setTheme] = useState<ThemeMode>(() => { try { return (localStorage.getItem('babycare-theme') as ThemeMode) || 'system'; } catch { return 'system'; } });
   const [heroBg, setHeroBg] = useState<string>(() => { try { return localStorage.getItem('babycare-hero-bg') || 'auto'; } catch { return 'auto'; } });
   const refreshingRef = useRef(false);
@@ -242,7 +243,13 @@ export default function App() {
   }, [connection.status, connection.currentServer]);
 
   useEffect(() => {
-    api.session().then(value => { setAuthenticated(value.authenticated); setCurrentUser(value.user); if (value.user) { rememberUser(value.user); setRecords(getCachedRecords(value.user.id)); } })
+    api.session().then(value => {
+      setAuthenticated(value.authenticated);
+      setCurrentUser(value.user);
+      setOfflineSession(false);
+      if (value.user) { rememberUser(value.user); setRecords(getCachedRecords(value.user.id)); }
+      else clearRememberedUser();
+    })
       .catch(() => { 
         const remembered = getRememberedUser(); 
         if (remembered) { 
