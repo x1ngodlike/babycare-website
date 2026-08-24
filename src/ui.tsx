@@ -135,7 +135,10 @@ export function ImageWithFallback({ src, fallbackSrc, onError, ...props }: React
 export function useDirtyClose(dirty: boolean, onClose: () => void, busy = false, confirm?: Partial<ConfirmOptions>) {
   return useCallback(async () => {
     if (busy) return;
-    if (dirty && !await confirmAction({ title: confirm?.title ?? '放弃未保存的内容？', description: confirm?.description ?? '当前填写内容不会保存。', confirmLabel: confirm?.confirmLabel ?? '放弃修改', danger: true })) return;
+    if (dirty) {
+      if (!await confirmAction({ title: confirm?.title ?? '放弃未保存的内容？', description: confirm?.description ?? '当前填写内容不会保存。', confirmLabel: confirm?.confirmLabel ?? '放弃修改', danger: true })) return;
+      await new Promise(resolve => window.requestAnimationFrame(resolve));
+    }
     const layers = [...document.querySelectorAll<HTMLElement>('.modal-layer:not(.confirm-layer)')];
     const layer = layers.at(-1);
     if (layer) {
@@ -160,33 +163,14 @@ export function Modal({ title, kicker, headerExtra, onClose, children, className
 }) {
   const dialogRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
-  const [closing, setClosing] = useState(false);
-  const closeTimer = useRef<number | null>(null);
   const requestClose = useCallback(() => {
-    if (busy || closing) return;
-    setClosing(true);
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    closeTimer.current = window.setTimeout(async () => {
-      await onClose();
-      await new Promise(resolve => window.requestAnimationFrame(resolve));
-      if (document.querySelector('.confirm-layer')) {
-        await new Promise<void>(resolve => {
-          const observer = new MutationObserver(() => {
-            if (!document.querySelector('.confirm-layer')) { observer.disconnect(); resolve(); }
-          });
-          observer.observe(document.body, { childList: true });
-        });
-      }
-      setClosing(false);
-    }, reduceMotion ? 0 : 180);
-  }, [busy, closing, onClose]);
-  useEffect(() => () => {
-    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
-  }, []);
-  useDialogFocus(dialogRef, requestClose, !closing);
+    if (busy || dialogRef.current?.closest('.modal-layer')?.classList.contains('closing')) return;
+    onClose();
+  }, [busy, onClose]);
+  useDialogFocus(dialogRef, requestClose);
   return (
-    <div className={`modal-layer${closing ? ' closing' : ''}`} onMouseDown={event => event.target === event.currentTarget && requestClose()}>
-      <section ref={dialogRef} className={`editor ${className}`} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-hidden={closing || undefined} inert={closing || undefined}>
+    <div className="modal-layer" onMouseDown={event => event.target === event.currentTarget && requestClose()}>
+      <section ref={dialogRef} className={`editor ${className}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className="editor-head"><div>{kicker && <p className="kicker">{kicker}</p>}<h2 id={titleId}>{title}</h2>{headerExtra}</div><button className="close-btn" disabled={busy} onClick={requestClose} aria-label="关闭"><X aria-hidden="true" /></button></header>
         {children}
       </section>
