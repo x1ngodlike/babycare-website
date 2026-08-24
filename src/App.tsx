@@ -446,7 +446,7 @@ export default function App() {
   const isChatPage = tab === 'chat';
   const pull = usePullToRefresh(Boolean(authenticated && currentUser && (tab === 'today' || tab === 'history' || tab === 'archive') && !editor && !growthEditor && !vaccineEditor && !auditRecord), reloadRecords);
 
-  if (authenticated === null) return <main className="loading-page"><img src="/bear-bottle.png" alt="" /><p>正在打开照护记录…</p></main>;
+  if (authenticated === null) return <main className="loading-page"><i className="loading-indicator" aria-hidden="true" /><p>正在打开照护记录…</p></main>;
   if (!authenticated || !currentUser) return <Login onSuccess={user => { rememberUser(user); setCurrentUser(user); setRecords(getCachedRecords(user.id)); setAuthenticated(true); setOfflineSession(false); }} />;
   const currentMember = familyMembers.find(member => member.id === currentUser.id)!;
   const isConnectionFailed = connection.status === 'failed';
