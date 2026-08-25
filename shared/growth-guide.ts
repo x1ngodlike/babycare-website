@@ -20,7 +20,7 @@ export interface LocalGuideTask {
   archived?: boolean;
 }
 
-export const DEFAULT_GUIDE_REGION = '杭州市';
+export const DEFAULT_GUIDE_REGION = '浙江省 · 杭州市';
 export const GUIDE_VERIFIED_ON = '2026-08-21';
 
 export const GROWTH_STAGES: GrowthStage[] = [

@@ -342,7 +342,7 @@ export function MilestoneHistory({ profile, manager, onBack }: { profile: Profil
   const stageIndex = GROWTH_STAGES.findIndex(s => s.id === stage.id);
 
   return <div className="page-stack milestone-history-page growth-guide-page" data-stage={stageIndex + 1}>
-    <header className="guide-topbar"><button type="button" className="guide-back" onClick={onBack} aria-label="返回档案"><ArrowLeft aria-hidden="true" /></button><div><span>宝宝档案</span><h1>成长指南</h1></div><span className="guide-region"><MapPin aria-hidden="true" />杭州市</span></header>
+    <header className="guide-topbar"><button type="button" className="guide-back" onClick={onBack} aria-label="返回档案"><ArrowLeft aria-hidden="true" /></button><div><span>宝宝档案</span><h1>成长指南</h1></div><span className="guide-region"><MapPin aria-hidden="true" />{DEFAULT_GUIDE_REGION}</span></header>
 
     <nav ref={stageNavRef} className="guide-stage-nav" aria-label="选择成长阶段">{GROWTH_STAGES.map((item, index) => {
       const relation = index < currentStageIndex ? '已走过' : index === currentStageIndex ? '当前' : '接下来';
