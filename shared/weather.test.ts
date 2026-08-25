@@ -5,7 +5,9 @@ describe('diary theme weather', () => {
   it('uses four concise time periods', () => {
     expect(diaryPeriodForHour(5)).toBe('morning');
     expect(diaryPeriodForHour(12)).toBe('daytime');
+    expect(diaryPeriodForHour(17)).toBe('daytime');
     expect(diaryPeriodForHour(18)).toBe('evening');
+    expect(diaryPeriodForHour(22)).toBe('evening');
     expect(diaryPeriodForHour(23)).toBe('night');
     expect(diaryPeriodForHour(3)).toBe('night');
   });

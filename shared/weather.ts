@@ -15,8 +15,8 @@ export interface WeatherSnapshot {
 
 export function diaryPeriodForHour(hour: number): DiaryPeriod {
   if (hour >= 5 && hour < 11) return 'morning';
-  if (hour >= 11 && hour < 17) return 'daytime';
-  if (hour >= 17 && hour < 20) return 'evening';
+  if (hour >= 11 && hour < 18) return 'daytime';
+  if (hour >= 18 && hour < 23) return 'evening';
   return 'night';
 }
 

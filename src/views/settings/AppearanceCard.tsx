@@ -24,7 +24,7 @@ const DIARY_PERIODS = [
 type HeroBgOption = { value: string; label: string; thumb: string; group: 'living' | 'classic' | 'dream' | 'pony' };
 
 const HERO_BG_OPTIONS: HeroBgOption[] = [
-  { value: 'hero-diary', label: '成长手账', thumb: '/hero/diary/thumb.webp', group: 'living' },
+  { value: 'hero-diary', label: '贴纸杂志', thumb: '/hero/diary/thumb.webp', group: 'living' },
   { value: 'hero-garden', label: '动态花园', thumb: '/hero/garden/morning.webp', group: 'living' },
   { value: 'auto', label: '绿野晨光', thumb: '/hero/default/morning.webp', group: 'classic' },
   { value: 'hero-paper', label: '折纸童趣', thumb: '/hero/paper/morning.webp', group: 'classic' },

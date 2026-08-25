@@ -60,7 +60,7 @@
 .garden-note .garden-egg { background: rgba(255, 229, 190, .88); }
 .garden-welcome .garden-egg { display: none; }
 
-/* Hero 成长手账：独立的四时段 + 实时天气组合，不复用其他主题资源 */
+/* Hero 贴纸杂志：独立的四时段 + 实时天气组合，不复用其他主题资源 */
 .baby-hero.hero-diary {
   --diary-paper: #f4e4bd;
   --diary-line: rgba(90, 105, 75, .1);
