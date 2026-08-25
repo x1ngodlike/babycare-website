@@ -12,9 +12,10 @@ const HERO_PERIODS = [
   { key: 'night', label: '夜间', icon: '🌙', fileIndex: 5 },
 ];
 
-type HeroBgOption = { value: string; label: string; thumb: string; group: 'classic' | 'dream' | 'pony' };
+type HeroBgOption = { value: string; label: string; thumb: string; group: 'living' | 'classic' | 'dream' | 'pony' };
 
 const HERO_BG_OPTIONS: HeroBgOption[] = [
+  { value: 'hero-garden', label: '动态花园', thumb: '/hero/garden/morning.webp', group: 'living' },
   { value: 'auto', label: '绿野晨光', thumb: '/hero/default/morning.webp', group: 'classic' },
   { value: 'hero-paper', label: '折纸童趣', thumb: '/hero/paper/morning.webp', group: 'classic' },
   { value: 'hero-pixel', label: '像素萌兔', thumb: '/hero/pixel/morning.webp', group: 'classic' },
@@ -30,6 +31,7 @@ const HERO_BG_OPTIONS: HeroBgOption[] = [
 ];
 
 const HERO_BG_GROUP_ORDER = [
+  { key: 'living', label: '动态系列' },
   { key: 'classic', label: '经典系列' },
   { key: 'dream', label: '甜梦系列' },
   { key: 'pony', label: '小马系列' },
