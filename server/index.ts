@@ -22,6 +22,7 @@ import { registerPushRoutes } from './routes/push.js';
 import { registerRecordRoutes } from './routes/records.js';
 import { registerSystemRoutes } from './routes/system.js';
 import { registerVaccineRoutes } from './routes/vaccines.js';
+import { registerWeatherRoutes } from './routes/weather.js';
 import type { RouteContext } from './routes/context.js';
 import { exportPayload } from './export-payload.js';
 
@@ -87,6 +88,7 @@ registerVaccineRoutes(app, routeContext);
 registerMilestoneRoutes(app, routeContext);
 registerRecordRoutes(app, routeContext);
 registerPushRoutes(app);
+registerWeatherRoutes(app);
 
 if (production) {
   const staticDir = resolve('dist');

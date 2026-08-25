@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { Modal, SegmentedControl } from '../../ui';
 import { getGreeting, type ThemeMode } from '../../shared';
+import { DiaryHeroLayer } from '../../DiaryHero';
+import { diaryPeriodForHour, type WeatherKind, type WeatherSnapshot } from '../../../shared/weather';
 import type { FamilyId, Profile } from '../../types';
 
 const HERO_PERIODS = [
@@ -12,9 +14,17 @@ const HERO_PERIODS = [
   { key: 'night', label: '夜间', icon: '🌙', fileIndex: 5 },
 ];
 
+const DIARY_PERIODS = [
+  { key: 'morning', label: '早晨', icon: '🌅', fileIndex: 1 },
+  { key: 'midday', label: '白天', icon: '☀️', fileIndex: 2 },
+  { key: 'evening', label: '傍晚', icon: '🌇', fileIndex: 3 },
+  { key: 'night', label: '夜晚', icon: '🌙', fileIndex: 4 },
+];
+
 type HeroBgOption = { value: string; label: string; thumb: string; group: 'living' | 'classic' | 'dream' | 'pony' };
 
 const HERO_BG_OPTIONS: HeroBgOption[] = [
+  { value: 'hero-diary', label: '成长手账', thumb: '/hero/diary/thumb.webp', group: 'living' },
   { value: 'hero-garden', label: '动态花园', thumb: '/hero/garden/morning.webp', group: 'living' },
   { value: 'auto', label: '绿野晨光', thumb: '/hero/default/morning.webp', group: 'classic' },
   { value: 'hero-paper', label: '折纸童趣', thumb: '/hero/paper/morning.webp', group: 'classic' },
@@ -38,26 +48,56 @@ const HERO_BG_GROUP_ORDER = [
 ] as const;
 
 const HERO_PERIOD_HOURS: Record<string, number> = { morning: 7, midday: 12, afternoon: 15, evening: 20, night: 1 };
+const DIARY_PERIOD_HOURS: Record<string, number> = { morning: 7, midday: 13, evening: 18, night: 1 };
+const DIARY_WEATHER_OPTIONS: Array<{ kind: WeatherKind; label: string; temperatureC: number; weatherCode: number; icon: string }> = [
+  { kind: 'clear', label: '晴', temperatureC: 29, weatherCode: 0, icon: '☀️' },
+  { kind: 'cloudy', label: '多云', temperatureC: 28, weatherCode: 2, icon: '🌤️' },
+  { kind: 'overcast', label: '阴', temperatureC: 26, weatherCode: 3, icon: '☁️' },
+  { kind: 'rain', label: '雨', temperatureC: 24, weatherCode: 63, icon: '🌧️' },
+  { kind: 'fog', label: '雾', temperatureC: 23, weatherCode: 45, icon: '🌫️' },
+  { kind: 'snow', label: '雪', temperatureC: 1, weatherCode: 71, icon: '🌨️' },
+  { kind: 'thunder', label: '雷雨', temperatureC: 25, weatherCode: 95, icon: '⛈️' },
+];
+const DIARY_PERIOD_DETAILS: Record<string, { range: string; weather: Pick<WeatherSnapshot, 'temperatureC' | 'weatherCode' | 'kind' | 'label' | 'icon' | 'isDay'>; sticker?: string }> = {
+  morning: { range: '05:00—10:59', weather: { temperatureC: 25, weatherCode: 0, kind: 'clear', label: '晴', icon: '☀️', isDay: true } },
+  midday: { range: '11:00—16:59', weather: { temperatureC: 32, weatherCode: 2, kind: 'cloudy', label: '多云', icon: '🌤️', isDay: true }, sticker: '/hero/diary/sticker-feeding.webp' },
+  evening: { range: '17:00—19:59', weather: { temperatureC: 28, weatherCode: 63, kind: 'rain', label: '阵雨', icon: '🌧️', isDay: true }, sticker: '/hero/diary/sticker-care.webp' },
+  night: { range: '20:00—04:59', weather: { temperatureC: 24, weatherCode: 1, kind: 'clear', label: '晴', icon: '🌙', isDay: false } },
+};
 
-function PreviewHero({ profile, userId, periodKey, heroBg, hour }: { profile: Profile; userId: FamilyId; periodKey: string; heroBg: string; hour: number }) {
+function PreviewHero({ profile, userId, periodKey, heroBg, hour, weatherKind }: { profile: Profile; userId: FamilyId; periodKey: string; heroBg: string; hour: number; weatherKind?: WeatherKind }) {
   const { greeting, displayName } = getGreeting(profile, userId, hour);
   const d = new Date();
-  const dateStr = `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`;
-  const periodClass = `baby-hero ${heroBg !== 'auto' ? heroBg : ''} hero-${periodKey}`;
-  const periodLabel = HERO_PERIODS.find(p => p.key === periodKey)?.label ?? periodKey;
+  const dateStr = heroBg === 'hero-diary'
+    ? `${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`
+    : `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`;
+  const diaryPeriod = diaryPeriodForHour(hour);
+  const periodLabel = (heroBg === 'hero-diary' ? DIARY_PERIODS : HERO_PERIODS).find(p => p.key === periodKey)?.label ?? periodKey;
+  const diaryDetail = DIARY_PERIOD_DETAILS[periodKey] || DIARY_PERIOD_DETAILS.midday;
+  const selectedWeather = DIARY_WEATHER_OPTIONS.find(option => option.kind === weatherKind);
+  const previewWeather: WeatherSnapshot = {
+    location: '浙江省 · 杭州市',
+    ...(selectedWeather || diaryDetail.weather),
+    isDay: diaryPeriod !== 'night',
+    updatedAt: new Date().toISOString(),
+    stale: false,
+  };
+  const periodClass = `baby-hero ${heroBg !== 'auto' ? heroBg : ''} hero-${periodKey}${heroBg === 'hero-diary' ? ` diary-${diaryPeriod} weather-${previewWeather.kind}` : ''}`;
   return (
     <section className={periodClass} aria-label={`${periodLabel}时段预览`}>
-      <div>
-        <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>
+      <div className={heroBg === 'hero-diary' ? 'diary-copy-sticker' : undefined}>
+        {heroBg === 'hero-diary' ? <h1 className="hero-greeting-title"><span>{greeting}，</span><strong>{displayName}～</strong></h1> : <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>}
         <p className="kicker hero-date-line">{dateStr}</p>
-        <div className="hero-status"><p style={{ color: '#fff' }}>{periodLabel}时段预览</p></div>
+        <div className="hero-status"><p>{heroBg === 'hero-diary' ? `上次记录 ${String(hour).padStart(2, '0')}:27 · 喂奶 · 120 mL` : `${periodLabel}时段预览`}</p></div>
       </div>
+      {heroBg === 'hero-diary' && <DiaryHeroLayer period={diaryPeriod} weather={previewWeather} showEgg={Boolean(diaryDetail.sticker)} eggIcon={diaryDetail.sticker} />}
     </section>
   );
 }
 
 export function AppearanceSettingsCard({ theme, onChange, heroBg, onHeroBgChange, profile, userId }: { theme: ThemeMode; onChange(value: ThemeMode): void; heroBg: string; onHeroBgChange(value: string): void; profile: Profile; userId: FamilyId }) {
   const [previewTheme, setPreviewTheme] = useState<string | null>(null);
+  const [previewWeatherKind, setPreviewWeatherKind] = useState<WeatherKind>('clear');
 
   const themeOptions: { value: ThemeMode; label: string }[] = [
     { value: 'light', label: '浅色' },
@@ -122,20 +162,22 @@ export function AppearanceSettingsCard({ theme, onChange, heroBg, onHeroBgChange
 
     {previewTheme !== null && (
       <Modal
-        title="Hero 背景预览"
+        title="首页背景预览"
         kicker={HERO_BG_OPTIONS.find(o => o.value === previewTheme)?.label ?? ''}
         onClose={() => setPreviewTheme(null)}
       >
-        <p className="hero-preview-hint">各时段背景仅作效果预览，首页将根据当前时间自动切换。</p>
+        <p className="hero-preview-hint">{previewTheme === 'hero-diary' ? '选择一种天气，下方同时展示早晨、白天、傍晚和夜晚效果。' : '各时段背景仅作效果预览，首页将根据当前时间自动切换。'}</p>
+        {previewTheme === 'hero-diary' && <div className="hero-weather-preview-tabs" role="group" aria-label="天气效果预览">{DIARY_WEATHER_OPTIONS.map(option => <button type="button" key={option.kind} className={previewWeatherKind === option.kind ? 'active' : ''} aria-pressed={previewWeatherKind === option.kind} onClick={() => setPreviewWeatherKind(option.kind)}>{option.label}</button>)}</div>}
         <div className="hero-preview-list">
-          {HERO_PERIODS.map(period => (
+          {(previewTheme === 'hero-diary' ? DIARY_PERIODS : HERO_PERIODS).map(period => (
             <PreviewHero
-              key={period.key}
+              key={`${period.key}:${previewTheme === 'hero-diary' ? previewWeatherKind : 'default'}`}
               profile={profile}
               userId={userId}
               periodKey={period.key}
               heroBg={previewTheme}
-              hour={HERO_PERIOD_HOURS[period.key] ?? currentHour}
+              hour={(previewTheme === 'hero-diary' ? DIARY_PERIOD_HOURS : HERO_PERIOD_HOURS)[period.key] ?? currentHour}
+              weatherKind={previewTheme === 'hero-diary' ? previewWeatherKind : undefined}
             />
           ))}
         </div>

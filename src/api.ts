@@ -1,4 +1,5 @@
 import type { AiMemory, AiSettingsPublic, AuditEntry, Capabilities, CareItem, CareRecord, ChatMessage, ChatReply, ChatSession, DraftGrowthGuideEntry, DraftGrowthRecord, DraftMilestoneRecord, DraftRecord, DraftVaccineCatalogItem, DraftVaccineRecord, ExtractedMemory, FamilyId, FamilyMemberPermission, GrowthCurveData, GrowthGuideEntry, GrowthRecord, MilestoneRecord, Profile, PushStatus, ServerBackupFile, ServerBackupStatus, SessionUser, SystemAuditEntry, UserRole, VaccineCatalogItem, VaccineRecord } from './types';
+import type { WeatherSnapshot } from '../shared/weather';
 
 let currentBaseUrl = '';
 
@@ -108,6 +109,7 @@ export const api = {
   logout: () => request('/api/logout', { method: 'POST' }),
   profile: () => request<Profile>('/api/profile'),
   capabilities: () => request<Capabilities>('/api/capabilities'),
+  weather: () => request<WeatherSnapshot>('/api/weather'),
   aiSettings: () => request<AiSettingsPublic>('/api/ai/settings'),
   updateAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<AiSettingsPublic>('/api/ai/settings', { method: 'PUT', body: JSON.stringify(settings) }),
   testAiSettings: (settings: { baseUrl: string; model: string; apiKey?: string }) => request<{ ok: boolean; message: string }>('/api/ai/settings/test', { method: 'POST', body: JSON.stringify(settings) }),

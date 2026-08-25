@@ -60,6 +60,223 @@
 .garden-note .garden-egg { background: rgba(255, 229, 190, .88); }
 .garden-welcome .garden-egg { display: none; }
 
+/* Hero 成长手账：独立的四时段 + 实时天气组合，不复用其他主题资源 */
+.baby-hero.hero-diary {
+  --diary-paper: #f4e4bd;
+  --diary-line: rgba(90, 105, 75, .1);
+  isolation: isolate;
+  color: #fffdf5;
+  background: #75846a;
+  box-shadow: inset 0 0 0 1px rgba(255, 250, 232, .44);
+}
+.baby-hero.hero-diary::after {
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(27, 40, 29, .36), rgba(31, 44, 31, .3)),
+    var(--diary-background) center / cover no-repeat;
+  transform-origin: 68% 52%;
+  clip-path: inset(0 round 24px 24px 0 0);
+  animation: diary-page-arrive .45s ease-out both, diary-postcard-breathe 14s .45s ease-in-out infinite alternate;
+}
+.baby-hero.hero-diary.diary-morning { --diary-background: url('/hero/diary/morning.webp'); }
+.baby-hero.hero-diary.diary-daytime { --diary-background: url('/hero/diary/daytime.webp'); }
+.baby-hero.hero-diary.diary-evening { --diary-background: url('/hero/diary/evening.webp'); }
+.baby-hero.hero-diary.diary-night { --diary-background: url('/hero/diary/night.webp'); }
+.baby-hero.hero-diary::before { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: transparent; transition: background .35s ease; }
+.baby-hero.hero-diary.weather-clear:not(.diary-night)::before { background: radial-gradient(circle at 78% 22%, rgba(255, 235, 166, .36), transparent 32%), linear-gradient(122deg, transparent 52%, rgba(255, 240, 190, .13) 61%, transparent 70%); }
+.baby-hero.hero-diary.weather-cloudy::before { background: radial-gradient(ellipse at 72% 20%, rgba(235, 238, 229, .28) 0 11%, transparent 28%), radial-gradient(ellipse at 88% 38%, rgba(218, 225, 218, .22) 0 13%, transparent 31%), linear-gradient(110deg, transparent 38%, rgba(220, 226, 216, .15) 68%, rgba(195, 207, 199, .11)); }
+.baby-hero.hero-diary.weather-overcast::before { background: rgba(76, 88, 83, .2); backdrop-filter: saturate(.8) brightness(.96); -webkit-backdrop-filter: saturate(.8) brightness(.96); }
+.baby-hero.hero-diary.weather-rain::before { background: linear-gradient(90deg, transparent 45%, rgba(55, 75, 80, .13)); }
+.baby-hero.hero-diary.weather-fog::before { background: linear-gradient(90deg, transparent 28%, rgba(239, 241, 231, .19) 54%, rgba(239, 242, 234, .3)); backdrop-filter: blur(1.2px) saturate(.84); -webkit-backdrop-filter: blur(1.2px) saturate(.84); }
+.baby-hero.hero-diary.weather-snow::before { background: radial-gradient(circle at 58% 19%, rgba(255,255,255,.72) 0 1.5px, transparent 2px), radial-gradient(circle at 71% 34%, rgba(255,255,255,.58) 0 2px, transparent 2.5px), radial-gradient(circle at 84% 17%, rgba(255,255,255,.66) 0 1px, transparent 1.6px), radial-gradient(circle at 93% 49%, rgba(255,255,255,.54) 0 2px, transparent 2.6px), radial-gradient(circle at 64% 68%, rgba(255,255,255,.5) 0 1px, transparent 1.6px), radial-gradient(circle at 79% 77%, rgba(255,255,255,.62) 0 1.5px, transparent 2px), linear-gradient(110deg, transparent 35%, rgba(229, 239, 240, .14) 64%, rgba(223, 235, 240, .25)); }
+.baby-hero.hero-diary.weather-thunder::before { background: linear-gradient(90deg, rgba(29, 42, 49, .08), rgba(29, 43, 53, .3) 58%, rgba(23, 36, 49, .36)); backdrop-filter: saturate(.76) brightness(.94); -webkit-backdrop-filter: saturate(.76) brightness(.94); }
+.today-workbench.diary-workbench { overflow: visible; }
+.diary-workbench .baby-hero.hero-diary {
+  min-height: 144px;
+  padding: 12px;
+  overflow: visible;
+  border-radius: 24px 24px 0 0;
+}
+.diary-workbench .baby-hero.hero-diary::before,
+.diary-workbench .baby-hero.hero-diary::after { border-radius: 24px 24px 0 0; }
+.today-layout .baby-hero.hero-diary > div:first-child,
+.hero-preview-list .baby-hero.hero-diary > div:first-child {
+  z-index: 3;
+  align-self: stretch;
+  width: min(58%, 286px);
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0;
+  padding: 0 8px 10px 0;
+  box-sizing: border-box;
+}
+.baby-hero.hero-diary > div:first-child::before {
+  display: none;
+}
+.baby-hero.hero-diary .hero-greeting-title,
+.baby-hero.hero-diary .hero-date-line,
+.baby-hero.hero-diary .hero-status p { color: #fffaf0; }
+.baby-hero.hero-diary .hero-date-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  order: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #fff7e0;
+  display: block;
+  width: auto;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: .02em;
+  opacity: 1;
+  text-shadow: 0 1px 4px rgba(25, 36, 26, .28);
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.baby-hero.hero-diary .hero-date-line::after { display: none; }
+.today-layout .baby-hero.hero-diary .hero-date-line { color: #fff7e0; text-shadow: 0 1px 4px rgba(25, 36, 26, .28); }
+.baby-hero.hero-diary .hero-greeting-title {
+  position: absolute;
+  top: 27px;
+  left: 0;
+  order: 1;
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  color: #fffdf6;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: .02em;
+  text-shadow: 0 2px 8px rgba(19, 30, 21, .34);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.baby-hero.hero-diary .hero-greeting-title::after { display: none; }
+.baby-hero.hero-diary .hero-greeting-title span { display: inline; margin: 0; color: inherit; font: inherit; letter-spacing: inherit; }
+.baby-hero.hero-diary .hero-greeting-title strong { display: inline; overflow: visible; font: inherit; font-weight: 800; text-overflow: clip; white-space: nowrap; }
+.baby-hero.hero-diary .hero-status {
+  order: 2;
+  position: absolute;
+  top: auto;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: max-content;
+  max-width: 100%;
+  min-height: 27px;
+  padding: 6px 10px 5px;
+  border-top: 0;
+  border: 1px solid rgba(255, 247, 222, .12);
+  border-radius: 999px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+.baby-hero.hero-diary .hero-status::before { content: ''; position: absolute; z-index: -1; inset: 0; border-radius: inherit; background: rgba(75, 70, 47, .48); mix-blend-mode: multiply; }
+.baby-hero.hero-diary .hero-status p {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  color: rgba(255, 250, 233, .85);
+  font-size: 12px;
+  line-height: 1.2;
+}
+.diary-weather {
+  position: absolute;
+  z-index: 4;
+  top: 12px;
+  right: 12px;
+  display: block;
+  max-width: 43%;
+  color: #394535;
+  pointer-events: none;
+  transform: none;
+  transform-origin: 50% 50%;
+}
+.diary-weather::before,
+.diary-weather::after { display: none; }
+.diary-weather > span { position: relative; z-index: 1; display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 116px; min-height: 27px; padding: 6px 10px 5px; border: 1px solid rgba(255, 250, 232, .48); border-radius: 999px; background: rgba(255, 250, 232, .82); box-shadow: 0 4px 12px rgba(42, 55, 39, .14); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); box-sizing: border-box; overflow: hidden; }
+.diary-weather-symbol { width: 17px; height: 17px; flex: 0 0 17px; display: grid; place-items: center; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-size: 15px; font-style: normal; line-height: 1; }
+.diary-weather b { min-width: 0; max-width: 72px; overflow: hidden; font-size: 12px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.diary-scene { position: absolute; z-index: 1; inset: 0; overflow: hidden; pointer-events: none; }
+.diary-paper-grain { position: absolute; inset: 0; opacity: .18; background-image: radial-gradient(rgba(69,76,57,.35) .45px, transparent .6px); background-size: 5px 5px; mix-blend-mode: multiply; }
+.diary-washi { position: absolute; z-index: 3; right: 24%; top: -8px; width: 54px; height: 18px; background: rgba(242, 205, 125, .42); transform: rotate(3deg); clip-path: polygon(3% 8%, 98% 0, 94% 92%, 4% 100%, 7% 75%, 0 52%, 6% 25%); }
+.diary-stars { display: none; position: absolute; right: 6%; top: 20%; width: 42%; height: 48%; background: radial-gradient(circle at 12% 20%, #f8e9b4 0 1px, transparent 1.5px), radial-gradient(circle at 44% 11%, #fff3c9 0 1.2px, transparent 1.8px), radial-gradient(circle at 79% 36%, #f6e6aa 0 1px, transparent 1.6px), radial-gradient(circle at 59% 72%, #fff5d6 0 .8px, transparent 1.5px), radial-gradient(circle at 94% 8%, #f6e6aa 0 .8px, transparent 1.4px); animation: diary-stars-twinkle 4s ease-in-out infinite alternate; }
+.diary-night .diary-stars { display: block; }
+.diary-birds { display: block; position: absolute; right: 31%; top: 34%; width: 21px; height: 8px; border-top: 1.5px solid rgba(67,82,59,.5); border-radius: 50%; transform: rotate(12deg); }
+.diary-birds::after { content: ''; position: absolute; left: 13px; top: -4px; width: 14px; height: 7px; border-top: 1.5px solid rgba(67,82,59,.45); border-radius: 50%; transform: rotate(-18deg); }
+.diary-evening .diary-birds, .diary-night .diary-birds { display: none; }
+.diary-hill { position: absolute; right: -8%; bottom: -55%; width: 62%; height: 105%; border-radius: 58% 42% 0 0 / 46% 54% 0 0; background: #91a477; transform: rotate(-5deg); box-shadow: inset 0 2px 0 rgba(255, 255, 255, .16); }
+.diary-hill-two { right: -31%; bottom: -51%; width: 74%; border-radius: 44% 56% 0 0 / 54% 46% 0 0; background: #667e60; transform: rotate(8deg); }
+.diary-sun-moon { position: absolute; right: 16%; top: 31%; width: 33px; height: 33px; border-radius: 50%; background: #f7c45f; box-shadow: 0 0 0 8px rgba(255, 227, 142, .14), 0 0 24px rgba(255, 213, 105, .42); animation: diary-orbit-breathe 5s ease-in-out infinite alternate; }
+.diary-night .diary-sun-moon { background: #f4e4b2; box-shadow: inset -8px -3px 0 #d7d5c3, 0 0 20px rgba(245, 232, 178, .25); }
+.diary-cloud { position: absolute; z-index: 1; inset: -10%; background: url('/hero/diary/overlays/cloud-wisp.webp') center / 100% 100% no-repeat; opacity: 0; mix-blend-mode: screen; will-change: transform, opacity; }
+.diary-cloud-two { inset: -14%; transform: scale(.94) scaleX(-1); }
+.weather-cloudy .diary-cloud, .weather-overcast .diary-cloud { opacity: .26; animation: diary-cloud-drift 14s ease-in-out infinite alternate; }
+.weather-cloudy .diary-cloud-two { opacity: .1; animation-duration: 18s; animation-direction: alternate-reverse; }
+.weather-overcast .diary-cloud { opacity: .19; filter: saturate(.62) brightness(.94); }
+.weather-overcast .diary-cloud-two { opacity: .09; }
+.weather-fog .diary-fog { position: absolute; z-index: 2; inset: -10%; background: url('/hero/diary/overlays/fog-veil.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .34; will-change: transform, opacity; animation: diary-fog-drift 11s ease-in-out infinite alternate; }
+.weather-fog .diary-fog::after { content: ''; position: absolute; inset: -8%; background: inherit; background-size: 100% 100%; opacity: .36; transform: scaleX(-1); }
+.diary-rain { display: none; position: absolute; z-index: 2; inset: -10%; background: url('/hero/diary/overlays/rain-glass.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .23; will-change: transform; animation: diary-rain-fall 1.8s linear infinite; }
+.weather-rain .diary-rain, .weather-thunder .diary-rain { display: block; }
+.diary-snow { display: none; position: absolute; z-index: 2; inset: -14%; background: url('/hero/diary/overlays/snow-depth.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .34; will-change: transform, opacity; animation: diary-snow-fall 7s linear infinite; }
+.diary-snow-two { inset: -18%; opacity: .2; animation-delay: -3.5s; transform: scale(.94) scaleX(-1); }
+.weather-snow .diary-snow { display: block; }
+.diary-scene.weather-thunder::after { content: ''; position: absolute; inset: 0 0 0 48%; background: radial-gradient(circle at 62% 22%, rgba(255, 247, 197, .34), transparent 58%); opacity: 0; animation: diary-distant-flash 10s ease-in-out infinite; }
+.diary-scene.weather-clear::before { content: ''; position: absolute; z-index: 2; inset: -10%; background: url('/hero/diary/overlays/sun-rays.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .31; will-change: transform, opacity; animation: diary-sunlight-drift 9s ease-in-out infinite alternate; }
+.diary-scene.weather-clear.diary-night::before { display: none; }
+.diary-scene.weather-thunder::before { content: ''; position: absolute; z-index: 3; inset: -10%; background: url('/hero/diary/overlays/lightning-glow.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .23; will-change: opacity, transform; animation: diary-lightning-pulse 6.5s ease-in-out infinite; }
+.diary-period-mark { position: absolute; right: 9px; top: 52%; width: 19px; height: 19px; display: grid; place-items: center; border: 1px solid rgba(255,248,224,.48); border-radius: 50%; color: rgba(255,250,232,.82); font: 700 9px/1 serif; transform: rotate(5deg); }
+.diary-day-stamp { position: absolute; right: 13px; bottom: 9px; padding: 2px 5px; border: 1px solid rgba(255, 250, 226, .48); border-radius: 3px; color: rgba(255, 250, 226, .72); font: 700 7px/1.2 ui-monospace, monospace; letter-spacing: .12em; transform: rotate(-4deg); }
+.diary-record-sticker { position: absolute; z-index: 3; right: 27%; bottom: 10%; width: 56px; height: 56px; display: grid; place-items: center; transform: rotate(5deg); filter: drop-shadow(0 5px 5px rgba(43, 57, 39, .22)); animation: diary-sticker-in .7s cubic-bezier(.2, .9, .25, 1.3) both, diary-sticker-out .5s 5.9s ease-in forwards; }
+.diary-record-sticker img { width: 56px; height: 56px; object-fit: contain; }
+.baby-hero.hero-diary .diary-paper-grain,
+.baby-hero.hero-diary .diary-washi,
+.baby-hero.hero-diary .diary-birds,
+.baby-hero.hero-diary .diary-sun-moon,
+.baby-hero.hero-diary .diary-hill,
+.baby-hero.hero-diary .diary-period-mark { display: none; }
+.baby-hero.hero-diary .diary-day-stamp { display: flex; right: 12px; bottom: 12px; flex-direction: column; align-items: flex-end; gap: 1px; padding: 0; border: 0; color: rgba(255, 249, 229, .68); font-size: 7px; letter-spacing: .18em; transform: none; }
+.baby-hero.hero-diary .diary-day-stamp::after { content: 'GROWING NOTES'; font-size: 5px; letter-spacing: .12em; opacity: .72; }
+@keyframes diary-page-arrive { from { opacity: .72; } to { opacity: 1; } }
+@keyframes diary-postcard-breathe { from { transform: scale(1); } to { transform: scale(1.015); } }
+@keyframes diary-orbit-breathe { to { transform: translateY(-3px) scale(1.04); } }
+@keyframes diary-cloud-drift { from { translate: -7px 1px; } to { translate: 9px -2px; } }
+@keyframes diary-fog-drift { from { translate: -18px 0; opacity: .3; } to { translate: 12px -2px; opacity: .48; } }
+@keyframes diary-rain-fall { from { transform: translate3d(0, -7px, 0); } to { transform: translate3d(-3px, 12px, 0); } }
+@keyframes diary-snow-fall { from { translate: 2px -15px; } to { translate: -9px 28px; } }
+@keyframes diary-sunlight-drift { from { transform: translate3d(4px, -2px, 0) scale(1); opacity: .23; } to { transform: translate3d(-5px, 3px, 0) scale(1.025); opacity: .37; } }
+@keyframes diary-distant-flash { 0%, 92%, 96%, 100% { opacity: 0; } 93%, 95% { opacity: .7; } }
+@keyframes diary-lightning-pulse { 0%, 82%, 90%, 100% { opacity: .23; transform: scale(1); } 84%, 88% { opacity: .7; transform: scale(1.012); } 86% { opacity: .4; } }
+@keyframes diary-stars-twinkle { from { opacity: .45; } to { opacity: .95; } }
+@keyframes diary-sticker-in { from { transform: translate(24px, 20px) rotate(18deg) scale(.25); opacity: 0; } to { transform: translate(0, 0) rotate(5deg) scale(1); opacity: 1; } }
+@keyframes diary-sticker-out { to { transform: translate(8px, -7px) rotate(12deg) scale(.6); opacity: 0; } }
+
+@media (max-width: 430px) {
+  .today-layout .baby-hero.hero-diary > div:first-child { width: 59%; padding-right: 5px; padding-left: 0; }
+  .baby-hero.hero-diary .hero-greeting-title { font-size: 18px; }
+  .diary-weather { top: 12px; right: 12px; max-width: 39%; }
+  .diary-weather > span { padding-inline: 9px 12px; }
+  .diary-record-sticker { right: 27%; bottom: 9%; }
+}
+
 /* Hero 折纸童趣方案 */
 .baby-hero.hero-paper.hero-morning { --hero-background: url('/hero/paper/morning.webp'); }
 .baby-hero.hero-paper.hero-midday { --hero-background: url('/hero/paper/midday.webp'); }
@@ -154,7 +371,7 @@
 @keyframes garden-egg-leave { to { transform: translate3d(12px, -8px, 0) scale(.35); opacity: 0; } }
 @keyframes garden-egg-bubble { from { transform: translateY(7px) scale(.5); opacity: 0; } 35% { opacity: .85; } to { transform: translateY(-16px) scale(1.15); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .baby-hero::after, .baby-hero.hero-garden::before, .garden-live *, .garden-egg, .garden-egg > i { animation: none; }
+  .baby-hero::after, .baby-hero.hero-garden::before, .garden-live *, .garden-egg, .garden-egg > i, .diary-scene *, .diary-scene::before, .diary-scene::after { animation: none; }
   .baby-hero.hero-garden::after { transform: scale(1.015); }
 }
 
@@ -523,6 +740,12 @@
 .hero-preview-list .baby-hero {
   position: relative;
 }
+.hero-preview-list .baby-hero.hero-diary { min-height: 152px; padding: 12px; border: 1px solid rgba(114, 126, 91, .2); box-shadow: 0 5px 16px rgba(62, 71, 51, .1); overflow: hidden; }
+.hero-preview-list .baby-hero.hero-diary + .baby-hero.hero-diary { margin-top: 2px; }
+.hero-preview-list .baby-hero.hero-diary > div:first-child { width: 59%; min-height: 126px; padding: 0; }
+.hero-preview-list .baby-hero.hero-diary .hero-greeting-title { max-width: 100%; font-size: 18px; white-space: nowrap; }
+.hero-preview-list .baby-hero.hero-diary .hero-status { bottom: 0; }
+.hero-preview-list .baby-hero.hero-diary .hero-status p { display: block; width: auto; padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 12px; }
 .hero-preview-hint {
   text-align: center;
   font-size: 12px;
@@ -530,6 +753,9 @@
   margin: 0 0 10px;
   line-height: 1.5;
 }
+.hero-weather-preview-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0 0 12px; }
+.hero-weather-preview-tabs button { min-height: 30px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 9px; background: var(--control-bg); color: var(--ink-muted); font-size: 11px; font-weight: 750; }
+.hero-weather-preview-tabs button.active { border-color: color-mix(in srgb, var(--accent) 58%, var(--line)); background: color-mix(in srgb, var(--accent) 12%, var(--control-bg)); color: var(--green-deep); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent); }
 
 .today-layout .today-plan-list article {
   grid-template-columns: 48px minmax(0, 1fr) auto;
