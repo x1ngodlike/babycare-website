@@ -11,6 +11,7 @@
 - 一套完整主题包含 **4 个时段 Hero、4 个快捷图标、6 个待办图标、5 个导航图标和 1 张缩略图**。
 - 天气判断和天气覆盖层全主题共用，不为每个新主题重复制作七套天气图片。
 - 图标使用同一画布，并以实际视觉面积校准；不得依赖某个主题专属 CSS 单独放大或缩小。
+- 生图源文件和项目交付文件分开：图标优先直接生成透明 PNG 源文件，最终统一导出透明 WebP；Hero 和缩略图最终导出不透明 WebP。
 - 浅色与深色模式只改变颜色、阴影和表面层级，不改变组件尺寸和页面结构。
 - 业务状态色与核心“记录”橙保持原语义，不能为了主题感随意改色。
 - 动态必须轻量、可关闭，并支持 `prefers-reduced-motion`。
@@ -200,11 +201,29 @@
 
 ## 4. Hero 通用规范
 
+### 导出规格总表
+
+| 资源 | 数量 | 生图或工作源 | 项目最终尺寸 | 项目最终格式 | 透明要求 | 建议导出参数 |
+|---|---:|---|---|---|---|---|
+| 四时段 Hero | 4 | 宽幅 PNG 或无损原图，尺寸不低于最终尺寸 | 1080 × 432 | WebP | 不透明 | `quality 82～88`，保留 sRGB |
+| 快捷图标 | 4 | 1024 × 1024 或更大的透明 PNG | 256 × 256 | WebP | 真实 Alpha | `quality 88`、`alphaQuality 100` |
+| 待办图标 | 6 | 1024 × 1024 或更大的透明 PNG | 256 × 256 | WebP | 真实 Alpha | `quality 88`、`alphaQuality 100` |
+| 导航图标 | 5 | 1024 × 1024 或更大的透明 PNG | 256 × 256 | WebP | 真实 Alpha | `quality 88`、`alphaQuality 100` |
+| 主题缩略图 | 1 | 从代表性 Hero 裁切或单独制作 | 540 × 216 | WebP | 不透明 | `quality 82～88`，比例 2.5:1 |
+| 可选透明动态层 | 按需 | 透明 PNG 序列或无损源文件 | 按实际容器的 2× 像素尺寸制作 | 优先透明 WebP；兼容性需要时用 PNG | 真实 Alpha | 不包含天气效果，不使用 GIF |
+
+说明：
+
+- 表中尺寸是进入项目目录的最终像素尺寸，不是生图服务必须返回的原始尺寸。
+- 图标必须先从高分辨率透明源图裁切和校准，再缩小到 256 × 256；不要直接以 256 × 256 作为生图源。
+- WebP 必须保留 sRGB 和正确的 Alpha 通道，不保留无用 EXIF、ICC 或编辑器元数据。
+- 同类资源使用同一批处理参数，避免单张图片因压缩率或锐化方式不同而显得突兀。
+
 ### 资源规格
 
 - 时段固定为 `morning`、`daytime`、`evening`、`night`。
 - 最终尺寸统一为 **1080 × 432**，比例 **2.5:1**。
-- Hero 为不透明 WebP；不在图片内写中文、英文、Logo 或 UI。
+- Hero 为不透明 WebP，建议 `quality 82～88`；不在图片内写中文、英文、Logo 或 UI。
 - 左侧约 0%～46% 为低细节文字区，主体集中在右侧约 52%～90%。
 - 主体必须处于手机端安全裁切范围，不能紧贴顶部、底部或最右边缘。
 
@@ -269,7 +288,7 @@ Constraints: no people or animals unless explicitly approved; no logo, no legibl
 
 ### 资源与命名
 
-所有图标使用透明背景 WebP，建议最终画布统一为 **256 × 256**。
+所有图标的生图源优先使用 **1024 × 1024 或更大的透明 PNG**，项目最终文件统一导出为 **256 × 256 透明 WebP**，建议 `quality 88`、`alphaQuality 100`。
 
 ```text
 public/hero/weather/{slug}/
@@ -310,6 +329,30 @@ public/hero/weather/{slug}/
 - 同一套图标建议把视觉面积差控制在约 10% 内。
 - 若某个图标显得偏大或偏小，应直接调整图片主体，而不是增加主题专属 CSS 缩放。
 
+### 透明图生成与校验
+
+图标可以并且应当在生图阶段直接要求真实透明背景。提示词必须同时写明：
+
+- `genuinely transparent background`
+- `RGBA output with real alpha`
+- `no checkerboard, no solid backdrop`
+- 主体阴影只能是紧贴主体的 contained shadow，画布其余区域完全透明
+
+生成后不能只看预览，必须读取文件元数据和 Alpha 像素进行验证：
+
+1. 源文件应为 RGBA，存在真实 Alpha 通道。
+2. 画布四角必须为完全透明像素。
+3. 在浅色、深色和高对比纯色底上分别合成预览，检查白边、黑边、棋盘格、游离像素和主体缺口。
+4. 先清理游离小连通区域，再按主体真实边界裁切；不能让远处的残留像素参与尺寸计算。
+5. 最终 256 × 256 WebP 再次检查 Alpha、主体边界、视觉重心和小尺寸辨识度。
+
+如果生图结果把棋盘格、白底或黑底直接画进文件：
+
+1. 优先重新执行背景提取，明确要求保留主体并输出真实 Alpha。
+2. 若仍无法得到真实透明图，改为生成主体不包含的单一高饱和色背景，再使用色键转换为 Alpha。
+3. 不建议对白色、灰色或棋盘格背景直接做宽松亮度阈值抠图；当主体含珍珠白、浅色高光或柔影时，容易造成缺口和破损。
+4. 任何兜底抠图都必须重新完成三种背景检查，不得直接进入项目。
+
 ### 图标生图提示词骨架
 
 ```text
@@ -323,6 +366,7 @@ Lighting/mood: soft upper-left light; short contained lower-right shadow
 Color palette: {2–3 function colors}
 Outline: {shared outline color and weight}
 Constraints: genuinely transparent background and alpha; no colored square, badge, border, text, letters, numbers, logo, watermark or photorealism; exactly the described object
+Output requirement: transparent PNG source, RGBA with real alpha; no checkerboard baked into pixels
 ```
 
 ## 7. 动态通用规范
@@ -376,6 +420,9 @@ Constraints: genuinely transparent background and alpha; no colored square, badg
 - [ ] 4 张 Hero 文件齐全，尺寸均为 1080 × 432。
 - [ ] 4 张快捷、6 张待办、5 张导航图标齐全。
 - [ ] 所有图标拥有真实透明通道，没有黑底或白边。
+- [ ] 所有图标源文件经过 Alpha 元数据检查，四角为全透明，不是烘焙棋盘格。
+- [ ] 所有图标已在浅色、深色和高对比纯色背景上检查，无游离像素、主体缺口或边缘色溢出。
+- [ ] 项目内图标均为 256 × 256 透明 WebP；Hero 均为 1080 × 432 不透明 WebP；缩略图为 540 × 216 不透明 WebP。
 - [ ] `thumb.webp` 能在主题列表中快速辨认主题。
 - [ ] 文件命名、目录和配置路径完全一致。
 
@@ -421,4 +468,3 @@ Constraints: genuinely transparent background and alpha; no colored square, badg
 - 自动测试和生产构建通过。
 - 工作区只包含本主题相关改动。
 - 已使用中文、单一目的 Commit 提交。
-
