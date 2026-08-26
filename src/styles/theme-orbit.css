@@ -48,7 +48,7 @@ html[data-visual-theme="orbit"][data-theme="light"] {
   --token-quick-grid-active: #d9e1ef;
   --token-quick-grid-text: #3f558d;
   --token-quick-section-bg: #f8faff;
-  --token-today-plan-title: #53689b;
+  --token-today-plan-title: #8b552f;
   --token-today-plan-border: #d8deea;
   --token-today-insights-border: #d8deea;
   --token-today-plan-icon-bg: #fcfdff;
@@ -76,7 +76,7 @@ html[data-visual-theme="orbit"][data-theme="light"] {
   --token-focus-ring: #596fa7;
   --token-surface-hover: #edf1f8;
   --token-surface-chip: #edf1f8;
-  --token-text-plan: #53689b;
+  --token-text-plan: #68472f;
 }
 
 html[data-visual-theme="orbit"][data-theme="dark"] {
@@ -128,7 +128,7 @@ html[data-visual-theme="orbit"][data-theme="dark"] {
   --token-quick-grid-active: #303a55;
   --token-quick-grid-text: #bdc9ed;
   --token-quick-section-bg: #292f3d;
-  --token-today-plan-title: #ab9bdc;
+  --token-today-plan-title: #d9a46a;
   --token-today-plan-border: #46516a;
   --token-today-insights-border: #374052;
   --token-today-plan-icon-bg: #202633;
@@ -156,7 +156,7 @@ html[data-visual-theme="orbit"][data-theme="dark"] {
   --token-focus-ring: #91a7e0;
   --token-surface-hover: #292f3d;
   --token-surface-chip: #292f3d;
-  --token-text-plan: #ab9bdc;
+  --token-text-plan: #d9a46a;
 }
 
 html[data-visual-theme="orbit"][data-theme="light"] body {
