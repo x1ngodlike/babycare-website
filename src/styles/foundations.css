@@ -9,6 +9,12 @@
   --muted: var(--token-muted);
   --text-secondary: var(--token-text-secondary);
   --text-tertiary: var(--token-text-tertiary);
+  --text-overdue: var(--token-text-overdue);
+  --text-soon: var(--token-text-soon);
+  --text-plan: var(--token-text-plan);
+  --hub-kicker: var(--token-hub-kicker);
+  --hub-text: var(--token-hub-text);
+  --hub-text-secondary: var(--token-hub-text-secondary);
   --text-primary: var(--ink);
   --text-muted: var(--muted);
   --text-quaternary: var(--text-tertiary);
@@ -33,6 +39,8 @@
   --focus: var(--token-focus);
   --border: var(--token-line);
   --border-strong: var(--token-line-strong);
+  --border-overdue: var(--token-border-overdue);
+  --border-soon: var(--token-border-soon);
 
   /* 表面层级 */
   --surface-page: var(--token-surface-page);
@@ -42,8 +50,9 @@
   --surface-control: var(--token-surface-control);
   --surface-container: var(--token-surface-container);
   --surface-container-border: var(--token-surface-container-border);
+  --surface-hover: var(--token-surface-hover);
+  --surface-chip: var(--token-surface-chip);
   /* 交互表面层级 */
-  --surface-hover: var(--surface-subtle);
   --surface-interactive-hover: var(--token-surface-interactive-hover);
   --surface-interactive-active: var(--token-surface-interactive-active);
   --surface-interactive-disabled: var(--token-surface-interactive-disabled);
@@ -71,6 +80,8 @@
   --status-error-line: var(--token-status-error-line);
   --status-error-line-soft: var(--token-status-error-line-soft);
   --status-error-text: var(--token-status-error-text);
+  --chart-overview-bg: var(--token-chart-overview-bg);
+  --chart-overview-border: var(--token-chart-overview-border);
   --line-plan: var(--token-line-plan);
   --text-on-orange: var(--token-text-on-orange);
 

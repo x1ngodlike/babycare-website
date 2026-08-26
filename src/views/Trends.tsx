@@ -70,16 +70,19 @@ export default function TrendsView({ records, careItems }: { records: CareRecord
       return { key, label: `${year}年${month}月`, axis: `${month}月`, ...summarizeTrendRecords(records.filter(record => { const date = new Date(record.occurredAt); return date.getFullYear() === year && date.getMonth() === month - 1; }), careNames) };
     });
 
-    // ===== 汇总统计：严格按语义化时间范围（与图表 buckets 解耦） =====
-    // 日均统计排除今天（今日未完成不可作为完整日均值分母），仅用于汇总行；图表 buckets 仍保留今天的数据条
-    // 七日：未切换（锚定日＝今天）时取昨天往前 7 天（共 7 个完整自然日）；翻到历史日则取整个 7 天窗口
+    // ===== 汇总统计：汇总数据包含今日，仅日均统计排除今日 =====
+    // 图表 buckets 始终包含今日数据，汇总与图表保持一致
+    // 七日：未切换（锚定日＝今天）时取昨天往前 7 天计算日均；汇总数据额外包含今日
     const isSevenToday = selectedIso === todayIso;
     const sevenCompleteIsoSet = new Set(Array.from({ length: 7 }, (_, index) => isoDay(addDays(selectedDay, index - (isSevenToday ? 7 : 6)))));
     const sevenCompleteRecords = records.filter(r => sevenCompleteIsoSet.has(isoDay(new Date(r.occurredAt))));
-    const sevenSummary = summarizeTrendRecords(sevenCompleteRecords, careNames);
+    const sevenSummaryRecords = isSevenToday
+      ? records.filter(r => { const iso = isoDay(new Date(r.occurredAt)); return sevenCompleteIsoSet.has(iso) || iso === todayIso; })
+      : sevenCompleteRecords;
+    const sevenSummary = summarizeTrendRecords(sevenSummaryRecords, careNames);
     const sevenActiveDays = new Set(sevenCompleteRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
 
-    // 月数据：自然月（1 日 → 月末/今日），但日均统计仅取当月里今天之前的完整日
+    // 月数据：汇总自然月全量（含今日），日均统计仅取当月里今天之前的完整日
     const naturalMonthStart = new Date(monthYear, monthIndex, 1);
     const naturalMonthEnd = isCurrentMonth
       ? new Date(`${todayIso}T23:59:59.999`)
@@ -87,13 +90,14 @@ export default function TrendsView({ records, careItems }: { records: CareRecord
     const monthCompleteEnd = isCurrentMonth
       ? new Date(`${isoDay(addDays(now, -1))}T23:59:59.999`)
       : naturalMonthEnd;
+    const monthAllRecords = records.filter(r => { const d = new Date(r.occurredAt); return d >= naturalMonthStart && d <= naturalMonthEnd; });
     const monthRecords = records.filter(r => { const d = new Date(r.occurredAt); return d >= naturalMonthStart && d <= monthCompleteEnd; });
-    const monthSummary = summarizeTrendRecords(monthRecords, careNames);
+    const monthSummary = summarizeTrendRecords(monthAllRecords, careNames);
     const monthActiveDays = new Set(monthRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
 
-    // 总数据：全部历史记录（累计），排除今天的记录
+    // 总数据：汇总全部历史记录（含今日），日均统计排除今日
     const totalRecords = records.filter(r => isoDay(new Date(r.occurredAt)) !== todayIso);
-    const totalSummary = summarizeTrendRecords(totalRecords, careNames);
+    const totalSummary = summarizeTrendRecords(records, careNames);
     const totalActiveDays = new Set(totalRecords.filter(r => r.type === 'feeding').map(r => isoDay(new Date(r.occurredAt)))).size;
 
     return {
@@ -131,6 +135,7 @@ export default function TrendsView({ records, careItems }: { records: CareRecord
   const detailLabel = mode === 'seven' ? '查看每日数据' : mode === 'month' ? '查看每周数据' : '查看每月数据';
   const totalLabel = mode === 'seven' ? '七日总奶量' : mode === 'month' ? '本月总奶量' : '累计总奶量';
   const description = mode === 'seven' ? '近 7 天喂养趋势。' : mode === 'month' ? '本月喂养趋势。' : '全部喂养数据汇总。';
+  const averageExcludesToday = mode === 'seven' ? selectedIso === todayIso : mode === 'month' ? selectedMonth.getFullYear() === todayYear && selectedMonth.getMonth() === todayMon : true;
   const sevenRangeLabel = `${sevenDays[0].toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} – ${sevenDays[6].toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}`;
   const canShiftForward = selectedIso < todayIso;
   const shiftDay = (offset: number) => setSelectedDay(value => addDays(value, offset));
@@ -139,7 +144,7 @@ export default function TrendsView({ records, careItems }: { records: CareRecord
     <SegmentedControl<TrendMode> className="trend-tabs" label="趋势统计范围" value={mode} options={[{ value: 'seven', label: '七日' }, { value: 'month', label: '月数据' }, { value: 'total', label: '总数据' }]} onChange={setMode} />
     {mode === 'seven' && <div className="trend-period-nav"><button type="button" onClick={() => shiftDay(-1)} aria-label="往前一天"><ChevronLeft size={18} strokeWidth={2.2} /></button><strong>{sevenRangeLabel}</strong><button type="button" onClick={() => shiftDay(1)} disabled={!canShiftForward} aria-label="往后一天"><ChevronRight size={18} strokeWidth={2.2} /></button></div>}
     {mode === 'month' && <div className="trend-period-nav"><button onClick={() => shiftMonth(-1)} aria-label="上一个月"><ChevronLeft size={18} strokeWidth={2.2} /></button><strong>{selectedMonth.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</strong><button onClick={() => shiftMonth(1)} disabled={selectedMonth >= todayMonth} aria-label="下一个月"><ChevronRight size={18} strokeWidth={2.2} /></button></div>}
-    <section className="trend-summary"><div title={`${totalMilk} mL`}><span>{totalLabel}</span><strong>{totalMilkDisplay.amount}</strong><small>{totalMilkDisplay.unit}</small></div><div><span>喂奶日均</span><strong>{dailyMilkDisplay.amount}</strong><small>{dailyMilkDisplay.unit}</small></div><div><span>喂奶间隔</span><strong>{scopeGap === null ? '—' : scopeGap.toFixed(1)}</strong><small>小时</small></div></section>
+    <section className="trend-summary"><div title={`${totalMilk} mL`}><span>{totalLabel}</span><strong>{totalMilkDisplay.amount}</strong><small>{totalMilkDisplay.unit}</small></div><div><span>喂奶日均{averageExcludesToday ? ' (不含当日)' : ''}</span><strong>{dailyMilkDisplay.amount}</strong><small>{dailyMilkDisplay.unit}</small></div><div><span>喂奶间隔</span><strong>{scopeGap === null ? '—' : scopeGap.toFixed(1)}</strong><small>小时</small></div></section>
     {mode === 'total' && <section className={`trend-total-details${careBreakdownOpen ? ' expanded' : ''}`} aria-label="累计分类数据"><div title={`${activeSummary.breast} mL`}><span>母乳</span><b>{breastDisplay.amount}</b><small>{breastDisplay.unit}</small></div><div title={`${activeSummary.formula} mL`}><span>奶粉</span><b>{formulaDisplay.amount}</b><small>{formulaDisplay.unit}</small></div><div><span>排便</span><b>{activeSummary.bowel}</b><small>次</small></div><button type="button" className="trend-care-total" aria-expanded={careBreakdownOpen} aria-controls="trend-care-breakdown" onClick={() => setCareBreakdownOpen(value => !value)}><span className="trend-care-label">护理<ChevronDown aria-hidden="true" /></span><b>{activeSummary.supplements}</b><small>次</small></button>{careBreakdownOpen && <div className="trend-care-breakdown" id="trend-care-breakdown"><div className="trend-care-breakdown-head"><b>项目明细</b><small>合计 {activeSummary.supplements} 次</small></div>{careBreakdown.length ? <ul>{careBreakdown.map(item => <li key={item.name}><span>{item.name}</span><b>{item.count}<small>次</small></b></li>)}</ul> : <p>暂无护理项目</p>}</div>}</section>}
     <section className="chart-card"><div className="section-title"><h2>{chartTitle}</h2><div className="legend"><i className="breast" />母乳<i className="formula" />奶粉</div></div><div className="bar-chart" style={{ gridTemplateColumns: `repeat(${Math.max(1, chartData.length)}, minmax(30px, 1fr))` }}>{chartData.map(item => { const hasFeedingRecord = item.feeds > 0; const bucketMilk = item.breast + item.formula; const bucketDisplay = formatMilkVolume(bucketMilk); const bucketLabel = bucketDisplay.unit === 'L' ? `${bucketDisplay.amount} L` : `${bucketDisplay.amount}`; return <div className={`bar-day ${hasFeedingRecord ? '' : 'no-data'}`} key={item.key} aria-label={hasFeedingRecord ? `${item.label}，母乳${item.breast} mL，奶粉${item.formula} mL` : `${item.label}，无喂奶记录`}><div className="bar-value" title={hasFeedingRecord ? `${bucketMilk} mL` : undefined}>{hasFeedingRecord ? bucketLabel : '—'}</div><div className="bar-track"><i className="formula" style={{ height: `${item.formula / maxMilk * 100}%` }} /><i className="breast" style={{ height: `${item.breast / maxMilk * 100}%` }} /></div><span>{item.axis}</span></div>; })}</div><details className="chart-details"><summary>{detailLabel}</summary><div className="chart-values">{detailData.map(item => { const breast = formatMilkVolume(item.breast); const formula = formatMilkVolume(item.formula); return <div key={item.key}><time>{item.label}</time><span title={`${item.breast} mL`}>母乳 {breast.amount} {breast.unit}</span><span title={`${item.formula} mL`}>奶粉 {formula.amount} {formula.unit}</span></div>; })}</div></details></section>
     <FeedingRhythmChart records={records} mode={mode} weekStarts={weekStarts} />

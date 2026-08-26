@@ -3,7 +3,7 @@ html[data-visual-theme="travel"][data-theme="light"] body {
   background:
     radial-gradient(circle at 8% 3%, rgba(255, 255, 255, .98) 0 9%, transparent 31%),
     radial-gradient(circle at 94% 88%, rgba(191, 178, 163, .30), transparent 29%),
-    linear-gradient(155deg, #fdfcf9 0%, #f3ede6 48%, #e7e0d6 100%);
+    linear-gradient(155deg, #fdfcf9 0%, #f9f6f0 48%, #f7f4ef 100%);
   background-attachment: fixed;
 }
 
@@ -56,7 +56,7 @@ html[data-visual-theme="travel"][data-theme="light"] .today-workbench {
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .today-insights {
-  border-color: #dcd4ca;
+  border-color: var(--line);
   background: rgba(252, 250, 247, .97);
   box-shadow: 0 1px 2px rgba(75, 62, 50, .05), 0 5px 14px rgba(75, 62, 50, .04);
 }

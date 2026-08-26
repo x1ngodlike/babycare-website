@@ -70,22 +70,22 @@ html[data-theme="dark"] .backup-file-delete:hover {
   color: var(--danger);
 }
 html[data-theme="dark"] .backup-type-tag.auto {
-  background: #3a3a3a;
+  background: var(--surface-subtle);
   color: var(--muted);
 }
 html[data-theme="dark"] .prediction-banner.overdue {
-  border-color: #6b4a2e;
-  background: #352618;
+  border-color: var(--border-overdue);
+  background: var(--surface-danger-soft);
 }
 html[data-theme="dark"] .prediction-banner.soon {
-  border-color: #6b5a2e;
-  background: #35301a;
+  border-color: var(--border-soon);
+  background: var(--surface-plan);
 }
-html[data-theme="dark"] .prediction-banner.overdue .prediction-icon { background: var(--surface-overdue-soft); color: #e0894a; }
-html[data-theme="dark"] .prediction-banner.soon .prediction-icon { background: var(--surface-soon-soft); color: #d4a84a; }
-html[data-theme="dark"] .prediction-banner.overdue .prediction-label { color: #e0894a; }
-html[data-theme="dark"] .prediction-banner.overdue .prediction-time { color: #e0894a; }
-html[data-theme="dark"] .prediction-banner.overdue .prediction-upcoming-count { background: var(--surface-overdue-soft); color: #e0894a; }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-icon { background: var(--surface-overdue-soft); color: var(--text-overdue); }
+html[data-theme="dark"] .prediction-banner.soon .prediction-icon { background: var(--surface-soon-soft); color: var(--text-soon); }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-label { color: var(--text-overdue); }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-time { color: var(--text-overdue); }
+html[data-theme="dark"] .prediction-banner.overdue .prediction-upcoming-count { background: var(--surface-overdue-soft); color: var(--text-overdue); }
 html[data-theme="dark"] .prediction-detail {
   background: var(--surface-subtle);
   border-top-color: var(--line);
@@ -115,11 +115,11 @@ html[data-theme="dark"] .prediction-banner.ai-predicted .prediction-time::after 
   background: var(--token-brand-faint);
 }
 html[data-theme="dark"] .prediction-banner.ai-predicted.overdue .prediction-time::after {
-  color: #e0894a;
+  color: var(--text-overdue);
   background: var(--surface-overdue-soft);
 }
 html[data-theme="dark"] .prediction-banner.ai-predicted.soon .prediction-time::after {
-  color: #d4a84a;
+  color: var(--text-soon);
   background: var(--surface-soon-soft);
 }
 html[data-theme="dark"] .prediction-upcoming-count { background: var(--brand-faint); color: var(--brand); }
@@ -146,7 +146,7 @@ html[data-theme="dark"] .audit-log-icon {
   color: var(--brand);
 }
 html[data-theme="dark"] .audit-log-item.failed .audit-log-icon {
-  background: #3d2a2a;
+  background: var(--surface-danger-soft);
   color: var(--danger);
 }
 html[data-theme="dark"] .audit-log-status.success {
@@ -154,7 +154,7 @@ html[data-theme="dark"] .audit-log-status.success {
   color: var(--brand);
 }
 html[data-theme="dark"] .audit-log-status.failure {
-  background: #3d2a2a;
+  background: var(--surface-danger-soft);
   color: var(--danger);
 }
 html[data-theme="dark"] .audit-log-item {
@@ -170,7 +170,7 @@ html[data-theme="dark"] .push-rule-row,
 html[data-theme="dark"] .push-channel-row { border-color: var(--line); }
 html[data-theme="dark"] .btn.danger-button.secondary {
   background: transparent;
-  border-color: #5a3f3c;
+  border-color: var(--danger);
   color: var(--danger);
 }
 html[data-theme="dark"] .auth-page,
@@ -199,12 +199,12 @@ html[data-theme="dark"] .app-nav button img { opacity: .68; filter: saturate(.72
 html[data-theme="dark"] .floating-add,
 html[data-theme="dark"] .app-nav .nav-add {
   background: linear-gradient(180deg, #d48540, #b86b28);
-  border-color: #3a2a1c;
-  color: #fff;
+  border-color: var(--border-overdue);
+  color: var(--action-primary-text);
 }
 html[data-theme="dark"] .floating-add span,
 html[data-theme="dark"] .app-nav .nav-add span {
-  color: #fff;
+  color: var(--action-primary-text);
 }
 html[data-theme="dark"] .app-nav .nav-add:hover,
 html[data-theme="dark"] .app-nav .nav-add:active {
@@ -392,10 +392,10 @@ html[data-theme="dark"] .today-baby-summary span {
 }
 html[data-theme="dark"] .toast {
   background: var(--ink);
-  color: #171716;
+  color: var(--surface-page);
 }
 html[data-theme="dark"] .toast button {
-  background: #171716;
+  background: var(--surface-page);
   color: var(--brand-deep);
 }
 html[data-theme="dark"] .metric-band,
@@ -431,11 +431,11 @@ html[data-theme="dark"] .vaccine-card-tools > span {
 html[data-theme="dark"] .vaccine-card-head > span.soon,
 html[data-theme="dark"] .vaccine-card-tools > span.soon {
   background: var(--cream);
-  color: #c98a4a;
+  color: var(--text-soon);
 }
 html[data-theme="dark"] .vaccine-card-head > span.overdue,
 html[data-theme="dark"] .vaccine-card-tools > span.overdue {
-  background: #5a3330;
+  background: var(--surface-overdue-soft);
   color: var(--danger);
 }
 html[data-theme="dark"] .vaccine-reminder-card p,
@@ -551,7 +551,7 @@ html[data-theme="dark"] .vaccine-source-note {
 }
 html[data-theme="dark"] .vaccine-upcoming-list .vaccine-card-head > span.overdue,
 html[data-theme="dark"] .vaccine-upcoming-list .vaccine-card-tools > span.overdue {
-  background: #5a3330;
+  background: var(--surface-overdue-soft);
   color: var(--danger);
 }
 html[data-theme="dark"] .vaccine-overview > div b,
@@ -646,7 +646,7 @@ html[data-theme="dark"] .btn.primary {
 html[data-theme="dark"] .today-plan-list .btn.primary {
   border: none;
   background: linear-gradient(135deg, #f0983d 0%, #e97e2f 100%);
-  color: #fff;
+  color: var(--action-primary-text);
   box-shadow: 0 1px 3px rgba(233, 126, 47, 0.3);
 }
 html[data-theme="dark"] .today-plan-list .btn.primary:not(:disabled):hover {

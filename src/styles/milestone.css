@@ -20,7 +20,7 @@
 .category-social .badge-category-icon { background: #f5e9e6; color: #8c5a52; }
 .category-self_care .badge-category-icon { background: #e3f0ed; color: #3f716b; }
 .milestone-badge.ms-badge-upcoming { opacity: .68; }
-.milestone-badge.ms-badge-achieved::after { content: '✓'; position: absolute; right: -2px; bottom: -2px; width: 16px; height: 16px; border: 2px solid var(--surface-card); border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 9px; font-weight: 900; }
+.milestone-badge.ms-badge-achieved::after { content: '✓'; position: absolute; right: -2px; bottom: -2px; width: 16px; height: 16px; border: 2px solid var(--surface-card); border-radius: 50%; background: var(--brand); color: var(--action-primary-text); display: grid; place-items: center; font-size: 9px; font-weight: 900; }
 .milestone-def-desc { display: block; margin-top: var(--space-1); color: var(--muted); font-size: var(--text-meta); line-height: 1.5; }
 
 .growth-guide-page { --guide-line: var(--line); gap: 0; max-width: 1180px; margin: 0 auto; padding-bottom: 24px; }
@@ -163,7 +163,7 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 .guide-task-actions button { min-height: 36px; padding: 0 11px; border: 1px solid var(--guide-line); border-radius: 8px; background: var(--surface-card); color: var(--ink); font-size: 11px; font-weight: 800; cursor: pointer; }
 .guide-task-actions button:disabled, .guide-check:disabled { cursor: wait; opacity: .58; }
 .guide-task-actions button:first-child { display: inline-flex; align-items: center; gap: 4px; border-color: var(--brand); color: var(--brand-deep); }
-.guide-task-actions button.active { background: var(--brand); color: #fff; }
+.guide-task-actions button.active { background: var(--brand); color: var(--action-primary-text); }
 .guide-task-actions svg { width: 13px; }
 
 .guide-season-list { display: grid; margin-top: 14px; }
@@ -178,7 +178,7 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 .guide-shopping-list li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 15px 0; border-bottom: 1px solid var(--guide-line); }
 .guide-shopping-list li.done { opacity: .65; }
 .guide-shopping-list li.done h3 { text-decoration: line-through; }
-.guide-check { width: 22px; height: 22px; margin-top: 2px; padding: 0; border: 1.5px solid var(--line-strong); border-radius: 6px; background: var(--surface-card); color: #fff; display: grid; place-items: center; line-height: 0; cursor: pointer; }
+.guide-check { width: 22px; height: 22px; margin-top: 2px; padding: 0; border: 1.5px solid var(--line-strong); border-radius: 6px; background: var(--surface-card); color: var(--action-primary-text); display: grid; place-items: center; line-height: 0; cursor: pointer; }
 .guide-shopping-list li.done .guide-check { border-color: var(--brand); background: var(--brand); }
 .guide-check svg { display: block; width: 14px; height: 14px; }
 .guide-level { display: inline-flex; min-height: 20px; align-items: center; padding: 0 6px; margin-bottom: 5px; border-radius: 4px; font-size: 10px; font-weight: 800; }
@@ -225,7 +225,7 @@ html[data-theme="dark"] .guide-history-icon.shopping { border: 1px solid #5d4938
 .guide-timeline li:last-child { border-left-color: transparent; }
 .guide-timeline-marker { position: absolute; left: -13px; top: 0; width: 25px; height: 25px; border: 1px solid var(--guide-line); border-radius: 50%; background: var(--surface-card); color: var(--muted); display: grid; place-items: center; }
 .guide-timeline-marker svg { width: 13px; }
-.guide-timeline li.current .guide-timeline-marker { border-color: var(--brand); background: var(--brand); color: #fff; }
+.guide-timeline li.current .guide-timeline-marker { border-color: var(--brand); background: var(--brand); color: var(--action-primary-text); }
 .guide-timeline li.past .guide-timeline-marker { background: var(--brand-faint); color: var(--brand-deep); }
 .guide-timeline small { color: var(--muted); font-size: 11px; }
 .guide-timeline h3 { margin: 2px 0; font-size: 14px; }

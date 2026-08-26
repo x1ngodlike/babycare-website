@@ -84,7 +84,7 @@
   left: 25px;
   width: 1px;
   height: auto;
-  background: #dce4d6;
+  background: var(--brand-faint);
 }
 .today-layout .today-timeline .time-col.search-time i,
 .history-timeline .time-col.search-time i { top: 41px; }
@@ -154,7 +154,7 @@
 }
 
 .native-notification-list { display: grid; border: 1px solid var(--line); border-radius: var(--radius-inner); overflow: hidden; }
-.native-notification-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 13px 14px; background: #fff; }
+.native-notification-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 13px 14px; background: var(--surface-card); }
 .native-notification-row + .native-notification-row { border-top: 1px solid var(--line); }
 .native-notification-row > div:first-child { display: grid; gap: 3px; }
 .native-notification-row small, .form-switch-row small { color: var(--muted); font-size: 12px; line-height: 1.45; }
