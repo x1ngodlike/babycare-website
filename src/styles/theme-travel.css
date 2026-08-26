@@ -1,0 +1,278 @@
+/* 云端旅志：仅替换品牌绿，成功/警告/危险等语义状态色保持原规则。 */
+html[data-visual-theme="travel"][data-theme="light"] {
+  --ink: #2c3e4b;
+  --muted: #667985;
+  --text-secondary: #607481;
+  --text-tertiary: #738590;
+  --green: #678da8;
+  --green-deep: #355873;
+  --sage: #dfe8ed;
+  --sage-soft: #eef2f4;
+  --line: #e0e5e8;
+  --line-strong: #d0d9de;
+  --line-sage: #d4dfe5;
+  --focus: #527d9a;
+  --accent: #678da8;
+  --border: #dce3e7;
+  --border-strong: #cfd9de;
+  --surface-page: #f3f5f6;
+  --surface-card: #fdfdfc;
+  --surface-subtle: #f0f3f4;
+  --surface-muted: #e9edef;
+  --surface-control: #fff;
+  --surface-container: #fdfdfc;
+  --surface-container-border: #dfe5e8;
+  --surface-interactive-hover: #f0f3f4;
+  --surface-interactive-active: #e8eef1;
+  --surface-interactive-disabled: #e9edef;
+  --overlay-backdrop: rgba(30, 51, 66, .48);
+  --divider: #e0e5e8;
+  --chevron: #738590;
+  --status-brand-bg: #e7f0f6;
+  --status-brand-text: #355873;
+  --control-bg-hover: #f0f3f4;
+  --control-bg-disabled: #e9edef;
+  --control-border: #d0d9de;
+  --control-border-hover: #7d9fb6;
+  --control-border-focus: #527d9a;
+  --control-placeholder: #738590;
+  --action-secondary-bg: #fdfdfc;
+  --action-secondary-bg-hover: #f0f3f4;
+  --action-secondary-bg-active: #e9edef;
+  --action-secondary-border: #d0d9de;
+  --action-secondary-text: #355873;
+  --tag-program-bg: #dceaf2;
+  --tag-program-text: #355873;
+  --shadow-card: 0 1px 2px rgba(47, 77, 96, .08), 0 10px 26px rgba(47, 77, 96, .06);
+  --shadow-container: 0 1px 2px rgba(47, 77, 96, .06);
+  background: #eef1f3;
+  color: var(--ink);
+}
+
+html[data-visual-theme="travel"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 3%, rgba(255, 255, 255, .98) 0 9%, transparent 31%),
+    radial-gradient(circle at 94% 88%, rgba(194, 211, 221, .34), transparent 29%),
+    linear-gradient(155deg, #fefefe 0%, #f4f6f7 48%, #eceff1 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] #root,
+html[data-visual-theme="travel"][data-theme="dark"] #root {
+  background: transparent;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .app::before,
+html[data-visual-theme="travel"][data-theme="light"] .app::after {
+  background: rgba(151, 174, 187, .09);
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .user-pill,
+html[data-visual-theme="travel"][data-theme="light"] .network-pill {
+  border-color: rgba(194, 213, 224, .9);
+  background: rgba(251, 253, 255, .92);
+  box-shadow: 0 4px 14px rgba(55, 86, 105, .08);
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .settings-card,
+html[data-visual-theme="travel"][data-theme="light"] .chart-card,
+html[data-visual-theme="travel"][data-theme="light"] .archive-profile,
+html[data-visual-theme="travel"][data-theme="light"] .growth-history,
+html[data-visual-theme="travel"][data-theme="light"] .settings-menu,
+html[data-visual-theme="travel"][data-theme="light"] .account-card,
+html[data-visual-theme="travel"][data-theme="light"] .vaccine-overview,
+html[data-visual-theme="travel"][data-theme="light"] .vaccine-next,
+html[data-visual-theme="travel"][data-theme="light"] .vaccine-record-section,
+html[data-visual-theme="travel"][data-theme="light"] .vaccine-archive-summary,
+html[data-visual-theme="travel"][data-theme="light"] .vaccine-schedule-group,
+html[data-visual-theme="travel"][data-theme="light"] .vaccine-calendar-card,
+html[data-visual-theme="travel"][data-theme="light"] .vaccine-month-agenda,
+html[data-visual-theme="travel"][data-theme="light"] .growth-assessment-card,
+html[data-visual-theme="travel"][data-theme="light"] .growth-curve-card {
+  border-color: var(--surface-container-border);
+  background-color: rgba(253, 253, 252, .97);
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .today-workbench .quick-section {
+  background: #fafbfb;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .today-workbench {
+  border-color: #dfe5e8;
+  background: rgba(253, 253, 252, .97);
+  box-shadow: 0 1px 2px rgba(55, 72, 82, .05), 0 5px 14px rgba(55, 72, 82, .04);
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .today-insights {
+  border-color: #dfe5e8;
+  background: rgba(253, 253, 252, .97);
+  box-shadow: 0 1px 2px rgba(55, 72, 82, .05), 0 5px 14px rgba(55, 72, 82, .04);
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .metric-band {
+  background: #f8f9f9;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .metric-band > div {
+  border-color: #e1e6e8;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .metric-band span,
+html[data-visual-theme="travel"][data-theme="light"] .metric-band small {
+  color: #687882;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .info-row-label {
+  color: var(--green-deep);
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .quick-grid button:hover,
+html[data-visual-theme="travel"][data-theme="light"] .app-nav button:hover {
+  background: #eaf2f7;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active,
+html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active:hover,
+html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active:active {
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .quick-grid button:active {
+  background: #dceaf2;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .quick-grid b,
+html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active,
+html[data-visual-theme="travel"][data-theme="light"] .record-copy small {
+  color: #355873;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .today-timeline .time-col i {
+  background: #cadde8;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .today-timeline .timeline-item,
+html[data-visual-theme="travel"][data-theme="light"] .history-timeline .timeline-item {
+  border-bottom-color: #dfe5e8;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .history-timeline .time-col i {
+  background: #cadde8;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .today-layout .today-timeline .record-mark,
+html[data-visual-theme="travel"][data-theme="light"] .history-timeline .record-mark {
+  border-color: #d5e0e5;
+  background: #f0f3f5;
+  box-shadow: inset 0 2px 5px rgba(55, 88, 112, .13), inset 0 -1px 2px rgba(255, 255, 255, .76);
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .overview-mark {
+  border-color: #c8dce8;
+  background: #f4f9fc;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .care-choice-groups .care-choice-grid button.selected {
+  border-color: var(--green);
+  color: var(--green-deep);
+  box-shadow: inset 0 0 0 1px var(--green);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] {
+  --ink: #e5edf2;
+  --muted: #a9b7c1;
+  --text-secondary: #b4c1c9;
+  --text-tertiary: #8f9faa;
+  --green: #83aac2;
+  --green-deep: #bad3e2;
+  --sage: #344b5a;
+  --sage-soft: #263845;
+  --line: #3b4851;
+  --line-strong: #52636f;
+  --line-sage: #385365;
+  --focus: #8bb7d1;
+  --accent: #83aac2;
+  --border: #3b4851;
+  --border-strong: #52636f;
+  --surface-page: #151a1e;
+  --surface-card: #20272c;
+  --surface-subtle: #273139;
+  --surface-muted: #303b43;
+  --surface-control: #283137;
+  --surface-container: #20272c;
+  --surface-container-border: #3b4b56;
+  --surface-interactive-hover: #28333b;
+  --surface-interactive-active: #293d4a;
+  --surface-interactive-disabled: #303b43;
+  --divider: #3b4851;
+  --chevron: #8f9faa;
+  --status-brand-bg: #263b49;
+  --status-brand-text: #bad3e2;
+  --control-bg: #283137;
+  --control-bg-hover: #303b43;
+  --control-bg-disabled: #354048;
+  --control-border: #52636f;
+  --control-border-hover: #83aac2;
+  --control-border-focus: #8bb7d1;
+  --control-placeholder: #8f9faa;
+  --action-secondary-bg: #20272c;
+  --action-secondary-bg-hover: #29343b;
+  --action-secondary-bg-active: #303b43;
+  --action-secondary-border: #52636f;
+  --action-secondary-text: #e5edf2;
+  --tag-program-bg: #304858;
+  --tag-program-text: #bad3e2;
+  color: var(--ink);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 8% 4%, rgba(131, 170, 194, .045) 0 10%, transparent 32%),
+    radial-gradient(circle at 95% 92%, rgba(72, 108, 132, .06), transparent 25%),
+    linear-gradient(180deg, #182027 0%, var(--surface-page) 48%, #12171b 100%);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] .app::before,
+html[data-visual-theme="travel"][data-theme="dark"] .app::after {
+  background: rgba(91, 137, 166, .07);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] .network-pill,
+html[data-visual-theme="travel"][data-theme="dark"] .user-pill {
+  background: rgba(31, 40, 46, .92);
+  border-color: rgba(72, 92, 105, .88);
+  color: var(--green);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] .settings-card,
+html[data-visual-theme="travel"][data-theme="dark"] .chart-card,
+html[data-visual-theme="travel"][data-theme="dark"] .rhythm-list,
+html[data-visual-theme="travel"][data-theme="dark"] .settings-menu,
+html[data-visual-theme="travel"][data-theme="dark"] .account-card,
+html[data-visual-theme="travel"][data-theme="dark"] .archive-profile,
+html[data-visual-theme="travel"][data-theme="dark"] .growth-history,
+html[data-visual-theme="travel"][data-theme="dark"] .growth-assessment-card,
+html[data-visual-theme="travel"][data-theme="dark"] .growth-curve-card,
+html[data-visual-theme="travel"][data-theme="dark"] .vaccine-overview,
+html[data-visual-theme="travel"][data-theme="dark"] .vaccine-next,
+html[data-visual-theme="travel"][data-theme="dark"] .vaccine-record-section,
+html[data-visual-theme="travel"][data-theme="dark"] .vaccine-archive-summary,
+html[data-visual-theme="travel"][data-theme="dark"] .vaccine-schedule-group,
+html[data-visual-theme="travel"][data-theme="dark"] .vaccine-calendar-card,
+html[data-visual-theme="travel"][data-theme="dark"] .vaccine-month-agenda {
+  border-color: var(--surface-container-border);
+  background-color: var(--surface-card);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] .today-layout .today-timeline .record-mark,
+html[data-visual-theme="travel"][data-theme="dark"] .history-timeline .record-mark {
+  background: linear-gradient(135deg, #293a45 0%, #304653 100%);
+  border-color: #49677a;
+  box-shadow: inset 0 2px 5px rgba(8, 18, 24, .28), inset 0 1px 0 rgba(255, 255, 255, .07), 0 2px 6px rgba(0, 0, 0, .2);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] .overview-mark {
+  background: #2d414e;
+  border-color: #49677a;
+}

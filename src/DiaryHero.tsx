@@ -9,7 +9,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
   </div>;
 }
 
-export function DiaryHeroLayer({ period, weather, showEgg = false, eggIcon }: { period: DiaryPeriod; weather: WeatherSnapshot | null; showEgg?: boolean; eggIcon?: string }) {
+export function DiaryHeroLayer({ period, weather }: { period: DiaryPeriod; weather: WeatherSnapshot | null }) {
   const periodMark = { morning: '晨', daytime: '昼', evening: '暮', night: '夜' }[period];
   return <>
     <div className={`diary-scene diary-${period} weather-${weather?.kind || 'unknown'}`} aria-hidden="true">
@@ -28,7 +28,6 @@ export function DiaryHeroLayer({ period, weather, showEgg = false, eggIcon }: { 
       <i className="diary-snow diary-snow-two" />
       <span className="diary-period-mark">{periodMark}</span>
       <span className="diary-day-stamp">TODAY</span>
-      {showEgg && eggIcon && <span className="diary-record-sticker"><img src={eggIcon} alt="" /></span>}
     </div>
   </>;
 }

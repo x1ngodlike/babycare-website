@@ -1,5 +1,8 @@
 export type WeatherHeroThemeId = 'hero-diary' | 'hero-travel';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
+export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
+export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
+import type { CareItem, CareRecord } from '../types';
 
 export const WEATHER_HERO_ASSETS = {
   'hero-diary': {
@@ -10,6 +13,21 @@ export const WEATHER_HERO_ASSETS = {
       care: '/hero/weather/nature/stickers/sticker-care.webp',
       note: '/hero/weather/nature/stickers/sticker-note.webp',
     },
+    tasks: {
+      medicine: '/hero/weather/nature/icons/tasks/medicine.webp',
+      massage: '/hero/weather/nature/icons/tasks/massage.webp',
+      bath: '/hero/weather/nature/icons/tasks/bath.webp',
+      care: '/hero/weather/nature/stickers/sticker-care.webp',
+      vaccine: '/hero/weather/nature/icons/tasks/vaccine.webp',
+      growth: '/hero/weather/nature/icons/tasks/growth.webp',
+    },
+    nav: {
+      today: '/hero/weather/nature/icons/nav/today.webp',
+      history: '/hero/weather/nature/icons/nav/records.webp',
+      chat: '/hero/weather/nature/icons/nav/chat.webp',
+      trends: '/hero/weather/nature/icons/nav/trends.webp',
+      archive: '/hero/weather/nature/icons/nav/archive.webp',
+    },
   },
   'hero-travel': {
     thumb: '/hero/weather/travel/backgrounds/morning.webp',
@@ -19,10 +37,27 @@ export const WEATHER_HERO_ASSETS = {
       care: '/hero/weather/travel/stickers/sticker-care.webp',
       note: '/hero/weather/travel/stickers/sticker-note.webp',
     },
+    tasks: {
+      medicine: '/hero/weather/travel/icons/tasks/medicine.webp',
+      massage: '/hero/weather/travel/icons/tasks/massage.webp',
+      bath: '/hero/weather/travel/icons/tasks/bath.webp',
+      care: '/hero/weather/travel/stickers/sticker-care.webp',
+      vaccine: '/hero/weather/travel/icons/tasks/vaccine.webp',
+      growth: '/hero/weather/travel/icons/tasks/growth.webp',
+    },
+    nav: {
+      today: '/hero/weather/travel/icons/nav/today.webp',
+      history: '/hero/weather/travel/icons/nav/records.webp',
+      chat: '/hero/weather/travel/icons/nav/chat.webp',
+      trends: '/hero/weather/travel/icons/nav/trends.webp',
+      archive: '/hero/weather/travel/icons/nav/archive.webp',
+    },
   },
 } as const satisfies Record<WeatherHeroThemeId, {
   thumb: string;
   stickers: Record<WeatherStickerKind, string>;
+  tasks: Record<WeatherTaskIconKind, string>;
+  nav: Record<WeatherNavIconKind, string>;
 }>;
 
 export function isWeatherHeroTheme(value: string): value is WeatherHeroThemeId {
@@ -31,4 +66,14 @@ export function isWeatherHeroTheme(value: string): value is WeatherHeroThemeId {
 
 export function getWeatherHeroAssets(value: string) {
   return isWeatherHeroTheme(value) ? WEATHER_HERO_ASSETS[value] : null;
+}
+
+export function getWeatherRecordIcon(value: string, record: CareRecord, careItems: CareItem[]) {
+  const assets = getWeatherHeroAssets(value);
+  if (!assets) return null;
+  if (record.type === 'feeding') return assets.stickers.feeding;
+  if (record.type === 'bowel') return assets.stickers.bowel;
+  if (record.type === 'note') return assets.stickers.note;
+  const itemIcon = careItems.find(item => item.name === record.supplement)?.icon ?? 'medicine';
+  return assets.tasks[itemIcon];
 }

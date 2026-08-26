@@ -25,7 +25,7 @@ function clusterRecords(list: CareRecord[]): RecordCluster[] {
 
 const hhmm = (at: string) => new Date(at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-export default function HistoryOverview({ records, careItems, selected, onShiftDay }: { records: CareRecord[]; careItems: CareItem[]; selected: Date; onShiftDay(offset: number): void }) {
+export default function HistoryOverview({ records, careItems, selected, onShiftDay, iconForRecord }: { records: CareRecord[]; careItems: CareItem[]; selected: Date; onShiftDay(offset: number): void; iconForRecord?(record: CareRecord): string }) {
   const [tipId, setTipId] = useState<string | null>(null);
   const todayKey = isoDay(new Date());
   const yesterdayKey = isoDay(addDays(new Date(), -1));
@@ -76,7 +76,7 @@ export default function HistoryOverview({ records, careItems, selected, onShiftD
             const open = tipId === head.id;
             const label = cluster.records.map(record => `${hhmm(record.occurredAt)} ${typeNames[record.type]} ${summary(record, careItems)}`).join('；');
             return <button type="button" key={head.id} className={`overview-mark-btn ${cluster.topMinutes < 60 || cluster.topMinutes > 1380 ? 'near-edge' : ''} ${open ? 'active' : ''}`} style={{ top: `${cluster.topPct}%`, left: '50%', ['--overview-top' as string]: `${cluster.topPct}%` }} aria-label={label} aria-expanded={open} onClick={event => { event.stopPropagation(); setTipId(open ? null : head.id); }}>
-              <img className="overview-mark" src={careItemIcon(head, careItems)} alt="" />
+              <img className="overview-mark" src={iconForRecord?.(head) ?? careItemIcon(head, careItems)} alt="" />
               {cluster.records.length > 1 && <span className="overview-badge">×{cluster.records.length}</span>}
             </button>;
           })}

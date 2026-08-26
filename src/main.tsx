@@ -13,6 +13,7 @@ import './styles/chat.css';
 import './styles/milestone.css';
 import './ui.css';
 import './styles/components.css';
+import './styles/theme-travel.css';
 
 createRoot(document.getElementById('root')!).render(<StrictMode><ConfirmProvider><App /></ConfirmProvider></StrictMode>);
 

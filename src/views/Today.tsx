@@ -5,7 +5,7 @@ import { api } from '../api';
 import { getCareItemReminderTimes, isCareItemDue } from '../careSchedule';
 import { canAutoOpenDailyReport, millisecondsUntilDailyReportAutoOpen } from '../dailyReport';
 import { isoDay } from '../date';
-import { getWeatherHeroAssets, type WeatherStickerKind } from '../config/weatherThemes';
+import { getWeatherHeroAssets, getWeatherRecordIcon } from '../config/weatherThemes';
 import { formatTimeShort } from '../../shared/feeding-prediction';
 import { diaryPeriodForHour, type WeatherSnapshot } from '../../shared/weather';
 import { DiaryHeroLayer, DiaryWeatherBadge } from '../DiaryHero';
@@ -91,7 +91,6 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
   const recentSorted = [...recentRecords].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   const lastRecord = recentSorted[0] || null;
   const [showGardenEgg, setShowGardenEgg] = useState(false);
-  const [showDiaryEgg, setShowDiaryEgg] = useState(false);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(() => {
     try {
       const cached = JSON.parse(localStorage.getItem('babycare:hangzhou-weather') || 'null') as WeatherSnapshot | null;
@@ -104,12 +103,6 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     const timer = window.setTimeout(() => setShowGardenEgg(false), 6_500);
     return () => window.clearTimeout(timer);
   }, [heroBg, lastRecord?.id]);
-  useEffect(() => {
-    if (!magazineTheme || !lastRecord) { setShowDiaryEgg(false); return; }
-    setShowDiaryEgg(true);
-    const timer = window.setTimeout(() => setShowDiaryEgg(false), 6_500);
-    return () => window.clearTimeout(timer);
-  }, [magazineTheme, lastRecord?.id]);
   useEffect(() => {
     if (!magazineTheme || !online) return;
     let active = true;
@@ -124,17 +117,15 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     : lastRecord?.type === 'bowel' ? '/icons/quick-bowel.png'
       : lastRecord?.type === 'supplement' ? careItemIconSources[careItems.find(item => item.name === lastRecord.supplement)?.icon || 'care']
         : '/icons/quick-note.png';
-  const diaryStickerKind: WeatherStickerKind = lastRecord?.type === 'feeding' ? 'feeding'
-    : lastRecord?.type === 'bowel' ? 'bowel'
-      : lastRecord?.type === 'supplement' ? 'care'
-        : 'note';
-  const diaryEggIcon = weatherThemeAssets?.stickers[diaryStickerKind];
   const quickIcons = weatherThemeAssets?.stickers ?? {
     feeding: '/icons/quick-feeding.png',
     bowel: '/icons/quick-bowel.png',
     care: '/icons/record-care.png',
     note: '/icons/quick-note.png',
   };
+  function themedRecordIcon(record: CareRecord) {
+    return getWeatherRecordIcon(heroBg, record, careItems) ?? careItemIconSources.medicine;
+  }
   const pendingCareItems = todayPlanStatus === 'ready' ? careItems
     .filter(item => item.active && !isScheduleOver(item) && isCareItemDue(item) && !done.has(item.name))
     .sort((a, b) => {
@@ -163,7 +154,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     const timeDisplay = timeLabel ? `今日 ${timeLabel}` : reminders.length > 0 ? `今日 ${reminders.join(' · ')}` : '今日';
     const isOverdue = timeLabel ? timeLabel < (new Date().toTimeString().slice(0, 5)) : false;
     return <article key={`medicine:${item.id}${timeLabel ? ':' + timeLabel : ''}`}>
-      <img className={`task-icon medicine${isOverdue ? ' overdue' : ''}`} src={careItemIconSources[item.icon]} alt="" />
+      <img className={`task-icon medicine${isOverdue ? ' overdue' : ''}`} src={weatherThemeAssets?.tasks[item.icon] ?? careItemIconSources[item.icon]} alt="" />
       <div><b>{item.name}</b><small>{timeDisplay} · {isCare ? '待完成' : '待记录'}</small></div>
       <div className="today-plan-actions">
         <button className="btn primary" aria-label={`记录${item.name}${isCare ? '已完成' : '已服用'}`} disabled={Boolean(savingSupplement)} onClick={() => void addSupplement(item.name)}>
@@ -186,7 +177,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
         ? `建议日${timing.label}`
         : '建议今日';
     const appointmentLabel = hadAppointmentOverdue ? '改约' : '预约';
-    return <article className={`vaccine-task${overdue ? ' overdue' : ''}`} key={`vaccine:${item.key}`}><img className="task-icon vaccine" src="/icons/task-vaccine-normalized.png" alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{statusLabel}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`${appointmentLabel}${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>{appointmentLabel}</button>}<button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>接种</button></div></article>;
+    return <article className={`vaccine-task${overdue ? ' overdue' : ''}`} key={`vaccine:${item.key}`}><img className="task-icon vaccine" src={weatherThemeAssets?.tasks.vaccine ?? '/icons/task-vaccine-normalized.png'} alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{statusLabel}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`${appointmentLabel}${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>{appointmentLabel}</button>}<button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>接种</button></div></article>;
   }
   return <div className="today-layout">
     <div className="today-profile-strip" aria-label={`宝宝信息，${getAgeProfileLine(profile.birthDate, profile.name)}`}>
@@ -194,19 +185,19 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     </div>
     <div className="today-main-column">
     <div className={`today-workbench${magazineTheme ? ' diary-workbench' : ''}`}>
-      <section className={`baby-hero ${heroBg === 'hero-travel' ? 'hero-diary hero-travel' : heroBg !== 'auto' ? heroBg : ''} hero-${heroPeriod}${magazineTheme ? ` diary-${diaryPeriod} weather-${weather?.kind || 'unknown'}${weatherEffectsEnabled ? '' : ' weather-effects-off'}` : ''}`}><div>{(() => { const { greeting, displayName } = getGreeting(profile, userId, currentHour); return magazineTheme ? <h1 className="hero-greeting-title"><span>{greeting}，</span><strong>{displayName}～</strong></h1> : <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<div className={magazineTheme ? 'diary-date-weather-row' : undefined}><p className="kicker hero-date-line">{(() => { const d = new Date(); if (magazineTheme) return `${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'short' })}`; return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p>{magazineTheme && <DiaryWeatherBadge weather={weather} />}</div><div className="hero-status">{(() => { if (!lastRecord) return <p>今日暂无记录</p>; const time = formatTimeShort(lastRecord.occurredAt); let detail = ''; if (lastRecord.type === 'feeding') { const breast = lastRecord.breastMilkMl ?? 0; const formula = lastRecord.formulaMl ?? 0; const totalMl = breast + formula; let mode = ''; if (breast > 0 && formula > 0) mode = '混合'; else if (breast > 0) mode = '母乳'; else if (formula > 0) mode = '奶粉'; detail = `喂奶${mode ? ' · ' + mode : ''}${totalMl ? ' ' + totalMl + ' mL' : ''}`; } else if (lastRecord.type === 'supplement') { const category = careItemCategory(lastRecord.supplement, careItems); detail = `${category === 'care' ? '护理' : '用药'} · ${lastRecord.supplement || ''}`; } else if (lastRecord.type === 'bowel') { detail = `排便 · ${lastRecord.bowelSize || '中'}`; } else { detail = lastRecord.subject ? `事项 · ${lastRecord.subject}` : '其他'; } const text = `上次记录${magazineTheme ? ' ' : '：'}${time} · ${detail}`; return <p title={text} aria-label={text}>{text}</p>; })()}</div></div>{heroBg === 'hero-garden' && <div className={`garden-live garden-${lastRecord?.type || 'welcome'}`} key={lastRecord?.id || 'garden-welcome'} aria-hidden="true"><i className="garden-cloud garden-cloud-one" /><i className="garden-cloud garden-cloud-two" /><i className="garden-leaf garden-leaf-one" /><i className="garden-leaf garden-leaf-two" /><span className="garden-firefly garden-firefly-one" /><span className="garden-firefly garden-firefly-two" /><span className="garden-firefly garden-firefly-three" />{showGardenEgg && <div className="garden-egg"><img src={gardenEggIcon} alt="" /><i /><i /><i /></div>}</div>}{magazineTheme && <DiaryHeroLayer period={diaryPeriod} weather={weather} showEgg={showDiaryEgg} eggIcon={diaryEggIcon} />}</section>
+      <section className={`baby-hero ${heroBg === 'hero-travel' ? 'hero-diary hero-travel' : heroBg !== 'auto' ? heroBg : ''} hero-${heroPeriod}${magazineTheme ? ` diary-${diaryPeriod} weather-${weather?.kind || 'unknown'}${weatherEffectsEnabled ? '' : ' weather-effects-off'}` : ''}`}><div>{(() => { const { greeting, displayName } = getGreeting(profile, userId, currentHour); return magazineTheme ? <h1 className="hero-greeting-title"><span>{greeting}，</span><strong>{displayName}～</strong></h1> : <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<div className={magazineTheme ? 'diary-date-weather-row' : undefined}><p className="kicker hero-date-line">{(() => { const d = new Date(); if (magazineTheme) return `${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'short' })}`; return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p>{magazineTheme && <DiaryWeatherBadge weather={weather} />}</div><div className="hero-status">{(() => { if (!lastRecord) return <p>今日暂无记录</p>; const time = formatTimeShort(lastRecord.occurredAt); let detail = ''; if (lastRecord.type === 'feeding') { const breast = lastRecord.breastMilkMl ?? 0; const formula = lastRecord.formulaMl ?? 0; const totalMl = breast + formula; let mode = ''; if (breast > 0 && formula > 0) mode = '混合'; else if (breast > 0) mode = '母乳'; else if (formula > 0) mode = '奶粉'; detail = `喂奶${mode ? ' · ' + mode : ''}${totalMl ? ' ' + totalMl + ' mL' : ''}`; } else if (lastRecord.type === 'supplement') { const category = careItemCategory(lastRecord.supplement, careItems); detail = `${category === 'care' ? '护理' : '用药'} · ${lastRecord.supplement || ''}`; } else if (lastRecord.type === 'bowel') { detail = `排便 · ${lastRecord.bowelSize || '中'}`; } else { detail = lastRecord.subject ? `事项 · ${lastRecord.subject}` : '其他'; } const text = `上次记录${magazineTheme ? ' ' : '：'}${time} · ${detail}`; return <p title={text} aria-label={text}>{text}</p>; })()}</div></div>{heroBg === 'hero-garden' && <div className={`garden-live garden-${lastRecord?.type || 'welcome'}`} key={lastRecord?.id || 'garden-welcome'} aria-hidden="true"><i className="garden-cloud garden-cloud-one" /><i className="garden-cloud garden-cloud-two" /><i className="garden-leaf garden-leaf-one" /><i className="garden-leaf garden-leaf-two" /><span className="garden-firefly garden-firefly-one" /><span className="garden-firefly garden-firefly-two" /><span className="garden-firefly garden-firefly-three" />{showGardenEgg && <div className="garden-egg"><img src={gardenEggIcon} alt="" /><i /><i /><i /></div>}</div>}{magazineTheme && <DiaryHeroLayer period={diaryPeriod} weather={weather} />}</section>
       <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>mL</small></div><div><span>奶粉</span><strong>{formula}</strong><small>mL</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
       <section className="quick-section" aria-label="快捷记录"><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src={quickIcons.feeding} alt="" /><b>喂奶</b></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src={quickIcons.bowel} alt="" /><b>排便</b></button><button onClick={() => onAdd('supplement')}><img className="quick-icon" src={quickIcons.care} alt="" /><b>护理</b></button><button onClick={() => onAdd('note')}><img className="quick-icon" src={quickIcons.note} alt="" /><b>其他</b></button></div></section>
       <PredictionBanner records={recentRecords} online={online} prepEnabled={feedPrepEnabled} prepMinutes={feedPrepMinutes} />
     </div>
     {todayPlanStatus === 'loading' && <section className="today-plan today-plan-loading" aria-label="今日待办正在读取" aria-busy="true"><h2>今日待办</h2><div className="today-plan-skeleton"><i /><div><i /><i /></div><i /></div></section>}
     {todayPlanStatus === 'error' && <section className="today-plan today-plan-error" role="status"><h2>今日待办</h2><p>计划暂时无法读取，请联网后下拉刷新。</p></section>}
-    {todayPlanStatus === 'ready' && (pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日待办</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item, task.time) : renderVaccineTask(task.item))}{untimedCareItems.map(item => renderMedicineTask(item))}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img className="task-icon growth" src="/icons/task-growth-normalized.png" alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>测量</button></div></article>}</div></section>}
+    {todayPlanStatus === 'ready' && (pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日待办</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item, task.time) : renderVaccineTask(task.item))}{untimedCareItems.map(item => renderMedicineTask(item))}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img className="task-icon growth" src={weatherThemeAssets?.tasks.growth ?? '/icons/task-growth-normalized.png'} alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>测量</button></div></article>}</div></section>}
     <div className="today-insights" aria-label="今日信息">
       {todayPlanStatus === 'ready' && <VaccineReminderCard profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onComplete={onCompleteVaccine} onAppointment={onAppointmentVaccine} />}
       <DailyReport capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} superadmin={superadmin} userId={userId} />
     </div>
     </div>
-    <div className="today-timeline"><div className="section-title"><h2>今日记录</h2><span>{records.length} 条</span></div><Timeline records={[...records].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))} careItems={careItems} manager={manager} emptyText="今日还没有记录" emptyAction={<button className="btn secondary" onClick={() => onAdd('feeding')}>记录喂奶</button>} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} hideMetadata /></div>
+    <div className="today-timeline"><div className="section-title"><h2>今日记录</h2><span>{records.length} 条</span></div><Timeline records={[...records].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))} careItems={careItems} manager={manager} emptyText="今日还没有记录" emptyAction={<button className="btn secondary" onClick={() => onAdd('feeding')}>记录喂奶</button>} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} iconForRecord={weatherThemeAssets ? themedRecordIcon : undefined} hideMetadata /></div>
   </div>;
 }

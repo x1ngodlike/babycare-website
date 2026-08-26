@@ -102,14 +102,14 @@
 .today-workbench.diary-workbench {
   --diary-workbench-radius: 25px;
   border-radius: var(--diary-workbench-radius);
-  overflow: visible;
+  overflow: hidden;
 }
 .diary-workbench .baby-hero.hero-diary {
   min-height: 132px;
   height: 132px;
   padding: 12px;
   box-sizing: border-box;
-  overflow: visible;
+  overflow: hidden;
   border-radius: calc(var(--diary-workbench-radius) - 1px) calc(var(--diary-workbench-radius) - 1px) 0 0;
 }
 .diary-workbench .baby-hero.hero-diary::before,
@@ -173,7 +173,7 @@
   left: 0;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 4px;
   min-height: 21px;
   width: max-content;
   max-width: calc(100% + 108px);
@@ -235,18 +235,23 @@
 .diary-weather {
   position: static;
   z-index: auto;
-  display: block;
-  max-width: 92px;
-  color: #394535;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: none;
+  color: #fff7e0;
+  font-size: 12px;
+  line-height: 1;
   pointer-events: none;
+  text-shadow: 0 1px 4px rgba(25, 36, 26, .28);
   transform: none;
   transform-origin: 50% 50%;
 }
-.diary-weather::before,
+.diary-weather::before { content: '·'; display: block; color: inherit; }
 .diary-weather::after { display: none; }
-.diary-weather > span { position: relative; z-index: 1; display: flex; align-items: center; gap: 3px; min-width: 0; max-width: 92px; min-height: 21px; padding: 3px 7px 3px 6px; border: 1px solid rgba(255, 250, 232, .44); border-radius: 999px; background: rgba(255, 250, 232, .8); box-shadow: 0 2px 7px rgba(42, 55, 39, .12); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); box-sizing: border-box; overflow: hidden; }
+.diary-weather > span { position: relative; z-index: 1; display: flex; align-items: center; gap: 3px; min-width: 0; max-width: none; min-height: 21px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; box-sizing: border-box; overflow: visible; }
 .diary-weather-symbol { width: 13px; height: 13px; flex: 0 0 13px; display: grid; place-items: center; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-size: 12px; font-style: normal; line-height: 1; }
-.diary-weather b { min-width: 0; max-width: 66px; overflow: hidden; font-size: 10px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.diary-weather b { min-width: 0; max-width: none; overflow: visible; color: inherit; font-size: 12px; font-weight: 600; line-height: 1; text-overflow: clip; white-space: nowrap; }
 .diary-scene { position: absolute; z-index: 1; inset: 0; overflow: hidden; pointer-events: none; }
 .diary-paper-grain { position: absolute; inset: 0; opacity: .18; background-image: radial-gradient(rgba(69,76,57,.35) .45px, transparent .6px); background-size: 5px 5px; mix-blend-mode: multiply; }
 .diary-washi { position: absolute; z-index: 3; right: 24%; top: -8px; width: 54px; height: 18px; background: rgba(242, 205, 125, .42); transform: rotate(3deg); clip-path: polygon(3% 8%, 98% 0, 94% 92%, 4% 100%, 7% 75%, 0 52%, 6% 25%); }
@@ -284,9 +289,6 @@
 .weather-effects-off .diary-scene::after { display: none; }
 .diary-period-mark { position: absolute; right: 9px; top: 52%; width: 19px; height: 19px; display: grid; place-items: center; border: 1px solid rgba(255,248,224,.48); border-radius: 50%; color: rgba(255,250,232,.82); font: 700 9px/1 serif; transform: rotate(5deg); }
 .diary-day-stamp { position: absolute; right: 13px; bottom: 9px; padding: 2px 5px; border: 1px solid rgba(255, 250, 226, .48); border-radius: 3px; color: rgba(255, 250, 226, .72); font: 700 7px/1.2 ui-monospace, monospace; letter-spacing: .12em; transform: rotate(-4deg); }
-.diary-record-sticker { position: absolute; z-index: 3; right: 27%; bottom: 10%; width: 56px; height: 56px; display: grid; place-items: center; transform: rotate(5deg); filter: drop-shadow(0 5px 5px rgba(43, 57, 39, .22)); animation: diary-sticker-in .7s cubic-bezier(.2, .9, .25, 1.3) both, diary-sticker-out .5s 5.9s ease-in forwards; }
-.diary-record-sticker img { width: 56px; height: 56px; object-fit: contain; }
-.baby-hero.hero-diary .diary-record-sticker { top: 50%; right: calc(20% - 28px); bottom: auto; margin-top: -28px; }
 .baby-hero.hero-diary .diary-paper-grain,
 .baby-hero.hero-diary .diary-washi,
 .baby-hero.hero-diary .diary-birds,
@@ -296,8 +298,6 @@
 .baby-hero.hero-diary .diary-day-stamp { display: flex; right: 12px; bottom: 12px; flex-direction: column; align-items: flex-end; gap: 1px; padding: 0; border: 0; color: rgba(255, 249, 229, .68); font-size: 7px; letter-spacing: .18em; transform: none; }
 .baby-hero.hero-diary .diary-day-stamp::after { content: 'GROWING NOTES'; font-size: 5px; letter-spacing: .12em; opacity: .72; }
 .baby-hero.hero-travel .diary-day-stamp::after { content: 'CLOUD JOURNEY'; }
-.baby-hero.hero-travel .diary-record-sticker { top: 50%; right: calc(20% - 31px); bottom: auto; width: 62px; height: 62px; margin-top: -31px; }
-.baby-hero.hero-travel .diary-record-sticker img { width: 62px; height: 62px; }
 @keyframes diary-page-arrive { from { opacity: .72; } to { opacity: 1; } }
 @keyframes diary-postcard-breathe { from { transform: scale(1); } to { transform: scale(1.015); } }
 @keyframes diary-orbit-breathe { to { transform: translateY(-3px) scale(1.04); } }
@@ -309,14 +309,10 @@
 @keyframes diary-distant-flash { 0%, 3%, 11%, 68%, 76%, 100% { opacity: 0; } 5%, 9%, 70%, 74% { opacity: .72; } 7%, 72% { opacity: .18; } }
 @keyframes diary-lightning-pulse { 0%, 2%, 14%, 66%, 82%, 100% { opacity: .23; transform: scale(1); } 4%, 12%, 69%, 79% { opacity: .78; transform: scale(1.014); } 8%, 74% { opacity: .38; transform: scale(1.006); } }
 @keyframes diary-stars-twinkle { from { opacity: .45; } to { opacity: .95; } }
-@keyframes diary-sticker-in { from { transform: translate(24px, 20px) rotate(18deg) scale(.25); opacity: 0; } to { transform: translate(0, 0) rotate(5deg) scale(1); opacity: 1; } }
-@keyframes diary-sticker-out { to { transform: translate(8px, -7px) rotate(12deg) scale(.6); opacity: 0; } }
 
 @media (max-width: 430px) {
   .today-layout .baby-hero.hero-diary > div:first-child { width: 59%; padding-right: 5px; padding-left: 0; }
   .baby-hero.hero-diary .hero-greeting-title { font-size: 18px; }
-  .diary-weather > span { padding-inline: 6px 7px; }
-  .diary-record-sticker { right: 27%; bottom: 9%; }
 }
 
 /* Hero 折纸童趣方案 */
@@ -784,6 +780,53 @@
   gap: 10px;
   margin-top: 8px;
 }
+.hero-theme-icons-preview {
+  margin-top: 10px;
+  padding: 10px 12px 9px;
+  border: 1px solid var(--surface-container-border);
+  border-radius: var(--radius-card);
+  background: var(--surface-container);
+  box-shadow: var(--shadow-container);
+}
+.hero-theme-icons-preview > h3 {
+  margin: 0 0 9px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.3;
+}
+.hero-theme-icon-group + .hero-theme-icon-group { margin-top: 9px; }
+.hero-theme-icon-group > p {
+  margin: 0 0 7px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.hero-theme-icon-group > div {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+.hero-theme-icon-group span {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.hero-theme-icon-group img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+.hero-theme-icon-group b {
+  color: var(--ink);
+  font-size: 10px;
+  line-height: 1.35;
+}
+@media (max-width: 380px) {
+  .hero-theme-icon-group > div { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
 .hero-preview-list .baby-hero {
   position: relative;
   min-height: 132px;
