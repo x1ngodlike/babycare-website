@@ -1,62 +1,4 @@
 /* 云端旅志：暖灰调主题 —— 仅替换品牌色与背景色，成功/警告/危险等语义状态色保持原规则。 */
-html[data-visual-theme="travel"][data-theme="light"] {
-  /* 文字层级 */
-  --ink: #3a3734;
-  --muted: #6f6a64;
-  --text-secondary: #68635d;
-  --text-tertiary: #827c75;
-  /* 品牌色层级：deep → brand → soft → faint，由深到浅 */
-  --brand: #96877a;
-  --brand-deep: #5d534a;
-  --brand-soft: #ebe5de;
-  --brand-faint: #f1ede8;
-  /* 线条与边框 */
-  --line: #d8d2cb;
-  --line-strong: #c8c0b7;
-  --line-brand: #d8d0c7;
-  --focus: #7a6c60;
-  --border: #d5cec5;
-  --border-strong: #c6bdb3;
-  /* 表面层级 */
-  --surface-page: #f4f1ed;
-  --surface-card: #fcfaf7;
-  --surface-subtle: #f0ece6;
-  --surface-muted: #e8e2da;
-  --surface-control: #fff;
-  --surface-container: #fcfaf7;
-  --surface-container-border: #dcd4ca;
-  --surface-interactive-hover: #f0ece6;
-  --surface-interactive-active: #e8e0d7;
-  --surface-interactive-disabled: #e8e2da;
-  /* 遮罩与分隔 */
-  --overlay-backdrop: rgba(58, 48, 40, .45);
-  --chevron: #827c75;
-  /* 品牌状态色 */
-  --status-brand-bg: #ece4d9;
-  --status-brand-text: #5d534a;
-  /* 控件状态 */
-  --control-bg-hover: #f0ece6;
-  --control-bg-disabled: #e8e2da;
-  --control-border: #c8c0b7;
-  --control-border-hover: #a69788;
-  --control-border-focus: #7a6c60;
-  --control-placeholder: #827c75;
-  /* 次级按钮 */
-  --action-secondary-bg: #fcfaf7;
-  --action-secondary-bg-hover: #f0ece6;
-  --action-secondary-bg-active: #e8e2da;
-  --action-secondary-border: #c8c0b7;
-  --action-secondary-text: #5d534a;
-  /* 标签 */
-  --tag-program-bg: #e6ddce;
-  --tag-program-text: #5d534a;
-  /* 阴影 */
-  --shadow-card: 0 1px 2px rgba(70, 55, 42, .08), 0 10px 26px rgba(70, 55, 42, .06);
-  --shadow-container: 0 1px 2px rgba(70, 55, 42, .06);
-  background: #ede8e1;
-  color: var(--ink);
-}
-
 html[data-visual-theme="travel"][data-theme="light"] body {
   background:
     radial-gradient(circle at 8% 3%, rgba(255, 255, 255, .98) 0 9%, transparent 31%),
@@ -104,11 +46,11 @@ html[data-visual-theme="travel"][data-theme="light"] .growth-curve-card {
 
 /* 工作台/洞察面板 */
 html[data-visual-theme="travel"][data-theme="light"] .today-workbench .quick-section {
-  background: #faf7f2;
+  background: var(--token-quick-section-bg);
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .today-workbench {
-  border-color: #dcd4ca;
+  border-color: var(--token-surface-container-border);
   background: rgba(252, 250, 247, .97);
   box-shadow: 0 1px 2px rgba(75, 62, 50, .05), 0 5px 14px rgba(75, 62, 50, .04);
 }
@@ -121,16 +63,16 @@ html[data-visual-theme="travel"][data-theme="light"] .today-insights {
 
 /* 指标带 */
 html[data-visual-theme="travel"][data-theme="light"] .metric-band {
-  background: #f6f2ec;
+  background: var(--token-metric-band-bg);
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .metric-band > div {
-  border-color: #ddd5cb;
+  border-color: var(--token-metric-band-divider);
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .metric-band span,
 html[data-visual-theme="travel"][data-theme="light"] .metric-band small {
-  color: #726c64;
+  color: var(--token-metric-band-text);
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .info-row-label {
@@ -140,7 +82,7 @@ html[data-visual-theme="travel"][data-theme="light"] .info-row-label {
 /* 按钮/导航 hover 态 */
 html[data-visual-theme="travel"][data-theme="light"] .quick-grid button:hover,
 html[data-visual-theme="travel"][data-theme="light"] .app-nav button:hover {
-  background: #ede4d9;
+  background: var(--token-quick-grid-hover);
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active,
@@ -151,103 +93,56 @@ html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active:acti
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .quick-grid button:active {
-  background: #ddd0c0;
+  background: var(--token-quick-grid-active);
 }
 
-html[data-visual-theme="travel"][data-theme="light"] .quick-grid b,
-html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active,
+html[data-visual-theme="travel"][data-theme="light"] .quick-grid b {
+  color: var(--token-quick-grid-text);
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active {
+  color: var(--token-app-nav-active);
+}
+
 html[data-visual-theme="travel"][data-theme="light"] .record-copy small {
-  color: #5d534a;
+  color: var(--token-record-copy-small);
 }
 
 /* 时间轴 */
 html[data-visual-theme="travel"][data-theme="light"] .today-timeline .time-col i {
-  background: #cfc3b5;
+  background: var(--token-surface-timeline-dot);
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .today-timeline .timeline-item,
 html[data-visual-theme="travel"][data-theme="light"] .history-timeline .timeline-item {
-  border-bottom-color: #dcd4ca;
+  border-bottom-color: var(--token-timeline-item-border);
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .history-timeline .time-col i {
-  background: #cfc3b5;
+  background: var(--token-surface-timeline-dot);
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .today-layout .today-timeline .record-mark,
 html[data-visual-theme="travel"][data-theme="light"] .history-timeline .record-mark {
-  border-color: #c9c0b5;
-  background: #f1ece5;
+  border-color: var(--token-record-mark-border);
+  background: var(--token-record-mark-bg);
   box-shadow: inset 0 2px 5px rgba(80, 65, 50, .13), inset 0 -1px 2px rgba(255, 255, 255, .76);
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .overview-mark {
-  border-color: #bfb3a4;
-  background: #f5efe6;
+  border-color: var(--token-overview-mark-border);
+  background: var(--token-overview-mark-bg);
 }
 
 /* 照护选项选中态 */
 html[data-visual-theme="travel"][data-theme="light"] .care-choice-groups .care-choice-grid button.selected {
-  border-color: var(--brand);
+  border-color: var(--token-choice-selected-border);
+  background: var(--token-choice-selected-bg);
   color: var(--brand-deep);
   box-shadow: inset 0 0 0 1px var(--brand);
 }
 
 /* ===== Dark 模式 ===== */
-html[data-visual-theme="travel"][data-theme="dark"] {
-  /* 文字层级 */
-  --ink: #e6ddcf;
-  --muted: #a49b90;
-  --text-secondary: #b3a99c;
-  --text-tertiary: #867d72;
-  /* 品牌色层级：deep → brand → soft → faint */
-  --brand: #aa9b8c;
-  --brand-deep: #d6cabd;
-  --brand-soft: #38322c;
-  --brand-faint: #2b2622;
-  /* 线条与边框 */
-  --line: #3a332d;
-  --line-strong: #504841;
-  --line-brand: #3a332d;
-  --focus: #b8a99b;
-  --border: #3a332d;
-  --border-strong: #504841;
-  /* 表面层级 */
-  --surface-page: #1a1816;
-  --surface-card: #23201d;
-  --surface-subtle: #2a2723;
-  --surface-muted: #33302c;
-  --surface-control: #292623;
-  --surface-container: #23201d;
-  --surface-container-border: #3a332d;
-  --surface-interactive-hover: #2c2925;
-  --surface-interactive-active: #33302c;
-  --surface-interactive-disabled: #33302c;
-  /* 分隔与控件 */
-  --chevron: #867d72;
-  /* 品牌状态色 */
-  --status-brand-bg: #38322c;
-  --status-brand-text: #d6cabd;
-  /* 控件 */
-  --control-bg: #292623;
-  --control-bg-hover: #33302c;
-  --control-bg-disabled: #36332f;
-  --control-border: #504841;
-  --control-border-hover: #aa9b8c;
-  --control-border-focus: #b8a99b;
-  --control-placeholder: #867d72;
-  /* 次级按钮 */
-  --action-secondary-bg: #23201d;
-  --action-secondary-bg-hover: #2c2925;
-  --action-secondary-bg-active: #33302c;
-  --action-secondary-border: #504841;
-  --action-secondary-text: #e6ddcf;
-  /* 标签 */
-  --tag-program-bg: #3d352d;
-  --tag-program-text: #d6cabd;
-  color: var(--ink);
-}
-
 html[data-visual-theme="travel"][data-theme="dark"] body {
   background:
     radial-gradient(circle at 8% 4%, rgba(170, 155, 140, .05) 0 10%, transparent 32%),
@@ -262,8 +157,8 @@ html[data-visual-theme="travel"][data-theme="dark"] .app::after {
 
 html[data-visual-theme="travel"][data-theme="dark"] .network-pill,
 html[data-visual-theme="travel"][data-theme="dark"] .user-pill {
-  background: rgba(30, 27, 24, .92);
-  border-color: rgba(80, 65, 50, .88);
+  background: var(--token-pill-bg);
+  border-color: var(--token-pill-border);
   color: var(--brand);
 }
 
@@ -289,12 +184,61 @@ html[data-visual-theme="travel"][data-theme="dark"] .vaccine-month-agenda {
 
 html[data-visual-theme="travel"][data-theme="dark"] .today-layout .today-timeline .record-mark,
 html[data-visual-theme="travel"][data-theme="dark"] .history-timeline .record-mark {
-  background: linear-gradient(135deg, #2a2420 0%, #332c26 100%);
-  border-color: #4c4238;
+  background: var(--token-record-mark-bg);
+  border-color: var(--token-record-mark-border);
   box-shadow: inset 0 2px 5px rgba(10, 8, 6, .30), inset 0 1px 0 rgba(255, 255, 255, .07), 0 2px 6px rgba(0, 0, 0, .22);
 }
 
 html[data-visual-theme="travel"][data-theme="dark"] .overview-mark {
-  background: #312a24;
-  border-color: #4c4238;
+  background: var(--token-overview-mark-bg);
+  border-color: var(--token-overview-mark-border);
+}
+
+/* 快捷区文字颜色：覆盖 dark.css 中默认的绿色 #c5d3be */
+html[data-visual-theme="travel"][data-theme="dark"] .quick-grid b {
+  color: var(--token-quick-grid-text);
+}
+
+/* 记录列表副文字：覆盖 dark.css 中默认的绿色 #8fae7b */
+html[data-visual-theme="travel"][data-theme="dark"] .history-timeline .record-copy small,
+html[data-visual-theme="travel"][data-theme="dark"] .today-timeline .record-copy small {
+  color: var(--token-record-copy-small);
+}
+
+/* 时间轴刻度圆点：覆盖 dark.css 中默认的绿色 line 值 */
+html[data-visual-theme="travel"][data-theme="dark"] .history-timeline .time-col i,
+html[data-visual-theme="travel"][data-theme="dark"] .today-timeline .time-col i,
+html[data-visual-theme="travel"][data-theme="dark"] .today-layout .today-timeline .time-col i {
+  background: var(--token-surface-timeline-dot);
+}
+
+/* 选中态图标按钮：覆盖 dark.css 中默认的绿色阴影 */
+html[data-visual-theme="travel"][data-theme="dark"] .meta-icon-btn.selected {
+  background: var(--brand-faint);
+  border: 2px solid var(--brand-deep);
+  box-shadow: 0 0 0 3px rgba(170, 155, 140, .20);
+}
+
+/* 工作台快捷区背景：覆盖 dark.css 中默认的绿色调 */
+html[data-visual-theme="travel"][data-theme="dark"] .today-workbench .quick-section {
+  background: var(--surface-subtle);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] .quick-grid button:hover {
+  background: var(--token-quick-grid-hover);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] .quick-grid button:active {
+  background: var(--token-quick-grid-active);
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] .quick-grid button {
+  background: var(--surface-subtle);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+/* Hero 状态栏文字：覆盖 dark.css 中默认的绿色 #c5d3be */
+html[data-visual-theme="travel"][data-theme="dark"] .hero-status p {
+  color: var(--token-hub-text);
 }

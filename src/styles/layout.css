@@ -6,7 +6,7 @@
 .subpage-head { padding-top: 8px; }
 
 .baby-hero {
-  background: linear-gradient(135deg, #718d56 0%, #5f7b4d 58%, #789160 100%);
+  background: var(--token-hub-hero-bg);
 }
 .baby-hero.hero-morning { --hero-background: url('/hero/default/morning.webp'); }
 .baby-hero.hero-midday { --hero-background: url('/hero/default/midday.webp'); }
@@ -995,12 +995,12 @@
   left: 18px;
   width: 1px;
   height: 100%;
-  background: #dce4d6;
+  background: var(--token-surface-timeline-dot);
 }
 .history-timeline .record-copy small {
   display: block;
   margin: 0;
-  color: #5f7f4e;
+  color: var(--token-record-copy-small);
   font-size: 13px;
   line-height: 1.45;
   font-weight: 800;
@@ -1027,7 +1027,7 @@
   padding: 8px 3px 7px;
   border: 1px solid var(--line);
   border-radius: 13px;
-  background: #fffaf2;
+  background: var(--token-choice-bg);
   color: var(--ink);
   display: grid;
   place-items: center;
@@ -1050,7 +1050,7 @@
   font-style: normal;
   line-height: 17px;
 }
-.care-choice-grid button.selected { border-color: #759064; background: #edf3e8; color: var(--brand-deep); }
+.care-choice-grid button.selected { border-color: var(--token-choice-selected-border); background: var(--token-choice-selected-bg); color: var(--brand-deep); }
 
 .app-nav {
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1086,8 +1086,8 @@
   height: 48px;
   padding: 0;
   box-sizing: border-box;
-  border: 1px solid #e8e4d9;
-  background: #fff9ef;
+  border: 1px solid var(--token-today-plan-icon-border);
+  background: var(--token-today-plan-icon-bg);
   object-fit: contain;
   filter: none;
   box-shadow:

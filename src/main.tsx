@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { ConfirmProvider } from './ui';
+import './styles/theme-tokens.css';
 import './styles/foundations.css';
 import './styles/base.css';
 import './styles/layout.css';

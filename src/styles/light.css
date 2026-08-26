@@ -1,79 +1,5 @@
 /* 2026 暖系自然主题：取自家庭照护场景的奶油白、鼠尾草绿与暖橙 */
-:root {
-  --ink: #283528;
-  --muted: #697268;
-  --text-secondary: #657065;
-  --text-tertiary: #737b72;
-  --brand: #657e51;
-  --brand-deep: #31452d;
-  --brand-soft: #dce6d2;
-  --brand-faint: #eff4e9;
-  --orange: #ee852f;
-  --cream: #f6ecdc;
-  --line: #e4e1d8;
-  --line-strong: #d3d5ca;
-  --line-brand: #ccd8c3;
-  --focus: #49683e;
-  --surface-page: #f7f7f0;
-  --surface-card: #fffdfa;
-  --surface-subtle: #f4f4ed;
-  --surface-muted: #ebece4;
-  --surface-control: #fff;
-  --surface-container: #fffdfa;
-  --surface-container-border: #e3e1d8;
-  --surface-interactive-hover: #f4f4ed;
-  --surface-interactive-active: #eff4e9;
-  --surface-interactive-disabled: #ebece4;
-  --overlay-backdrop: rgba(24, 35, 28, .48);
-  --line: #e4e1d8;
-  --chevron: #737b72;
-  --status-brand-bg: #eff4e9;
-  --status-brand-text: #31452d;
-  --status-success-bg: #e8f2ec;
-  --status-success-text: #2b6b3e;
-  --status-neutral-text: #697268;
-  --status-danger-text: #a54740;
-  --surface-plan: #fffbf5;
-  --surface-danger-soft: #fff3f1;
-  --surface-overdue-soft: #f5e6d8;
-  --surface-soon-soft: #f7ecd0;
-  --status-warning-bg: #fff4e6;
-  --status-warning-text: #b5691f;
-  --status-danger-bg: #f4dfdc;
-  --status-neutral-bg: #eef1eb;
-  --status-error-bg: #fbeae7;
-  --status-error-line: #e2b3ab;
-  --status-error-line-soft: #f0d6d3;
-  --status-error-text: #8b2a1e;
-  --line-plan: #ead9c6;
-  --text-on-orange: #2b1c12;
-  --control-bg: #fff;
-  --control-bg-hover: #f4f4ed;
-  --control-bg-disabled: #ebece4;
-  --control-border: #d3d5ca;
-  --control-border-hover: #9eaa96;
-  --control-border-focus: #49683e;
-  --control-placeholder: #737b72;
-  --action-primary-bg: #e97e2f;
-  --action-primary-bg-hover: #d6732b;
-  --action-primary-bg-active: #c56624;
-  --action-primary-border: #d6732b;
-  --action-primary-text: #fff;
-  --action-secondary-bg: #fffdfa;
-  --action-secondary-bg-hover: #f4f4ed;
-  --action-secondary-bg-active: #ebece4;
-  --action-secondary-border: #d3d5ca;
-  --action-secondary-text: #31452d;
-  --radius-control: 8px;
-  --radius-inner: 12px;
-  --radius-card: 16px;
-  --radius-dialog: 20px;
-  --shadow-card: 0 1px 2px rgba(57, 67, 48, .08), 0 10px 26px rgba(57, 67, 48, .06);
-  --shadow-container: 0 1px 2px rgba(57, 67, 48, .06);
-  --shadow-float: 0 10px 28px rgba(73, 62, 43, .18), 0 2px 7px rgba(73, 62, 43, .12);
-}
-
-html { background: #eef3e7; }
+html { background: var(--surface-page); }
 body {
   background:
     radial-gradient(circle at 8% 4%, rgba(255, 255, 255, .96) 0 10%, transparent 32%),
@@ -164,13 +90,13 @@ body {
 .metric-band span { color: #5d6859; font-size: 13px; font-weight: 700; }
 .metric-band strong { margin-top: 6px; color: var(--brand-deep); font-size: 28px; font-weight: 800; }
 .metric-band small { font-size: 13px; }
-.today-workbench .quick-section { padding: 10px 9px; background: #fbfaf5; }
+.today-workbench .quick-section { padding: 10px 9px; background: var(--token-quick-section-bg); }
 .quick-grid { gap: 6px; }
 .quick-grid button { min-height: 98px; border-radius: 16px; gap: 5px; transition: background .16s ease, transform .16s ease; }
-.quick-grid button:hover { background: #edf2e7; transform: translateY(-1px); }
-.quick-grid button:active { background: #e2ead9; transform: translateY(0) scale(.98); }
+.quick-grid button:hover { background: var(--token-quick-grid-hover); transform: translateY(-1px); }
+.quick-grid button:active { background: var(--token-quick-grid-active); transform: translateY(0) scale(.98); }
 .today-workbench .quick-icon { width: 51px; height: 51px; filter: drop-shadow(0 4px 4px rgba(66, 61, 45, .12)); }
-.quick-grid b { color: #34432f; font-size: 14px; }
+.quick-grid b { color: var(--token-quick-grid-text); font-size: 14px; }
 
 .today-plan, .today-insights {
   border-width: 1px;
@@ -183,8 +109,8 @@ body {
   border: 1px solid var(--line-plan);
   background: var(--surface-plan);
 }
-.today-plan > h2 { margin-bottom: 7px; color: #8b552f; font-size: 14px; }
-.today-plan-list article { min-height: 68px; border-color: #eee1d4; }
+.today-plan > h2 { margin-bottom: 7px; color: var(--token-today-plan-title); font-size: 14px; }
+.today-plan-list article { min-height: 68px; border-color: var(--token-today-plan-border); }
 .today-plan-list .task-icon { filter: drop-shadow(0 3px 3px rgba(74, 65, 48, .12)); }
 .today-plan-list .btn.primary {
   border: none;
@@ -202,7 +128,7 @@ body {
 }
 .today-insights { margin-top: 10px; border-color: #e5e1d7; background: rgba(255, 253, 250, .96); overflow: hidden; }
 .today-insights > .info-summary-row, .today-insights > .info-summary-static { min-height: 52px; padding: 10px 13px; }
-.info-row-label { color: #2e392c; font-size: 14px; }
+.info-row-label { color: var(--brand-deep); font-size: 14px; }
 .info-row-value { font-size: 13px; }
 
 .today-timeline { margin-top: 10px; }
@@ -228,12 +154,12 @@ body {
 .today-timeline .timeline-item:last-child { border-bottom: 0; }
 .today-timeline .time-col { position: absolute; left: -64px; top: 0; bottom: 0; width: 64px; }
 .today-timeline .time-col time { position: absolute; z-index: 2; top: 50%; left: 0; width: 44px; padding: 5px 0; transform: translateY(-50%); background: var(--surface-page); color: var(--brand-deep); font-size: 14px; text-align: center; }
-.today-timeline .time-col i { top: 50%; bottom: auto; left: 22px; width: 2px; height: calc(100% + 18px); background: #dce5d3; }
+.today-timeline .time-col i { top: 50%; bottom: auto; left: 22px; width: 2px; height: calc(100% + 18px); background: var(--token-surface-timeline-dot); }
 .today-timeline .time-col::after {
   content: none;
 }
 .today-timeline .record-mark { width: 50px; height: 50px; filter: drop-shadow(0 3px 3px rgba(58, 57, 44, .1)); }
-.record-copy small { color: #5f7f4e; font-weight: 800; }
+.record-copy small { color: var(--token-record-copy-small); font-weight: 800; }
 .record-copy strong { font-size: 16px; }
 
 .page-head h1, .subpage-head h1 { color: var(--brand-deep); }
@@ -288,7 +214,7 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
 .app-nav button { border-radius: 18px; transition: background .15s ease, color .15s ease; }
 .app-nav button img { opacity: .62; filter: saturate(.72); }
 .app-nav button:hover { background: #f2f4ec; }
-.app-nav button.active { color: #36502f; }
+.app-nav button.active { color: var(--token-app-nav-active); }
 .app-nav button.active img { filter: drop-shadow(0 3px 4px rgba(63, 67, 49, .14)); }
 .app-nav button b { font-size: 12px; font-weight: 700; line-height: 1.25; }
 
@@ -435,7 +361,7 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
   left: 18px;
   width: 1px;
   height: 100%;
-  background: #dce4d6;
+  background: var(--token-surface-timeline-dot);
 }
 .today-layout .today-timeline .time-col::after { content: none; }
 .today-layout .today-timeline .record-mark {
@@ -541,12 +467,12 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
   left: 18px;
   width: 1px;
   height: 100%;
-  background: #dce4d6;
+  background: var(--token-surface-timeline-dot);
 }
 .history-timeline .record-copy small {
   display: block;
   margin: 0;
-  color: #5f7f4e;
+  color: var(--token-record-copy-small);
   font-size: 13px;
   line-height: 1.45;
   font-weight: 800;
@@ -611,8 +537,8 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
   line-height: 17px;
 }
 .care-choice-grid button.selected {
-  border-color: #759064;
-  background: #edf3e8;
+  border-color: var(--token-choice-selected-border);
+  background: var(--token-choice-selected-bg);
   color: var(--brand-deep);
 }
 
@@ -669,8 +595,8 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
   height: 48px;
   padding: 0;
   box-sizing: border-box;
-  border: 1px solid #e8e4d9;
-  background: #fff9ef;
+  border: 1px solid var(--token-today-plan-icon-border);
+  background: var(--token-today-plan-icon-bg);
   object-fit: contain;
   filter: none;
   box-shadow: inset 0 2px 5px rgba(105, 90, 65, .12), inset 0 -1px 2px rgba(255, 255, 255, .82);
@@ -694,8 +620,8 @@ html[data-theme="light"] .today-layout .today-plan-list .vaccine-task.overdue > 
 }
 html[data-theme="light"] .today-layout .today-timeline .record-mark,
 html[data-theme="light"] .history-timeline .record-mark {
-  border-color: #d6e1cf;
-  background: #eaf1e5;
+  border-color: var(--token-record-mark-border);
+  background: var(--token-record-mark-bg);
   box-shadow: inset 0 2px 5px rgba(74, 99, 61, .14), inset 0 -1px 2px rgba(255, 255, 255, .72);
 }
 .record-creator {
