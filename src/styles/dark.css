@@ -204,6 +204,13 @@ html[data-theme="dark"] .baby-hero .kicker { color: #b4c7ad; text-shadow: 0 1px 
 html[data-theme="dark"] .hero-profile-line,
 html[data-theme="dark"] .hero-status p { color: #c5d3be; text-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
 html[data-theme="dark"] .hero-greeting-title { text-shadow: 0 2px 5px rgba(0, 0, 0, .35); }
+html[data-theme="dark"] .baby-hero.hero-diary .diary-weather { color: #f5f1e6; }
+html[data-theme="dark"] .baby-hero.hero-diary .diary-weather > span {
+  background: rgba(31, 38, 38, .82);
+  border-color: rgba(237, 241, 225, .24);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+}
+html[data-theme="dark"] .baby-hero.hero-diary .diary-weather b { color: #f5f1e6; }
 html[data-theme="dark"] .hero-avatar { background: var(--surface-control); border-color: rgba(168, 192, 152, .6); }
 html[data-theme="dark"] .network-pill,
 html[data-theme="dark"] .user-pill {
@@ -388,6 +395,16 @@ html[data-theme="dark"] .baby-hero::after {
   background:
     linear-gradient(90deg, rgba(20, 20, 19, .78) 0%, rgba(20, 20, 19, .52) 48%, rgba(20, 20, 19, .1) 100%),
     var(--hero-background, url('/hero/default/midday.webp')) center / cover no-repeat;
+}
+html[data-theme="dark"] .baby-hero.hero-diary::after {
+  background:
+    linear-gradient(90deg, rgba(14, 23, 17, .7) 0%, rgba(17, 28, 20, .44) 43%, rgba(17, 28, 20, .1) 74%, transparent 100%),
+    var(--diary-background) center / cover no-repeat;
+}
+html[data-theme="dark"] .baby-hero.hero-travel::after {
+  background:
+    linear-gradient(90deg, rgba(13, 29, 38, .7) 0%, rgba(17, 34, 43, .43) 43%, rgba(17, 34, 43, .09) 74%, transparent 100%),
+    var(--diary-background) center / cover no-repeat;
 }
 html[data-theme="dark"] .modal-layer {
   --modal-backdrop-filter: blur(6px) saturate(1.02);

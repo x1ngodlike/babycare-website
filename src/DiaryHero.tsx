@@ -1,14 +1,17 @@
 import type { DiaryPeriod, WeatherSnapshot } from '../shared/weather';
 
-export function DiaryHeroLayer({ period, weather, showEgg = false, eggIcon }: { period: DiaryPeriod; weather: WeatherSnapshot | null; showEgg?: boolean; eggIcon?: string }) {
+export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null }) {
   const weatherLabel = weather ? `${weather.label} ${weather.temperatureC}°` : '天气更新中';
   const visualWeatherLabel = weather?.label === '晴间多云' ? '多云' : weather?.label;
   const weatherEmoji = weather?.icon || '🌡️';
+  return <div className="diary-weather" aria-label={`${weatherLabel}，浙江省杭州市`} title={weather?.stale ? '当前显示最近一次天气' : undefined}>
+    <span><i className="diary-weather-symbol" aria-hidden="true">{weatherEmoji}</i><b>{weather ? `${visualWeatherLabel} ${weather.temperatureC}°` : '天气更新中'}</b></span>
+  </div>;
+}
+
+export function DiaryHeroLayer({ period, weather, showEgg = false, eggIcon }: { period: DiaryPeriod; weather: WeatherSnapshot | null; showEgg?: boolean; eggIcon?: string }) {
   const periodMark = { morning: '晨', daytime: '昼', evening: '暮', night: '夜' }[period];
   return <>
-    <div className="diary-weather" aria-label={`${weatherLabel}，浙江省杭州市`} title={weather?.stale ? '当前显示最近一次天气' : undefined}>
-      <span><i className="diary-weather-symbol" aria-hidden="true">{weatherEmoji}</i><b>{weather ? `${visualWeatherLabel} ${weather.temperatureC}°` : '天气更新中'}</b></span>
-    </div>
     <div className={`diary-scene diary-${period} weather-${weather?.kind || 'unknown'}`} aria-hidden="true">
       <i className="diary-paper-grain" />
       <i className="diary-washi" />

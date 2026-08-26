@@ -5,9 +5,10 @@ import { api } from '../api';
 import { getCareItemReminderTimes, isCareItemDue } from '../careSchedule';
 import { canAutoOpenDailyReport, millisecondsUntilDailyReportAutoOpen } from '../dailyReport';
 import { isoDay } from '../date';
+import { getWeatherHeroAssets, type WeatherStickerKind } from '../config/weatherThemes';
 import { formatTimeShort } from '../../shared/feeding-prediction';
 import { diaryPeriodForHour, type WeatherSnapshot } from '../../shared/weather';
-import { DiaryHeroLayer } from '../DiaryHero';
+import { DiaryHeroLayer, DiaryWeatherBadge } from '../DiaryHero';
 import { PredictionBanner } from '../PredictionBanner';
 import { careItemCategory, careItemIconSources, getAgeProfileLine, getGreeting, getHeroPeriod, isScheduleOver } from '../shared';
 import { ImageWithFallback, Modal } from '../ui';
@@ -72,7 +73,7 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId 
   );
 }
 
-export function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCatalog, careItems, todayPlanStatus, capabilities, online, heroBg, onOpenSettings, onCompleteVaccine, onAppointmentVaccine, manager, superadmin, userId, weeklyGrowth, feedPrepEnabled, feedPrepMinutes, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; recentRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; careItems: CareItem[]; todayPlanStatus: 'loading' | 'ready' | 'error'; capabilities: Capabilities; online: boolean; heroBg: string; onOpenSettings(): void; onCompleteVaccine(item: VaccinePlanItem): void; onAppointmentVaccine(item: VaccinePlanItem): void; manager: boolean; superadmin: boolean; userId: FamilyId; weeklyGrowth?: GrowthRecord; feedPrepEnabled: boolean; feedPrepMinutes: number; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+export function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCatalog, careItems, todayPlanStatus, capabilities, online, heroBg, weatherEffectsEnabled, onOpenSettings, onCompleteVaccine, onAppointmentVaccine, manager, superadmin, userId, weeklyGrowth, feedPrepEnabled, feedPrepMinutes, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; recentRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; careItems: CareItem[]; todayPlanStatus: 'loading' | 'ready' | 'error'; capabilities: Capabilities; online: boolean; heroBg: string; weatherEffectsEnabled: boolean; onOpenSettings(): void; onCompleteVaccine(item: VaccinePlanItem): void; onAppointmentVaccine(item: VaccinePlanItem): void; manager: boolean; superadmin: boolean; userId: FamilyId; weeklyGrowth?: GrowthRecord; feedPrepEnabled: boolean; feedPrepMinutes: number; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [savingSupplement, setSavingSupplement] = useState<Supplement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   useEffect(() => {
@@ -84,6 +85,8 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
   const heroPeriod = (() => {
     try { return localStorage.getItem('babycare-hero-preview') || getHeroPeriod(currentHour); } catch { return getHeroPeriod(currentHour); }
   })();
+  const weatherThemeAssets = getWeatherHeroAssets(heroBg);
+  const magazineTheme = Boolean(weatherThemeAssets);
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r]));
   const recentSorted = [...recentRecords].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   const lastRecord = recentSorted[0] || null;
@@ -102,13 +105,13 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     return () => window.clearTimeout(timer);
   }, [heroBg, lastRecord?.id]);
   useEffect(() => {
-    if (heroBg !== 'hero-diary' || !lastRecord) { setShowDiaryEgg(false); return; }
+    if (!magazineTheme || !lastRecord) { setShowDiaryEgg(false); return; }
     setShowDiaryEgg(true);
     const timer = window.setTimeout(() => setShowDiaryEgg(false), 6_500);
     return () => window.clearTimeout(timer);
-  }, [heroBg, lastRecord?.id]);
+  }, [magazineTheme, lastRecord?.id]);
   useEffect(() => {
-    if (heroBg !== 'hero-diary' || !online) return;
+    if (!magazineTheme || !online) return;
     let active = true;
     api.weather().then(result => {
       if (!active) return;
@@ -116,15 +119,16 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
       try { localStorage.setItem('babycare:hangzhou-weather', JSON.stringify(result)); } catch { /* weather remains available in memory */ }
     }).catch(() => { /* time background remains available without weather */ });
     return () => { active = false; };
-  }, [heroBg, online]);
+  }, [magazineTheme, online]);
   const gardenEggIcon = lastRecord?.type === 'feeding' ? '/icons/quick-feeding.png'
     : lastRecord?.type === 'bowel' ? '/icons/quick-bowel.png'
       : lastRecord?.type === 'supplement' ? careItemIconSources[careItems.find(item => item.name === lastRecord.supplement)?.icon || 'care']
         : '/icons/quick-note.png';
-  const diaryEggIcon = lastRecord?.type === 'feeding' ? '/hero/diary/sticker-feeding.webp'
-    : lastRecord?.type === 'bowel' ? '/hero/diary/sticker-bowel.webp'
-      : lastRecord?.type === 'supplement' ? '/hero/diary/sticker-care.webp'
-        : '/hero/diary/sticker-note.webp';
+  const diaryStickerKind: WeatherStickerKind = lastRecord?.type === 'feeding' ? 'feeding'
+    : lastRecord?.type === 'bowel' ? 'bowel'
+      : lastRecord?.type === 'supplement' ? 'care'
+        : 'note';
+  const diaryEggIcon = weatherThemeAssets?.stickers[diaryStickerKind];
   const pendingCareItems = todayPlanStatus === 'ready' ? careItems
     .filter(item => item.active && !isScheduleOver(item) && isCareItemDue(item) && !done.has(item.name))
     .sort((a, b) => {
@@ -183,8 +187,8 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
       <div className="today-baby-summary"><ImageWithFallback src={profile.avatar || undefined} fallbackSrc="/bear-bottle.png" alt="" /><span>{getAgeProfileLine(profile.birthDate, profile.name)}</span></div>
     </div>
     <div className="today-main-column">
-    <div className={`today-workbench${heroBg === 'hero-diary' ? ' diary-workbench' : ''}`}>
-      <section className={`baby-hero ${heroBg !== 'auto' ? heroBg : ''} hero-${heroPeriod}${heroBg === 'hero-diary' ? ` diary-${diaryPeriod} weather-${weather?.kind || 'unknown'}` : ''}`}><div>{(() => { const { greeting, displayName } = getGreeting(profile, userId, currentHour); return heroBg === 'hero-diary' ? <h1 className="hero-greeting-title"><span>{greeting}，</span><strong>{displayName}～</strong></h1> : <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<p className="kicker hero-date-line">{(() => { const d = new Date(); if (heroBg === 'hero-diary') return `${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p><div className="hero-status">{(() => { if (!lastRecord) return <p>今日暂无记录</p>; const time = formatTimeShort(lastRecord.occurredAt); let detail = ''; if (lastRecord.type === 'feeding') { const breast = lastRecord.breastMilkMl ?? 0; const formula = lastRecord.formulaMl ?? 0; const totalMl = breast + formula; let mode = ''; if (breast > 0 && formula > 0) mode = '混合'; else if (breast > 0) mode = '母乳'; else if (formula > 0) mode = '奶粉'; detail = `喂奶${mode ? ' · ' + mode : ''}${totalMl ? ' ' + totalMl + ' mL' : ''}`; } else if (lastRecord.type === 'supplement') { const category = careItemCategory(lastRecord.supplement, careItems); detail = `${category === 'care' ? '护理' : '用药'} · ${lastRecord.supplement || ''}`; } else if (lastRecord.type === 'bowel') { detail = `排便 · ${lastRecord.bowelSize || '中'}`; } else { detail = lastRecord.subject ? `事项 · ${lastRecord.subject}` : '其他'; } const text = `上次记录${heroBg === 'hero-diary' ? ' ' : '：'}${time} · ${detail}`; return <p title={text} aria-label={text}>{text}</p>; })()}</div></div>{heroBg === 'hero-garden' && <div className={`garden-live garden-${lastRecord?.type || 'welcome'}`} key={lastRecord?.id || 'garden-welcome'} aria-hidden="true"><i className="garden-cloud garden-cloud-one" /><i className="garden-cloud garden-cloud-two" /><i className="garden-leaf garden-leaf-one" /><i className="garden-leaf garden-leaf-two" /><span className="garden-firefly garden-firefly-one" /><span className="garden-firefly garden-firefly-two" /><span className="garden-firefly garden-firefly-three" />{showGardenEgg && <div className="garden-egg"><img src={gardenEggIcon} alt="" /><i /><i /><i /></div>}</div>}{heroBg === 'hero-diary' && <DiaryHeroLayer period={diaryPeriod} weather={weather} showEgg={showDiaryEgg} eggIcon={diaryEggIcon} />}</section>
+    <div className={`today-workbench${magazineTheme ? ' diary-workbench' : ''}`}>
+      <section className={`baby-hero ${heroBg === 'hero-travel' ? 'hero-diary hero-travel' : heroBg !== 'auto' ? heroBg : ''} hero-${heroPeriod}${magazineTheme ? ` diary-${diaryPeriod} weather-${weather?.kind || 'unknown'}${weatherEffectsEnabled ? '' : ' weather-effects-off'}` : ''}`}><div>{(() => { const { greeting, displayName } = getGreeting(profile, userId, currentHour); return magazineTheme ? <h1 className="hero-greeting-title"><span>{greeting}，</span><strong>{displayName}～</strong></h1> : <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>; })()}<div className={magazineTheme ? 'diary-date-weather-row' : undefined}><p className="kicker hero-date-line">{(() => { const d = new Date(); if (magazineTheme) return `${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'short' })}`; return `今日 · ${d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · ${d.toLocaleDateString('zh-CN', { weekday: 'long' })}`; })()}</p>{magazineTheme && <DiaryWeatherBadge weather={weather} />}</div><div className="hero-status">{(() => { if (!lastRecord) return <p>今日暂无记录</p>; const time = formatTimeShort(lastRecord.occurredAt); let detail = ''; if (lastRecord.type === 'feeding') { const breast = lastRecord.breastMilkMl ?? 0; const formula = lastRecord.formulaMl ?? 0; const totalMl = breast + formula; let mode = ''; if (breast > 0 && formula > 0) mode = '混合'; else if (breast > 0) mode = '母乳'; else if (formula > 0) mode = '奶粉'; detail = `喂奶${mode ? ' · ' + mode : ''}${totalMl ? ' ' + totalMl + ' mL' : ''}`; } else if (lastRecord.type === 'supplement') { const category = careItemCategory(lastRecord.supplement, careItems); detail = `${category === 'care' ? '护理' : '用药'} · ${lastRecord.supplement || ''}`; } else if (lastRecord.type === 'bowel') { detail = `排便 · ${lastRecord.bowelSize || '中'}`; } else { detail = lastRecord.subject ? `事项 · ${lastRecord.subject}` : '其他'; } const text = `上次记录${magazineTheme ? ' ' : '：'}${time} · ${detail}`; return <p title={text} aria-label={text}>{text}</p>; })()}</div></div>{heroBg === 'hero-garden' && <div className={`garden-live garden-${lastRecord?.type || 'welcome'}`} key={lastRecord?.id || 'garden-welcome'} aria-hidden="true"><i className="garden-cloud garden-cloud-one" /><i className="garden-cloud garden-cloud-two" /><i className="garden-leaf garden-leaf-one" /><i className="garden-leaf garden-leaf-two" /><span className="garden-firefly garden-firefly-one" /><span className="garden-firefly garden-firefly-two" /><span className="garden-firefly garden-firefly-three" />{showGardenEgg && <div className="garden-egg"><img src={gardenEggIcon} alt="" /><i /><i /><i /></div>}</div>}{magazineTheme && <DiaryHeroLayer period={diaryPeriod} weather={weather} showEgg={showDiaryEgg} eggIcon={diaryEggIcon} />}</section>
       <section className="metric-band" aria-label="今日概览"><div><span>母乳</span><strong>{breast}</strong><small>mL</small></div><div><span>奶粉</span><strong>{formula}</strong><small>mL</small></div><div><span>喂奶</span><strong>{feed.length}</strong><small>次</small></div><div><span>排便</span><strong>{records.filter(r => r.type === 'bowel').length}</strong><small>次</small></div></section>
       <section className="quick-section" aria-label="快捷记录"><div className="quick-grid"><button onClick={() => onAdd('feeding')}><img className="quick-icon" src="/icons/quick-feeding.png" alt="" /><b>喂奶</b></button><button onClick={() => onAdd('bowel')}><img className="quick-icon" src="/icons/quick-bowel.png" alt="" /><b>排便</b></button><button onClick={() => onAdd('supplement')}><img className="quick-icon" src="/icons/record-care.png" alt="" /><b>护理</b></button><button onClick={() => onAdd('note')}><img className="quick-icon" src="/icons/quick-note.png" alt="" /><b>其他</b></button></div></section>
       <PredictionBanner records={recentRecords} online={online} prepEnabled={feedPrepEnabled} prepMinutes={feedPrepMinutes} />

@@ -789,6 +789,12 @@ html[data-theme="light"] .history-timeline .record-mark {
   color: #f3f5eb;
   letter-spacing: .04em;
 }
+.today-layout .baby-hero.hero-diary .hero-date-line {
+  height: 21px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1;
+}
 .today-layout .hero-greeting-title,
 .today-layout .hero-date-line,
 .today-layout .hero-status { text-shadow: 0 1px 3px rgba(0, 0, 0, .30); }
