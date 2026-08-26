@@ -90,6 +90,10 @@
 .baby-hero.hero-orbit.diary-daytime { --diary-background: url('/hero/weather/orbit/backgrounds/daytime.webp'); }
 .baby-hero.hero-orbit.diary-evening { --diary-background: url('/hero/weather/orbit/backgrounds/evening.webp'); }
 .baby-hero.hero-orbit.diary-night { --diary-background: url('/hero/weather/orbit/backgrounds/night.webp'); }
+.baby-hero.hero-shop.diary-morning { --diary-background: url('/hero/weather/shop/backgrounds/morning.webp'); }
+.baby-hero.hero-shop.diary-daytime { --diary-background: url('/hero/weather/shop/backgrounds/daytime.webp'); }
+.baby-hero.hero-shop.diary-evening { --diary-background: url('/hero/weather/shop/backgrounds/evening.webp'); }
+.baby-hero.hero-shop.diary-night { --diary-background: url('/hero/weather/shop/backgrounds/night.webp'); }
 .baby-hero.hero-travel::after {
   background:
     linear-gradient(90deg, rgba(58, 48, 40, .58) 0%, rgba(74, 60, 48, .34) 42%, rgba(74, 60, 48, .08) 72%, transparent 100%),
@@ -98,6 +102,11 @@
 .baby-hero.hero-orbit::after {
   background:
     linear-gradient(90deg, rgba(21, 31, 55, .54) 0%, rgba(33, 47, 79, .25) 42%, rgba(33, 47, 79, .05) 72%, transparent 100%),
+    var(--diary-background) center / cover no-repeat;
+}
+.baby-hero.hero-shop::after {
+  background:
+    linear-gradient(90deg, rgba(52, 34, 27, .62) 0%, rgba(65, 42, 32, .34) 42%, rgba(65, 42, 32, .07) 72%, transparent 100%),
     var(--diary-background) center / cover no-repeat;
 }
 .baby-hero.hero-diary::before { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: transparent; transition: background .35s ease; }
@@ -234,6 +243,7 @@
 .baby-hero.hero-diary .hero-status::before { content: ''; position: absolute; z-index: -1; inset: 0; border-radius: inherit; background: rgba(75, 70, 47, .48); mix-blend-mode: multiply; }
 .baby-hero.hero-travel .hero-status::before { background: rgba(74, 60, 48, .52); }
 .baby-hero.hero-orbit .hero-status::before { background: rgba(27, 39, 70, .58); }
+.baby-hero.hero-shop .hero-status::before { background: rgba(62, 38, 29, .56); }
 .baby-hero.hero-diary .hero-status p {
   position: relative;
   z-index: 1;
@@ -309,6 +319,7 @@
 .baby-hero.hero-diary .diary-day-stamp::after { content: 'GROWING NOTES'; font-size: 5px; letter-spacing: .12em; opacity: .72; }
 .baby-hero.hero-travel .diary-day-stamp::after { content: 'CLOUD JOURNEY'; }
 .baby-hero.hero-orbit .diary-day-stamp::after { content: 'LITTLE ORBIT'; }
+.baby-hero.hero-shop .diary-day-stamp::after { content: 'DAILY SHOP'; }
 @keyframes diary-page-arrive { from { opacity: .72; } to { opacity: 1; } }
 @keyframes diary-postcard-breathe { from { transform: scale(1); } to { transform: scale(1.015); } }
 @keyframes diary-orbit-breathe { to { transform: translateY(-3px) scale(1.04); } }

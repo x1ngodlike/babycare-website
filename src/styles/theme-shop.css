@@ -1,0 +1,306 @@
+/* 晴雨商店：暖色街角小店主题。业务状态色与记录橙保留原语义。 */
+html[data-visual-theme="shop"][data-theme="light"] {
+  --token-ink: #3d302b;
+  --token-muted: #75645c;
+  --token-text-secondary: #75645c;
+  --token-text-tertiary: #8e7d73;
+  --token-brand: #914e49;
+  --token-brand-deep: #693833;
+  --token-brand-soft: #f0d8d2;
+  --token-brand-faint: #f8e8e2;
+  --token-line: #e4d3c5;
+  --token-line-strong: #d2baa8;
+  --token-line-brand: #dcbeb5;
+  --token-focus: #914e49;
+  --token-surface-page: #faf4ea;
+  --token-surface-card: #fffdfc;
+  --token-surface-subtle: #f5e8d8;
+  --token-surface-muted: #ecdcca;
+  --token-surface-control: #fffdfc;
+  --token-surface-container: #fffdfc;
+  --token-surface-container-border: #e4d3c5;
+  --token-chevron: #8e7d73;
+  --token-status-brand-bg: #f0d8d2;
+  --token-status-brand-text: #693833;
+  --token-control-bg: #fffdfc;
+  --token-control-bg-hover: #f5e8d8;
+  --token-control-bg-disabled: #ecdcca;
+  --token-control-border: #d2baa8;
+  --token-control-border-hover: #bc735f;
+  --token-control-border-focus: #914e49;
+  --token-control-placeholder: #8e7d73;
+  --token-action-secondary-bg: #fffdfc;
+  --token-action-secondary-bg-hover: #f5e8d8;
+  --token-action-secondary-bg-active: #ecdcca;
+  --token-action-secondary-border: #d2baa8;
+  --token-action-secondary-text: #693833;
+  --token-surface-interactive-hover: #f5e8d8;
+  --token-surface-interactive-active: #ecdcca;
+  --token-surface-interactive-disabled: #ecdcca;
+  --token-overlay-backdrop: rgba(55, 37, 30, .48);
+  --token-network-dot: #6f918b;
+  --token-surface-timeline-dot: #d9c2af;
+  --token-record-copy-small: #75645c;
+  --token-metric-band-bg: #faf0e4;
+  --token-metric-band-divider: #e4d3c5;
+  --token-metric-band-text: #75645c;
+  --token-quick-grid-hover: #f3e1d2;
+  --token-quick-grid-active: #ead3c2;
+  --token-quick-grid-text: #693833;
+  --token-quick-section-bg: #fff9f3;
+  --token-today-plan-title: #8b552f;
+  --token-today-plan-border: #e4d3c5;
+  --token-today-insights-border: #e4d3c5;
+  --token-today-plan-icon-bg: #fffdfc;
+  --token-today-plan-icon-border: #e4d3c5;
+  --token-today-plan-icon-shadow: rgba(95, 57, 43, .08);
+  --token-today-plan-icon-bg-hover: #f5e8d8;
+  --token-today-plan-icon-border-hover: #d6bbaa;
+  --token-record-mark-bg: #f7eadf;
+  --token-record-mark-border: #d2baa8;
+  --token-record-mark-shadow: rgba(95, 57, 43, .11);
+  --token-overview-mark-bg: #f3e2d5;
+  --token-overview-mark-border: #cfb19f;
+  --token-app-nav-bg: rgba(255, 253, 252, .95);
+  --token-app-nav-border: rgba(224, 207, 193, .92);
+  --token-app-nav-hover: #f3e2d5;
+  --token-app-nav-active: #693833;
+  --token-pill-bg: rgba(255, 253, 252, .95);
+  --token-pill-border: rgba(224, 207, 193, .92);
+  --token-timeline-item-border: #e4d3c5;
+  --token-choice-bg: #faf4ea;
+  --token-choice-selected-border: #914e49;
+  --token-choice-selected-bg: #f0d8d2;
+  --token-choice-selected-text: #693833;
+  --token-identity-bg: #faf0e4;
+  --token-focus-ring: #914e49;
+  --token-surface-hover: #f5e8d8;
+  --token-surface-chip: #f5e8d8;
+  --token-text-plan: #68472f;
+}
+
+html[data-visual-theme="shop"][data-theme="dark"] {
+  --token-ink: #eee3da;
+  --token-muted: #b7a79e;
+  --token-text-secondary: #c4b5ac;
+  --token-text-tertiary: #9f8f86;
+  --token-brand: #d58a80;
+  --token-brand-deep: #f0b2a8;
+  --token-brand-soft: #553632;
+  --token-brand-faint: #3d2b27;
+  --token-line: #4a3933;
+  --token-line-strong: #634b42;
+  --token-line-brand: #65433e;
+  --token-focus: #d58a80;
+  --token-surface-page: #1e1816;
+  --token-surface-card: #2a211e;
+  --token-surface-subtle: #352a26;
+  --token-surface-muted: #40332e;
+  --token-surface-control: #352a26;
+  --token-surface-container: #2a211e;
+  --token-surface-container-border: #4a3933;
+  --token-chevron: #9f8f86;
+  --token-status-brand-bg: #553632;
+  --token-status-brand-text: #f0b2a8;
+  --token-control-bg: #352a26;
+  --token-control-bg-hover: #40332e;
+  --token-control-bg-disabled: #433630;
+  --token-control-border: #634b42;
+  --token-control-border-hover: #d58a80;
+  --token-control-border-focus: #d58a80;
+  --token-control-placeholder: #9f8f86;
+  --token-action-secondary-bg: #2a211e;
+  --token-action-secondary-bg-hover: #352a26;
+  --token-action-secondary-bg-active: #40332e;
+  --token-action-secondary-border: #634b42;
+  --token-action-secondary-text: #eee3da;
+  --token-surface-interactive-hover: #352a26;
+  --token-surface-interactive-active: #40332e;
+  --token-surface-interactive-disabled: #40332e;
+  --token-overlay-backdrop: rgba(11, 7, 6, .7);
+  --token-network-dot: #82a8a1;
+  --token-surface-timeline-dot: #57433b;
+  --token-record-copy-small: #b7a79e;
+  --token-metric-band-bg: #2d2421;
+  --token-metric-band-divider: #4a3933;
+  --token-metric-band-text: #b7a79e;
+  --token-quick-grid-hover: #40332e;
+  --token-quick-grid-active: #553632;
+  --token-quick-grid-text: #f0b2a8;
+  --token-quick-section-bg: #352a26;
+  --token-today-plan-title: #d9a46a;
+  --token-today-plan-border: #65433e;
+  --token-today-insights-border: #4a3933;
+  --token-today-plan-icon-bg: #2a211e;
+  --token-today-plan-icon-border: #65433e;
+  --token-today-plan-icon-shadow: rgba(0, 0, 0, .25);
+  --token-today-plan-icon-bg-hover: #553632;
+  --token-today-plan-icon-border-hover: #81564f;
+  --token-record-mark-bg: linear-gradient(135deg, #352a26, #553632);
+  --token-record-mark-border: #765149;
+  --token-record-mark-shadow: rgba(0, 0, 0, .25);
+  --token-overview-mark-bg: #44302d;
+  --token-overview-mark-border: #825a52;
+  --token-app-nav-bg: rgba(37, 29, 26, .96);
+  --token-app-nav-border: #4a3933;
+  --token-app-nav-hover: #352a26;
+  --token-app-nav-active: #f0b2a8;
+  --token-pill-bg: rgba(37, 29, 26, .94);
+  --token-pill-border: rgba(99, 75, 66, .9);
+  --token-timeline-item-border: #4a3933;
+  --token-choice-bg: #352a26;
+  --token-choice-selected-border: #d58a80;
+  --token-choice-selected-bg: #553632;
+  --token-choice-selected-text: #f0b2a8;
+  --token-identity-bg: #352a26;
+  --token-focus-ring: #d58a80;
+  --token-surface-hover: #352a26;
+  --token-surface-chip: #352a26;
+  --token-text-plan: #d9a46a;
+}
+
+html[data-visual-theme="shop"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 4%, rgba(255, 255, 255, .96) 0 8%, transparent 31%),
+    radial-gradient(circle at 94% 90%, rgba(188, 115, 95, .11), transparent 27%),
+    linear-gradient(155deg, #fffaf4 0%, #faf4ea 54%, #f5e8d8 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="shop"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(213, 138, 128, .09), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(217, 175, 97, .05), transparent 25%),
+    linear-gradient(180deg, #241c19 0%, #1e1816 52%, #181210 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="shop"] #root { background: transparent; }
+html[data-visual-theme="shop"] .app::before,
+html[data-visual-theme="shop"] .app::after { background: rgba(188, 115, 95, .08); }
+
+html[data-visual-theme="shop"] .settings-card,
+html[data-visual-theme="shop"] .chart-card,
+html[data-visual-theme="shop"] .archive-profile,
+html[data-visual-theme="shop"] .growth-history,
+html[data-visual-theme="shop"] .settings-menu,
+html[data-visual-theme="shop"] .account-card,
+html[data-visual-theme="shop"] .vaccine-overview,
+html[data-visual-theme="shop"] .vaccine-next,
+html[data-visual-theme="shop"] .vaccine-record-section,
+html[data-visual-theme="shop"] .vaccine-archive-summary,
+html[data-visual-theme="shop"] .vaccine-schedule-group,
+html[data-visual-theme="shop"] .vaccine-calendar-card,
+html[data-visual-theme="shop"] .vaccine-month-agenda,
+html[data-visual-theme="shop"] .growth-assessment-card,
+html[data-visual-theme="shop"] .growth-curve-card {
+  border-color: var(--surface-container-border);
+  background-color: var(--surface-card);
+}
+
+html[data-visual-theme="shop"] .today-workbench,
+html[data-visual-theme="shop"] .today-insights {
+  border-color: var(--token-surface-container-border);
+  background: var(--surface-card);
+  box-shadow: 0 1px 2px rgba(91, 55, 41, .05), 0 5px 14px rgba(91, 55, 41, .04);
+}
+
+html[data-visual-theme="shop"] .metric-band { background: var(--token-metric-band-bg); }
+html[data-visual-theme="shop"] .metric-band > div { border-color: var(--token-metric-band-divider); }
+html[data-visual-theme="shop"] .metric-band span,
+html[data-visual-theme="shop"] .metric-band small { color: var(--token-metric-band-text); }
+html[data-visual-theme="shop"] .info-row-label { color: var(--brand-deep); }
+html[data-visual-theme="shop"] .quick-grid button:hover { background: var(--token-quick-grid-hover); }
+html[data-visual-theme="shop"] .quick-grid button:active { background: var(--token-quick-grid-active); }
+html[data-visual-theme="shop"] .quick-grid b { color: var(--token-quick-grid-text); }
+html[data-visual-theme="shop"] .app-nav button.active,
+html[data-visual-theme="shop"] .app-nav button.active:hover,
+html[data-visual-theme="shop"] .app-nav button.active:active { background: transparent; box-shadow: none; color: var(--token-app-nav-active); }
+html[data-visual-theme="shop"] .today-timeline .time-col i,
+html[data-visual-theme="shop"] .history-timeline .time-col i { background: var(--token-surface-timeline-dot); }
+html[data-visual-theme="shop"] .today-timeline .timeline-item,
+html[data-visual-theme="shop"] .history-timeline .timeline-item { border-bottom-color: var(--token-timeline-item-border); }
+html[data-visual-theme="shop"] .today-layout .today-timeline .record-mark,
+html[data-visual-theme="shop"] .history-timeline .record-mark {
+  border-color: var(--token-record-mark-border);
+  background: var(--token-record-mark-bg);
+  box-shadow: inset 0 2px 5px var(--token-record-mark-shadow);
+}
+html[data-visual-theme="shop"] .overview-mark { border-color: var(--token-overview-mark-border); background: var(--token-overview-mark-bg); }
+html[data-visual-theme="shop"] .care-choice-groups .care-choice-grid button.selected {
+  border-color: var(--token-choice-selected-border);
+  background: var(--token-choice-selected-bg);
+  color: var(--token-choice-selected-text);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+html[data-visual-theme="shop"] .baby-hero.hero-shop .hero-greeting-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+html[data-visual-theme="shop"] .baby-hero.hero-shop .hero-greeting-title span { font-weight: 700; }
+html[data-visual-theme="shop"] .baby-hero.hero-shop .hero-status p { color: rgba(255, 246, 237, .92); }
+html[data-visual-theme="shop"][data-theme="dark"] .quick-grid button {
+  border-color: var(--line);
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+/* 每个时段使用不同的轻动态重点；天气层仍由 DiaryHero 共用实现。 */
+.shop-motion { display: none; }
+.baby-hero.hero-shop .shop-motion { display: block; position: absolute; z-index: 1; inset: 0; overflow: hidden; }
+.baby-hero.hero-shop .shop-motion i { position: absolute; display: block; pointer-events: none; }
+.baby-hero.hero-shop .shop-motion-morning .shop-motion-primary,
+.baby-hero.hero-shop .shop-motion-night .shop-motion-primary {
+  right: 17%;
+  bottom: 27%;
+  width: 38px;
+  height: 58px;
+  opacity: .34;
+  background: radial-gradient(ellipse at 50% 80%, rgba(255, 249, 231, .7), transparent 64%);
+  filter: blur(4px);
+  animation: shop-steam-rise 7s ease-in-out infinite;
+}
+.baby-hero.hero-shop .shop-motion-morning .shop-motion-secondary {
+  right: 44%; top: 18%; width: 34px; height: 34px; border-radius: 50%;
+  box-shadow: 0 0 26px rgba(255, 225, 159, .34);
+  animation: shop-sign-sway 6.8s ease-in-out infinite;
+}
+.baby-hero.hero-shop .shop-motion-daytime .shop-motion-primary {
+  right: 7%; top: -18%; width: 46%; height: 140%;
+  background: linear-gradient(106deg, transparent 38%, rgba(255,255,255,.14) 48%, transparent 59%);
+  animation: shop-glass-sweep 9s ease-in-out infinite;
+}
+.baby-hero.hero-shop .shop-motion-daytime .shop-motion-secondary {
+  right: 23%; top: 4%; width: 26%; height: 16%; border-radius: 50%;
+  background: rgba(255, 232, 190, .08);
+  filter: blur(8px);
+  animation: shop-awning-breathe 6.5s ease-in-out infinite alternate;
+}
+.baby-hero.hero-shop .shop-motion-evening .shop-motion-primary,
+.baby-hero.hero-shop .shop-motion-night .shop-motion-secondary {
+  right: 12%; top: 19%; width: 36%; height: 56%; border-radius: 42%;
+  background: radial-gradient(ellipse, rgba(255, 196, 101, .22), transparent 68%);
+  mix-blend-mode: screen;
+  animation: shop-lamp-breathe 5.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-shop .shop-motion-evening .shop-motion-secondary {
+  right: 29%; top: 12%; width: 5px; height: 5px; border-radius: 50%;
+  background: #ffe4a5;
+  box-shadow: 34px 4px 0 rgba(255, 226, 160, .8), 70px -2px 0 rgba(255, 230, 174, .7), 101px 5px 0 rgba(255, 214, 137, .72);
+  animation: shop-lights-twinkle 4.6s ease-in-out infinite alternate;
+}
+.baby-hero.hero-shop .shop-motion-night .shop-motion-primary { right: 31%; bottom: 31%; }
+
+@keyframes shop-steam-rise { 0%, 100% { opacity: .16; transform: translate3d(0, 7px, 0) scale(.86); } 52% { opacity: .42; transform: translate3d(-4px, -9px, 0) scale(1.08); } }
+@keyframes shop-sign-sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes shop-glass-sweep { 0%, 25% { opacity: 0; transform: translateX(-22%); } 48% { opacity: 1; } 72%, 100% { opacity: 0; transform: translateX(34%); } }
+@keyframes shop-awning-breathe { from { transform: translateY(0) scaleY(.98); } to { transform: translateY(2px) scaleY(1.02); } }
+@keyframes shop-lamp-breathe { from { opacity: .48; transform: scale(.97); } to { opacity: .85; transform: scale(1.04); } }
+@keyframes shop-lights-twinkle { from { opacity: .46; } to { opacity: .9; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="shop"] .baby-hero.hero-shop::after,
+  html[data-visual-theme="shop"] .shop-motion i { animation: none; }
+}

@@ -26,6 +26,11 @@ export function DiaryHeroLayer({ period, weather }: { period: DiaryPeriod; weath
       <i className="diary-fog" />
       <i className="diary-snow diary-snow-one" />
       <i className="diary-snow diary-snow-two" />
+      <div className={`shop-motion shop-motion-${period}`}>
+        <i className="shop-motion-primary" />
+        <i className="shop-motion-secondary" />
+        <i className="shop-motion-accent" />
+      </div>
       <span className="diary-period-mark">{periodMark}</span>
       <span className="diary-day-stamp">TODAY</span>
     </div>

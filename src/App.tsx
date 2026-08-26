@@ -293,6 +293,7 @@ export default function App() {
     try { localStorage.setItem('babycare-hero-bg', heroBg); } catch { /* ignore */ }
     if (heroBg === 'hero-travel') document.documentElement.setAttribute('data-visual-theme', 'travel');
     else if (heroBg === 'hero-orbit') document.documentElement.setAttribute('data-visual-theme', 'orbit');
+    else if (heroBg === 'hero-shop') document.documentElement.setAttribute('data-visual-theme', 'shop');
     else document.documentElement.removeAttribute('data-visual-theme');
   }, [heroBg]);
   useEffect(() => {
