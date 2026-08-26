@@ -65,7 +65,7 @@ export const WEATHER_HERO_ASSETS = {
       medicine: '/hero/weather/orbit/icons/tasks/medicine.webp',
       massage: '/hero/weather/orbit/icons/tasks/massage.webp',
       bath: '/hero/weather/orbit/icons/tasks/bath.webp',
-      care: '/hero/weather/orbit/stickers/sticker-care.webp',
+      care: '/hero/weather/orbit/icons/tasks/care.webp',
       vaccine: '/hero/weather/orbit/icons/tasks/vaccine.webp',
       growth: '/hero/weather/orbit/icons/tasks/growth.webp',
     },
