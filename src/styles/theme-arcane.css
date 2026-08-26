@@ -1,0 +1,307 @@
+/* 烛光魔塔：羊皮纸、烛火与少量炼金紫构成的暖调魔法主题。 */
+html[data-visual-theme="arcane"][data-theme="light"] {
+  --token-ink: #32283c;
+  --token-muted: #716477;
+  --token-text-secondary: #716477;
+  --token-text-tertiary: #8a7b8d;
+  --token-brand: #8a5a9e;
+  --token-brand-deep: #5a386c;
+  --token-brand-soft: #ead9ed;
+  --token-brand-faint: #f4eaf4;
+  --token-line: #e1d3c2;
+  --token-line-strong: #cdbba6;
+  --token-line-brand: #cfb4d4;
+  --token-focus: #8a5a9e;
+  --token-surface-page: #f7f1e7;
+  --token-surface-card: #fff9ef;
+  --token-surface-subtle: #efe4d3;
+  --token-surface-muted: #e7d9c5;
+  --token-surface-control: #fff9ef;
+  --token-surface-container: #fff9ef;
+  --token-surface-container-border: #e1d3c2;
+  --token-chevron: #8a7b8d;
+  --token-status-brand-bg: #ead9ed;
+  --token-status-brand-text: #5a386c;
+  --token-control-bg: #fff9ef;
+  --token-control-bg-hover: #f1e6d7;
+  --token-control-bg-disabled: #e7d9c5;
+  --token-control-border: #cdbba6;
+  --token-control-border-hover: #aa7bb5;
+  --token-control-border-focus: #8a5a9e;
+  --token-control-placeholder: #8a7b8d;
+  --token-action-secondary-bg: #fff9ef;
+  --token-action-secondary-bg-hover: #f1e6d7;
+  --token-action-secondary-bg-active: #e7d9c5;
+  --token-action-secondary-border: #cdbba6;
+  --token-action-secondary-text: #5a386c;
+  --token-surface-interactive-hover: #f1e6d7;
+  --token-surface-interactive-active: #e7d9c5;
+  --token-surface-interactive-disabled: #e7d9c5;
+  --token-overlay-backdrop: rgba(43, 31, 48, .5);
+  --token-network-dot: #4f8c82;
+  --token-surface-timeline-dot: #d8c6af;
+  --token-record-copy-small: #716477;
+  --token-metric-band-bg: #f5eadb;
+  --token-metric-band-divider: #e1d3c2;
+  --token-metric-band-text: #716477;
+  --token-quick-grid-hover: #efe0d0;
+  --token-quick-grid-active: #e4d3c0;
+  --token-quick-grid-text: #5a386c;
+  --token-quick-section-bg: #fff6e9;
+  --token-today-plan-title: #7a4d2a;
+  --token-today-plan-border: #e1d3c2;
+  --token-today-insights-border: #e1d3c2;
+  --token-today-plan-icon-bg: #fff9ef;
+  --token-today-plan-icon-border: #e1d3c2;
+  --token-today-plan-icon-shadow: rgba(76, 49, 83, .08);
+  --token-today-plan-icon-bg-hover: #f1e6d7;
+  --token-today-plan-icon-border-hover: #cfb4d4;
+  --token-record-mark-bg: #f4e7d7;
+  --token-record-mark-border: #d4b99b;
+  --token-record-mark-shadow: rgba(83, 54, 39, .1);
+  --token-overview-mark-bg: #eee0d1;
+  --token-overview-mark-border: #ceb69f;
+  --token-app-nav-bg: rgba(255, 249, 239, .96);
+  --token-app-nav-border: rgba(225, 211, 194, .94);
+  --token-app-nav-hover: #efe0d0;
+  --token-app-nav-active: #5a386c;
+  --token-pill-bg: rgba(255, 249, 239, .96);
+  --token-pill-border: rgba(225, 211, 194, .94);
+  --token-timeline-item-border: #e1d3c2;
+  --token-choice-bg: #f7f1e7;
+  --token-choice-selected-border: #8a5a9e;
+  --token-choice-selected-bg: #ead9ed;
+  --token-choice-selected-text: #5a386c;
+  --token-identity-bg: #f5eadb;
+  --token-focus-ring: #8a5a9e;
+  --token-surface-hover: #f1e6d7;
+  --token-surface-chip: #f1e6d7;
+  --token-text-plan: #71482b;
+}
+
+html[data-visual-theme="arcane"][data-theme="dark"] {
+  --token-ink: #f7eddd;
+  --token-muted: #b8a9bd;
+  --token-text-secondary: #c9bacb;
+  --token-text-tertiary: #9f91a3;
+  --token-brand: #b88cce;
+  --token-brand-deep: #e2b4f0;
+  --token-brand-soft: #493653;
+  --token-brand-faint: #34283b;
+  --token-line: #493c4e;
+  --token-line-strong: #66536c;
+  --token-line-brand: #684b72;
+  --token-focus: #b88cce;
+  --token-surface-page: #17131d;
+  --token-surface-card: #221b29;
+  --token-surface-subtle: #2c2233;
+  --token-surface-muted: #382c40;
+  --token-surface-control: #2c2233;
+  --token-surface-container: #221b29;
+  --token-surface-container-border: #493c4e;
+  --token-chevron: #9f91a3;
+  --token-status-brand-bg: #493653;
+  --token-status-brand-text: #e2b4f0;
+  --token-control-bg: #2c2233;
+  --token-control-bg-hover: #382c40;
+  --token-control-bg-disabled: #3b3042;
+  --token-control-border: #66536c;
+  --token-control-border-hover: #b88cce;
+  --token-control-border-focus: #b88cce;
+  --token-control-placeholder: #9f91a3;
+  --token-action-secondary-bg: #221b29;
+  --token-action-secondary-bg-hover: #2c2233;
+  --token-action-secondary-bg-active: #382c40;
+  --token-action-secondary-border: #66536c;
+  --token-action-secondary-text: #f7eddd;
+  --token-surface-interactive-hover: #2c2233;
+  --token-surface-interactive-active: #382c40;
+  --token-surface-interactive-disabled: #382c40;
+  --token-overlay-backdrop: rgba(8, 5, 11, .72);
+  --token-network-dot: #78b8aa;
+  --token-surface-timeline-dot: #57495c;
+  --token-record-copy-small: #b8a9bd;
+  --token-metric-band-bg: #281f2f;
+  --token-metric-band-divider: #493c4e;
+  --token-metric-band-text: #b8a9bd;
+  --token-quick-grid-hover: #382c40;
+  --token-quick-grid-active: #493653;
+  --token-quick-grid-text: #e2b4f0;
+  --token-quick-section-bg: #2c2233;
+  --token-today-plan-title: #f2b85f;
+  --token-today-plan-border: #684b72;
+  --token-today-insights-border: #493c4e;
+  --token-today-plan-icon-bg: #221b29;
+  --token-today-plan-icon-border: #684b72;
+  --token-today-plan-icon-shadow: rgba(0, 0, 0, .28);
+  --token-today-plan-icon-bg-hover: #493653;
+  --token-today-plan-icon-border-hover: #8a6793;
+  --token-record-mark-bg: linear-gradient(135deg, #2c2233, #493653);
+  --token-record-mark-border: #775a80;
+  --token-record-mark-shadow: rgba(0, 0, 0, .3);
+  --token-overview-mark-bg: #392b41;
+  --token-overview-mark-border: #775a80;
+  --token-app-nav-bg: rgba(34, 27, 41, .96);
+  --token-app-nav-border: #493c4e;
+  --token-app-nav-hover: #2c2233;
+  --token-app-nav-active: #e2b4f0;
+  --token-pill-bg: rgba(34, 27, 41, .95);
+  --token-pill-border: rgba(102, 83, 108, .92);
+  --token-timeline-item-border: #493c4e;
+  --token-choice-bg: #2c2233;
+  --token-choice-selected-border: #b88cce;
+  --token-choice-selected-bg: #493653;
+  --token-choice-selected-text: #e2b4f0;
+  --token-identity-bg: #2c2233;
+  --token-focus-ring: #b88cce;
+  --token-surface-hover: #2c2233;
+  --token-surface-chip: #2c2233;
+  --token-text-plan: #f2b85f;
+}
+
+html[data-visual-theme="arcane"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 9% 4%, rgba(255, 253, 246, .96) 0 8%, transparent 31%),
+    radial-gradient(circle at 92% 88%, rgba(138, 90, 158, .09), transparent 28%),
+    linear-gradient(155deg, #fffaf2 0%, #f7f1e7 55%, #efe4d3 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="arcane"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 90% 7%, rgba(184, 140, 206, .1), transparent 31%),
+    radial-gradient(circle at 9% 92%, rgba(242, 184, 95, .055), transparent 26%),
+    linear-gradient(180deg, #1d1723 0%, #17131d 54%, #110e16 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="arcane"] #root { background: transparent; }
+html[data-visual-theme="arcane"] .app::before,
+html[data-visual-theme="arcane"] .app::after { background: rgba(138, 90, 158, .075); }
+
+html[data-visual-theme="arcane"] .settings-card,
+html[data-visual-theme="arcane"] .chart-card,
+html[data-visual-theme="arcane"] .archive-profile,
+html[data-visual-theme="arcane"] .growth-history,
+html[data-visual-theme="arcane"] .settings-menu,
+html[data-visual-theme="arcane"] .account-card,
+html[data-visual-theme="arcane"] .vaccine-overview,
+html[data-visual-theme="arcane"] .vaccine-next,
+html[data-visual-theme="arcane"] .vaccine-record-section,
+html[data-visual-theme="arcane"] .vaccine-archive-summary,
+html[data-visual-theme="arcane"] .vaccine-schedule-group,
+html[data-visual-theme="arcane"] .vaccine-calendar-card,
+html[data-visual-theme="arcane"] .vaccine-month-agenda,
+html[data-visual-theme="arcane"] .growth-assessment-card,
+html[data-visual-theme="arcane"] .growth-curve-card {
+  border-color: var(--surface-container-border);
+  background-color: var(--surface-card);
+}
+
+html[data-visual-theme="arcane"] .today-workbench,
+html[data-visual-theme="arcane"] .today-insights {
+  border-color: var(--token-surface-container-border);
+  background: var(--surface-card);
+  box-shadow: 0 1px 2px rgba(67, 42, 73, .05), 0 5px 14px rgba(67, 42, 73, .04);
+}
+
+html[data-visual-theme="arcane"] .metric-band { background: var(--token-metric-band-bg); }
+html[data-visual-theme="arcane"] .metric-band > div { border-color: var(--token-metric-band-divider); }
+html[data-visual-theme="arcane"] .metric-band span,
+html[data-visual-theme="arcane"] .metric-band small { color: var(--token-metric-band-text); }
+html[data-visual-theme="arcane"] .info-row-label { color: var(--brand-deep); }
+html[data-visual-theme="arcane"] .quick-grid button:hover { background: var(--token-quick-grid-hover); }
+html[data-visual-theme="arcane"] .quick-grid button:active { background: var(--token-quick-grid-active); }
+html[data-visual-theme="arcane"] .quick-grid b { color: var(--token-quick-grid-text); }
+html[data-visual-theme="arcane"] .app-nav button.active,
+html[data-visual-theme="arcane"] .app-nav button.active:hover,
+html[data-visual-theme="arcane"] .app-nav button.active:active { background: transparent; box-shadow: none; color: var(--token-app-nav-active); }
+html[data-visual-theme="arcane"] .today-timeline .time-col i,
+html[data-visual-theme="arcane"] .history-timeline .time-col i { background: var(--token-surface-timeline-dot); }
+html[data-visual-theme="arcane"] .today-timeline .timeline-item,
+html[data-visual-theme="arcane"] .history-timeline .timeline-item { border-bottom-color: var(--token-timeline-item-border); }
+html[data-visual-theme="arcane"] .today-layout .today-timeline .record-mark,
+html[data-visual-theme="arcane"] .history-timeline .record-mark {
+  border-color: var(--token-record-mark-border);
+  background: var(--token-record-mark-bg);
+  box-shadow: inset 0 2px 5px var(--token-record-mark-shadow);
+}
+html[data-visual-theme="arcane"] .overview-mark { border-color: var(--token-overview-mark-border); background: var(--token-overview-mark-bg); }
+html[data-visual-theme="arcane"] .care-choice-groups .care-choice-grid button.selected {
+  border-color: var(--token-choice-selected-border);
+  background: var(--token-choice-selected-bg);
+  color: var(--token-choice-selected-text);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+html[data-visual-theme="arcane"] .baby-hero.hero-arcane .hero-greeting-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+html[data-visual-theme="arcane"] .baby-hero.hero-arcane .hero-greeting-title span { font-weight: 700; }
+html[data-visual-theme="arcane"] .baby-hero.hero-arcane .hero-status p { color: rgba(255, 247, 235, .94); }
+html[data-visual-theme="arcane"][data-theme="dark"] .quick-grid button {
+  border-color: var(--line);
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+/* 四个时段各保留一个主动作和一个弱辅动作；天气表现继续复用通用天气层。 */
+.arcane-motion { display: none; }
+.baby-hero.hero-arcane .arcane-motion { display: block; position: absolute; z-index: 1; inset: 0; overflow: hidden; }
+.baby-hero.hero-arcane .arcane-motion i { position: absolute; display: block; pointer-events: none; }
+.baby-hero.hero-arcane .arcane-motion-morning .arcane-motion-primary {
+  right: 20%; bottom: 25%; width: 42px; height: 66px;
+  background: radial-gradient(ellipse at 50% 84%, rgba(255, 244, 211, .66), transparent 66%);
+  filter: blur(4px); animation: arcane-steam-rise 7.2s ease-in-out infinite;
+}
+.baby-hero.hero-arcane .arcane-motion-morning .arcane-motion-secondary {
+  right: 8%; top: 17%; width: 25%; height: 28%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 226, 157, .12), transparent 70%);
+  animation: arcane-glow-breathe 6.4s ease-in-out infinite alternate;
+}
+.baby-hero.hero-arcane .arcane-motion-daytime .arcane-motion-primary {
+  right: 9%; top: -22%; width: 43%; height: 145%;
+  background: linear-gradient(108deg, transparent 38%, rgba(255, 249, 225, .15) 49%, transparent 60%);
+  animation: arcane-library-sweep 10s ease-in-out infinite;
+}
+.baby-hero.hero-arcane .arcane-motion-daytime .arcane-motion-secondary {
+  right: 34%; top: 18%; width: 18px; height: 13px; border-radius: 2px;
+  border: 1px solid rgba(255, 239, 192, .35); background: rgba(247, 225, 174, .16);
+  animation: arcane-page-drift 7.4s ease-in-out infinite;
+}
+.baby-hero.hero-arcane .arcane-motion-evening .arcane-motion-primary {
+  right: 11%; top: 13%; width: 40%; height: 70%; border-radius: 46%;
+  background: radial-gradient(ellipse, rgba(255, 155, 50, .28), transparent 68%);
+  mix-blend-mode: screen; animation: arcane-furnace-breathe 5.4s ease-in-out infinite alternate;
+}
+.baby-hero.hero-arcane .arcane-motion-evening .arcane-motion-secondary {
+  right: 30%; bottom: 26%; width: 5px; height: 5px; border-radius: 50%; background: #ffd17a;
+  box-shadow: 25px -17px 0 rgba(255, 202, 108, .76), 55px 3px 0 rgba(255, 228, 154, .68), 83px -24px 0 rgba(255, 184, 77, .65);
+  animation: arcane-sparks 4.2s ease-in-out infinite alternate;
+}
+.baby-hero.hero-arcane .arcane-motion-night .arcane-motion-primary {
+  right: 6%; top: 10%; width: 31%; height: 67%; border-radius: 48%;
+  background: radial-gradient(ellipse, rgba(255, 195, 92, .22), transparent 67%);
+  mix-blend-mode: screen; animation: arcane-lantern-breathe 5.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-arcane .arcane-motion-night .arcane-motion-secondary {
+  right: 29%; top: 10%; width: 7px; height: 7px; border-radius: 50%; background: rgba(245, 224, 255, .82);
+  box-shadow: 34px 14px 0 rgba(242, 221, 255, .68), 73px -4px 0 rgba(255, 234, 185, .7), 103px 24px 0 rgba(226, 194, 244, .64);
+  animation: arcane-stars-twinkle 4.8s ease-in-out infinite alternate;
+}
+
+@keyframes arcane-steam-rise { 0%, 100% { opacity: .14; transform: translate3d(0, 8px, 0) scale(.86); } 52% { opacity: .42; transform: translate3d(-4px, -10px, 0) scale(1.08); } }
+@keyframes arcane-glow-breathe { from { opacity: .38; transform: scale(.97); } to { opacity: .8; transform: scale(1.04); } }
+@keyframes arcane-library-sweep { 0%, 24% { opacity: 0; transform: translateX(-25%); } 50% { opacity: 1; } 75%, 100% { opacity: 0; transform: translateX(36%); } }
+@keyframes arcane-page-drift { 0%, 100% { opacity: .35; transform: translate3d(0, 3px, 0) rotate(-8deg); } 50% { opacity: .78; transform: translate3d(16px, -9px, 0) rotate(7deg); } }
+@keyframes arcane-furnace-breathe { from { opacity: .48; transform: scale(.96); } to { opacity: .9; transform: scale(1.04); } }
+@keyframes arcane-sparks { from { opacity: .34; transform: translateY(5px); } to { opacity: .92; transform: translateY(-7px); } }
+@keyframes arcane-lantern-breathe { from { opacity: .44; transform: scale(.97); } to { opacity: .88; transform: scale(1.035); } }
+@keyframes arcane-stars-twinkle { from { opacity: .38; } to { opacity: .92; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="arcane"] .baby-hero.hero-arcane::after,
+  html[data-visual-theme="arcane"] .arcane-motion i { animation: none; }
+}

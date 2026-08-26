@@ -17,6 +17,7 @@ import './styles/components.css';
 import './styles/theme-travel.css';
 import './styles/theme-orbit.css';
 import './styles/theme-shop.css';
+import './styles/theme-arcane.css';
 
 createRoot(document.getElementById('root')!).render(<StrictMode><ConfirmProvider><App /></ConfirmProvider></StrictMode>);
 

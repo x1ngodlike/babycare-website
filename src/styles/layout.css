@@ -94,6 +94,10 @@
 .baby-hero.hero-shop.diary-daytime { --diary-background: url('/hero/weather/shop/backgrounds/daytime.webp'); }
 .baby-hero.hero-shop.diary-evening { --diary-background: url('/hero/weather/shop/backgrounds/evening.webp'); }
 .baby-hero.hero-shop.diary-night { --diary-background: url('/hero/weather/shop/backgrounds/night.webp'); }
+.baby-hero.hero-arcane.diary-morning { --diary-background: url('/hero/weather/arcane/backgrounds/morning.webp'); }
+.baby-hero.hero-arcane.diary-daytime { --diary-background: url('/hero/weather/arcane/backgrounds/daytime.webp'); }
+.baby-hero.hero-arcane.diary-evening { --diary-background: url('/hero/weather/arcane/backgrounds/evening.webp'); }
+.baby-hero.hero-arcane.diary-night { --diary-background: url('/hero/weather/arcane/backgrounds/night.webp'); }
 .baby-hero.hero-travel::after {
   background:
     linear-gradient(90deg, rgba(58, 48, 40, .58) 0%, rgba(74, 60, 48, .34) 42%, rgba(74, 60, 48, .08) 72%, transparent 100%),
@@ -107,6 +111,11 @@
 .baby-hero.hero-shop::after {
   background:
     linear-gradient(90deg, rgba(52, 34, 27, .62) 0%, rgba(65, 42, 32, .34) 42%, rgba(65, 42, 32, .07) 72%, transparent 100%),
+    var(--diary-background) center / cover no-repeat;
+}
+.baby-hero.hero-arcane::after {
+  background:
+    linear-gradient(90deg, rgba(25, 18, 30, .82) 0%, rgba(31, 22, 36, .56) 40%, rgba(31, 22, 36, .14) 71%, transparent 100%),
     var(--diary-background) center / cover no-repeat;
 }
 .baby-hero.hero-diary::before { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: transparent; transition: background .35s ease; }
@@ -244,6 +253,7 @@
 .baby-hero.hero-travel .hero-status::before { background: rgba(74, 60, 48, .52); }
 .baby-hero.hero-orbit .hero-status::before { background: rgba(27, 39, 70, .58); }
 .baby-hero.hero-shop .hero-status::before { background: rgba(62, 38, 29, .56); }
+.baby-hero.hero-arcane .hero-status::before { background: rgba(39, 26, 44, .62); }
 .baby-hero.hero-diary .hero-status p {
   position: relative;
   z-index: 1;
@@ -320,6 +330,7 @@
 .baby-hero.hero-travel .diary-day-stamp::after { content: 'CLOUD JOURNEY'; }
 .baby-hero.hero-orbit .diary-day-stamp::after { content: 'LITTLE ORBIT'; }
 .baby-hero.hero-shop .diary-day-stamp::after { content: 'DAILY SHOP'; }
+.baby-hero.hero-arcane .diary-day-stamp::after { content: 'LUMEN TOWER'; }
 @keyframes diary-page-arrive { from { opacity: .72; } to { opacity: 1; } }
 @keyframes diary-postcard-breathe { from { transform: scale(1); } to { transform: scale(1.015); } }
 @keyframes diary-orbit-breathe { to { transform: translateY(-3px) scale(1.04); } }
