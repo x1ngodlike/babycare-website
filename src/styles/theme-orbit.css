@@ -1,0 +1,253 @@
+/* 星际观测站：柔和复古太空主题。业务状态色与核心记录橙保持原语义。 */
+html[data-visual-theme="orbit"][data-theme="light"] {
+  --token-ink: #293248;
+  --token-muted: #667087;
+  --token-text-secondary: #667087;
+  --token-text-tertiary: #7d879d;
+  --token-brand: #596fa7;
+  --token-brand-deep: #3f558d;
+  --token-brand-soft: #e4e9f5;
+  --token-brand-faint: #edf1f8;
+  --token-line: #d8deea;
+  --token-line-strong: #c1cadb;
+  --token-line-brand: #c8d2e7;
+  --token-focus: #596fa7;
+  --token-surface-page: #f5f7fc;
+  --token-surface-card: #fcfdff;
+  --token-surface-subtle: #edf1f8;
+  --token-surface-muted: #e3e8f2;
+  --token-surface-control: #fff;
+  --token-surface-container: #fcfdff;
+  --token-surface-container-border: #d8deea;
+  --token-chevron: #7d879d;
+  --token-status-brand-bg: #e4e9f5;
+  --token-status-brand-text: #3f558d;
+  --token-control-bg: #fff;
+  --token-control-bg-hover: #edf1f8;
+  --token-control-bg-disabled: #e3e8f2;
+  --token-control-border: #c1cadb;
+  --token-control-border-hover: #8798be;
+  --token-control-border-focus: #596fa7;
+  --token-control-placeholder: #7d879d;
+  --token-action-secondary-bg: #fcfdff;
+  --token-action-secondary-bg-hover: #edf1f8;
+  --token-action-secondary-bg-active: #e3e8f2;
+  --token-action-secondary-border: #c1cadb;
+  --token-action-secondary-text: #3f558d;
+  --token-surface-interactive-hover: #edf1f8;
+  --token-surface-interactive-active: #e3e8f2;
+  --token-surface-interactive-disabled: #e3e8f2;
+  --token-overlay-backdrop: rgba(31, 42, 68, .46);
+  --token-network-dot: #64a6ae;
+  --token-surface-timeline-dot: #c3cde1;
+  --token-record-copy-small: #667087;
+  --token-metric-band-bg: #f1f4fa;
+  --token-metric-band-divider: #d8deea;
+  --token-metric-band-text: #667087;
+  --token-quick-grid-hover: #e6ebf5;
+  --token-quick-grid-active: #d9e1ef;
+  --token-quick-grid-text: #3f558d;
+  --token-quick-section-bg: #f8faff;
+  --token-today-plan-title: #53689b;
+  --token-today-plan-border: #d8deea;
+  --token-today-insights-border: #d8deea;
+  --token-today-plan-icon-bg: #fcfdff;
+  --token-today-plan-icon-border: #d8deea;
+  --token-today-plan-icon-shadow: rgba(55, 72, 112, .08);
+  --token-today-plan-icon-bg-hover: #edf1f8;
+  --token-today-plan-icon-border-hover: #bdc8dc;
+  --token-record-mark-bg: #edf1f8;
+  --token-record-mark-border: #c1cadb;
+  --token-record-mark-shadow: rgba(55, 72, 112, .12);
+  --token-overview-mark-bg: #e8edf7;
+  --token-overview-mark-border: #b8c4da;
+  --token-app-nav-bg: rgba(252, 253, 255, .95);
+  --token-app-nav-border: rgba(198, 207, 224, .92);
+  --token-app-nav-hover: #e8edf7;
+  --token-app-nav-active: #3f558d;
+  --token-pill-bg: rgba(252, 253, 255, .95);
+  --token-pill-border: rgba(198, 207, 224, .92);
+  --token-timeline-item-border: #d8deea;
+  --token-choice-bg: #f5f7fc;
+  --token-choice-selected-border: #596fa7;
+  --token-choice-selected-bg: #e4e9f5;
+  --token-choice-selected-text: #3f558d;
+  --token-identity-bg: #f1f4fa;
+  --token-focus-ring: #596fa7;
+  --token-surface-hover: #edf1f8;
+  --token-surface-chip: #edf1f8;
+  --token-text-plan: #53689b;
+}
+
+html[data-visual-theme="orbit"][data-theme="dark"] {
+  --token-ink: #e7ebf4;
+  --token-muted: #a9b1c2;
+  --token-text-secondary: #b6bdcb;
+  --token-text-tertiary: #8e98ab;
+  --token-brand: #91a7e0;
+  --token-brand-deep: #bdc9ed;
+  --token-brand-soft: #303a55;
+  --token-brand-faint: #252d40;
+  --token-line: #374052;
+  --token-line-strong: #4b566b;
+  --token-line-brand: #46516a;
+  --token-focus: #91a7e0;
+  --token-surface-page: #151923;
+  --token-surface-card: #202633;
+  --token-surface-subtle: #292f3d;
+  --token-surface-muted: #323948;
+  --token-surface-control: #292f3d;
+  --token-surface-container: #202633;
+  --token-surface-container-border: #374052;
+  --token-chevron: #8e98ab;
+  --token-status-brand-bg: #303a55;
+  --token-status-brand-text: #bdc9ed;
+  --token-control-bg: #292f3d;
+  --token-control-bg-hover: #323948;
+  --token-control-bg-disabled: #343b49;
+  --token-control-border: #4b566b;
+  --token-control-border-hover: #91a7e0;
+  --token-control-border-focus: #91a7e0;
+  --token-control-placeholder: #8e98ab;
+  --token-action-secondary-bg: #202633;
+  --token-action-secondary-bg-hover: #292f3d;
+  --token-action-secondary-bg-active: #323948;
+  --token-action-secondary-border: #4b566b;
+  --token-action-secondary-text: #e7ebf4;
+  --token-surface-interactive-hover: #292f3d;
+  --token-surface-interactive-active: #323948;
+  --token-surface-interactive-disabled: #323948;
+  --token-overlay-backdrop: rgba(4, 8, 17, .68);
+  --token-network-dot: #78c0c6;
+  --token-surface-timeline-dot: #39445d;
+  --token-record-copy-small: #a9b1c2;
+  --token-metric-band-bg: #202633;
+  --token-metric-band-divider: #374052;
+  --token-metric-band-text: #a9b1c2;
+  --token-quick-grid-hover: #323948;
+  --token-quick-grid-active: #303a55;
+  --token-quick-grid-text: #bdc9ed;
+  --token-quick-section-bg: #292f3d;
+  --token-today-plan-title: #ab9bdc;
+  --token-today-plan-border: #46516a;
+  --token-today-insights-border: #374052;
+  --token-today-plan-icon-bg: #202633;
+  --token-today-plan-icon-border: #46516a;
+  --token-today-plan-icon-shadow: rgba(0, 0, 0, .24);
+  --token-today-plan-icon-bg-hover: #303a55;
+  --token-today-plan-icon-border-hover: #596a8e;
+  --token-record-mark-bg: linear-gradient(135deg, #252d40, #303a55);
+  --token-record-mark-border: #4b5a79;
+  --token-record-mark-shadow: rgba(0, 0, 0, .24);
+  --token-overview-mark-bg: #29334a;
+  --token-overview-mark-border: #536487;
+  --token-app-nav-bg: rgba(24, 29, 40, .96);
+  --token-app-nav-border: #374052;
+  --token-app-nav-hover: #292f3d;
+  --token-app-nav-active: #bdc9ed;
+  --token-pill-bg: rgba(24, 29, 40, .94);
+  --token-pill-border: rgba(75, 86, 107, .9);
+  --token-timeline-item-border: #374052;
+  --token-choice-bg: #292f3d;
+  --token-choice-selected-border: #91a7e0;
+  --token-choice-selected-bg: #303a55;
+  --token-choice-selected-text: #bdc9ed;
+  --token-identity-bg: #292f3d;
+  --token-focus-ring: #91a7e0;
+  --token-surface-hover: #292f3d;
+  --token-surface-chip: #292f3d;
+  --token-text-plan: #ab9bdc;
+}
+
+html[data-visual-theme="orbit"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 4%, rgba(255, 255, 255, .98) 0 8%, transparent 31%),
+    radial-gradient(circle at 94% 90%, rgba(100, 166, 174, .13), transparent 27%),
+    linear-gradient(155deg, #fafbff 0%, #f5f7fc 54%, #eef2f9 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="orbit"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(89, 111, 167, .11), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(100, 166, 174, .06), transparent 25%),
+    linear-gradient(180deg, #171c28 0%, #151923 52%, #11151e 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="orbit"] #root { background: transparent; }
+html[data-visual-theme="orbit"] .app::before,
+html[data-visual-theme="orbit"] .app::after { background: rgba(89, 111, 167, .09); }
+
+html[data-visual-theme="orbit"] .settings-card,
+html[data-visual-theme="orbit"] .chart-card,
+html[data-visual-theme="orbit"] .archive-profile,
+html[data-visual-theme="orbit"] .growth-history,
+html[data-visual-theme="orbit"] .settings-menu,
+html[data-visual-theme="orbit"] .account-card,
+html[data-visual-theme="orbit"] .vaccine-overview,
+html[data-visual-theme="orbit"] .vaccine-next,
+html[data-visual-theme="orbit"] .vaccine-record-section,
+html[data-visual-theme="orbit"] .vaccine-archive-summary,
+html[data-visual-theme="orbit"] .vaccine-schedule-group,
+html[data-visual-theme="orbit"] .vaccine-calendar-card,
+html[data-visual-theme="orbit"] .vaccine-month-agenda,
+html[data-visual-theme="orbit"] .growth-assessment-card,
+html[data-visual-theme="orbit"] .growth-curve-card {
+  border-color: var(--surface-container-border);
+  background-color: var(--surface-card);
+}
+
+html[data-visual-theme="orbit"] .today-workbench,
+html[data-visual-theme="orbit"] .today-insights {
+  border-color: var(--token-surface-container-border);
+  background: var(--surface-card);
+  box-shadow: 0 1px 2px rgba(44, 57, 91, .05), 0 5px 14px rgba(44, 57, 91, .04);
+}
+
+html[data-visual-theme="orbit"] .metric-band { background: var(--token-metric-band-bg); }
+html[data-visual-theme="orbit"] .metric-band > div { border-color: var(--token-metric-band-divider); }
+html[data-visual-theme="orbit"] .metric-band span,
+html[data-visual-theme="orbit"] .metric-band small { color: var(--token-metric-band-text); }
+html[data-visual-theme="orbit"] .info-row-label { color: var(--brand-deep); }
+html[data-visual-theme="orbit"] .quick-grid button:hover { background: var(--token-quick-grid-hover); }
+html[data-visual-theme="orbit"] .quick-grid button:active { background: var(--token-quick-grid-active); }
+html[data-visual-theme="orbit"] .quick-grid b { color: var(--token-quick-grid-text); }
+html[data-visual-theme="orbit"] .app-nav button.active,
+html[data-visual-theme="orbit"] .app-nav button.active:hover,
+html[data-visual-theme="orbit"] .app-nav button.active:active { background: transparent; box-shadow: none; color: var(--token-app-nav-active); }
+html[data-visual-theme="orbit"] .today-timeline .time-col i,
+html[data-visual-theme="orbit"] .history-timeline .time-col i { background: var(--token-surface-timeline-dot); }
+html[data-visual-theme="orbit"] .today-timeline .timeline-item,
+html[data-visual-theme="orbit"] .history-timeline .timeline-item { border-bottom-color: var(--token-timeline-item-border); }
+html[data-visual-theme="orbit"] .today-layout .today-timeline .record-mark,
+html[data-visual-theme="orbit"] .history-timeline .record-mark {
+  border-color: var(--token-record-mark-border);
+  background: var(--token-record-mark-bg);
+  box-shadow: inset 0 2px 5px var(--token-record-mark-shadow);
+}
+html[data-visual-theme="orbit"] .overview-mark { border-color: var(--token-overview-mark-border); background: var(--token-overview-mark-bg); }
+html[data-visual-theme="orbit"] .care-choice-groups .care-choice-grid button.selected {
+  border-color: var(--token-choice-selected-border);
+  background: var(--token-choice-selected-bg);
+  color: var(--token-choice-selected-text);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+html[data-visual-theme="orbit"] .baby-hero.hero-orbit .hero-greeting-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+html[data-visual-theme="orbit"] .baby-hero.hero-orbit .hero-greeting-title span { font-weight: 700; }
+html[data-visual-theme="orbit"] .baby-hero.hero-orbit .hero-status p { color: rgba(239, 244, 255, .9); }
+
+html[data-visual-theme="orbit"][data-theme="dark"] .quick-grid button {
+  border-color: var(--line);
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="orbit"] .baby-hero.hero-orbit::after { animation: none; }
+}

@@ -1,4 +1,4 @@
-export type WeatherHeroThemeId = 'hero-diary' | 'hero-travel';
+export type WeatherHeroThemeId = 'hero-diary' | 'hero-travel' | 'hero-orbit';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -51,6 +51,30 @@ export const WEATHER_HERO_ASSETS = {
       chat: '/hero/weather/travel/icons/nav/chat.webp',
       trends: '/hero/weather/travel/icons/nav/trends.webp',
       archive: '/hero/weather/travel/icons/nav/archive.webp',
+    },
+  },
+  'hero-orbit': {
+    thumb: '/hero/weather/orbit/thumb.webp',
+    stickers: {
+      feeding: '/hero/weather/orbit/stickers/sticker-feeding.webp',
+      bowel: '/hero/weather/orbit/stickers/sticker-bowel.webp',
+      care: '/hero/weather/orbit/stickers/sticker-care.webp',
+      note: '/hero/weather/orbit/stickers/sticker-note.webp',
+    },
+    tasks: {
+      medicine: '/hero/weather/orbit/icons/tasks/medicine.webp',
+      massage: '/hero/weather/orbit/icons/tasks/massage.webp',
+      bath: '/hero/weather/orbit/icons/tasks/bath.webp',
+      care: '/hero/weather/orbit/stickers/sticker-care.webp',
+      vaccine: '/hero/weather/orbit/icons/tasks/vaccine.webp',
+      growth: '/hero/weather/orbit/icons/tasks/growth.webp',
+    },
+    nav: {
+      today: '/hero/weather/orbit/icons/nav/today.webp',
+      history: '/hero/weather/orbit/icons/nav/records.webp',
+      chat: '/hero/weather/orbit/icons/nav/chat.webp',
+      trends: '/hero/weather/orbit/icons/nav/trends.webp',
+      archive: '/hero/weather/orbit/icons/nav/archive.webp',
     },
   },
 } as const satisfies Record<WeatherHeroThemeId, {

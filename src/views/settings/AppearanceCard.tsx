@@ -27,6 +27,7 @@ type HeroBgOption = { value: string; label: string; thumb: string; group: 'weath
 const HERO_BG_OPTIONS: HeroBgOption[] = [
   { value: 'hero-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb, group: 'weather' },
   { value: 'hero-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb, group: 'weather' },
+  { value: 'hero-orbit', label: '星际观测站', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb, group: 'weather' },
   { value: 'hero-garden', label: '动态花园', thumb: '/hero/garden/morning.webp', group: 'living' },
   { value: 'auto', label: '绿野晨光', thumb: '/hero/default/morning.webp', group: 'classic' },
   { value: 'hero-paper', label: '折纸童趣', thumb: '/hero/paper/morning.webp', group: 'classic' },
@@ -85,7 +86,7 @@ function PreviewHero({ profile, userId, periodKey, heroBg, hour, weatherKind, we
     updatedAt: new Date().toISOString(),
     stale: false,
   };
-  const heroThemeClass = heroBg === 'hero-travel' ? 'hero-diary hero-travel' : heroBg !== 'auto' ? heroBg : '';
+  const heroThemeClass = isWeatherHeroTheme(heroBg) ? `hero-diary ${heroBg}` : heroBg !== 'auto' ? heroBg : '';
   const periodClass = `baby-hero ${heroThemeClass} hero-${periodKey}${magazineTheme ? ` diary-${diaryPeriod} weather-${previewWeather.kind}${weatherEffectsEnabled ? '' : ' weather-effects-off'}` : ''}`;
   return (
     <section className={periodClass} aria-label={`${periodLabel}时段预览`}>

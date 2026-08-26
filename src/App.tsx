@@ -133,8 +133,8 @@ export default function App() {
   const [theme, setTheme] = useState<ThemeMode>(() => { try { return (localStorage.getItem('babycare-theme') as ThemeMode) || 'system'; } catch { return 'system'; } });
   const [heroBg, setHeroBg] = useState<string>(() => { try { return localStorage.getItem('babycare-hero-bg') || 'auto'; } catch { return 'auto'; } });
   const [heroWeatherEffects, setHeroWeatherEffects] = useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem('babycare-hero-weather-effects') || '{"hero-diary":true,"hero-travel":true}'); }
-    catch { return { 'hero-diary': true, 'hero-travel': true }; }
+    try { return JSON.parse(localStorage.getItem('babycare-hero-weather-effects') || '{"hero-diary":true,"hero-travel":true,"hero-orbit":true}'); }
+    catch { return { 'hero-diary': true, 'hero-travel': true, 'hero-orbit': true }; }
   });
   const refreshingRef = useRef(false);
 
@@ -292,6 +292,7 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('babycare-hero-bg', heroBg); } catch { /* ignore */ }
     if (heroBg === 'hero-travel') document.documentElement.setAttribute('data-visual-theme', 'travel');
+    else if (heroBg === 'hero-orbit') document.documentElement.setAttribute('data-visual-theme', 'orbit');
     else document.documentElement.removeAttribute('data-visual-theme');
   }, [heroBg]);
   useEffect(() => {

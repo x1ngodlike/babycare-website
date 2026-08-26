@@ -15,6 +15,7 @@ import './styles/milestone.css';
 import './ui.css';
 import './styles/components.css';
 import './styles/theme-travel.css';
+import './styles/theme-orbit.css';
 
 createRoot(document.getElementById('root')!).render(<StrictMode><ConfirmProvider><App /></ConfirmProvider></StrictMode>);
 
