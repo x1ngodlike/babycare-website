@@ -31,7 +31,7 @@
 .segment.active {
   outline: 1px solid var(--control-border);
   background: var(--surface-card);
-  color: var(--green-deep);
+  color: var(--brand-deep);
   box-shadow: 0 1px 2px #23342a12;
 }
 
@@ -67,10 +67,10 @@
 .weekday-buttons button.selected,
 .pattern-length-buttons button.selected,
 .pattern-day.active {
-  border-color: var(--green);
-  background: var(--sage-soft);
-  color: var(--green-deep);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--green) 20%, transparent);
+  border-color: var(--brand);
+  background: var(--brand-faint);
+  color: var(--brand-deep);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
 }
 
 .ui-switch {
@@ -84,7 +84,7 @@
 }
 
 .ui-switch:hover:not(:disabled) { border-color: var(--control-border-hover); }
-.ui-switch.on { border-color: var(--green); background: var(--green); }
+.ui-switch.on { border-color: var(--brand); background: var(--brand); }
 .ui-switch span { margin: 1px; box-shadow: 0 1px 3px #18231c35; transition: transform var(--motion-fast) var(--ease-out); }
 .ui-switch.on span { transform: translateX(20px); }
 .ui-switch:disabled { border-color: var(--control-border); background: var(--surface-interactive-disabled); opacity: .65; }
@@ -246,9 +246,9 @@ select,
 .picker-quick button.selected,
 .choice-group button.selected,
 .care-choice-groups .care-choice-grid button.selected {
-  border-color: var(--green);
+  border-color: var(--brand);
   background: var(--surface-interactive-active);
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 
 .picker-trigger:disabled,
@@ -283,7 +283,7 @@ select,
 
 .deleted-records-link:hover {
   background: var(--surface-interactive-hover);
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 
 .deleted-records-link:active { transform: scale(.98); }

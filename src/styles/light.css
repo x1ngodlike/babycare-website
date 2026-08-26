@@ -4,15 +4,15 @@
   --muted: #697268;
   --text-secondary: #657065;
   --text-tertiary: #737b72;
-  --green: #657e51;
-  --green-deep: #31452d;
-  --sage: #dce6d2;
-  --sage-soft: #eff4e9;
+  --brand: #657e51;
+  --brand-deep: #31452d;
+  --brand-soft: #dce6d2;
+  --brand-faint: #eff4e9;
   --orange: #ee852f;
   --cream: #f6ecdc;
   --line: #e4e1d8;
   --line-strong: #d3d5ca;
-  --line-sage: #ccd8c3;
+  --line-brand: #ccd8c3;
   --focus: #49683e;
   --surface-page: #f7f7f0;
   --surface-card: #fffdfa;
@@ -25,7 +25,7 @@
   --surface-interactive-active: #eff4e9;
   --surface-interactive-disabled: #ebece4;
   --overlay-backdrop: rgba(24, 35, 28, .48);
-  --divider: #e4e1d8;
+  --line: #e4e1d8;
   --chevron: #737b72;
   --status-brand-bg: #eff4e9;
   --status-brand-text: #31452d;
@@ -162,7 +162,7 @@ body {
 .metric-band { background: #fffdfa; }
 .metric-band > div { min-height: 88px; padding: 17px 8px 14px; border-color: #ebe7dd; }
 .metric-band span { color: #5d6859; font-size: 13px; font-weight: 700; }
-.metric-band strong { margin-top: 6px; color: var(--green-deep); font-size: 28px; font-weight: 800; }
+.metric-band strong { margin-top: 6px; color: var(--brand-deep); font-size: 28px; font-weight: 800; }
 .metric-band small { font-size: 13px; }
 .today-workbench .quick-section { padding: 10px 9px; background: #fbfaf5; }
 .quick-grid { gap: 6px; }
@@ -207,7 +207,7 @@ body {
 
 .today-timeline { margin-top: 10px; }
 .today-timeline .section-title { align-items: center; margin-bottom: 7px; }
-.today-timeline .section-title h2 { color: var(--green-deep); font-size: 22px; line-height: 1.25; letter-spacing: -.02em; }
+.today-timeline .section-title h2 { color: var(--brand-deep); font-size: 22px; line-height: 1.25; letter-spacing: -.02em; }
 .today-timeline .section-title > span { font-size: 13px; }
 .timeline { position: relative; }
 .today-timeline .timeline-item {
@@ -227,7 +227,7 @@ body {
 }
 .today-timeline .timeline-item:last-child { border-bottom: 0; }
 .today-timeline .time-col { position: absolute; left: -64px; top: 0; bottom: 0; width: 64px; }
-.today-timeline .time-col time { position: absolute; z-index: 2; top: 50%; left: 0; width: 44px; padding: 5px 0; transform: translateY(-50%); background: var(--surface-page); color: var(--green-deep); font-size: 14px; text-align: center; }
+.today-timeline .time-col time { position: absolute; z-index: 2; top: 50%; left: 0; width: 44px; padding: 5px 0; transform: translateY(-50%); background: var(--surface-page); color: var(--brand-deep); font-size: 14px; text-align: center; }
 .today-timeline .time-col i { top: 50%; bottom: auto; left: 22px; width: 2px; height: calc(100% + 18px); background: #dce5d3; }
 .today-timeline .time-col::after {
   content: none;
@@ -236,7 +236,7 @@ body {
 .record-copy small { color: #5f7f4e; font-weight: 800; }
 .record-copy strong { font-size: 16px; }
 
-.page-head h1, .subpage-head h1 { color: var(--green-deep); }
+.page-head h1, .subpage-head h1 { color: var(--brand-deep); }
 .settings-card, .chart-card, .archive-profile, .growth-history, .settings-menu, .account-card,
 .vaccine-overview, .vaccine-next, .vaccine-record-section, .vaccine-archive-summary, .vaccine-schedule-group, .vaccine-calendar-card, .vaccine-month-agenda,
 .growth-assessment-card,
@@ -420,7 +420,7 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
   width: 36px;
   transform: translateY(-50%);
   background: var(--surface-page);
-  color: var(--green-deep);
+  color: var(--brand-deep);
   font-size: 13px;
   line-height: 1.45;
   font-weight: 800;
@@ -526,7 +526,7 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
   padding: 0;
   transform: translateY(-50%);
   background: var(--surface-page);
-  color: var(--green-deep);
+  color: var(--brand-deep);
   font-size: 13px;
   line-height: 1.45;
   font-weight: 800;
@@ -604,7 +604,7 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--brand);
   color: #fff;
   font-size: 11px;
   font-style: normal;
@@ -613,7 +613,7 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
 .care-choice-grid button.selected {
   border-color: #759064;
   background: #edf3e8;
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 
 .app-nav .nav-add {
@@ -722,7 +722,7 @@ html[data-theme="light"] .history-timeline .record-mark {
 .care-choice-groups .care-choice-grid button.selected {
   border-color: #789269;
   background: #fff;
-  color: var(--green-deep);
+  color: var(--brand-deep);
   box-shadow: inset 0 0 0 1px #789269;
 }
 
@@ -733,8 +733,8 @@ html[data-theme="light"] .history-timeline .record-mark {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: var(--sage-soft);
-  color: var(--green-deep);
+  background: var(--brand-faint);
+  color: var(--brand-deep);
 }
 .settings-menu-stack .settings-entry-icon svg {
   width: 18px;
@@ -772,7 +772,7 @@ html[data-theme="light"] .history-timeline .record-mark {
 .today-baby-summary span {
   min-width: 0;
   overflow: hidden;
-  color: var(--green-deep);
+  color: var(--brand-deep);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.4;

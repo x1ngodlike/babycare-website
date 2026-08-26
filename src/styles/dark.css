@@ -7,17 +7,17 @@
     --muted: #aaa59e;
     --text-secondary: #b8b3ac;
     --text-tertiary: #928d86;
-    --green: #86a370;
-    --green-deep: #b8cfaa;
-    --sage: #3a4a36;
-    --sage-soft: #2a3528;
+    --brand: #86a370;
+    --brand-deep: #b8cfaa;
+    --brand-soft: #3a4a36;
+    --brand-faint: #2a3528;
     --orange: #e09958;
     --cream: #4a3f30;
     --line: #403e3a;
     --line-strong: #595650;
-    --line-sage: #3a4a36;
+    --line-brand: #3a4a36;
     --focus: #91b17b;
-    --accent: #86a370;
+    --brand: #86a370;
     --border: #403e3a;
     --border-strong: #595650;
     --surface-page: #171716;
@@ -31,7 +31,7 @@
     --surface-interactive-active: #2a3528;
     --surface-interactive-disabled: #33312e;
     --overlay-backdrop: rgba(0, 0, 0, .6);
-    --divider: #403e3a;
+    --line: #403e3a;
     --chevron: #928d86;
     --status-brand-bg: #2a3528;
     --status-brand-text: #b8cfaa;
@@ -98,17 +98,17 @@ html[data-theme="dark"] {
   --muted: #aaa59e;
   --text-secondary: #b8b3ac;
   --text-tertiary: #928d86;
-  --green: #86a370;
-  --green-deep: #b8cfaa;
-  --sage: #3a4a36;
-  --sage-soft: #2a3528;
+  --brand: #86a370;
+  --brand-deep: #b8cfaa;
+  --brand-soft: #3a4a36;
+  --brand-faint: #2a3528;
   --orange: #e09958;
   --cream: #4a3f30;
   --line: #403e3a;
   --line-strong: #595650;
-  --line-sage: #3a4a36;
+  --line-brand: #3a4a36;
   --focus: #91b17b;
-  --accent: #86a370;
+  --brand: #86a370;
   --border: #403e3a;
   --border-strong: #595650;
   --surface-page: #171716;
@@ -122,7 +122,7 @@ html[data-theme="dark"] {
   --surface-interactive-active: #2a3528;
   --surface-interactive-disabled: #33312e;
   --overlay-backdrop: rgba(0, 0, 0, .6);
-  --divider: #403e3a;
+  --line: #403e3a;
   --chevron: #928d86;
   --status-brand-bg: #2a3528;
   --status-brand-text: #b8cfaa;
@@ -216,7 +216,7 @@ html[data-theme="dark"] .network-pill,
 html[data-theme="dark"] .user-pill {
   background: rgba(38, 37, 35, .92);
   border-color: rgba(82, 79, 74, .85);
-  color: var(--green);
+  color: var(--brand);
 }
 html[data-theme="dark"] .network-pill::before { background: #7d9a66; }
 html[data-theme="dark"] .today-workbench,
@@ -289,10 +289,10 @@ html[data-theme="dark"] .prediction-ai-summary { color: #e0e8db; }
 html[data-theme="dark"] .prediction-ai-insights li { color: #b4c7ad; }
 html[data-theme="dark"] .prediction-meta { color: var(--muted); }
 html[data-theme="dark"] .confidence-bar { background: var(--line); }
-html[data-theme="dark"] .confidence-fill { background: var(--green); }
-html[data-theme="dark"] .prediction-ai-badge { color: var(--green); }
+html[data-theme="dark"] .confidence-fill { background: var(--brand); }
+html[data-theme="dark"] .prediction-ai-badge { color: var(--brand); }
 html[data-theme="dark"] .prediction-banner.ai-predicted .prediction-time::after {
-  color: var(--green);
+  color: var(--brand);
   background: #2d3a28;
 }
 html[data-theme="dark"] .prediction-banner.ai-predicted.overdue .prediction-time::after {
@@ -303,18 +303,18 @@ html[data-theme="dark"] .prediction-banner.ai-predicted.soon .prediction-time::a
   color: #d4a84a;
   background: var(--surface-soon-soft);
 }
-html[data-theme="dark"] .prediction-upcoming-count { background: var(--sage-soft); color: var(--green); }
+html[data-theme="dark"] .prediction-upcoming-count { background: var(--brand-faint); color: var(--brand); }
 html[data-theme="dark"] .import-mode-option {
   background: var(--surface-card);
   color: var(--text-primary);
 }
 html[data-theme="dark"] .import-mode-option:hover {
   background: var(--surface-subtle);
-  border-color: var(--green);
+  border-color: var(--brand);
 }
 html[data-theme="dark"] .import-mode-option.selected {
   background: var(--surface-subtle);
-  border-color: var(--green);
+  border-color: var(--brand);
 }
 html[data-theme="dark"] .import-mode-content p {
   color: var(--muted);
@@ -324,7 +324,7 @@ html[data-theme="dark"] .audit-log-section {
 }
 html[data-theme="dark"] .audit-log-icon {
   background: var(--surface-subtle);
-  color: var(--green);
+  color: var(--brand);
 }
 html[data-theme="dark"] .audit-log-item.failed .audit-log-icon {
   background: #3d2a2a;
@@ -332,7 +332,7 @@ html[data-theme="dark"] .audit-log-item.failed .audit-log-icon {
 }
 html[data-theme="dark"] .audit-log-status.success {
   background: var(--surface-subtle);
-  color: var(--green);
+  color: var(--brand);
 }
 html[data-theme="dark"] .audit-log-status.failure {
   background: #3d2a2a;
@@ -345,7 +345,7 @@ html[data-theme="dark"] .today-workbench .quick-section {
   background: var(--surface-subtle);
 }
 html[data-theme="dark"] .quick-grid button:hover { background: var(--surface-muted); }
-html[data-theme="dark"] .quick-grid button:active { background: var(--sage-soft); }
+html[data-theme="dark"] .quick-grid button:active { background: var(--brand-faint); }
 html[data-theme="dark"] .quick-grid b { color: #c5d3be; }
 html[data-theme="dark"] .push-rule-row,
 html[data-theme="dark"] .push-channel-row { border-color: var(--line); }
@@ -374,7 +374,7 @@ html[data-theme="dark"] .app-nav button:hover { background: var(--surface-subtle
 html[data-theme="dark"] .app-nav button.active,
 html[data-theme="dark"] .app-nav button.active:hover,
 html[data-theme="dark"] .app-nav button.active:active { background: transparent; }
-html[data-theme="dark"] .app-nav button.active { color: var(--green-deep); }
+html[data-theme="dark"] .app-nav button.active { color: var(--brand-deep); }
 html[data-theme="dark"] .app-nav button.active img { filter: none; opacity: 1; }
 html[data-theme="dark"] .app-nav button img { opacity: .68; filter: saturate(.72) brightness(.92); }
 html[data-theme="dark"] .floating-add,
@@ -403,7 +403,7 @@ html[data-theme="dark"] .baby-hero.hero-diary::after {
 }
 html[data-theme="dark"] .baby-hero.hero-travel::after {
   background:
-    linear-gradient(90deg, rgba(13, 29, 38, .7) 0%, rgba(17, 34, 43, .43) 43%, rgba(17, 34, 43, .09) 74%, transparent 100%),
+    linear-gradient(90deg, rgba(40, 34, 28, .7) 0%, rgba(55, 46, 36, .43) 43%, rgba(55, 46, 36, .09) 74%, transparent 100%),
     var(--diary-background) center / cover no-repeat;
 }
 html[data-theme="dark"] .modal-layer {
@@ -425,7 +425,7 @@ html[data-theme="dark"] .editor {
 html[data-theme="dark"] .record-controls button,
 html[data-theme="dark"] .text-button,
 html[data-theme="dark"] .inline-back {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .settings-entry,
 html[data-theme="dark"] .settings-menu {
@@ -436,7 +436,7 @@ html[data-theme="dark"] .settings-menu-stack .settings-entry:hover {
   background: var(--surface-subtle);
 }
 html[data-theme="dark"] .settings-menu-stack .settings-entry:active {
-  background: var(--sage-soft);
+  background: var(--brand-faint);
 }
 html[data-theme="dark"] .settings-menu-stack .settings-entry b {
   color: var(--ink);
@@ -457,12 +457,12 @@ html[data-theme="dark"] .vaccine-upcoming-list article {
 }
 html[data-theme="dark"] .vaccine-date,
 html[data-theme="dark"] .vaccine-calendar-week {
-  background: var(--sage-soft);
-  color: var(--green-deep);
+  background: var(--brand-faint);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .ga-band.mid {
-  background: var(--sage);
-  color: var(--green-deep);
+  background: var(--brand-soft);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .ga-band.below,
 html[data-theme="dark"] .ga-band.above {
@@ -474,13 +474,13 @@ html[data-theme="dark"] .ga-band.high {
   background: #5a3330;
   color: var(--danger);
 }
-html[data-theme="dark"] .ga-seg.core { background: var(--sage); }
+html[data-theme="dark"] .ga-seg.core { background: var(--brand-soft); }
 html[data-theme="dark"] .ga-seg.edge { background: var(--cream); }
 html[data-theme="dark"] .ga-track-milk { background: var(--surface-muted); }
 html[data-theme="dark"] .ga-danger-zone { background: #5a3330; }
-html[data-theme="dark"] .ga-zone { background: var(--sage); }
+html[data-theme="dark"] .ga-zone { background: var(--brand-soft); }
 html[data-theme="dark"] .ga-marker {
-  background: var(--green-deep);
+  background: var(--brand-deep);
   border-color: var(--surface-card);
   box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
 }
@@ -549,8 +549,8 @@ html[data-theme="dark"] .meta-icon-btn {
   border-color: var(--line);
 }
 html[data-theme="dark"] .meta-icon-btn.selected {
-  background: var(--sage-soft);
-  border: 2px solid var(--green-deep);
+  background: var(--brand-faint);
+  border: 2px solid var(--brand-deep);
   box-shadow: 0 0 0 3px rgba(34,197,94,.25);
 }
 html[data-theme="dark"] .time-empty-state {
@@ -569,7 +569,7 @@ html[data-theme="dark"] .today-baby-summary img {
 }
 html[data-theme="dark"] .today-workbench .today-profile-strip span,
 html[data-theme="dark"] .today-baby-summary span {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .toast {
   background: var(--ink);
@@ -577,7 +577,7 @@ html[data-theme="dark"] .toast {
 }
 html[data-theme="dark"] .toast button {
   background: #171716;
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .metric-band,
 html[data-theme="dark"] .metric-band > div {
@@ -588,7 +588,7 @@ html[data-theme="dark"] .metric-band span {
   color: var(--muted);
 }
 html[data-theme="dark"] .metric-band strong {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .quick-grid button {
   background: var(--surface-subtle);
@@ -631,12 +631,12 @@ html[data-theme="dark"] .feed-prep-item.selected {
   box-shadow: 0 0 0 3px rgba(114, 145, 96, .2);
 }
 html[data-theme="dark"] .feed-prep-current {
-  background: var(--sage);
-  color: var(--green-deep);
-  border-color: var(--line-sage);
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  border-color: var(--line-brand);
 }
 html[data-theme="dark"] .feed-prep-header svg {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .close-btn {
   color: var(--muted);
@@ -678,7 +678,7 @@ html[data-theme="dark"] .settings-entry {
   border-bottom-color: var(--line);
 }
 html[data-theme="dark"] .settings-entry:active {
-  background: var(--sage-soft);
+  background: var(--brand-faint);
 }
 html[data-theme="dark"] .avatar-upload-area {
   background: var(--surface-subtle);
@@ -709,7 +709,7 @@ html[data-theme="dark"] .form-switch-row {
   border-color: var(--line);
 }
 html[data-theme="dark"] .segment.active span {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 
 /* Dark mode overrides for subpage header */
@@ -768,10 +768,10 @@ html[data-theme="dark"] .care-item-edit-hint {
   color: var(--muted);
 }
 html[data-theme="dark"] .care-item-info:hover .care-item-edit-hint {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .care-item-group > h3 {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .adherence-item {
   background: var(--surface-card);
@@ -871,7 +871,7 @@ html[data-theme="dark"] .archive-profile-meta p {
   color: var(--muted);
 }
 html[data-theme="dark"] .archive-profile-edit-icon {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .archive-profile-edit-icon:hover {
   background: var(--surface-subtle);
@@ -917,7 +917,7 @@ html[data-theme="dark"] .growth-value-line b {
   color: var(--ink);
 }
 html[data-theme="dark"] .growth-delta.up {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .growth-delta.down {
   color: var(--danger);
@@ -984,10 +984,10 @@ html[data-theme="dark"] .vaccine-icon-action {
 }
 html[data-theme="dark"] .vaccine-icon-action:hover {
   background: var(--surface-subtle);
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .vaccine-calendar-grid > button.selected {
-  background: var(--sage-soft);
+  background: var(--brand-faint);
 }
 html[data-theme="dark"] .vaccine-agenda-list time {
   background: var(--surface-subtle);
@@ -1014,13 +1014,13 @@ html[data-theme="dark"] .vaccine-list article > div p {
   color: var(--muted);
 }
 html[data-theme="dark"] .vaccine-date {
-  background: var(--sage-soft);
+  background: var(--brand-faint);
 }
 html[data-theme="dark"] .vaccine-calendar-nav button {
-  color: var(--green-deep);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .vaccine-calendar-nav button:hover {
-  background: var(--sage-soft);
+  background: var(--brand-faint);
 }
 html[data-theme="dark"] .vaccine-reminder-card.collapsed:hover {
   border-color: var(--line);
@@ -1110,7 +1110,7 @@ html[data-theme="dark"] .bar-value {
 
 /* Dark mode overrides for account-card i (管理权限) */
 html[data-theme="dark"] .account-card i {
-  color: var(--green-deep);
+  color: var(--brand-deep);
   background: var(--surface-subtle);
 }
 
@@ -1176,7 +1176,7 @@ html[data-theme="dark"] .segmented button {
 }
 html[data-theme="dark"] .segment.active {
   background: var(--surface-card);
-  color: var(--green-deep);
+  color: var(--brand-deep);
   box-shadow: 0 0 0 1px var(--line);
 }
 
@@ -1190,7 +1190,7 @@ html[data-theme="dark"] .role-switch button {
 }
 html[data-theme="dark"] .role-switch button.active {
   background: var(--surface-card);
-  color: var(--green-deep);
+  color: var(--brand-deep);
   box-shadow: 0 0 0 1px var(--line);
 }
 
@@ -1205,6 +1205,6 @@ html[data-theme="dark"] .settings-entry > i {
 /* Dark mode overrides for subpage-head */
 html[data-theme="dark"] .subpage-head > button {
   background: var(--surface-card);
-  color: var(--green-deep);
+  color: var(--brand-deep);
   border-color: var(--line);
 }

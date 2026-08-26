@@ -162,7 +162,7 @@ export function ServerSettingsCard({ connection }: Props) {
           border-radius: 50%;
           flex-shrink: 0;
         }
-        .status-indicator.connected { background: var(--green); }
+        .status-indicator.connected { background: var(--brand); }
         .status-indicator.failed { background: var(--red, #c85a3c); }
         .status-indicator.connecting { background: var(--muted); }
         .status-text {
@@ -195,8 +195,8 @@ export function ServerSettingsCard({ connection }: Props) {
           border-color: var(--line-strong);
         }
         .server-mode-item.selected {
-          border-color: var(--green);
-          background: var(--sage, #f0f7f0);
+          border-color: var(--brand);
+          background: var(--brand-soft, #f0f7f0);
         }
         .mode-icon {
           display: flex;
@@ -210,7 +210,7 @@ export function ServerSettingsCard({ connection }: Props) {
           flex-shrink: 0;
         }
         .server-mode-item.selected .mode-icon {
-          background: var(--green);
+          background: var(--brand);
           color: white;
         }
         .mode-info {
@@ -228,7 +228,7 @@ export function ServerSettingsCard({ connection }: Props) {
           color: var(--text-tertiary);
         }
         .mode-check {
-          color: var(--green);
+          color: var(--brand);
         }
         .custom-url-section {
           margin-top: 16px;
@@ -276,8 +276,8 @@ export function ServerSettingsCard({ connection }: Props) {
           font-size: 13px;
         }
         .server-list-item.current {
-          border-color: var(--green);
-          background: var(--sage, #f0f7f0);
+          border-color: var(--brand);
+          background: var(--brand-soft, #f0f7f0);
         }
         .server-icon {
           color: var(--text-tertiary);
@@ -298,8 +298,8 @@ export function ServerSettingsCard({ connection }: Props) {
         .current-badge {
           font-size: 11px;
           font-weight: 600;
-          color: var(--green);
-          background: var(--sage, #f0f7f0);
+          color: var(--brand);
+          background: var(--brand-soft, #f0f7f0);
           padding: 2px 6px;
           border-radius: 4px;
         }

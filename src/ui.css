@@ -1,7 +1,7 @@
 .ui-action-menu { position: relative; flex: none; display: grid; place-items: center; }
 .ui-action-trigger { width: var(--size-touch); height: var(--size-touch); padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-tertiary); cursor: pointer; display: grid; place-content: center; transition: background var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); }
-.ui-action-trigger:hover, .ui-action-trigger[aria-expanded="true"] { background: var(--surface-subtle); color: var(--green-deep); }
-.ui-action-trigger[aria-expanded="true"] .menu-dots i { background: var(--green-deep); }
+.ui-action-trigger:hover, .ui-action-trigger[aria-expanded="true"] { background: var(--surface-subtle); color: var(--brand-deep); }
+.ui-action-trigger[aria-expanded="true"] .menu-dots i { background: var(--brand-deep); }
 .ui-action-popover { position: absolute; z-index: var(--layer-menu); top: 40px; right: 0; width: 128px; padding: var(--space-1); border: 1px solid var(--surface-container-border); border-radius: var(--radius-control); background: var(--surface-container); box-shadow: var(--shadow-popover); }
 .ui-action-popover button { width: 100%; min-height: var(--size-control); padding: 8px 10px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--ink); text-align: left; font-size: var(--text-body); line-height: 1.4; cursor: pointer; }
 .ui-action-popover button:hover { background: var(--surface-subtle); }
@@ -9,7 +9,7 @@
 
 .ui-segmented { padding: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius-inner); background: var(--surface-muted); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--space-1); }
 .ui-segmented button { min-height: var(--size-touch); padding: 7px 10px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text-secondary); font-weight: 800; cursor: pointer; }
-.ui-segmented button.active { outline: 1px solid var(--line); background: var(--surface-card); color: var(--green-deep); }
+.ui-segmented button.active { outline: 1px solid var(--line); background: var(--surface-card); color: var(--brand-deep); }
 
 .status-badge { min-height: 24px; padding: 3px 8px; border: 1px solid transparent; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: var(--status-neutral-text); font-size: 11px; font-weight: 700; line-height: 1.4; white-space: nowrap; }
 .status-badge.brand { background: var(--status-brand-bg); color: var(--status-brand-text); }
@@ -22,7 +22,7 @@
 
 .ui-switch { flex: none; width: 40px; height: 24px; padding: 0; border: 0; border-radius: 999px; background: #c4ccc3; cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: flex-start; transition: background .15s ease; justify-self: end; align-self: center; line-height: 1; }
 .ui-switch span { display: block; flex: 0 0 20px; width: 20px; height: 20px; margin: 2px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #23342a35; transition: transform .15s ease; }
-.ui-switch.on { background: var(--green); }
+.ui-switch.on { background: var(--brand); }
 .ui-switch.on span { transform: translateX(16px); }
 .ui-switch:disabled { opacity: .55; cursor: not-allowed; }
 
@@ -51,8 +51,8 @@
 .picker-trigger:disabled { background: var(--control-bg-disabled); color: var(--control-text-disabled); cursor: not-allowed; }
 .picker-calendar-nav { min-height: 44px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; text-align: center; }
 .picker-calendar-nav strong { font-size: 16px; }
-.picker-calendar-nav button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--green-deep); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-.picker-calendar-nav button:hover:not(:disabled) { background: var(--sage-soft); }
+.picker-calendar-nav button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--brand-deep); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.picker-calendar-nav button:hover:not(:disabled) { background: var(--brand-faint); }
 .picker-calendar-nav button:disabled { opacity: .3; cursor: default; }
 .picker-weekdays { margin-top: 6px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); color: var(--muted); text-align: center; font-size: 11px; }
 .picker-weekdays span { padding: 7px 0; }
@@ -60,18 +60,18 @@
 .picker-day { min-width: 0; min-height: 44px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--ink); font-size: 14px; cursor: pointer; }
 .picker-day:hover:not(:disabled) { background: #f5f7f2; }
 .picker-day.today { color: var(--orange); font-weight: 800; }
-.picker-day.selected { border-color: var(--green); background: var(--green); color: #fff; font-weight: 800; }
+.picker-day.selected { border-color: var(--brand); background: var(--brand); color: #fff; font-weight: 800; }
 .picker-day:disabled { color: var(--text-tertiary); opacity: .35; cursor: default; }
 .picker-day.outside { visibility: hidden; }
 .picker-time { margin-top: 14px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
 .picker-time-sep { color: var(--muted); font-size: 20px; font-weight: 800; }
 .picker-time-column { position: relative; max-height: 176px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface-subtle); overflow-y: auto; }
 .picker-time-column button { width: 100%; min-height: 44px; border: 0; background: transparent; color: var(--ink); font-size: 15px; cursor: pointer; }
-.picker-time-column button:hover { background: var(--sage-soft); }
-.picker-time-column button.selected { background: var(--green); color: #fff; font-weight: 800; }
+.picker-time-column button:hover { background: var(--brand-faint); }
+.picker-time-column button.selected { background: var(--brand); color: #fff; font-weight: 800; }
 .picker-quick { margin-bottom: 14px; display: flex; gap: 7px; }
-.picker-quick button { flex: 1; min-height: 44px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: #fff; color: var(--green-deep); font-size: 13px; font-weight: 700; cursor: pointer; }
-.picker-quick button:hover { background: var(--sage-soft); }
+.picker-quick button { flex: 1; min-height: 44px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: #fff; color: var(--brand-deep); font-size: 13px; font-weight: 700; cursor: pointer; }
+.picker-quick button:hover { background: var(--brand-faint); }
 .picker-actions { margin-top: 16px; display: flex; justify-content: flex-end; gap: 9px; }
 .picker-actions .btn { min-height: 44px; padding: 9px 18px; }
 
@@ -95,23 +95,23 @@
 html[data-theme="dark"] .ui-switch { background: #3a423d; }
 html[data-theme="dark"] .ui-switch span { background: #e2e6df; }
 html[data-theme="dark"] .picker-trigger { background: var(--control-bg); border-color: var(--line-strong); color: var(--ink); }
-html[data-theme="dark"] .picker-trigger:hover { border-color: var(--green-deep); }
+html[data-theme="dark"] .picker-trigger:hover { border-color: var(--brand-deep); }
 html[data-theme="dark"] .picker-day { color: var(--ink); }
 html[data-theme="dark"] .picker-day:hover:not(:disabled) { background: var(--surface-subtle); }
 html[data-theme="dark"] .picker-day.today { color: var(--orange); }
-html[data-theme="dark"] .picker-day.selected { background: var(--green); border-color: var(--green); color: var(--white); }
+html[data-theme="dark"] .picker-day.selected { background: var(--brand); border-color: var(--brand); color: var(--white); }
 html[data-theme="dark"] .picker-day:disabled { color: var(--text-tertiary); }
-html[data-theme="dark"] .picker-quick button { background: var(--surface-card); border-color: var(--line-strong); color: var(--green-deep); }
+html[data-theme="dark"] .picker-quick button { background: var(--surface-card); border-color: var(--line-strong); color: var(--brand-deep); }
 html[data-theme="dark"] .picker-quick button:hover { background: var(--surface-subtle); }
 html[data-theme="dark"] .picker-time-column { background: var(--surface-card); }
 html[data-theme="dark"] .picker-time-column button { color: var(--ink); }
-html[data-theme="dark"] .picker-time-column button.selected { background: var(--green); color: var(--white); }
+html[data-theme="dark"] .picker-time-column button.selected { background: var(--brand); color: var(--white); }
 html[data-theme="dark"] .picker-calendar-nav strong { color: var(--ink); }
 html[data-theme="dark"] .picker-weekdays { color: var(--muted); }
 html[data-theme="dark"] .ui-segmented { background: var(--surface-muted); border-color: var(--line); }
 html[data-theme="dark"] .ui-segmented button { color: var(--text-secondary); }
-html[data-theme="dark"] .ui-segmented button.active { background: var(--surface-card); color: var(--green-deep); box-shadow: 0 0 0 1px var(--line); }
+html[data-theme="dark"] .ui-segmented button.active { background: var(--surface-card); color: var(--brand-deep); box-shadow: 0 0 0 1px var(--line); }
 html[data-theme="dark"] .ui-action-trigger { color: var(--muted); }
 html[data-theme="dark"] .ui-action-trigger:hover,
-html[data-theme="dark"] .ui-action-trigger[aria-expanded="true"] { background: var(--surface-subtle); color: var(--green-deep); }
+html[data-theme="dark"] .ui-action-trigger[aria-expanded="true"] { background: var(--surface-subtle); color: var(--brand-deep); }
 html[data-theme="dark"] .ui-action-popover { background: var(--surface-card); border-color: var(--line); }

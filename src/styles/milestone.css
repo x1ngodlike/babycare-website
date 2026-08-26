@@ -3,7 +3,7 @@
   display: grid; grid-template-columns: minmax(0, 1fr); align-items: center;
   gap: 12px; padding: 0 0 2px; margin-top: 12px; text-align: left;
 }
-.growth-summary-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--sage-soft); color: var(--green-deep); display: grid; place-items: center; }
+.growth-summary-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--brand-faint); color: var(--brand-deep); display: grid; place-items: center; }
 .growth-summary-icon svg { width: 20px; }
 .growth-summary-copy { display: grid; gap: 2px; min-width: 0; }
 .growth-summary-copy strong { font-size: 14px; color: var(--ink); }
@@ -20,7 +20,7 @@
 .category-social .badge-category-icon { background: #f5e9e6; color: #8c5a52; }
 .category-self_care .badge-category-icon { background: #e3f0ed; color: #3f716b; }
 .milestone-badge.ms-badge-upcoming { opacity: .68; }
-.milestone-badge.ms-badge-achieved::after { content: '✓'; position: absolute; right: -2px; bottom: -2px; width: 16px; height: 16px; border: 2px solid var(--surface-card); border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-size: 9px; font-weight: 900; }
+.milestone-badge.ms-badge-achieved::after { content: '✓'; position: absolute; right: -2px; bottom: -2px; width: 16px; height: 16px; border: 2px solid var(--surface-card); border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 9px; font-weight: 900; }
 .milestone-def-desc { display: block; margin-top: var(--space-1); color: var(--muted); font-size: var(--text-meta); line-height: 1.5; }
 
 .growth-guide-page { --guide-line: var(--line); gap: 0; max-width: 1180px; margin: 0 auto; padding-bottom: 24px; }
@@ -82,7 +82,7 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 .guide-section-heading > div { display: grid; gap: 2px; }
 .guide-section-heading span { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .06em; }
 .guide-section-heading h2 { margin: 0; font-size: 20px; line-height: 1.35; }
-.guide-section-heading > svg { width: 21px; color: var(--green); }
+.guide-section-heading > svg { width: 21px; color: var(--brand); }
 .guide-priority { display: grid; gap: 14px; }
 .guide-priority-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border: 1px solid var(--guide-line); border-radius: 14px; background: var(--surface-card); overflow: hidden; }
 .guide-priority-grid article { min-width: 0; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 11px; padding: 18px; border-right: 1px solid var(--guide-line); }
@@ -99,7 +99,7 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 
 .guide-content-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 5px; border: 1px solid var(--guide-line); border-radius: 12px; background: var(--surface-card); }
 .guide-content-tabs button { min-height: 42px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; font-weight: 800; cursor: pointer; }
-.guide-content-tabs button.active { background: var(--sage-soft); color: var(--green-deep); }
+.guide-content-tabs button.active { background: var(--brand-faint); color: var(--brand-deep); }
 .guide-content-tabs button small { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--surface-subtle); display: inline-grid; place-items: center; font-size: 9px; }
 .guide-content-tabs button.active small { background: var(--surface-card); }
 .guide-sync-error { margin: 9px 0 0; padding: 9px 11px; border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--guide-line)); border-radius: 8px; background: color-mix(in srgb, var(--danger) 7%, var(--surface-card)); color: var(--danger); display: flex; align-items: center; gap: 7px; font-size: 11px; line-height: 1.5; }
@@ -123,11 +123,11 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 .guide-ability-list p { margin: 2px 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .guide-ability-list small { color: var(--muted); font-size: 11px; }
 .guide-record-button, .guide-recorded-button { min-height: 36px; padding: 0 11px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; }
-.guide-record-button { border: 1px solid var(--green); background: var(--surface-card); color: var(--green-deep); }
-.guide-recorded-button { display: grid; place-items: center; gap: 0; border: 0; background: var(--sage-soft); color: var(--green-deep); line-height: 1; padding: 0 10px; }
+.guide-record-button { border: 1px solid var(--brand); background: var(--surface-card); color: var(--brand-deep); }
+.guide-recorded-button { display: grid; place-items: center; gap: 0; border: 0; background: var(--brand-faint); color: var(--brand-deep); line-height: 1; padding: 0 10px; }
 .guide-recorded-button span { display: none; }
 .guide-recorded-button svg { width: 14px; }
-.guide-expand-button { width: 100%; min-height: 42px; margin-top: 10px; border: 1px solid var(--guide-line); border-radius: 9px; background: var(--surface-subtle); color: var(--green-deep); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 800; cursor: pointer; }
+.guide-expand-button { width: 100%; min-height: 42px; margin-top: 10px; border: 1px solid var(--guide-line); border-radius: 9px; background: var(--surface-subtle); color: var(--brand-deep); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 800; cursor: pointer; }
 .guide-expand-button svg { width: 16px; transition: transform .18s ease; }
 .guide-expand-button[aria-expanded="true"] svg { transform: rotate(180deg); }
 
@@ -137,33 +137,33 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 .guide-number { padding-top: 2px; color: var(--orange); font-size: 12px; font-weight: 800; }
 .guide-activity-list h3, .guide-task-list h3, .guide-season-list h3, .guide-shopping-list h3 { margin: 0; font-size: 15px; }
 .guide-activity-list p, .guide-task-list > article > p, .guide-season-list p, .guide-shopping-list p { margin: 5px 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
-.guide-activity-list small { color: var(--green-deep); font-size: 11px; font-weight: 700; }
+.guide-activity-list small { color: var(--brand-deep); font-size: 11px; font-weight: 700; }
 .guide-activity-list em { margin-top: 8px; display: flex; align-items: center; gap: 6px; color: #7e5a37; font-size: 11px; font-style: normal; line-height: 1.5; }
 .guide-activity-list em svg { width: 14px; flex: 0 0 14px; }
 
 .guide-task-list { margin-top: 16px; display: grid; gap: 12px; }
 .guide-task-list > article { padding: 16px; border: 1px solid var(--guide-line); border-radius: 12px; }
-.guide-task-list > article.done { background: var(--sage-soft); }
+.guide-task-list > article.done { background: var(--brand-faint); }
 .guide-task-empty { min-height: 150px; padding: 24px; border: 1px dashed var(--guide-line); border-radius: 12px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 12px; text-align: left; }
-.guide-task-empty > svg { width: 24px; flex: 0 0 24px; color: var(--green); }
+.guide-task-empty > svg { width: 24px; flex: 0 0 24px; color: var(--brand); }
 .guide-task-empty strong { display: block; color: var(--ink); font-size: 14px; }
 .guide-task-empty p { max-width: 520px; margin: 5px 0 0; font-size: 12px; line-height: 1.6; }
 .guide-task-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
 .guide-task-top > span { color: var(--orange); font-size: 11px; font-weight: 800; }
-.guide-task-top em { display: inline-flex; align-items: center; gap: 4px; color: var(--green-deep); font-size: 11px; font-style: normal; font-weight: 800; }
+.guide-task-top em { display: inline-flex; align-items: center; gap: 4px; color: var(--brand-deep); font-size: 11px; font-style: normal; font-weight: 800; }
 .guide-task-top svg { width: 13px; }
 .guide-task-list details { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--guide-line); }
-.guide-task-list summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; color: var(--green-deep); font-size: 12px; font-weight: 800; list-style: none; }
+.guide-task-list summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; color: var(--brand-deep); font-size: 12px; font-weight: 800; list-style: none; }
 .guide-task-list summary svg { width: 15px; }
 .guide-task-list details p { color: var(--muted); font-size: 12px; line-height: 1.6; }
-.guide-task-list details a, .guide-season-list a { display: inline-flex; align-items: center; gap: 4px; color: var(--green-deep); font-size: 11px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.guide-task-list details a, .guide-season-list a { display: inline-flex; align-items: center; gap: 4px; color: var(--brand-deep); font-size: 11px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .guide-task-list details a svg, .guide-season-list a svg { width: 12px; }
 .guide-task-list details small { display: block; margin-top: 7px; color: var(--muted); font-size: 10px; }
 .guide-task-actions { display: flex; gap: 8px; margin-top: 13px; }
 .guide-task-actions button { min-height: 36px; padding: 0 11px; border: 1px solid var(--guide-line); border-radius: 8px; background: var(--surface-card); color: var(--ink); font-size: 11px; font-weight: 800; cursor: pointer; }
 .guide-task-actions button:disabled, .guide-check:disabled { cursor: wait; opacity: .58; }
-.guide-task-actions button:first-child { display: inline-flex; align-items: center; gap: 4px; border-color: var(--green); color: var(--green-deep); }
-.guide-task-actions button.active { background: var(--green); color: #fff; }
+.guide-task-actions button:first-child { display: inline-flex; align-items: center; gap: 4px; border-color: var(--brand); color: var(--brand-deep); }
+.guide-task-actions button.active { background: var(--brand); color: #fff; }
 .guide-task-actions svg { width: 13px; }
 
 .guide-season-list { display: grid; margin-top: 14px; }
@@ -173,16 +173,16 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 
 .guide-filter { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 5px; }
 .guide-filter button { min-height: 32px; padding: 0 9px; border: 1px solid var(--guide-line); border-radius: 7px; background: var(--surface-card); color: var(--muted); font-size: 10px; font-weight: 800; cursor: pointer; }
-.guide-filter button.active { border-color: var(--green); background: var(--sage-soft); color: var(--green-deep); }
+.guide-filter button.active { border-color: var(--brand); background: var(--brand-faint); color: var(--brand-deep); }
 .guide-shopping-list { list-style: none; margin: 12px 0 0; padding: 0; }
 .guide-shopping-list li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 15px 0; border-bottom: 1px solid var(--guide-line); }
 .guide-shopping-list li.done { opacity: .65; }
 .guide-shopping-list li.done h3 { text-decoration: line-through; }
 .guide-check { width: 22px; height: 22px; margin-top: 2px; padding: 0; border: 1.5px solid var(--line-strong); border-radius: 6px; background: var(--surface-card); color: #fff; display: grid; place-items: center; line-height: 0; cursor: pointer; }
-.guide-shopping-list li.done .guide-check { border-color: var(--green); background: var(--green); }
+.guide-shopping-list li.done .guide-check { border-color: var(--brand); background: var(--brand); }
 .guide-check svg { display: block; width: 14px; height: 14px; }
 .guide-level { display: inline-flex; min-height: 20px; align-items: center; padding: 0 6px; margin-bottom: 5px; border-radius: 4px; font-size: 10px; font-weight: 800; }
-.guide-level.needed { background: var(--sage-soft); color: var(--green-deep); }
+.guide-level.needed { background: var(--brand-faint); color: var(--brand-deep); }
 .guide-level.optional { background: #f7eadb; color: #8c572f; }
 .guide-level.skip { background: var(--surface-subtle); color: var(--muted); }
 .guide-shopping-list small { display: block; color: var(--muted); font-size: 11px; line-height: 1.55; }
@@ -192,7 +192,7 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 .guide-history-controls { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .guide-history-scope { display: inline-flex; padding: 3px; border: 1px solid var(--guide-line); border-radius: 9px; background: var(--surface-subtle); }
 .guide-history-scope button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 800; cursor: pointer; }
-.guide-history-scope button.active { background: var(--surface-card); color: var(--green-deep); box-shadow: 0 1px 2px rgba(34, 49, 38, .08); }
+.guide-history-scope button.active { background: var(--surface-card); color: var(--brand-deep); box-shadow: 0 1px 2px rgba(34, 49, 38, .08); }
 .guide-history-filter { margin: 0; }
 .guide-history-groups { margin-top: 14px; border-top: 1px solid var(--guide-line); }
 .guide-history-groups > section { border-bottom: 1px solid var(--guide-line); }
@@ -203,11 +203,11 @@ html[data-theme="dark"] .growth-guide-page[data-stage="8"] { --stage-accent: #d8
 .guide-history-summary { color: var(--muted); display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; white-space: nowrap; }
 .guide-history-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
 .guide-history-section > .guide-history-list { margin-top: 14px; border-top: 1px solid var(--guide-line); }
-.guide-history-groups .guide-history-list { margin: 0 0 8px; padding: 0 16px 0 18px; border-left: 2px solid var(--sage-soft); }
+.guide-history-groups .guide-history-list { margin: 0 0 8px; padding: 0 16px 0 18px; border-left: 2px solid var(--brand-faint); }
 .guide-history-list li { min-width: 0; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 11px; padding: 15px 0; border-bottom: 1px solid var(--guide-line); }
 .guide-history-icon { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; }
 .guide-history-icon svg { width: 17px; }
-.guide-history-icon.ability { background: var(--sage-soft); color: var(--green-deep); }
+.guide-history-icon.ability { background: var(--brand-faint); color: var(--brand-deep); }
 .guide-history-icon.task { background: #e8edf2; color: #456175; }
 .guide-history-icon.shopping { background: #f7eadb; color: #8c572f; }
 html[data-theme="dark"] .guide-history-icon.task { border: 1px solid #3d5667; background: #293944; color: #a9cde6; }
@@ -225,15 +225,15 @@ html[data-theme="dark"] .guide-history-icon.shopping { border: 1px solid #5d4938
 .guide-timeline li:last-child { border-left-color: transparent; }
 .guide-timeline-marker { position: absolute; left: -13px; top: 0; width: 25px; height: 25px; border: 1px solid var(--guide-line); border-radius: 50%; background: var(--surface-card); color: var(--muted); display: grid; place-items: center; }
 .guide-timeline-marker svg { width: 13px; }
-.guide-timeline li.current .guide-timeline-marker { border-color: var(--green); background: var(--green); color: #fff; }
-.guide-timeline li.past .guide-timeline-marker { background: var(--sage-soft); color: var(--green-deep); }
+.guide-timeline li.current .guide-timeline-marker { border-color: var(--brand); background: var(--brand); color: #fff; }
+.guide-timeline li.past .guide-timeline-marker { background: var(--brand-faint); color: var(--brand-deep); }
 .guide-timeline small { color: var(--muted); font-size: 11px; }
 .guide-timeline h3 { margin: 2px 0; font-size: 14px; }
 .guide-timeline p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.guide-timeline li > em { position: absolute; top: 2px; right: 0; color: var(--green-deep); font-size: 10px; font-style: normal; font-weight: 800; }
+.guide-timeline li > em { position: absolute; top: 2px; right: 0; color: var(--brand-deep); font-size: 10px; font-style: normal; font-weight: 800; }
 
-.guide-disclaimer { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px; border-left: 3px solid var(--green); background: var(--surface-subtle); }
-.guide-disclaimer > svg { width: 18px; flex: 0 0 18px; color: var(--green-deep); }
+.guide-disclaimer { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px; border-left: 3px solid var(--brand); background: var(--surface-subtle); }
+.guide-disclaimer > svg { width: 18px; flex: 0 0 18px; color: var(--brand-deep); }
 .guide-disclaimer strong { font-size: 13px; }
 .guide-disclaimer p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .guide-editor-actions { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
