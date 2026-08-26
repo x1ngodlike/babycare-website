@@ -198,9 +198,10 @@ html[data-theme="dark"] .app-nav button.active img { filter: none; opacity: 1; }
 html[data-theme="dark"] .app-nav button img { opacity: .68; filter: saturate(.72) brightness(.92); }
 html[data-theme="dark"] .floating-add,
 html[data-theme="dark"] .app-nav .nav-add {
-  background: linear-gradient(180deg, #d48540, #b86b28);
-  border-color: var(--border-overdue);
+  background: linear-gradient(180deg, #f0a05a, #d88040);
+  border: 5px solid #4a3520;
   color: var(--action-primary-text);
+  box-shadow: 0 7px 18px rgba(0, 0, 0, .45);
 }
 html[data-theme="dark"] .floating-add span,
 html[data-theme="dark"] .app-nav .nav-add span {
@@ -208,7 +209,7 @@ html[data-theme="dark"] .app-nav .nav-add span {
 }
 html[data-theme="dark"] .app-nav .nav-add:hover,
 html[data-theme="dark"] .app-nav .nav-add:active {
-  background: linear-gradient(180deg, #e0944d, #c4792f);
+  background: linear-gradient(180deg, #f5ac6a, #e09050);
 }
 html[data-theme="dark"] .baby-hero::after {
   background:
