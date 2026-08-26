@@ -238,6 +238,19 @@ html[data-visual-theme="travel"][data-theme="dark"] .quick-grid button {
   border-color: var(--line);
 }
 
+/* Hero 问候语字号 */
+html[data-visual-theme="travel"][data-theme="light"] .today-layout .hero-greeting-title,
+html[data-visual-theme="travel"][data-theme="dark"] .today-layout .hero-greeting-title,
+html[data-visual-theme="travel"][data-theme="light"] .hero-preview-list .baby-hero.hero-diary .hero-greeting-title,
+html[data-visual-theme="travel"][data-theme="dark"] .hero-preview-list .baby-hero.hero-diary .hero-greeting-title {
+  font-size: 20px;
+}
+
+html[data-visual-theme="travel"][data-theme="light"] .today-layout .hero-greeting-title,
+html[data-visual-theme="travel"][data-theme="dark"] .today-layout .hero-greeting-title {
+  line-height: 1.25;
+}
+
 /* Hero 状态栏文字：覆盖 dark.css 中默认的绿色 #c5d3be */
 html[data-visual-theme="travel"][data-theme="dark"] .hero-status p {
   color: var(--token-hub-text);
