@@ -69,7 +69,7 @@ h1, h2, h3, p { margin-top: 0; }
 .prediction-stats span { white-space: nowrap; font-weight: 400; }
 .prediction-upcoming-count { display: flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; color: var(--brand); padding: 3px 8px; border-radius: 999px; background: var(--brand-faint); }
 .prediction-banner.overdue .prediction-upcoming-count { background: var(--surface-overdue-soft); color: var(--text-overdue); }
-.prediction-detail { border-top: 1px solid var(--line); padding: 12px 14px 14px; background: var(--surface-chip); }
+.prediction-detail { border-top: 1px solid var(--line); padding: 12px 14px 14px; background: var(--surface-card); }
 .prediction-upcoming h3 { margin: 0 0 8px; font-size: 13px; color: var(--brand-deep); font-weight: 700; }
 .prediction-upcoming ol { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 6px; }
 .prediction-upcoming li { display: grid; grid-template-columns: 22px 1fr auto auto; grid-template-rows: 1fr 1fr; gap: 4px 12px; align-items: center; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: var(--surface-card); border: 1px solid var(--line); }
@@ -91,7 +91,7 @@ h1, h2, h3, p { margin-top: 0; }
 .prediction-ai-alert-growth_spurt { background: #e6f0dd; color: var(--status-success-text); }
 .prediction-ai-summary { margin: 0 0 8px; font-size: 13px; line-height: 1.55; color: var(--ink); font-weight: 600; }
 .prediction-ai-insights { margin: 0; padding-left: 16px; display: grid; gap: 4px; }
-.prediction-ai-insights li { font-size: 12px; line-height: 1.5; color: var(--brand-deep); }
+.prediction-ai-insights li { font-size: 12px; line-height: 1.5; color: var(--ink); }
 .confidence-bar { width: 60px; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .confidence-fill { height: 100%; background: var(--brand); border-radius: 3px; transition: width .4s ease; }
 .confidence-label { white-space: nowrap; }

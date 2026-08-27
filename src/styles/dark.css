@@ -87,7 +87,7 @@ html[data-theme="dark"] .prediction-banner.overdue .prediction-label { color: va
 html[data-theme="dark"] .prediction-banner.overdue .prediction-time { color: var(--text-overdue); }
 html[data-theme="dark"] .prediction-banner.overdue .prediction-upcoming-count { background: var(--surface-overdue-soft); color: var(--text-overdue); }
 html[data-theme="dark"] .prediction-detail {
-  background: var(--surface-subtle);
+  background: var(--surface-card);
   border-top-color: var(--line);
 }
 html[data-theme="dark"] .prediction-upcoming h3 { color: var(--token-brand-deep); }
@@ -105,7 +105,7 @@ html[data-theme="dark"] .prediction-ai-section {
 }
 html[data-theme="dark"] .prediction-ai-header { color: var(--token-brand-deep); }
 html[data-theme="dark"] .prediction-ai-summary { color: var(--token-ink); }
-html[data-theme="dark"] .prediction-ai-insights li { color: var(--token-brand-deep); }
+html[data-theme="dark"] .prediction-ai-insights li { color: var(--token-ink); }
 html[data-theme="dark"] .prediction-meta { color: var(--muted); }
 html[data-theme="dark"] .confidence-bar { background: var(--line); }
 html[data-theme="dark"] .confidence-fill { background: var(--brand); }

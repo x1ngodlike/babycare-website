@@ -236,12 +236,14 @@ html[data-visual-theme="shop"] .care-choice-groups .care-choice-grid button.sele
   box-shadow: inset 0 0 0 1px var(--brand);
 }
 
-html[data-visual-theme="shop"] .baby-hero.hero-shop .hero-greeting-title {
+html[data-visual-theme="shop"] .baby-hero.hero-shop .hero-greeting-title,
+  .baby-hero.hero-shop[data-visual-theme="shop"] .hero-greeting-title {
   font-size: 20px;
   font-weight: 700;
   line-height: 1.25;
 }
-html[data-visual-theme="shop"] .baby-hero.hero-shop .hero-greeting-title span { font-weight: 700; }
+html[data-visual-theme="shop"] .baby-hero.hero-shop .hero-greeting-title span,
+  .baby-hero.hero-shop[data-visual-theme="shop"] .hero-greeting-title span { font-weight: 700; }
 html[data-visual-theme="shop"] .baby-hero.hero-shop .hero-status p { color: rgba(255, 246, 237, .92); }
 html[data-visual-theme="shop"][data-theme="dark"] .quick-grid button {
   border-color: var(--line);

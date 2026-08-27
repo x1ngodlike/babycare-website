@@ -261,10 +261,13 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
 }
 
 /* 今日页最终信息层级：记录优先，计划独立，摘要同级 */
-.today-layout .hero-greeting-title { margin: 0 0 7px; font-size: 24px; line-height: 1.34; }
+.today-layout .hero-greeting-title,
+.hero-preview-list .baby-hero:not(.hero-diary) .hero-greeting-title { margin: 0 0 7px; font-size: 24px; line-height: 1.34; }
 .today-layout .baby-hero .kicker,
 .today-layout .hero-profile-line,
-.today-layout .hero-status p { font-size: 14px; line-height: 1.5; }
+.today-layout .hero-status p,
+.hero-preview-list .baby-hero:not(.hero-diary) .kicker,
+.hero-preview-list .baby-hero:not(.hero-diary) .hero-status p { font-size: 14px; line-height: 1.5; }
 .today-layout .metric-band span { font-size: 13px; line-height: 1.4; }
 .today-layout .metric-band strong { font-size: 22px; line-height: 1.25; }
 .today-layout .metric-band small { font-size: 12px; line-height: 1.4; }
@@ -404,7 +407,8 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
 
 @media (max-width: 360px) {
   .main-content { padding-inline: 12px; }
-  .today-layout .hero-greeting-title { font-size: 22px; }
+  .today-layout .hero-greeting-title,
+  .hero-preview-list .baby-hero:not(.hero-diary) .hero-greeting-title { font-size: 22px; }
   .today-layout .today-timeline .timeline-item {
     width: calc(100% - 36px);
     margin-left: 36px;
@@ -702,7 +706,8 @@ html[data-theme="light"] .history-timeline .record-mark {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.today-layout .baby-hero {
+.today-layout .baby-hero,
+.hero-preview-list .baby-hero:not(.hero-diary) {
   min-height: 138px;
   justify-content: flex-start;
 }
@@ -719,7 +724,10 @@ html[data-theme="light"] .history-timeline .record-mark {
 }
 .today-layout .hero-greeting-title,
 .today-layout .hero-date-line,
-.today-layout .hero-status { text-shadow: 0 1px 3px rgba(0, 0, 0, .30); }
+.today-layout .hero-status,
+.hero-preview-list .baby-hero:not(.hero-diary) .hero-greeting-title,
+.hero-preview-list .baby-hero:not(.hero-diary) .hero-date-line,
+.hero-preview-list .baby-hero:not(.hero-diary) .hero-status { text-shadow: 0 1px 3px rgba(0, 0, 0, .30); }
 
 .archive-page > .page-head { padding-bottom: 0; }
 .today-main-column {
@@ -772,5 +780,6 @@ html[data-theme="light"] .history-timeline .record-mark {
     padding-inline: 14px;
     padding-bottom: calc(164px + env(safe-area-inset-bottom));
   }
-  .today-layout .baby-hero { min-height: 132px; padding: 18px; }
+  .today-layout .baby-hero,
+  .hero-preview-list .baby-hero:not(.hero-diary) { min-height: 132px; padding: 18px; }
 }

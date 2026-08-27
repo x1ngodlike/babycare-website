@@ -102,6 +102,10 @@
 .baby-hero.hero-ocean.diary-daytime { --diary-background: url('/hero/weather/ocean/backgrounds/daytime.webp'); }
 .baby-hero.hero-ocean.diary-evening { --diary-background: url('/hero/weather/ocean/backgrounds/evening.webp'); }
 .baby-hero.hero-ocean.diary-night { --diary-background: url('/hero/weather/ocean/backgrounds/night.webp'); }
+.baby-hero.hero-forest-press.diary-morning { --diary-background: url('/hero/weather/forest-press/backgrounds/morning.webp'); }
+.baby-hero.hero-forest-press.diary-daytime { --diary-background: url('/hero/weather/forest-press/backgrounds/daytime.webp'); }
+.baby-hero.hero-forest-press.diary-evening { --diary-background: url('/hero/weather/forest-press/backgrounds/evening.webp'); }
+.baby-hero.hero-forest-press.diary-night { --diary-background: url('/hero/weather/forest-press/backgrounds/night.webp'); }
 
 /* Weather 套 → classic layout period 兼容：daytime 同时覆盖 midday/afternoon */
 .baby-hero.hero-diary.hero-morning { --diary-background: url('/hero/weather/nature/backgrounds/morning.webp'); }
@@ -128,6 +132,10 @@
 .baby-hero.hero-ocean.hero-midday, .baby-hero.hero-ocean.hero-afternoon { --diary-background: url('/hero/weather/ocean/backgrounds/daytime.webp'); }
 .baby-hero.hero-ocean.hero-evening { --diary-background: url('/hero/weather/ocean/backgrounds/evening.webp'); }
 .baby-hero.hero-ocean.hero-night { --diary-background: url('/hero/weather/ocean/backgrounds/night.webp'); }
+.baby-hero.hero-forest-press.hero-morning { --diary-background: url('/hero/weather/forest-press/backgrounds/morning.webp'); }
+.baby-hero.hero-forest-press.hero-midday, .baby-hero.hero-forest-press.hero-afternoon { --diary-background: url('/hero/weather/forest-press/backgrounds/daytime.webp'); }
+.baby-hero.hero-forest-press.hero-evening { --diary-background: url('/hero/weather/forest-press/backgrounds/evening.webp'); }
+.baby-hero.hero-forest-press.hero-night { --diary-background: url('/hero/weather/forest-press/backgrounds/night.webp'); }
 .baby-hero.hero-travel::after {
   background:
     linear-gradient(90deg, rgba(58, 48, 40, .58) 0%, rgba(74, 60, 48, .34) 42%, rgba(74, 60, 48, .08) 72%, transparent 100%),
@@ -151,6 +159,11 @@
 .baby-hero.hero-ocean::after {
   background:
     linear-gradient(90deg, rgba(19, 52, 49, .76) 0%, rgba(27, 67, 64, .48) 41%, rgba(27, 67, 64, .1) 72%, transparent 100%),
+    var(--diary-background) center / cover no-repeat;
+}
+.baby-hero.hero-forest-press::after {
+  background:
+    linear-gradient(90deg, rgba(43, 55, 42, .72) 0%, rgba(50, 63, 47, .46) 41%, rgba(50, 63, 47, .1) 72%, transparent 100%),
     var(--diary-background) center / cover no-repeat;
 }
 .baby-hero.hero-diary::before { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: transparent; transition: background .35s ease; }
@@ -250,16 +263,18 @@
   max-width: 100%;
   margin: 0;
   overflow: hidden;
-  color: #fffdf6;
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: .02em;
-  text-shadow: 0 2px 8px rgba(19, 30, 21, .34);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .baby-hero.hero-diary .hero-greeting-title::after { display: none; }
+
+html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
+.baby-hero.hero-diary[data-visual-theme] .hero-greeting-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .baby-hero.hero-diary .hero-greeting-title span { display: inline; margin: 0; color: inherit; font: inherit; letter-spacing: inherit; }
 .baby-hero.hero-diary .hero-greeting-title strong { display: inline; overflow: visible; font: inherit; font-weight: 800; text-overflow: clip; white-space: nowrap; }
 .baby-hero.hero-diary .hero-status {
@@ -290,6 +305,7 @@
 .baby-hero.hero-shop .hero-status::before { background: rgba(62, 38, 29, .56); }
 .baby-hero.hero-arcane .hero-status::before { background: rgba(39, 26, 44, .62); }
 .baby-hero.hero-ocean .hero-status::before { background: rgba(25, 62, 58, .58); }
+.baby-hero.hero-forest-press .hero-status::before { background: rgba(48, 58, 40, .58); }
 .baby-hero.hero-diary .hero-status p {
   position: relative;
   z-index: 1;
@@ -368,6 +384,7 @@
 .baby-hero.hero-shop .diary-day-stamp::after { content: 'DAILY SHOP'; }
 .baby-hero.hero-arcane .diary-day-stamp::after { content: 'LUMEN TOWER'; }
 .baby-hero.hero-ocean .diary-day-stamp::after { content: 'CORAL DAYS'; }
+.baby-hero.hero-forest-press .diary-day-stamp::after { content: 'FOREST PRESS'; }
 @keyframes diary-page-arrive { from { opacity: .72; } to { opacity: 1; } }
 @keyframes diary-postcard-breathe { from { transform: scale(1); } to { transform: scale(1.015); } }
 @keyframes diary-orbit-breathe { to { transform: translateY(-3px) scale(1.04); } }
@@ -382,7 +399,6 @@
 
 @media (max-width: 430px) {
   .today-layout .baby-hero.hero-diary > div:first-child { width: 59%; padding-right: 5px; padding-left: 0; }
-  .baby-hero.hero-diary .hero-greeting-title { font-size: 18px; }
 }
 
 /* Hero 折纸童趣方案 */
@@ -567,6 +583,11 @@
 .theme-row .hero-bg-item {
   height: auto;
   padding: 10px 12px;
+}
+.theme-divider {
+  height: 1px;
+  margin: 8px 2px;
+  background: var(--line);
 }
 .theme-item-copy {
   min-width: 0;
@@ -1231,34 +1252,16 @@
 .hero-preview-list .baby-hero {
   position: relative;
   min-height: 132px;
-  height: 132px;
   box-sizing: border-box;
-}
-.hero-preview-list .baby-hero:not(.hero-diary) { padding: 18px; }
-.hero-preview-list .baby-hero:not(.hero-diary) .hero-greeting-title {
-  margin: 0 0 7px;
-  font-size: 24px;
-  line-height: 1.34;
-}
-.hero-preview-list .baby-hero:not(.hero-diary) .kicker,
-.hero-preview-list .baby-hero:not(.hero-diary) .hero-status p {
-  font-size: 14px;
-  line-height: 1.5;
 }
 .hero-preview-list .baby-hero:not(.hero-diary) .hero-date-line {
   margin: 0 0 6px;
-  letter-spacing: .04em;
-}
-.hero-preview-list .baby-hero:not(.hero-diary) .hero-greeting-title,
-.hero-preview-list .baby-hero:not(.hero-diary) .hero-date-line,
-.hero-preview-list .baby-hero:not(.hero-diary) .hero-status {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, .30);
 }
 .hero-preview-list .baby-hero.hero-diary { min-height: 132px; height: 132px; padding: 12px; border: 1px solid rgba(114, 126, 91, .2); box-shadow: 0 5px 16px rgba(62, 71, 51, .1); overflow: hidden; }
 .hero-preview-list .baby-hero.hero-diary::after { border-radius: inherit; clip-path: none; }
 .hero-preview-list .baby-hero.hero-diary + .baby-hero.hero-diary { margin-top: 2px; }
 .hero-preview-list .baby-hero.hero-diary > div:first-child { width: 59%; min-height: 106px; padding: 0; }
-.hero-preview-list .baby-hero.hero-diary .hero-greeting-title { max-width: 100%; font-size: 18px; white-space: nowrap; }
+.hero-preview-list .baby-hero.hero-diary .hero-greeting-title { max-width: 100%; white-space: nowrap; }
 .hero-preview-list .baby-hero.hero-diary .hero-status { bottom: 0; }
 .hero-preview-list .baby-hero.hero-diary .hero-status p { display: block; width: auto; padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 12px; }
 .hero-preview-hint {

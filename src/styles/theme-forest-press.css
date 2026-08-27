@@ -1,0 +1,313 @@
+/* 林间报社：毛毡森林编辑部。保留业务橙与「今日待办」通用标题、背景语义。 */
+html[data-visual-theme="forest-press"][data-theme="light"] {
+  --token-ink: #354138;
+  --token-muted: #6f796f;
+  --token-text-secondary: #6f796f;
+  --token-text-tertiary: #879188;
+  --token-brand: #66815f;
+  --token-chart-complement: #7896ad;
+  --token-brand-deep: #405e49;
+  --token-brand-soft: #dce7d8;
+  --token-brand-faint: #edf3e9;
+  --token-line: #d9ddcf;
+  --token-line-strong: #c2c9b8;
+  --token-line-brand: #b9c9b3;
+  --token-focus: #557252;
+  --token-surface-page: #f5f0e5;
+  --token-surface-card: #fffcf4;
+  --token-surface-subtle: #eee9dd;
+  --token-surface-muted: #e5dfd1;
+  --token-surface-control: #fffcf4;
+  --token-surface-container: #fffcf4;
+  --token-surface-container-border: #d9ddcf;
+  --token-chevron: #879188;
+  --token-status-brand-bg: #dce7d8;
+  --token-status-brand-text: #405e49;
+  --token-control-bg: #fffcf4;
+  --token-control-bg-hover: #eee9dd;
+  --token-control-bg-disabled: #e5dfd1;
+  --token-control-border: #c2c9b8;
+  --token-control-border-hover: #66815f;
+  --token-control-border-focus: #557252;
+  --token-control-placeholder: #879188;
+  --token-action-secondary-bg: #fffcf4;
+  --token-action-secondary-bg-hover: #eee9dd;
+  --token-action-secondary-bg-active: #e1e8da;
+  --token-action-secondary-border: #c2c9b8;
+  --token-action-secondary-text: #405e49;
+  --token-surface-interactive-hover: #edf3e9;
+  --token-surface-interactive-active: #dfe9db;
+  --token-surface-interactive-disabled: #e5dfd1;
+  --token-overlay-backdrop: rgba(33, 47, 37, .48);
+  --token-network-dot: #7896ad;
+  --token-surface-timeline-dot: #d2dacd;
+  --token-record-copy-small: #6f796f;
+  --token-metric-band-bg: #faf6ed;
+  --token-metric-band-divider: #d9ddcf;
+  --token-metric-band-text: #69756b;
+  --token-quick-grid-hover: #edf3e9;
+  --token-quick-grid-active: #dfe9db;
+  --token-quick-grid-text: #405e49;
+  --token-quick-section-bg: #fbf8ef;
+  --token-today-plan-border: #e7d8c6;
+  --token-today-insights-border: #d9ddcf;
+  --token-today-plan-icon-bg: #fffaf1;
+  --token-today-plan-icon-border: #e5dfd1;
+  --token-today-plan-icon-shadow: rgba(64, 83, 68, .1);
+  --token-today-plan-icon-bg-hover: #f5eddf;
+  --token-today-plan-icon-border-hover: #d9c9b3;
+  --token-record-mark-bg: #e8f0e5;
+  --token-record-mark-border: #c4d2be;
+  --token-record-mark-shadow: rgba(64, 83, 68, .13);
+  --token-overview-mark-bg: #f0eadf;
+  --token-overview-mark-border: #d3cbbc;
+  --token-app-nav-bg: rgba(255, 252, 244, .96);
+  --token-app-nav-border: rgba(217, 221, 207, .94);
+  --token-app-nav-hover: #edf3e9;
+  --token-app-nav-active: #405e49;
+  --token-pill-bg: rgba(255, 252, 244, .96);
+  --token-pill-border: rgba(217, 221, 207, .94);
+  --token-timeline-item-border: #d9ddcf;
+  --token-choice-bg: #faf6ed;
+  --token-choice-selected-border: #66815f;
+  --token-choice-selected-bg: #dce7d8;
+  --token-choice-selected-text: #405e49;
+  --token-identity-bg: #f0eadf;
+  --token-focus-ring: #557252;
+  --token-surface-hover: #eee9dd;
+  --token-surface-chip: #edf3e9;
+  --token-text-plan: #68472f;
+}
+
+html[data-visual-theme="forest-press"][data-theme="dark"] {
+  --token-ink: #f3ead7;
+  --token-muted: #b7c1b6;
+  --token-text-secondary: #c6cfc4;
+  --token-text-tertiary: #94a297;
+  --token-brand: #93b28b;
+  --token-chart-complement: #95b7d0;
+  --token-brand-deep: #bad0ae;
+  --token-brand-soft: #334936;
+  --token-brand-faint: #293a2d;
+  --token-line: #3a4d41;
+  --token-line-strong: #536759;
+  --token-line-brand: #526d54;
+  --token-focus: #93b28b;
+  --token-surface-page: #18211c;
+  --token-surface-card: #223029;
+  --token-surface-subtle: #2d3c33;
+  --token-surface-muted: #384a3e;
+  --token-surface-control: #2d3c33;
+  --token-surface-container: #223029;
+  --token-surface-container-border: #3a4d41;
+  --token-chevron: #94a297;
+  --token-status-brand-bg: #334936;
+  --token-status-brand-text: #bad0ae;
+  --token-control-bg: #2d3c33;
+  --token-control-bg-hover: #384a3e;
+  --token-control-bg-disabled: #39483e;
+  --token-control-border: #536759;
+  --token-control-border-hover: #93b28b;
+  --token-control-border-focus: #93b28b;
+  --token-control-placeholder: #94a297;
+  --token-action-secondary-bg: #223029;
+  --token-action-secondary-bg-hover: #2d3c33;
+  --token-action-secondary-bg-active: #384a3e;
+  --token-action-secondary-border: #536759;
+  --token-action-secondary-text: #f3ead7;
+  --token-surface-interactive-hover: #2d3c33;
+  --token-surface-interactive-active: #384a3e;
+  --token-surface-interactive-disabled: #384a3e;
+  --token-overlay-backdrop: rgba(7, 12, 9, .74);
+  --token-network-dot: #95b7d0;
+  --token-surface-timeline-dot: #405348;
+  --token-record-copy-small: #b7c1b6;
+  --token-metric-band-bg: #26362d;
+  --token-metric-band-divider: #3a4d41;
+  --token-metric-band-text: #b7c1b6;
+  --token-quick-grid-hover: #384a3e;
+  --token-quick-grid-active: #425648;
+  --token-quick-grid-text: #bad0ae;
+  --token-quick-section-bg: #2d3c33;
+  --token-today-plan-border: #55483e;
+  --token-today-insights-border: #3a4d41;
+  --token-today-plan-icon-bg: #2a302b;
+  --token-today-plan-icon-border: #655a4c;
+  --token-today-plan-icon-shadow: rgba(0, 0, 0, .28);
+  --token-today-plan-icon-bg-hover: #3b4038;
+  --token-today-plan-icon-border-hover: #86735e;
+  --token-record-mark-bg: linear-gradient(135deg, #2d3c33, #384a3e);
+  --token-record-mark-border: #55705d;
+  --token-record-mark-shadow: rgba(0, 0, 0, .3);
+  --token-overview-mark-bg: #304137;
+  --token-overview-mark-border: #58715f;
+  --token-app-nav-bg: rgba(34, 48, 41, .96);
+  --token-app-nav-border: #3a4d41;
+  --token-app-nav-hover: #2d3c33;
+  --token-app-nav-active: #bad0ae;
+  --token-pill-bg: rgba(34, 48, 41, .95);
+  --token-pill-border: rgba(83, 103, 89, .92);
+  --token-timeline-item-border: #3a4d41;
+  --token-choice-bg: #2d3c33;
+  --token-choice-selected-border: #93b28b;
+  --token-choice-selected-bg: #334936;
+  --token-choice-selected-text: #bad0ae;
+  --token-identity-bg: #2d3c33;
+  --token-focus-ring: #93b28b;
+  --token-surface-hover: #2d3c33;
+  --token-surface-chip: #2d3c33;
+  --token-text-plan: #d9a46a;
+}
+
+html[data-visual-theme="forest-press"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 3%, rgba(255, 255, 249, .98) 0 8%, transparent 31%),
+    radial-gradient(circle at 93% 88%, rgba(120, 150, 173, .08), transparent 28%),
+    linear-gradient(155deg, #fffaf0 0%, #f5f0e5 56%, #e9e4d8 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="forest-press"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 91% 7%, rgba(149, 183, 208, .075), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(228, 154, 105, .045), transparent 26%),
+    linear-gradient(180deg, #1d2922 0%, #18211c 54%, #111713 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="forest-press"] #root { background: transparent; }
+html[data-visual-theme="forest-press"] .app::before,
+html[data-visual-theme="forest-press"] .app::after { background: rgba(102, 129, 95, .07); }
+
+html[data-visual-theme="forest-press"] .settings-card,
+html[data-visual-theme="forest-press"] .chart-card,
+html[data-visual-theme="forest-press"] .archive-profile,
+html[data-visual-theme="forest-press"] .growth-history,
+html[data-visual-theme="forest-press"] .settings-menu,
+html[data-visual-theme="forest-press"] .account-card,
+html[data-visual-theme="forest-press"] .vaccine-overview,
+html[data-visual-theme="forest-press"] .vaccine-next,
+html[data-visual-theme="forest-press"] .vaccine-record-section,
+html[data-visual-theme="forest-press"] .vaccine-archive-summary,
+html[data-visual-theme="forest-press"] .vaccine-schedule-group,
+html[data-visual-theme="forest-press"] .vaccine-calendar-card,
+html[data-visual-theme="forest-press"] .vaccine-month-agenda,
+html[data-visual-theme="forest-press"] .growth-assessment-card,
+html[data-visual-theme="forest-press"] .growth-curve-card {
+  border-color: var(--surface-container-border);
+  background-color: var(--surface-card);
+}
+
+html[data-visual-theme="forest-press"] .today-workbench,
+html[data-visual-theme="forest-press"] .today-insights {
+  border-color: var(--token-surface-container-border);
+  background: var(--surface-card);
+  box-shadow: 0 1px 2px rgba(57, 74, 60, .05), 0 5px 14px rgba(57, 74, 60, .04);
+}
+
+html[data-visual-theme="forest-press"] .metric-band { background: var(--token-metric-band-bg); }
+html[data-visual-theme="forest-press"] .metric-band > div { border-color: var(--token-metric-band-divider); }
+html[data-visual-theme="forest-press"] .metric-band span,
+html[data-visual-theme="forest-press"] .metric-band small { color: var(--token-metric-band-text); }
+html[data-visual-theme="forest-press"] .info-row-label { color: var(--brand-deep); }
+html[data-visual-theme="forest-press"] .quick-grid button:hover { background: var(--token-quick-grid-hover); }
+html[data-visual-theme="forest-press"] .quick-grid button:active { background: var(--token-quick-grid-active); }
+html[data-visual-theme="forest-press"] .quick-grid b { color: var(--token-quick-grid-text); }
+html[data-visual-theme="forest-press"] .app-nav button.active,
+html[data-visual-theme="forest-press"] .app-nav button.active:hover,
+html[data-visual-theme="forest-press"] .app-nav button.active:active { background: transparent; box-shadow: none; color: var(--token-app-nav-active); }
+html[data-visual-theme="forest-press"] .today-timeline .time-col i,
+html[data-visual-theme="forest-press"] .history-timeline .time-col i { background: var(--token-surface-timeline-dot); }
+html[data-visual-theme="forest-press"] .today-timeline .timeline-item,
+html[data-visual-theme="forest-press"] .history-timeline .timeline-item { border-bottom-color: var(--token-timeline-item-border); }
+html[data-visual-theme="forest-press"] .today-layout .today-timeline .record-mark,
+html[data-visual-theme="forest-press"] .history-timeline .record-mark {
+  border-color: var(--token-record-mark-border);
+  background: var(--token-record-mark-bg);
+  box-shadow: inset 0 2px 5px var(--token-record-mark-shadow);
+}
+html[data-visual-theme="forest-press"] .overview-mark { border-color: var(--token-overview-mark-border); background: var(--token-overview-mark-bg); }
+html[data-visual-theme="forest-press"] .care-choice-groups .care-choice-grid button.selected {
+  border-color: var(--token-choice-selected-border);
+  background: var(--token-choice-selected-bg);
+  color: var(--token-choice-selected-text);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+html[data-visual-theme="forest-press"] .baby-hero.hero-forest-press .hero-greeting-title,
+  .baby-hero.hero-forest-press[data-visual-theme="forest-press"] .hero-greeting-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+html[data-visual-theme="forest-press"] .baby-hero.hero-forest-press .hero-greeting-title span,
+  .baby-hero.hero-forest-press[data-visual-theme="forest-press"] .hero-greeting-title span { font-weight: 700; }
+html[data-visual-theme="forest-press"] .baby-hero.hero-forest-press .hero-status p { color: rgba(255, 250, 238, .94); }
+html[data-visual-theme="forest-press"][data-theme="dark"] .quick-grid button {
+  border-color: var(--line);
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+/* 林间天气只微调共享效果，保持天气逻辑不分叉。 */
+.baby-hero.hero-forest-press.weather-cloudy::before { background: linear-gradient(108deg, transparent 36%, rgba(226, 230, 218, .14) 63%, rgba(196, 207, 198, .18)); }
+.baby-hero.hero-forest-press.weather-overcast::before { background: rgba(54, 68, 60, .17); backdrop-filter: saturate(.84) brightness(.97); -webkit-backdrop-filter: saturate(.84) brightness(.97); }
+.baby-hero.hero-forest-press.weather-rain::before { background: linear-gradient(90deg, transparent 42%, rgba(45, 65, 68, .14)); }
+.baby-hero.hero-forest-press.weather-fog::before { background: linear-gradient(90deg, transparent 28%, rgba(233, 237, 224, .14) 57%, rgba(224, 232, 220, .24)); backdrop-filter: blur(1px) saturate(.88); -webkit-backdrop-filter: blur(1px) saturate(.88); }
+.baby-hero.hero-forest-press.weather-snow .diary-snow { opacity: .28; animation-duration: 10s; }
+.baby-hero.hero-forest-press.weather-thunder::before { background: linear-gradient(90deg, transparent 36%, rgba(40, 55, 62, .2) 67%, rgba(41, 51, 65, .28)); }
+
+/* 四时段局部动态：晨光、叶影、纸页与萤火虫。 */
+.forest-press-motion { display: none; }
+.baby-hero.hero-forest-press .forest-press-motion { display: block; position: absolute; z-index: 1; inset: 0; overflow: hidden; }
+.baby-hero.hero-forest-press .forest-press-motion i { position: absolute; display: block; pointer-events: none; }
+.baby-hero.hero-forest-press .forest-press-motion-morning .forest-press-motion-primary {
+  right: 9%; top: -22%; width: 43%; height: 145%;
+  background: linear-gradient(106deg, transparent 38%, rgba(255, 235, 169, .14) 49%, transparent 60%);
+  animation: forest-press-morning-light 9s ease-in-out infinite;
+}
+.baby-hero.hero-forest-press .forest-press-motion-morning .forest-press-motion-secondary {
+  right: 30%; bottom: 23%; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 245, 199, .78);
+  box-shadow: 34px -12px 0 rgba(255, 245, 199, .58);
+  animation: forest-press-dew 5.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-forest-press .forest-press-motion-daytime .forest-press-motion-primary {
+  right: 16%; top: 9%; width: 38%; height: 58%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(224, 238, 213, .13), transparent 68%);
+  animation: forest-press-leaf-shadow 7.5s ease-in-out infinite alternate;
+}
+.baby-hero.hero-forest-press .forest-press-motion-evening .forest-press-motion-primary {
+  right: 8%; top: 8%; width: 43%; height: 77%; border-radius: 48%;
+  background: radial-gradient(ellipse, rgba(255, 181, 83, .2), transparent 68%);
+  mix-blend-mode: screen;
+  animation: forest-press-evening-glow 6.2s ease-in-out infinite alternate;
+}
+.baby-hero.hero-forest-press .forest-press-motion-evening .forest-press-motion-secondary {
+  right: 27%; bottom: 23%; width: 52px; height: 18px; border-radius: 50%;
+  background: rgba(255, 234, 191, .08);
+  animation: forest-press-paper-breathe 7s ease-in-out infinite alternate;
+}
+.baby-hero.hero-forest-press .forest-press-motion-night .forest-press-motion-primary {
+  right: 24%; bottom: 24%; width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 220, 112, .86);
+  box-shadow: 31px -18px 0 rgba(255, 220, 112, .68), 67px 3px 0 rgba(255, 228, 137, .72), 96px -24px 0 rgba(255, 213, 91, .58);
+  animation: forest-press-fireflies 5.4s ease-in-out infinite alternate;
+}
+.baby-hero.hero-forest-press .forest-press-motion-night .forest-press-motion-secondary {
+  right: 7%; bottom: 8%; width: 31%; height: 58%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 177, 72, .2), transparent 67%);
+  mix-blend-mode: screen;
+  animation: forest-press-lantern 6.4s ease-in-out infinite alternate;
+}
+
+@keyframes forest-press-morning-light { 0%, 20% { opacity: 0; transform: translateX(-20%); } 50% { opacity: 1; } 80%, 100% { opacity: 0; transform: translateX(30%); } }
+@keyframes forest-press-dew { from { opacity: .38; transform: scale(.92); } to { opacity: .92; transform: scale(1.08); } }
+@keyframes forest-press-leaf-shadow { from { opacity: .4; transform: translateX(-3px) rotate(-1deg); } to { opacity: .76; transform: translateX(4px) rotate(1deg); } }
+@keyframes forest-press-evening-glow { from { opacity: .45; transform: scale(.97); } to { opacity: .86; transform: scale(1.04); } }
+@keyframes forest-press-paper-breathe { from { opacity: .35; transform: translateY(1px) rotate(-1deg); } to { opacity: .72; transform: translateY(-2px) rotate(1deg); } }
+@keyframes forest-press-fireflies { from { opacity: .38; } to { opacity: .94; } }
+@keyframes forest-press-lantern { from { opacity: .48; transform: scale(.97); } to { opacity: .88; transform: scale(1.04); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="forest-press"] .baby-hero.hero-forest-press::after,
+  html[data-visual-theme="forest-press"] .forest-press-motion i { animation: none; }
+}

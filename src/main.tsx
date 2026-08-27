@@ -19,6 +19,7 @@ import './styles/theme-orbit.css';
 import './styles/theme-shop.css';
 import './styles/theme-arcane.css';
 import './styles/theme-ocean.css';
+import './styles/theme-forest-press.css';
 
 createRoot(document.getElementById('root')!).render(<StrictMode><ConfirmProvider><App /></ConfirmProvider></StrictMode>);
 

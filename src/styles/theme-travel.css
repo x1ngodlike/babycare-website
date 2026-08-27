@@ -242,13 +242,15 @@ html[data-visual-theme="travel"][data-theme="dark"] .quick-grid button {
 html[data-visual-theme="travel"][data-theme="light"] .today-layout .hero-greeting-title,
 html[data-visual-theme="travel"][data-theme="dark"] .today-layout .hero-greeting-title,
 html[data-visual-theme="travel"][data-theme="light"] .hero-preview-list .baby-hero.hero-diary .hero-greeting-title,
-html[data-visual-theme="travel"][data-theme="dark"] .hero-preview-list .baby-hero.hero-diary .hero-greeting-title {
+html[data-visual-theme="travel"][data-theme="dark"] .hero-preview-list .baby-hero.hero-diary .hero-greeting-title,
+  .baby-hero.hero-diary[data-visual-theme="travel"] .hero-greeting-title {
   font-size: 20px;
   font-weight: 700;
   line-height: 1.25;
 }
 
-html[data-visual-theme="travel"] .hero-greeting-title span {
+html[data-visual-theme="travel"] .hero-greeting-title span,
+  .baby-hero[data-visual-theme="travel"] .hero-greeting-title span {
   font-weight: 700;
 }
 

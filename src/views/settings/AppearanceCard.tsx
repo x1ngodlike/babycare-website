@@ -1,5 +1,5 @@
 // 外观主题设置卡 —— 合并后的统一主题卡 + 配置/预览 Modal
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, SegmentedControl } from '../../ui';
 import { getGreeting, type ThemeMode } from '../../shared';
 import { DiaryHeroLayer, DiaryWeatherBadge } from '../../DiaryHero';
@@ -47,7 +47,7 @@ const DIARY_PERIOD_DETAILS: Record<string, { range: string; weather: Pick<Weathe
 };
 
 const LABEL_FOR_LAYOUT: Record<HeroLayout, string> = { diary: '杂志风', classic: '经典风' };
-const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'hero-diary': '自然画报', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界' };
+const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'hero-diary': '自然画报', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界', 'hero-forest-press': '林间报社' };
 
 function findBgLabel(bg: string): string {
   return HERO_BACKGROUNDS.find(o => o.value === bg)?.label ?? bg;
@@ -59,7 +59,7 @@ function rowSummary(cfg: ThemeConfig): string {
   return `${layoutLabel} · ${weather}`;
 }
 
-function PreviewHero({ profile, userId, periodKey, layout, bg, hour, weatherKind, weatherEffectsEnabled = true }: { profile: Profile; userId: FamilyId; periodKey: string; layout: HeroLayout; bg: string; hour: number; weatherKind?: WeatherKind; weatherEffectsEnabled?: boolean }) {
+function PreviewHero({ profile, userId, periodKey, layout, bg, hour, weatherKind, weatherEffectsEnabled = true, visualTheme }: { profile: Profile; userId: FamilyId; periodKey: string; layout: HeroLayout; bg: string; hour: number; weatherKind?: WeatherKind; weatherEffectsEnabled?: boolean; visualTheme?: string }) {
   const { greeting, displayName } = getGreeting(profile, userId, hour);
   const d = new Date();
   const magazineTheme = layout === 'diary';
@@ -80,9 +80,11 @@ function PreviewHero({ profile, userId, periodKey, layout, bg, hour, weatherKind
   const themeClass = magazineTheme ? `hero-diary ${bg}` : bg !== 'auto' ? bg : '';
   const periodClass = `baby-hero ${themeClass} hero-${periodKey}${magazineTheme ? ` diary-${diaryPeriod} weather-${previewWeather.kind}${weatherEffectsEnabled ? '' : ' weather-effects-off'}` : ''}`;
   return (
-    <section className={periodClass} aria-label={`${periodLabel}时段预览`}>
-      <div className={magazineTheme ? 'diary-copy-sticker' : undefined}>
-        {magazineTheme ? <h1 className="hero-greeting-title"><span>{greeting}，</span><strong>{displayName}～</strong></h1> : <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>}
+    <section className={periodClass} data-visual-theme={visualTheme} aria-label={`${periodLabel}时段预览`}>
+      <div>
+        {magazineTheme
+          ? <h1 className="hero-greeting-title"><span>{greeting}，</span><strong>{displayName}～</strong></h1>
+          : <h1 className="hero-greeting-title">{greeting}，{displayName}～</h1>}
         {magazineTheme ? <div className="diary-date-weather-row"><p className="kicker hero-date-line">{dateStr}</p><DiaryWeatherBadge weather={previewWeather} /></div> : <p className="kicker hero-date-line">{dateStr}</p>}
         <div className="hero-status"><p>{magazineTheme ? `上次记录 ${String(hour).padStart(2, '0')}:27 · 喂奶 · 120 mL` : `上次记录：${String(hour).padStart(2, '0')}:27 · 喂奶 · 奶粉 120 mL`}</p></div>
       </div>
@@ -230,7 +232,9 @@ export function AppearanceSettingsCard({
           const isActive = heroTheme === preset.id;
           const cfg = resolveThemeConfig(preset.id, heroThemeOverrides[preset.id]);
           return (
-            <div key={preset.id} className="hero-bg-row theme-row">
+            <React.Fragment key={preset.id}>
+              {preset.id === 'theme-classic' && <div className="theme-divider" role="separator" />}
+              <div className="hero-bg-row theme-row">
               <label className={`hero-bg-item theme-item${isActive ? ' selected' : ''}`}>
                 <input type="radio" name="hero-theme" value={preset.id} checked={isActive} onChange={() => clickThemeRow(preset)} aria-label={preset.label} />
                 <span className="hero-bg-checkmark" aria-hidden="true">
@@ -244,6 +248,7 @@ export function AppearanceSettingsCard({
               </label>
               <button type="button" className="text-button hero-bg-preview-btn" onClick={() => openModal(preset)}>自定义</button>
             </div>
+            </React.Fragment>
           );
         })}
       </div>
@@ -403,6 +408,7 @@ export function AppearanceSettingsCard({
                   hour={periodHours[period.key] ?? currentHour}
                   weatherKind={isWeatherTheme ? previewWeatherKind : undefined}
                   weatherEffectsEnabled={isWeatherTheme ? config.weatherEffects : false}
+                  visualTheme={preset.id}
                 />
               ))}
             </div>

@@ -1,6 +1,6 @@
 import type { CareItem, CareRecord } from '../types';
 
-export type WeatherHeroThemeId = 'hero-diary' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean';
+export type WeatherHeroThemeId = 'hero-diary' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -181,6 +181,30 @@ export const WEATHER_HERO_ASSETS = {
       archive: '/hero/weather/ocean/icons/nav/archive.webp',
     },
   },
+  'hero-forest-press': {
+    thumb: '/hero/weather/forest-press/thumb.webp',
+    stickers: {
+      feeding: '/hero/weather/forest-press/stickers/sticker-feeding.webp',
+      bowel: '/hero/weather/forest-press/stickers/sticker-bowel.webp',
+      care: '/hero/weather/forest-press/stickers/sticker-care.webp',
+      note: '/hero/weather/forest-press/stickers/sticker-note.webp',
+    },
+    tasks: {
+      medicine: '/hero/weather/forest-press/icons/tasks/medicine.webp',
+      massage: '/hero/weather/forest-press/icons/tasks/massage.webp',
+      bath: '/hero/weather/forest-press/icons/tasks/bath.webp',
+      care: '/hero/weather/forest-press/icons/tasks/care.webp',
+      vaccine: '/hero/weather/forest-press/icons/tasks/vaccine.webp',
+      growth: '/hero/weather/forest-press/icons/tasks/growth.webp',
+    },
+    nav: {
+      today: '/hero/weather/forest-press/icons/nav/today.webp',
+      history: '/hero/weather/forest-press/icons/nav/records.webp',
+      chat: '/hero/weather/forest-press/icons/nav/chat.webp',
+      trends: '/hero/weather/forest-press/icons/nav/trends.webp',
+      archive: '/hero/weather/forest-press/icons/nav/archive.webp',
+    },
+  },
 } as const satisfies Record<WeatherHeroThemeId, {
   thumb: string;
   stickers: Record<WeatherStickerKind, string>;
@@ -239,6 +263,7 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-forest-press', label: '林间报社', thumb: WEATHER_HERO_ASSETS['hero-forest-press'].thumb, group: 'weather' },
   { value: 'hero-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb, group: 'weather' },
   { value: 'hero-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb, group: 'weather' },
   { value: 'hero-orbit', label: '星际观测', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb, group: 'weather' },
@@ -261,7 +286,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（6）' },
+  { key: 'weather', label: '天气画境（7）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -282,6 +307,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/default/morning.webp' },
+  { value: 'hero-forest-press', label: '林间报社', thumb: WEATHER_HERO_ASSETS['hero-forest-press'].thumb },
   { value: 'hero-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb },
   { value: 'hero-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb },
   { value: 'hero-orbit', label: '星际观测', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb },
@@ -291,18 +317,20 @@ export const ICON_PACKS: IconPackOption[] = [
 ];
 
 export const THEMES: ReadonlyArray<ThemePreset> = [
-  { id: 'theme-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb,
-    defaults: { layout: 'diary', bg: 'hero-diary', iconPack: 'hero-diary', weatherEffects: true } },
-  { id: 'theme-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb,
-    defaults: { layout: 'diary', bg: 'hero-travel', iconPack: 'hero-travel', weatherEffects: true } },
-  { id: 'theme-orbit', label: '星际观测', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb,
-    defaults: { layout: 'diary', bg: 'hero-orbit', iconPack: 'hero-orbit', weatherEffects: true } },
-  { id: 'theme-shop', label: '晴雨商店', thumb: WEATHER_HERO_ASSETS['hero-shop'].thumb,
-    defaults: { layout: 'diary', bg: 'hero-shop', iconPack: 'hero-shop', weatherEffects: true } },
-  { id: 'theme-arcane', label: '烛光魔塔', thumb: WEATHER_HERO_ASSETS['hero-arcane'].thumb,
-    defaults: { layout: 'diary', bg: 'hero-arcane', iconPack: 'hero-arcane', weatherEffects: true } },
+  { id: 'theme-forest-press', label: '林间报社', thumb: WEATHER_HERO_ASSETS['hero-forest-press'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-forest-press', iconPack: 'hero-forest-press', weatherEffects: true } },
   { id: 'theme-ocean', label: '海底世界', thumb: WEATHER_HERO_ASSETS['hero-ocean'].thumb,
     defaults: { layout: 'diary', bg: 'hero-ocean', iconPack: 'hero-ocean', weatherEffects: true } },
+  { id: 'theme-arcane', label: '烛光魔塔', thumb: WEATHER_HERO_ASSETS['hero-arcane'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-arcane', iconPack: 'hero-arcane', weatherEffects: true } },
+  { id: 'theme-shop', label: '晴雨商店', thumb: WEATHER_HERO_ASSETS['hero-shop'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-shop', iconPack: 'hero-shop', weatherEffects: true } },
+  { id: 'theme-orbit', label: '星际观测', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-orbit', iconPack: 'hero-orbit', weatherEffects: true } },
+  { id: 'theme-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-travel', iconPack: 'hero-travel', weatherEffects: true } },
+  { id: 'theme-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-diary', iconPack: 'hero-diary', weatherEffects: true } },
   { id: 'theme-classic', label: '经典主题', thumb: '/hero/default/morning.webp',
     defaults: { layout: 'classic', bg: 'auto', iconPack: 'default', weatherEffects: false } },
 ];
@@ -324,6 +352,7 @@ export function getVisualThemeForPreset(themeId: string): string | null {
   if (themeId === 'theme-shop') return 'shop';
   if (themeId === 'theme-arcane') return 'arcane';
   if (themeId === 'theme-ocean') return 'ocean';
+  if (themeId === 'theme-forest-press') return 'forest-press';
   return null;
 }
 
@@ -335,6 +364,7 @@ const LEGACY_BG_TO_THEME: Record<string, string> = {
   'hero-shop': 'theme-shop',
   'hero-arcane': 'theme-arcane',
   'hero-ocean': 'theme-ocean',
+  'hero-forest-press': 'theme-forest-press',
 };
 
 export function legacyHeroBgToThemeId(bg: string): string {
