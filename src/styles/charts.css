@@ -2,9 +2,9 @@
 .rhythm-card { margin-top: 12px; }
 .rhythm-card .chart-values > div { grid-template-columns: 0.8fr 2.2fr; }
 .rhythm-card .chart-values span { white-space: nowrap; }
-.rhythm-legend i.day-dot, .rhythm-legend i.night-dot { width: 8px; height: 8px; border-radius: 50%; margin-left: 8px; }
+.rhythm-legend i.day-dot, .rhythm-legend i.night-dot { width: 8px; height: 8px; border-radius: 50%; }
 .rhythm-legend i.day-dot { background: var(--brand); }
-.rhythm-legend i.night-dot { background: var(--orange); }
+.rhythm-legend i.night-dot { background: var(--chart-complement); }
 .rhythm-caption { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
 .rhythm-empty { padding: 28px 16px; text-align: center; font-size: 12px; color: var(--muted); }
 .rhythm-chart { position: relative; height: 180px; margin: 4px 12px 4px 18px; }
@@ -13,7 +13,7 @@
 .rhythm-grid { stroke: var(--line); stroke-width: 1; }
 .rhythm-grid.ref { stroke: var(--muted); stroke-dasharray: 4 3; stroke-width: 1; }
 .rhythm-dot { fill: var(--brand); stroke: var(--surface-card); stroke-width: 1.5; }
-.rhythm-dot.night { fill: var(--orange); }
+.rhythm-dot.night { fill: var(--chart-complement); }
 .rhythm-line { fill: none; stroke: var(--brand); stroke-width: 1.5; opacity: .55; stroke-linejoin: round; stroke-linecap: round; }
 .rhythm-axis { position: absolute; inset: 0; pointer-events: none; }
 .rhythm-axis span { position: absolute; left: -18px; width: 14px; transform: translateY(-50%); text-align: right; font-size: 10px; color: var(--muted); }
@@ -22,10 +22,10 @@
 .rhythm-x-axis { position: relative; height: 18px; margin-top: 2px; font-size: 11px; color: var(--muted); }
 .rhythm-x-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 html[data-theme="dark"] .rhythm-dot { fill: var(--brand); }
-html[data-theme="dark"] .rhythm-dot.night { fill: var(--orange); }
+html[data-theme="dark"] .rhythm-dot.night { fill: var(--chart-complement); }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) .rhythm-dot { fill: var(--brand); }
-  html:not([data-theme="light"]) .rhythm-dot.night { fill: var(--orange); }
+  html:not([data-theme="light"]) .rhythm-dot.night { fill: var(--chart-complement); }
 }
 
 /* ===== 历史记录 · 七日总览（横轴＝日期，纵轴＝0–24 时） ===== */
@@ -97,9 +97,9 @@ html[data-theme="dark"] .overview-mark { background: var(--chart-overview-bg); b
 .gc-baby-line { fill: none; stroke: var(--brand-deep); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .gc-data-point { cursor: pointer; }
 .gc-dot { fill: var(--brand-deep); stroke: var(--surface-card); stroke-width: 1.5; }
-.gc-dot.latest { fill: var(--orange); stroke: var(--surface-card); stroke-width: 2; }
-.gc-dot.selected { stroke: var(--orange); stroke-width: 2.5; }
-.gc-dot-ring { fill: none; stroke: var(--orange); stroke-width: 1.5; stroke-opacity: 0.4; }
+.gc-dot.latest { fill: var(--chart-complement); stroke: var(--surface-card); stroke-width: 2; }
+.gc-dot.selected { stroke: var(--chart-complement); stroke-width: 2.5; }
+.gc-dot-ring { fill: none; stroke: var(--chart-complement); stroke-width: 1.5; stroke-opacity: 0.4; }
 .gc-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 4px; font-size: 10px; color: var(--muted); }
 .gc-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .gc-legend-band { display: inline-block; width: 12px; height: 8px; background: var(--brand); opacity: 0.2; border-radius: 2px; }
@@ -117,9 +117,9 @@ html[data-theme="dark"] .overview-mark { background: var(--chart-overview-bg); b
 .gc-percentile { color: var(--brand-deep); font-weight: 700; }
 .gc-disclaimer { margin: 6px 0 0; font-size: 10px; color: var(--muted); line-height: 1.5; }
 html[data-theme="dark"] .gc-band { fill: var(--brand); fill-opacity: 0.12; }
-html[data-theme="dark"] .gc-dot.latest { fill: var(--orange); }
+html[data-theme="dark"] .gc-dot.latest { fill: var(--chart-complement); }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) .gc-band { fill: var(--brand); fill-opacity: 0.12; }
-  html:not([data-theme="light"]) .gc-dot.latest { fill: var(--orange); }
+  html:not([data-theme="light"]) .gc-dot.latest { fill: var(--chart-complement); }
 }
 

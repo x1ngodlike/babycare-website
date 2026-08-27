@@ -98,6 +98,10 @@
 .baby-hero.hero-arcane.diary-daytime { --diary-background: url('/hero/weather/arcane/backgrounds/daytime.webp'); }
 .baby-hero.hero-arcane.diary-evening { --diary-background: url('/hero/weather/arcane/backgrounds/evening.webp'); }
 .baby-hero.hero-arcane.diary-night { --diary-background: url('/hero/weather/arcane/backgrounds/night.webp'); }
+.baby-hero.hero-ocean.diary-morning { --diary-background: url('/hero/weather/ocean/backgrounds/morning.webp'); }
+.baby-hero.hero-ocean.diary-daytime { --diary-background: url('/hero/weather/ocean/backgrounds/daytime.webp'); }
+.baby-hero.hero-ocean.diary-evening { --diary-background: url('/hero/weather/ocean/backgrounds/evening.webp'); }
+.baby-hero.hero-ocean.diary-night { --diary-background: url('/hero/weather/ocean/backgrounds/night.webp'); }
 
 /* Weather 套 → classic layout period 兼容：daytime 同时覆盖 midday/afternoon */
 .baby-hero.hero-diary.hero-morning { --diary-background: url('/hero/weather/nature/backgrounds/morning.webp'); }
@@ -120,6 +124,10 @@
 .baby-hero.hero-arcane.hero-midday, .baby-hero.hero-arcane.hero-afternoon { --diary-background: url('/hero/weather/arcane/backgrounds/daytime.webp'); }
 .baby-hero.hero-arcane.hero-evening { --diary-background: url('/hero/weather/arcane/backgrounds/evening.webp'); }
 .baby-hero.hero-arcane.hero-night { --diary-background: url('/hero/weather/arcane/backgrounds/night.webp'); }
+.baby-hero.hero-ocean.hero-morning { --diary-background: url('/hero/weather/ocean/backgrounds/morning.webp'); }
+.baby-hero.hero-ocean.hero-midday, .baby-hero.hero-ocean.hero-afternoon { --diary-background: url('/hero/weather/ocean/backgrounds/daytime.webp'); }
+.baby-hero.hero-ocean.hero-evening { --diary-background: url('/hero/weather/ocean/backgrounds/evening.webp'); }
+.baby-hero.hero-ocean.hero-night { --diary-background: url('/hero/weather/ocean/backgrounds/night.webp'); }
 .baby-hero.hero-travel::after {
   background:
     linear-gradient(90deg, rgba(58, 48, 40, .58) 0%, rgba(74, 60, 48, .34) 42%, rgba(74, 60, 48, .08) 72%, transparent 100%),
@@ -138,6 +146,11 @@
 .baby-hero.hero-arcane::after {
   background:
     linear-gradient(90deg, rgba(25, 18, 30, .82) 0%, rgba(31, 22, 36, .56) 40%, rgba(31, 22, 36, .14) 71%, transparent 100%),
+    var(--diary-background) center / cover no-repeat;
+}
+.baby-hero.hero-ocean::after {
+  background:
+    linear-gradient(90deg, rgba(19, 52, 49, .76) 0%, rgba(27, 67, 64, .48) 41%, rgba(27, 67, 64, .1) 72%, transparent 100%),
     var(--diary-background) center / cover no-repeat;
 }
 .baby-hero.hero-diary::before { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: transparent; transition: background .35s ease; }
@@ -276,6 +289,7 @@
 .baby-hero.hero-orbit .hero-status::before { background: rgba(27, 39, 70, .58); }
 .baby-hero.hero-shop .hero-status::before { background: rgba(62, 38, 29, .56); }
 .baby-hero.hero-arcane .hero-status::before { background: rgba(39, 26, 44, .62); }
+.baby-hero.hero-ocean .hero-status::before { background: rgba(25, 62, 58, .58); }
 .baby-hero.hero-diary .hero-status p {
   position: relative;
   z-index: 1;
@@ -353,6 +367,7 @@
 .baby-hero.hero-orbit .diary-day-stamp::after { content: 'LITTLE ORBIT'; }
 .baby-hero.hero-shop .diary-day-stamp::after { content: 'DAILY SHOP'; }
 .baby-hero.hero-arcane .diary-day-stamp::after { content: 'LUMEN TOWER'; }
+.baby-hero.hero-ocean .diary-day-stamp::after { content: 'CORAL DAYS'; }
 @keyframes diary-page-arrive { from { opacity: .72; } to { opacity: 1; } }
 @keyframes diary-postcard-breathe { from { transform: scale(1); } to { transform: scale(1.015); } }
 @keyframes diary-orbit-breathe { to { transform: translateY(-3px) scale(1.04); } }
@@ -855,24 +870,24 @@
 .editor.theme-modal {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   padding-bottom: 0;
 }
 .editor.theme-modal > .editor-head {
   flex: none;
 }
 .editor.theme-modal > .theme-config-area {
-  flex: none;
+  flex: 0 0 auto;
   margin-bottom: 0;
 }
 .editor.theme-modal > .theme-preview-section {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
+  flex: 0 0 auto;
   padding-right: 2px;
 }
 
 .theme-modal-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   flex: none;
   padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
   margin-top: 12px;

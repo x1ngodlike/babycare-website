@@ -5,6 +5,7 @@ html[data-visual-theme="shop"][data-theme="light"] {
   --token-text-secondary: #75645c;
   --token-text-tertiary: #8e7d73;
   --token-brand: #914e49;
+  --token-chart-complement: #3a8a8f;
   --token-brand-deep: #693833;
   --token-brand-soft: #f0d8d2;
   --token-brand-faint: #f8e8e2;
@@ -85,6 +86,7 @@ html[data-visual-theme="shop"][data-theme="dark"] {
   --token-text-secondary: #c4b5ac;
   --token-text-tertiary: #9f8f86;
   --token-brand: #d58a80;
+  --token-chart-complement: #7fc0c4;
   --token-brand-deep: #f0b2a8;
   --token-brand-soft: #553632;
   --token-brand-faint: #3d2b27;

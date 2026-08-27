@@ -5,6 +5,7 @@ html[data-visual-theme="orbit"][data-theme="light"] {
   --token-text-secondary: #667087;
   --token-text-tertiary: #7d879d;
   --token-brand: #596fa7;
+  --token-chart-complement: #b85a8e;
   --token-brand-deep: #3f558d;
   --token-brand-soft: #e4e9f5;
   --token-brand-faint: #edf1f8;
@@ -85,6 +86,7 @@ html[data-visual-theme="orbit"][data-theme="dark"] {
   --token-text-secondary: #b6bdcb;
   --token-text-tertiary: #8e98ab;
   --token-brand: #91a7e0;
+  --token-chart-complement: #e08ab8;
   --token-brand-deep: #bdc9ed;
   --token-brand-soft: #303a55;
   --token-brand-faint: #252d40;

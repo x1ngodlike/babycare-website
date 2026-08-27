@@ -28,6 +28,7 @@
 
   /* 通用色 */
   --orange: var(--token-orange);
+  --chart-complement: var(--token-chart-complement);
   --cream: var(--token-cream);
   --danger: var(--token-danger);
   --white: var(--token-white);

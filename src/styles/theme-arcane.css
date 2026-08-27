@@ -5,6 +5,7 @@ html[data-visual-theme="arcane"][data-theme="light"] {
   --token-text-secondary: #716477;
   --token-text-tertiary: #8a7b8d;
   --token-brand: #8a5a9e;
+  --token-chart-complement: #d4943a;
   --token-brand-deep: #5a386c;
   --token-brand-soft: #ead9ed;
   --token-brand-faint: #f4eaf4;
@@ -85,6 +86,7 @@ html[data-visual-theme="arcane"][data-theme="dark"] {
   --token-text-secondary: #c9bacb;
   --token-text-tertiary: #9f91a3;
   --token-brand: #b88cce;
+  --token-chart-complement: #f0b76a;
   --token-brand-deep: #e2b4f0;
   --token-brand-soft: #493653;
   --token-brand-faint: #34283b;

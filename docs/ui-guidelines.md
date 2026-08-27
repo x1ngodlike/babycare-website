@@ -78,7 +78,8 @@
 | 强边框 | `--color-border-strong` | `--line-strong`、`--border-strong` | 聚焦前的强调边界 |
 | 主操作 | `--color-action-primary` | `--green`、`--accent` | 保存、确认、选中 |
 | 主操作文字 | `--color-action-primary-text` | `--white` | 主按钮前景 |
-| 核心记录 | `--color-action-record` | `--orange` | 全局“记录”和今日待办行动 |
+| 核心记录 | `--color-action-record` | `--orange` | 全局"记录"和今日待办行动 |
+| 图表对比色 | — | `--chart-complement` | 图表专用，与 `--brand` 绑定两组固定语义（见下方规则） |
 | 危险操作 | `--color-action-danger` | `--danger` | 删除、全量替换 |
 | 焦点 | `--color-focus-ring` | `--focus` | `:focus-visible` 外框 |
 
@@ -97,6 +98,34 @@
 | 核心记录背景 | `#e97e2f` | `#d48540` |
 | 核心记录前景 | `#ffffff` | `#ffffff` |
 | 危险操作 | `#a54740` | `#e0736a` |
+| 图表对比色（--chart-complement） | `#ee852f` | `#e09958` |
+
+### 图表双色绑定规则
+
+图表使用两组颜色，每组绑定固定的**数据语义**，与主题无关：
+
+| CSS 变量 | Token | 绑定的指标 | 配色要求 |
+|---|---|---|---|
+| `--brand` | `token-brand` | **奶粉 + 白天** | 每个主题定义自己的品牌主色 |
+| `--chart-complement` | `token-chart-complement` | **母乳 + 夜间** | 必须与 brand 保持 hue 差 ≥ 60°，新主题统一使用绿/青色系（`#2b6b3e` light / `#9bc9a7` dark） |
+
+`--orange` 保留给非图表语义（疫苗状态、日历今日、报告徽章、浮动按钮等），与图表配色解耦。
+
+### 各主题 brand / chart-complement 色值
+
+所有视觉主题必须同时定义 `--token-brand` 和 `--token-chart-complement`，浅色 / 深色各一组：
+
+| 主题 | brand（奶粉 + 白天） | chart-complement（母乳 + 夜间） |
+|---|---|---|
+| 经典主题（默认） | light `#657e51` · dark `#86a370` | light `#ee852f` · dark `#e09958` |
+| 云端旅志 | light `#96877a` · dark `#aa9b8c` | light `#2f6c3e` · dark `#9bc9a7` |
+| 烛光魔塔 | light `#8a5a9e` · dark `#b88cce` | light `#2b6b3e` · dark `#9bc9a7` |
+| 星际观测 | light `#596fa7` · dark `#91a7e0` | light `#2b6b3e` · dark `#9bc9a7` |
+| 晴雨商店 | light `#914e49` · dark `#d58a80` | light `#2b6b3e` · dark `#9bc9a7` |
+| 海底世界 | light `#d8745f` · dark `#ed927c` | light `#2b6b3e` · dark `#9bc9a7` |
+| 自然画报 | 无独立 token，与经典主题共用 | 同左 |
+
+> 新主题统一使用绿 / 青色系作为 chart-complement（`#2b6b3e` light · `#9bc9a7` dark），确保与任意 brand 色的 Δhue ≥ 60°。
 
 浅色控件使用纯白，与米白卡片形成层级；深色控件使用 `#303932`，与 `#242c26` 卡片形成稳定区分。暖橙与白色前景是当前确认的品牌主操作组合，仅用于核心记录、保存和今日待办操作，不能扩散到普通状态或装饰区域。
 
