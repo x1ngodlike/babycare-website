@@ -4,7 +4,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
   const weatherLabel = weather ? `${weather.label} ${weather.temperatureC}°` : '天气更新中';
   const visualWeatherLabel = weather?.label === '晴间多云' ? '多云' : weather?.label;
   const weatherEmoji = weather?.icon || '🌡️';
-  return <div className="diary-weather" aria-label={`${weatherLabel}，浙江省杭州市`} title={weather?.stale ? '当前显示最近一次天气' : undefined}>
+  return <div className="diary-weather" aria-label={`${weatherLabel}，${weather?.location || '浙江省 · 杭州市余杭区'}`} title={weather?.stale ? '当前显示最近一次天气' : undefined}>
     <span><i className="diary-weather-symbol" aria-hidden="true">{weatherEmoji}</i><b>{weather ? `${visualWeatherLabel} ${weather.temperatureC}°` : '天气更新中'}</b></span>
   </div>;
 }

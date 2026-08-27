@@ -7,7 +7,7 @@ export function registerWeatherRoutes(app: Express) {
       res.setHeader('Cache-Control', 'private, max-age=300');
       return res.json(await getHangzhouWeather());
     } catch (error) {
-      console.error('[weather] 获取杭州天气失败:', error);
+      console.error('[weather] 获取余杭区天气失败:', error);
       return res.status(502).json({ error: '天气暂时无法更新' });
     }
   });

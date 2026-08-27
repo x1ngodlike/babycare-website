@@ -1,6 +1,6 @@
 import { describeWeatherCode, type WeatherSnapshot } from '../shared/weather.js';
 
-const HANGZHOU_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast?latitude=30.2741&longitude=120.1551&current=temperature_2m,weather_code,is_day&timezone=Asia%2FShanghai';
+const HANGZHOU_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast?latitude=30.3889&longitude=120.3075&current=temperature_2m,weather_code,is_day&timezone=Asia%2FShanghai';
 const FRESH_FOR_MS = 30 * 60 * 1000;
 const STALE_FOR_MS = 24 * 60 * 60 * 1000;
 
@@ -22,7 +22,7 @@ export async function getHangzhouWeather(now = Date.now()): Promise<WeatherSnaps
     if (!Number.isFinite(temperatureC) || !Number.isFinite(weatherCode)) throw new Error('天气数据不完整');
     const visual = describeWeatherCode(weatherCode!, isDay);
     const value: WeatherSnapshot = {
-      location: '浙江省 · 杭州市', temperatureC: Math.round(temperatureC!), weatherCode: weatherCode!,
+      location: '浙江省 · 杭州市余杭区', temperatureC: Math.round(temperatureC!), weatherCode: weatherCode!,
       ...visual, isDay, updatedAt: new Date(now).toISOString(), stale: false
     };
     cachedWeather = { fetchedAt: now, value };

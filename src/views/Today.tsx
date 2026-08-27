@@ -94,7 +94,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
   const [showGardenEgg, setShowGardenEgg] = useState(false);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(() => {
     try {
-      const cached = JSON.parse(localStorage.getItem('babycare:hangzhou-weather') || 'null') as WeatherSnapshot | null;
+      const cached = JSON.parse(localStorage.getItem('babycare:yuhang-weather') || 'null') as WeatherSnapshot | null;
       return cached && Date.now() - new Date(cached.updatedAt).getTime() < 24 * 60 * 60 * 1000 ? cached : null;
     } catch { return null; }
   });
@@ -110,7 +110,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     api.weather().then(result => {
       if (!active) return;
       setWeather(result);
-      try { localStorage.setItem('babycare:hangzhou-weather', JSON.stringify(result)); } catch { /* weather remains available in memory */ }
+      try { localStorage.setItem('babycare:yuhang-weather', JSON.stringify(result)); } catch { /* weather remains available in memory */ }
     }).catch(() => { /* time background remains available without weather */ });
     return () => { active = false; };
   }, [magazineTheme, online]);

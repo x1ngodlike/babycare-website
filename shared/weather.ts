@@ -2,7 +2,7 @@ export type WeatherKind = 'clear' | 'cloudy' | 'overcast' | 'fog' | 'rain' | 'sn
 export type DiaryPeriod = 'morning' | 'daytime' | 'evening' | 'night';
 
 export interface WeatherSnapshot {
-  location: '浙江省 · 杭州市';
+  location: string;
   temperatureC: number;
   weatherCode: number;
   kind: WeatherKind;
