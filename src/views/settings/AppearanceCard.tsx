@@ -47,7 +47,7 @@ const DIARY_PERIOD_DETAILS: Record<string, { range: string; weather: Pick<Weathe
 };
 
 const LABEL_FOR_LAYOUT: Record<HeroLayout, string> = { diary: '杂志风', classic: '经典风' };
-const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'hero-diary': '自然画报', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界', 'hero-forest-press': '林间报社' };
+const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'hero-fruit-cake': '水果蛋糕', 'hero-diary': '自然画报', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界', 'hero-forest-press': '林间报社' };
 
 function findBgLabel(bg: string): string {
   return HERO_BACKGROUNDS.find(o => o.value === bg)?.label ?? bg;
@@ -302,27 +302,31 @@ export function AppearanceSettingsCard({
               onToggle={() => setBgExpanded(!bgExpanded)}
             >
               {(() => {
-                const recBg = preset.defaults.bg;
-                const recOpt = HERO_BACKGROUNDS.find(o => o.value === recBg);
-                const recValid = recOpt ? BG_GROUPS_FOR_LAYOUT[config.layout].includes(recOpt.group) : false;
-                const selected = config.bg === recBg;
-                const otherBgs = HERO_BACKGROUNDS.filter(o => BG_GROUPS_FOR_LAYOUT[config.layout].includes(o.group) && o.value !== recBg);
+                const recommendedBgIds = preset.recommendedBgs ?? [preset.defaults.bg];
+                const recommendedBgs = recommendedBgIds
+                  .map(id => HERO_BACKGROUNDS.find(option => option.value === id))
+                  .filter((option): option is typeof HERO_BACKGROUNDS[number] => Boolean(option && BG_GROUPS_FOR_LAYOUT[config.layout].includes(option.group)));
+                const recommendedBgSet = new Set(recommendedBgs.map(option => option.value));
+                const otherBgs = HERO_BACKGROUNDS.filter(option => BG_GROUPS_FOR_LAYOUT[config.layout].includes(option.group) && !recommendedBgSet.has(option.value));
                 return (
                   <>
-                    {recOpt && recValid && (
+                    {recommendedBgs.length > 0 && (
                       <div className="theme-bg-group">
                         <p className="theme-bg-group-title">推荐</p>
                         <div className="theme-pick-grid theme-bg-grid">
-                          <button type="button" className={`theme-pick-item${selected ? ' selected' : ''}`} onClick={() => setModal({ ...modal, config: { ...config, bg: recBg } })} aria-label={recOpt.label} aria-pressed={selected}>
-                            <img src={recOpt.thumb} alt="" />
-                            <b>{recOpt.label}</b>
-                            {selected && <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3,7 6,10 11,4" /></svg>}
-                          </button>
+                          {recommendedBgs.map(option => {
+                            const selected = config.bg === option.value;
+                            return <button type="button" key={option.value} className={`theme-pick-item${selected ? ' selected' : ''}`} onClick={() => setModal({ ...modal, config: { ...config, bg: option.value } })} aria-label={option.label} aria-pressed={selected}>
+                              <img src={option.thumb} alt="" />
+                              <b>{option.label}</b>
+                              {selected && <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3,7 6,10 11,4" /></svg>}
+                            </button>;
+                          })}
                         </div>
                       </div>
                     )}
                     <BackgroundGroupGrid
-                      label={recValid ? '其他背景' : '背景方案'}
+                      label={recommendedBgs.length > 0 ? '其他背景' : '背景方案'}
                       items={otherBgs}
                       value={config.bg}
                       onChange={value => setModal({ ...modal, config: { ...config, bg: value } })}

@@ -1,6 +1,6 @@
 import type { CareItem, CareRecord } from '../types';
 
-export type WeatherHeroThemeId = 'hero-diary' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press';
+export type WeatherHeroThemeId = 'hero-diary' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -21,6 +21,7 @@ export interface ThemePreset {
   label: string;
   thumb: string;
   defaults: ThemeConfig;
+  recommendedBgs?: ReadonlyArray<string>;
 }
 
 export interface HeroBgOption {
@@ -37,6 +38,30 @@ export interface IconPackOption {
 }
 
 export const WEATHER_HERO_ASSETS = {
+  'hero-fruit-cake': {
+    thumb: '/hero/weather/fruit-cake/thumb.webp',
+    stickers: {
+      feeding: '/hero/weather/fruit-cake/stickers/sticker-feeding.webp',
+      bowel: '/hero/weather/fruit-cake/stickers/sticker-bowel.webp',
+      care: '/hero/weather/fruit-cake/stickers/sticker-care.webp',
+      note: '/hero/weather/fruit-cake/stickers/sticker-note.webp',
+    },
+    tasks: {
+      medicine: '/hero/weather/fruit-cake/icons/tasks/medicine.webp',
+      massage: '/hero/weather/fruit-cake/icons/tasks/massage.webp',
+      bath: '/hero/weather/fruit-cake/icons/tasks/bath.webp',
+      care: '/hero/weather/fruit-cake/icons/tasks/care.webp',
+      vaccine: '/hero/weather/fruit-cake/icons/tasks/vaccine.webp',
+      growth: '/hero/weather/fruit-cake/icons/tasks/growth.webp',
+    },
+    nav: {
+      today: '/hero/weather/fruit-cake/icons/nav/today.webp',
+      history: '/hero/weather/fruit-cake/icons/nav/records.webp',
+      chat: '/hero/weather/fruit-cake/icons/nav/chat.webp',
+      trends: '/hero/weather/fruit-cake/icons/nav/trends.webp',
+      archive: '/hero/weather/fruit-cake/icons/nav/archive.webp',
+    },
+  },
   'hero-diary': {
     thumb: '/hero/weather/nature/thumb.webp',
     stickers: {
@@ -263,6 +288,8 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-fruit-cake', label: '水果蛋糕', thumb: WEATHER_HERO_ASSETS['hero-fruit-cake'].thumb, group: 'weather' },
+  { value: 'hero-candy-workshop', label: '糖果工坊', thumb: '/hero/weather/fruit-cake/thumb-candy-workshop.webp', group: 'weather' },
   { value: 'hero-forest-press', label: '林间报社', thumb: WEATHER_HERO_ASSETS['hero-forest-press'].thumb, group: 'weather' },
   { value: 'hero-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb, group: 'weather' },
   { value: 'hero-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb, group: 'weather' },
@@ -286,7 +313,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（7）' },
+  { key: 'weather', label: '天气画境（9）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -307,6 +334,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/default/morning.webp' },
+  { value: 'hero-fruit-cake', label: '水果蛋糕', thumb: WEATHER_HERO_ASSETS['hero-fruit-cake'].thumb },
   { value: 'hero-forest-press', label: '林间报社', thumb: WEATHER_HERO_ASSETS['hero-forest-press'].thumb },
   { value: 'hero-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb },
   { value: 'hero-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb },
@@ -317,6 +345,9 @@ export const ICON_PACKS: IconPackOption[] = [
 ];
 
 export const THEMES: ReadonlyArray<ThemePreset> = [
+  { id: 'theme-fruit-cake', label: '水果蛋糕', thumb: WEATHER_HERO_ASSETS['hero-fruit-cake'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-fruit-cake', iconPack: 'hero-fruit-cake', weatherEffects: true },
+    recommendedBgs: ['hero-fruit-cake', 'hero-candy-workshop'] },
   { id: 'theme-forest-press', label: '林间报社', thumb: WEATHER_HERO_ASSETS['hero-forest-press'].thumb,
     defaults: { layout: 'diary', bg: 'hero-forest-press', iconPack: 'hero-forest-press', weatherEffects: true } },
   { id: 'theme-ocean', label: '海底世界', thumb: WEATHER_HERO_ASSETS['hero-ocean'].thumb,
@@ -347,6 +378,7 @@ export function resolveThemeConfig(themeId: string, overrides?: Partial<ThemeCon
 }
 
 export function getVisualThemeForPreset(themeId: string): string | null {
+  if (themeId === 'theme-fruit-cake') return 'fruit-cake';
   if (themeId === 'theme-travel') return 'travel';
   if (themeId === 'theme-orbit') return 'orbit';
   if (themeId === 'theme-shop') return 'shop';
@@ -358,6 +390,7 @@ export function getVisualThemeForPreset(themeId: string): string | null {
 
 // 旧版 heroBg → 新版 themeId 迁移映射
 const LEGACY_BG_TO_THEME: Record<string, string> = {
+  'hero-fruit-cake': 'theme-fruit-cake',
   'hero-diary': 'theme-diary',
   'hero-travel': 'theme-travel',
   'hero-orbit': 'theme-orbit',

@@ -1,0 +1,98 @@
+/* 水果蛋糕：暖色果味蛋糕房。组件语义继续由 theme-system.css 统一派生。 */
+html[data-visual-theme="fruit-cake"][data-theme="light"] {
+  --theme-page: #f8eddc;
+  --theme-card: #fff8ec;
+  --theme-brand: #b95060;
+  --theme-ink: #493330;
+  --theme-muted: #826a65;
+  --theme-complement: #628568;
+}
+
+html[data-visual-theme="fruit-cake"][data-theme="dark"] {
+  --theme-page: #21191b;
+  --theme-card: #302326;
+  --theme-brand: #e1848f;
+  --theme-ink: #fff1df;
+  --theme-muted: #c4a7a3;
+  --theme-complement: #91b58b;
+}
+
+html[data-visual-theme="fruit-cake"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 7% 4%, rgba(255, 253, 245, .96) 0 8%, transparent 31%),
+    radial-gradient(circle at 94% 88%, rgba(185, 80, 96, .07), transparent 28%),
+    linear-gradient(155deg, #fff8e9 0%, #f8eddc 56%, #ead9c4 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="fruit-cake"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 91% 7%, rgba(225, 132, 143, .08), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(145, 181, 139, .045), transparent 27%),
+    linear-gradient(180deg, #2a1f22 0%, #21191b 54%, #171113 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="fruit-cake"] .app::before,
+html[data-visual-theme="fruit-cake"] .app::after { background: rgba(185, 80, 96, .065); }
+
+/* 天气只作用于橱窗与环境层，避免把奶油和水果染成冷灰。 */
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop).weather-cloudy::before { background: linear-gradient(108deg, transparent 38%, rgba(241, 232, 222, .12) 64%, rgba(209, 201, 196, .17)); }
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop).weather-overcast::before { background: rgba(69, 56, 59, .16); backdrop-filter: saturate(.84) brightness(.98); -webkit-backdrop-filter: saturate(.84) brightness(.98); }
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop).weather-rain::before { background: linear-gradient(90deg, transparent 43%, rgba(58, 67, 76, .13)); }
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop).weather-fog::before { background: linear-gradient(90deg, transparent 29%, rgba(245, 237, 226, .12) 58%, rgba(230, 226, 218, .23)); backdrop-filter: blur(1px) saturate(.9); -webkit-backdrop-filter: blur(1px) saturate(.9); }
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop).weather-snow .diary-snow { opacity: .27; animation-duration: 10s; }
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop).weather-thunder::before { background: linear-gradient(90deg, transparent 37%, rgba(44, 47, 61, .2) 68%, rgba(38, 40, 55, .27)); }
+
+/* 四时段轻量动态：果酱蒸汽、玻璃高光、茶气与烛光。 */
+.fruit-cake-motion { display: none; }
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop) .fruit-cake-motion { display: block; position: absolute; z-index: 1; inset: 0; overflow: hidden; }
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop) .fruit-cake-motion i { position: absolute; display: block; pointer-events: none; }
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop) .fruit-cake-motion-morning .fruit-cake-motion-primary {
+  right: 18%; bottom: 18%; width: 38px; height: 62px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 244, 218, .2), transparent 70%);
+  filter: blur(2px); animation: fruit-cake-steam 7.5s ease-in-out infinite;
+}
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop) .fruit-cake-motion-morning .fruit-cake-motion-secondary {
+  right: 7%; top: 3%; width: 40%; height: 86%;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 231, 169, .12) 51%, transparent 60%);
+  animation: fruit-cake-morning-light 9s ease-in-out infinite;
+}
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop) .fruit-cake-motion-daytime .fruit-cake-motion-primary {
+  right: 12%; top: 7%; width: 43%; height: 75%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 249, 226, .13), transparent 68%);
+  animation: fruit-cake-display-sheen 7s ease-in-out infinite alternate;
+}
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop) .fruit-cake-motion-evening .fruit-cake-motion-primary {
+  right: 5%; top: 4%; width: 48%; height: 88%; border-radius: 46%;
+  background: radial-gradient(ellipse, rgba(255, 174, 85, .18), transparent 68%);
+  mix-blend-mode: screen; animation: fruit-cake-sunset 6.8s ease-in-out infinite alternate;
+}
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop) .fruit-cake-motion-evening .fruit-cake-motion-secondary {
+  right: 37%; bottom: 18%; width: 42px; height: 25px; border-radius: 50%;
+  background: rgba(255, 240, 213, .08); filter: blur(2px);
+  animation: fruit-cake-tea-steam 7s ease-in-out infinite;
+}
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop) .fruit-cake-motion-night .fruit-cake-motion-primary {
+  right: 21%; top: 16%; width: 28%; height: 54%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 184, 78, .23), transparent 67%);
+  mix-blend-mode: screen; animation: fruit-cake-candle 5.8s ease-in-out infinite alternate;
+}
+.baby-hero:is(.hero-fruit-cake, .hero-candy-workshop) .fruit-cake-motion-night .fruit-cake-motion-secondary {
+  right: 28%; top: 21%; width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 225, 138, .78);
+  box-shadow: 35px 4px 0 rgba(255, 225, 138, .66), 68px -3px 0 rgba(255, 205, 108, .58);
+  animation: fruit-cake-flame-points 4.8s ease-in-out infinite alternate;
+}
+
+@keyframes fruit-cake-steam { 0%, 100% { opacity: .25; transform: translateY(4px) scale(.92); } 50% { opacity: .7; transform: translateY(-4px) scale(1.06); } }
+@keyframes fruit-cake-morning-light { 0%, 18% { opacity: 0; transform: translateX(-18%); } 50% { opacity: 1; } 82%, 100% { opacity: 0; transform: translateX(26%); } }
+@keyframes fruit-cake-display-sheen { from { opacity: .42; transform: translateX(-3px) scale(.98); } to { opacity: .78; transform: translateX(4px) scale(1.03); } }
+@keyframes fruit-cake-sunset { from { opacity: .42; transform: scale(.97); } to { opacity: .84; transform: scale(1.04); } }
+@keyframes fruit-cake-tea-steam { 0%, 100% { opacity: .26; transform: translateY(3px); } 50% { opacity: .68; transform: translateY(-3px); } }
+@keyframes fruit-cake-candle { from { opacity: .52; transform: scale(.97); } to { opacity: .9; transform: scale(1.04); } }
+@keyframes fruit-cake-flame-points { from { opacity: .46; } to { opacity: .95; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="fruit-cake"] .baby-hero:is(.hero-fruit-cake, .hero-candy-workshop)::after,
+  html[data-visual-theme="fruit-cake"] .fruit-cake-motion i { animation: none; }
+}
