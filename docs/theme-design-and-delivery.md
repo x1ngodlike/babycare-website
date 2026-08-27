@@ -33,7 +33,8 @@
 - 图标颜色应能区分功能，但材质、视角、描边、光源和阴影必须成套。
 - 浅色与深色模式只改变颜色、阴影和表面层级，不改变布局。
 - 业务状态色和核心“记录”橙保持原语义。
-- 新主题必须同时定义 `--token-brand` 和 `--token-chart-complement`，浅深各一组；两者的 hue 差需 ≥ 60°。`--brand` 绑定图表中的奶粉 + 白天，`--chart-complement` 绑定母乳 + 夜间；`--orange` 不参与图表配色，仅用于疫苗状态、日历今日、报告徽章、浮动按钮等非图表语义。
+- 新主题的浅深模式各只定义 6 个基准色：`--theme-page`、`--theme-card`、`--theme-brand`、`--theme-ink`、`--theme-muted`、`--theme-complement`。组件语义色由 `theme-system.css` 统一派生，主题文件不得自行复制组件 token。
+- `--theme-brand` 与 `--theme-complement` 的 hue 差需 ≥ 60°。前者绑定图表中的奶粉 + 白天，后者绑定母乳 + 夜间；`--orange` 不参与图表配色，仅用于疫苗状态、日历今日、报告徽章、浮动按钮等非图表语义。
 - 首页「今日待办」标题文字色与整个待办区域背景色全主题统一，新主题不得染色。
 - 动态必须支持 `prefers-reduced-motion`，关闭动态后不能丢失信息。
 
@@ -131,15 +132,10 @@
 |---|---|
 | 页面背景 | {#HEX} |
 | 卡片背景 | {#HEX} |
-| 次级背景 | {#HEX} |
+| 品牌主色 | {#HEX} |
 | 主文字 | {#HEX} |
 | 次文字 | {#HEX} |
-| 品牌主色 | {#HEX} |
 | 图表对比色（chart-complement） | {#HEX} |
-| 品牌深色 | {#HEX} |
-| 辅助色 A | {#HEX} |
-| 辅助色 B | {#HEX} |
-| 少量对比色 | {#HEX} |
 
 ### 深色模式
 
@@ -147,14 +143,12 @@
 |---|---|
 | 页面背景 | {#HEX} |
 | 卡片背景 | {#HEX} |
-| 次级背景 | {#HEX} |
+| 品牌主色 | {#HEX} |
 | 主文字 | {#HEX} |
 | 次文字 | {#HEX} |
-| 品牌主色 | {#HEX} |
 | 图表对比色（chart-complement） | {#HEX} |
-| 品牌亮色 | {#HEX} |
-| 辅助色 A | {#HEX} |
-| 辅助色 B | {#HEX} |
+
+弱背景、控件背景、边框、悬停、选中、导航、时间线和记录容器等颜色由共享主题层派生，不在完整方案中继续增加独立色值。记录橙、业务状态色和「今日待办」保护色始终使用全局定义。
 
 ## 四张 Hero
 
@@ -412,7 +406,8 @@ Constraints: genuinely transparent background; RGBA output with real alpha; no c
    - 添加 diary 和 classic 兼容的四时段背景路径。
    - 添加 Hero 左侧渐变、状态条和英文印章。
 5. `src/styles/theme-{slug}.css`
-   - 定义浅色、深色 token、页面表面和交互状态；必须同时给出 `--token-brand` 和 `--token-chart-complement`。
+   - 浅色、深色各定义且只定义 6 个 `--theme-*` 基准色。
+   - 页面表面、交互状态、导航、时间线与卡片映射统一由 `styles/theme-system.css` 提供，不在主题文件复制。
    - 按需定义天气语义适配和时段动态。
    - 遵守「今日待办」保护边界。
 6. `src/DiaryHero.tsx`

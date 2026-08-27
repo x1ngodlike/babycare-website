@@ -1,0 +1,188 @@
+/*
+ * 完整主题共享层。
+ * 每个主题、每种明暗模式只提供六个基准色：page / card / brand / ink / muted / complement。
+ * 业务组件只消费现有语义 token；记录橙、状态色与「今日待办」保护色继续继承全局定义。
+ */
+html[data-visual-theme][data-theme] {
+  --token-ink: var(--theme-ink);
+  --token-muted: var(--theme-muted);
+  --token-text-secondary: color-mix(in srgb, var(--theme-ink) 42%, var(--theme-muted));
+  --token-text-tertiary: color-mix(in srgb, var(--theme-muted) 78%, var(--theme-page));
+
+  --token-brand: var(--theme-brand);
+  --token-chart-complement: var(--theme-complement);
+  --token-brand-deep: color-mix(in srgb, var(--theme-brand) 58%, var(--theme-ink));
+  --token-brand-soft: color-mix(in srgb, var(--theme-brand) 24%, var(--theme-card));
+  --token-brand-faint: color-mix(in srgb, var(--theme-brand) 12%, var(--theme-card));
+
+  --token-line: color-mix(in srgb, var(--theme-muted) 24%, var(--theme-card));
+  --token-line-strong: color-mix(in srgb, var(--theme-muted) 42%, var(--theme-card));
+  --token-line-brand: color-mix(in srgb, var(--theme-brand) 35%, var(--theme-card));
+  --token-focus: var(--theme-brand);
+  --token-focus-ring: var(--theme-brand);
+  --token-chevron: color-mix(in srgb, var(--theme-muted) 82%, var(--theme-card));
+
+  --token-surface-page: var(--theme-page);
+  --token-surface-card: var(--theme-card);
+  --token-surface-subtle: color-mix(in srgb, var(--theme-page) 78%, var(--theme-muted));
+  --token-surface-muted: color-mix(in srgb, var(--theme-page) 62%, var(--theme-muted));
+  --token-surface-control: var(--theme-card);
+  --token-surface-container: var(--theme-card);
+  --token-surface-container-border: color-mix(in srgb, var(--theme-muted) 24%, var(--theme-card));
+  --token-surface-hover: color-mix(in srgb, var(--theme-brand) 9%, var(--theme-card));
+  --token-surface-chip: color-mix(in srgb, var(--theme-brand) 10%, var(--theme-card));
+  --token-surface-interactive-hover: color-mix(in srgb, var(--theme-brand) 10%, var(--theme-card));
+  --token-surface-interactive-active: color-mix(in srgb, var(--theme-brand) 18%, var(--theme-card));
+  --token-surface-interactive-disabled: color-mix(in srgb, var(--theme-muted) 24%, var(--theme-card));
+
+  --token-status-brand-bg: color-mix(in srgb, var(--theme-brand) 24%, var(--theme-card));
+  --token-status-brand-text: color-mix(in srgb, var(--theme-brand) 58%, var(--theme-ink));
+  --token-control-bg: var(--theme-card);
+  --token-control-bg-hover: color-mix(in srgb, var(--theme-brand) 9%, var(--theme-card));
+  --token-control-bg-disabled: color-mix(in srgb, var(--theme-muted) 24%, var(--theme-card));
+  --token-control-border: color-mix(in srgb, var(--theme-muted) 42%, var(--theme-card));
+  --token-control-border-hover: var(--theme-brand);
+  --token-control-border-focus: var(--theme-brand);
+  --token-control-placeholder: color-mix(in srgb, var(--theme-muted) 82%, var(--theme-card));
+  --token-action-secondary-bg: var(--theme-card);
+  --token-action-secondary-bg-hover: color-mix(in srgb, var(--theme-brand) 9%, var(--theme-card));
+  --token-action-secondary-bg-active: color-mix(in srgb, var(--theme-brand) 18%, var(--theme-card));
+  --token-action-secondary-border: color-mix(in srgb, var(--theme-muted) 42%, var(--theme-card));
+  --token-action-secondary-text: color-mix(in srgb, var(--theme-brand) 58%, var(--theme-ink));
+  --token-overlay-backdrop: color-mix(in srgb, var(--theme-ink) 52%, transparent);
+
+  --token-hub-hero-bg: linear-gradient(135deg,
+    color-mix(in srgb, var(--theme-brand) 72%, var(--theme-ink)),
+    color-mix(in srgb, var(--theme-brand) 42%, var(--theme-ink)) 58%,
+    color-mix(in srgb, var(--theme-brand) 82%, var(--theme-muted)));
+  --token-hub-kicker: color-mix(in srgb, var(--theme-card) 88%, var(--theme-brand));
+  --token-hub-text: color-mix(in srgb, var(--theme-card) 90%, var(--theme-brand));
+  --token-hub-text-secondary: color-mix(in srgb, var(--theme-card) 82%, var(--theme-muted));
+  --token-chart-overview-bg: color-mix(in srgb, var(--theme-brand) 18%, var(--theme-card));
+  --token-chart-overview-border: color-mix(in srgb, var(--theme-brand) 38%, var(--theme-card));
+  --token-network-dot: var(--theme-complement);
+
+  --token-surface-timeline-dot: color-mix(in srgb, var(--theme-brand) 14%, var(--theme-card));
+  --token-record-copy-small: var(--theme-muted);
+  --token-metric-band-bg: color-mix(in srgb, var(--theme-brand) 5%, var(--theme-card));
+  --token-metric-band-divider: color-mix(in srgb, var(--theme-muted) 22%, var(--theme-card));
+  --token-metric-band-text: color-mix(in srgb, var(--theme-ink) 32%, var(--theme-muted));
+  --token-quick-grid-hover: color-mix(in srgb, var(--theme-brand) 10%, var(--theme-card));
+  --token-quick-grid-active: color-mix(in srgb, var(--theme-brand) 20%, var(--theme-card));
+  --token-quick-grid-text: color-mix(in srgb, var(--theme-brand) 58%, var(--theme-ink));
+  --token-quick-section-bg: color-mix(in srgb, var(--theme-brand) 4%, var(--theme-card));
+  --token-today-insights-border: color-mix(in srgb, var(--theme-muted) 22%, var(--theme-card));
+
+  --token-record-mark-bg: linear-gradient(135deg,
+    color-mix(in srgb, var(--theme-brand) 12%, var(--theme-card)),
+    color-mix(in srgb, var(--theme-brand) 20%, var(--theme-card)));
+  --token-record-mark-border: color-mix(in srgb, var(--theme-brand) 30%, var(--theme-card));
+  --token-record-mark-shadow: color-mix(in srgb, var(--theme-ink) 16%, transparent);
+  --token-overview-mark-bg: color-mix(in srgb, var(--theme-muted) 10%, var(--theme-card));
+  --token-overview-mark-border: color-mix(in srgb, var(--theme-muted) 30%, var(--theme-card));
+  --token-app-nav-bg: color-mix(in srgb, var(--theme-card) 94%, transparent);
+  --token-app-nav-border: color-mix(in srgb, var(--theme-muted) 22%, var(--theme-card));
+  --token-app-nav-hover: color-mix(in srgb, var(--theme-brand) 9%, var(--theme-card));
+  --token-app-nav-active: color-mix(in srgb, var(--theme-brand) 58%, var(--theme-ink));
+  --token-pill-bg: color-mix(in srgb, var(--theme-card) 94%, transparent);
+  --token-pill-border: color-mix(in srgb, var(--theme-muted) 24%, var(--theme-card));
+  --token-timeline-item-border: color-mix(in srgb, var(--theme-muted) 22%, var(--theme-card));
+  --token-choice-bg: color-mix(in srgb, var(--theme-brand) 4%, var(--theme-card));
+  --token-choice-selected-border: var(--theme-brand);
+  --token-choice-selected-bg: color-mix(in srgb, var(--theme-brand) 24%, var(--theme-card));
+  --token-choice-selected-text: color-mix(in srgb, var(--theme-brand) 58%, var(--theme-ink));
+  --token-identity-bg: color-mix(in srgb, var(--theme-muted) 10%, var(--theme-card));
+}
+
+/* 完整主题共享的组件映射，只在这里维护一次。 */
+html[data-visual-theme] #root { background: transparent; }
+
+html[data-visual-theme] .settings-card,
+html[data-visual-theme] .chart-card,
+html[data-visual-theme] .archive-profile,
+html[data-visual-theme] .growth-history,
+html[data-visual-theme] .settings-menu,
+html[data-visual-theme] .account-card,
+html[data-visual-theme] .vaccine-overview,
+html[data-visual-theme] .vaccine-next,
+html[data-visual-theme] .vaccine-record-section,
+html[data-visual-theme] .vaccine-archive-summary,
+html[data-visual-theme] .vaccine-schedule-group,
+html[data-visual-theme] .vaccine-calendar-card,
+html[data-visual-theme] .vaccine-month-agenda,
+html[data-visual-theme] .growth-assessment-card,
+html[data-visual-theme] .growth-curve-card {
+  border-color: var(--surface-container-border);
+  background-color: var(--surface-card);
+}
+
+html[data-visual-theme] .today-workbench,
+html[data-visual-theme] .today-insights {
+  border-color: var(--surface-container-border);
+  background: var(--surface-card);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--theme-ink) 7%, transparent),
+    0 5px 14px color-mix(in srgb, var(--theme-ink) 5%, transparent);
+}
+
+html[data-visual-theme] .metric-band { background: var(--token-metric-band-bg); }
+html[data-visual-theme] .metric-band > div { border-color: var(--token-metric-band-divider); }
+html[data-visual-theme] .metric-band span,
+html[data-visual-theme] .metric-band small { color: var(--token-metric-band-text); }
+html[data-visual-theme] .info-row-label { color: var(--brand-deep); }
+html[data-visual-theme] .quick-grid button:hover { background: var(--token-quick-grid-hover); }
+html[data-visual-theme] .quick-grid button:active { background: var(--token-quick-grid-active); }
+html[data-visual-theme] .quick-grid b { color: var(--token-quick-grid-text); }
+html[data-visual-theme] .record-copy small { color: var(--token-record-copy-small); }
+html[data-visual-theme] .today-workbench .quick-section { background: var(--token-quick-section-bg); }
+html[data-visual-theme] .user-pill,
+html[data-visual-theme] .network-pill {
+  color: var(--brand);
+  border-color: var(--token-pill-border);
+  background: var(--token-pill-bg);
+}
+html[data-visual-theme] .app-nav button.active,
+html[data-visual-theme] .app-nav button.active:hover,
+html[data-visual-theme] .app-nav button.active:active {
+  color: var(--token-app-nav-active);
+  background: transparent;
+  box-shadow: none;
+}
+html[data-visual-theme] .today-timeline .time-col i,
+html[data-visual-theme] .history-timeline .time-col i { background: var(--token-surface-timeline-dot); }
+html[data-visual-theme] .today-timeline .timeline-item,
+html[data-visual-theme] .history-timeline .timeline-item { border-bottom-color: var(--token-timeline-item-border); }
+html[data-visual-theme] .today-layout .today-timeline .record-mark,
+html[data-visual-theme] .history-timeline .record-mark {
+  border-color: var(--token-record-mark-border);
+  background: var(--token-record-mark-bg);
+  box-shadow: inset 0 2px 5px var(--token-record-mark-shadow);
+}
+html[data-visual-theme] .overview-mark {
+  border-color: var(--token-overview-mark-border);
+  background: var(--token-overview-mark-bg);
+}
+html[data-visual-theme] .care-choice-groups .care-choice-grid button.selected {
+  border-color: var(--token-choice-selected-border);
+  background: var(--token-choice-selected-bg);
+  color: var(--token-choice-selected-text);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+html[data-visual-theme] .meta-icon-btn.selected {
+  border-color: var(--brand-deep);
+  background: var(--brand-faint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-brand) 20%, transparent);
+}
+html[data-visual-theme] .baby-hero .hero-greeting-title,
+.baby-hero[data-visual-theme] .hero-greeting-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+html[data-visual-theme] .baby-hero .hero-greeting-title span,
+.baby-hero[data-visual-theme] .hero-greeting-title span { font-weight: 700; }
+html[data-visual-theme] .baby-hero .hero-status p { color: rgba(255, 250, 240, .94); }
+html[data-visual-theme][data-theme="dark"] .quick-grid button {
+  color: var(--ink);
+  background: var(--surface-subtle);
+  border-color: var(--line);
+}

@@ -1,4 +1,22 @@
-/* 云端旅志：暖灰调主题 —— 仅替换品牌色与背景色，成功/警告/危险等语义状态色保持原规则。 */
+/* 云端旅志：暖灰旅行手账。业务状态色与核心记录橙保持全局语义。 */
+html[data-visual-theme="travel"][data-theme="light"] {
+  --theme-page: #fbf8f5;
+  --theme-card: #fcfaf7;
+  --theme-brand: #96877a;
+  --theme-ink: #3a3734;
+  --theme-muted: #6f6a64;
+  --theme-complement: #4a87ad;
+}
+
+html[data-visual-theme="travel"][data-theme="dark"] {
+  --theme-page: #1a1816;
+  --theme-card: #23201d;
+  --theme-brand: #aa9b8c;
+  --theme-ink: #e6ddcf;
+  --theme-muted: #a49b90;
+  --theme-complement: #8ab4d4;
+}
+
 html[data-visual-theme="travel"][data-theme="light"] body {
   background:
     radial-gradient(circle at 8% 3%, rgba(255, 255, 255, .98) 0 9%, transparent 31%),
@@ -7,9 +25,12 @@ html[data-visual-theme="travel"][data-theme="light"] body {
   background-attachment: fixed;
 }
 
-html[data-visual-theme="travel"][data-theme="light"] #root,
-html[data-visual-theme="travel"][data-theme="dark"] #root {
-  background: transparent;
+html[data-visual-theme="travel"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 8% 4%, rgba(170, 155, 140, .05) 0 10%, transparent 32%),
+    radial-gradient(circle at 95% 92%, rgba(110, 90, 70, .06), transparent 25%),
+    linear-gradient(180deg, #221f1c 0%, var(--surface-page) 48%, #161412 100%);
+  background-attachment: fixed;
 }
 
 html[data-visual-theme="travel"][data-theme="light"] .app::before,
@@ -17,244 +38,7 @@ html[data-visual-theme="travel"][data-theme="light"] .app::after {
   background: rgba(160, 143, 126, .10);
 }
 
-html[data-visual-theme="travel"][data-theme="light"] .user-pill,
-html[data-visual-theme="travel"][data-theme="light"] .network-pill {
-  border-color: rgba(198, 185, 171, .9);
-  background: rgba(252, 250, 247, .94);
-  box-shadow: 0 4px 14px rgba(85, 70, 55, .08);
-}
-
-/* 卡片类组件统一覆盖 */
-html[data-visual-theme="travel"][data-theme="light"] .settings-card,
-html[data-visual-theme="travel"][data-theme="light"] .chart-card,
-html[data-visual-theme="travel"][data-theme="light"] .archive-profile,
-html[data-visual-theme="travel"][data-theme="light"] .growth-history,
-html[data-visual-theme="travel"][data-theme="light"] .settings-menu,
-html[data-visual-theme="travel"][data-theme="light"] .account-card,
-html[data-visual-theme="travel"][data-theme="light"] .vaccine-overview,
-html[data-visual-theme="travel"][data-theme="light"] .vaccine-next,
-html[data-visual-theme="travel"][data-theme="light"] .vaccine-record-section,
-html[data-visual-theme="travel"][data-theme="light"] .vaccine-archive-summary,
-html[data-visual-theme="travel"][data-theme="light"] .vaccine-schedule-group,
-html[data-visual-theme="travel"][data-theme="light"] .vaccine-calendar-card,
-html[data-visual-theme="travel"][data-theme="light"] .vaccine-month-agenda,
-html[data-visual-theme="travel"][data-theme="light"] .growth-assessment-card,
-html[data-visual-theme="travel"][data-theme="light"] .growth-curve-card {
-  border-color: var(--surface-container-border);
-  background-color: rgba(252, 250, 247, .97);
-}
-
-/* 工作台/洞察面板 */
-html[data-visual-theme="travel"][data-theme="light"] .today-workbench .quick-section {
-  background: var(--token-quick-section-bg);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .today-workbench {
-  border-color: var(--token-surface-container-border);
-  background: rgba(252, 250, 247, .97);
-  box-shadow: 0 1px 2px rgba(75, 62, 50, .05), 0 5px 14px rgba(75, 62, 50, .04);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .today-insights {
-  border-color: var(--line);
-  background: rgba(252, 250, 247, .97);
-  box-shadow: 0 1px 2px rgba(75, 62, 50, .05), 0 5px 14px rgba(75, 62, 50, .04);
-}
-
-/* 指标带 */
-html[data-visual-theme="travel"][data-theme="light"] .metric-band {
-  background: var(--token-metric-band-bg);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .metric-band > div {
-  border-color: var(--token-metric-band-divider);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .metric-band span,
-html[data-visual-theme="travel"][data-theme="light"] .metric-band small {
-  color: var(--token-metric-band-text);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .info-row-label {
-  color: var(--brand-deep);
-}
-
-/* 按钮/导航 hover 态 */
-html[data-visual-theme="travel"][data-theme="light"] .quick-grid button:hover,
-html[data-visual-theme="travel"][data-theme="light"] .app-nav button:hover {
-  background: var(--token-quick-grid-hover);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active,
-html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active:hover,
-html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active:active {
-  background: transparent;
-  box-shadow: none;
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .quick-grid button:active {
-  background: var(--token-quick-grid-active);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .quick-grid b {
-  color: var(--token-quick-grid-text);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .app-nav button.active {
-  color: var(--token-app-nav-active);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .record-copy small {
-  color: var(--token-record-copy-small);
-}
-
-/* 时间轴 */
-html[data-visual-theme="travel"][data-theme="light"] .today-timeline .time-col i {
-  background: var(--token-surface-timeline-dot);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .today-timeline .timeline-item,
-html[data-visual-theme="travel"][data-theme="light"] .history-timeline .timeline-item {
-  border-bottom-color: var(--token-timeline-item-border);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .history-timeline .time-col i {
-  background: var(--token-surface-timeline-dot);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .today-layout .today-timeline .record-mark,
-html[data-visual-theme="travel"][data-theme="light"] .history-timeline .record-mark {
-  border-color: var(--token-record-mark-border);
-  background: var(--token-record-mark-bg);
-  box-shadow: inset 0 2px 5px rgba(80, 65, 50, .13), inset 0 -1px 2px rgba(255, 255, 255, .76);
-}
-
-html[data-visual-theme="travel"][data-theme="light"] .overview-mark {
-  border-color: var(--token-overview-mark-border);
-  background: var(--token-overview-mark-bg);
-}
-
-/* 照护选项选中态 */
-html[data-visual-theme="travel"][data-theme="light"] .care-choice-groups .care-choice-grid button.selected {
-  border-color: var(--token-choice-selected-border);
-  background: var(--token-choice-selected-bg);
-  color: var(--brand-deep);
-  box-shadow: inset 0 0 0 1px var(--brand);
-}
-
-/* ===== Dark 模式 ===== */
-html[data-visual-theme="travel"][data-theme="dark"] body {
-  background:
-    radial-gradient(circle at 8% 4%, rgba(170, 155, 140, .05) 0 10%, transparent 32%),
-    radial-gradient(circle at 95% 92%, rgba(110, 90, 70, .06), transparent 25%),
-    linear-gradient(180deg, #221f1c 0%, var(--surface-page) 48%, #161412 100%);
-}
-
 html[data-visual-theme="travel"][data-theme="dark"] .app::before,
 html[data-visual-theme="travel"][data-theme="dark"] .app::after {
   background: rgba(170, 155, 140, .08);
-}
-
-html[data-visual-theme="travel"][data-theme="dark"] .network-pill,
-html[data-visual-theme="travel"][data-theme="dark"] .user-pill {
-  background: var(--token-pill-bg);
-  border-color: var(--token-pill-border);
-  color: var(--brand);
-}
-
-html[data-visual-theme="travel"][data-theme="dark"] .settings-card,
-html[data-visual-theme="travel"][data-theme="dark"] .chart-card,
-html[data-visual-theme="travel"][data-theme="dark"] .rhythm-list,
-html[data-visual-theme="travel"][data-theme="dark"] .settings-menu,
-html[data-visual-theme="travel"][data-theme="dark"] .account-card,
-html[data-visual-theme="travel"][data-theme="dark"] .archive-profile,
-html[data-visual-theme="travel"][data-theme="dark"] .growth-history,
-html[data-visual-theme="travel"][data-theme="dark"] .growth-assessment-card,
-html[data-visual-theme="travel"][data-theme="dark"] .growth-curve-card,
-html[data-visual-theme="travel"][data-theme="dark"] .vaccine-overview,
-html[data-visual-theme="travel"][data-theme="dark"] .vaccine-next,
-html[data-visual-theme="travel"][data-theme="dark"] .vaccine-record-section,
-html[data-visual-theme="travel"][data-theme="dark"] .vaccine-archive-summary,
-html[data-visual-theme="travel"][data-theme="dark"] .vaccine-schedule-group,
-html[data-visual-theme="travel"][data-theme="dark"] .vaccine-calendar-card,
-html[data-visual-theme="travel"][data-theme="dark"] .vaccine-month-agenda {
-  border-color: var(--surface-container-border);
-  background-color: var(--surface-card);
-}
-
-html[data-visual-theme="travel"][data-theme="dark"] .today-layout .today-timeline .record-mark,
-html[data-visual-theme="travel"][data-theme="dark"] .history-timeline .record-mark {
-  background: var(--token-record-mark-bg);
-  border-color: var(--token-record-mark-border);
-  box-shadow: inset 0 2px 5px rgba(10, 8, 6, .30), inset 0 1px 0 rgba(255, 255, 255, .07), 0 2px 6px rgba(0, 0, 0, .22);
-}
-
-html[data-visual-theme="travel"][data-theme="dark"] .overview-mark {
-  background: var(--token-overview-mark-bg);
-  border-color: var(--token-overview-mark-border);
-}
-
-/* 快捷区文字颜色：覆盖 dark.css 中默认的绿色 #c5d3be */
-html[data-visual-theme="travel"][data-theme="dark"] .quick-grid b {
-  color: var(--token-quick-grid-text);
-}
-
-/* 记录列表副文字：覆盖 dark.css 中默认的绿色 #8fae7b */
-html[data-visual-theme="travel"][data-theme="dark"] .history-timeline .record-copy small,
-html[data-visual-theme="travel"][data-theme="dark"] .today-timeline .record-copy small {
-  color: var(--token-record-copy-small);
-}
-
-/* 时间轴刻度圆点：覆盖 dark.css 中默认的绿色 line 值 */
-html[data-visual-theme="travel"][data-theme="dark"] .history-timeline .time-col i,
-html[data-visual-theme="travel"][data-theme="dark"] .today-timeline .time-col i,
-html[data-visual-theme="travel"][data-theme="dark"] .today-layout .today-timeline .time-col i {
-  background: var(--token-surface-timeline-dot);
-}
-
-/* 选中态图标按钮：覆盖 dark.css 中默认的绿色阴影 */
-html[data-visual-theme="travel"][data-theme="dark"] .meta-icon-btn.selected {
-  background: var(--brand-faint);
-  border: 2px solid var(--brand-deep);
-  box-shadow: 0 0 0 3px rgba(170, 155, 140, .20);
-}
-
-/* 工作台快捷区背景：覆盖 dark.css 中默认的绿色调 */
-html[data-visual-theme="travel"][data-theme="dark"] .today-workbench .quick-section {
-  background: var(--surface-subtle);
-}
-
-html[data-visual-theme="travel"][data-theme="dark"] .quick-grid button:hover {
-  background: var(--token-quick-grid-hover);
-}
-
-html[data-visual-theme="travel"][data-theme="dark"] .quick-grid button:active {
-  background: var(--token-quick-grid-active);
-}
-
-html[data-visual-theme="travel"][data-theme="dark"] .quick-grid button {
-  background: var(--surface-subtle);
-  color: var(--ink);
-  border-color: var(--line);
-}
-
-/* Hero 问候语字号与字重 */
-html[data-visual-theme="travel"][data-theme="light"] .today-layout .hero-greeting-title,
-html[data-visual-theme="travel"][data-theme="dark"] .today-layout .hero-greeting-title,
-html[data-visual-theme="travel"][data-theme="light"] .hero-preview-list .baby-hero.hero-diary .hero-greeting-title,
-html[data-visual-theme="travel"][data-theme="dark"] .hero-preview-list .baby-hero.hero-diary .hero-greeting-title,
-  .baby-hero.hero-diary[data-visual-theme="travel"] .hero-greeting-title {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-html[data-visual-theme="travel"] .hero-greeting-title span,
-  .baby-hero[data-visual-theme="travel"] .hero-greeting-title span {
-  font-weight: 700;
-}
-
-/* Hero 状态栏文字：覆盖 dark.css 中默认的绿色 #c5d3be */
-html[data-visual-theme="travel"][data-theme="dark"] .hero-status p {
-  color: var(--token-hub-text);
 }

@@ -1,164 +1,21 @@
 /* 海底世界：珊瑚橙、海藻绿与珍珠色构成的温暖童话海底主题。 */
 html[data-visual-theme="ocean"][data-theme="light"] {
-  --token-ink: #30423f;
-  --token-muted: #6d7973;
-  --token-text-secondary: #6d7973;
-  --token-text-tertiary: #82908a;
-  --token-brand: #d8745f;
-  --token-chart-complement: #3e6aa0;
-  --token-brand-deep: #a94f43;
-  --token-brand-soft: #f2d8cf;
-  --token-brand-faint: #faebe5;
-  --token-line: #dfd9ca;
-  --token-line-strong: #c9c1ae;
-  --token-line-brand: #e1b9ae;
-  --token-focus: #b95f50;
-  --token-surface-page: #f7f2e7;
-  --token-surface-card: #fffdf7;
-  --token-surface-subtle: #efe7d7;
-  --token-surface-muted: #e6ddcb;
-  --token-surface-control: #fffdf7;
-  --token-surface-container: #fffdf7;
-  --token-surface-container-border: #dfd9ca;
-  --token-chevron: #82908a;
-  --token-status-brand-bg: #f2d8cf;
-  --token-status-brand-text: #a94f43;
-  --token-control-bg: #fffdf7;
-  --token-control-bg-hover: #f2eadc;
-  --token-control-bg-disabled: #e6ddcb;
-  --token-control-border: #c9c1ae;
-  --token-control-border-hover: #d8745f;
-  --token-control-border-focus: #b95f50;
-  --token-control-placeholder: #82908a;
-  --token-action-secondary-bg: #fffdf7;
-  --token-action-secondary-bg-hover: #f2eadc;
-  --token-action-secondary-bg-active: #e6ddcb;
-  --token-action-secondary-border: #c9c1ae;
-  --token-action-secondary-text: #a94f43;
-  --token-surface-interactive-hover: #f2eadc;
-  --token-surface-interactive-active: #e6ddcb;
-  --token-surface-interactive-disabled: #e6ddcb;
-  --token-overlay-backdrop: rgba(26, 55, 51, .5);
-  --token-network-dot: #4f8a78;
-  --token-surface-timeline-dot: #d7dfd6;
-  --token-record-copy-small: #63766f;
-  --token-metric-band-bg: #fffcf5;
-  --token-metric-band-divider: #e5ddce;
-  --token-metric-band-text: #66746e;
-  --token-quick-grid-hover: #e9f0e8;
-  --token-quick-grid-active: #dbe8df;
-  --token-quick-grid-text: #3f7063;
-  --token-quick-section-bg: #fbf8ef;
-  --token-today-plan-border: #eee1d4;
-  --token-today-insights-border: #e3ded2;
-  --token-today-plan-icon-bg: #fff9ef;
-  --token-today-plan-icon-border: #e8e4d9;
-  --token-today-plan-icon-shadow: rgba(66, 82, 73, .1);
-  --token-today-plan-icon-bg-hover: #fff3e2;
-  --token-today-plan-icon-border-hover: #e8d5ba;
-  --token-record-mark-bg: #e7f0eb;
-  --token-record-mark-border: #c7dbd1;
-  --token-record-mark-shadow: rgba(52, 91, 78, .13);
-  --token-overview-mark-bg: #f4ece2;
-  --token-overview-mark-border: #d4c9bb;
-  --token-app-nav-bg: rgba(255, 253, 247, .96);
-  --token-app-nav-border: rgba(218, 216, 202, .94);
-  --token-app-nav-hover: #edf2e9;
-  --token-app-nav-active: #a94f43;
-  --token-pill-bg: rgba(255, 253, 247, .96);
-  --token-pill-border: rgba(218, 216, 202, .94);
-  --token-timeline-item-border: #dbe2da;
-  --token-choice-bg: #fbf7ed;
-  --token-choice-selected-border: #d8745f;
-  --token-choice-selected-bg: #f2d8cf;
-  --token-choice-selected-text: #a94f43;
-  --token-identity-bg: #f5ecdf;
-  --token-focus-ring: #b95f50;
-  --token-surface-hover: #f2eadc;
-  --token-surface-chip: #edf2e9;
-  --token-text-plan: #68472f;
+  --theme-page: #f7f2e7;
+  --theme-card: #fffdf7;
+  --theme-brand: #d8745f;
+  --theme-ink: #30423f;
+  --theme-muted: #6d7973;
+  --theme-complement: #3e6aa0;
 }
 
 html[data-visual-theme="ocean"][data-theme="dark"] {
-  --token-ink: #f5eddc;
-  --token-muted: #b8c4bc;
-  --token-text-secondary: #c5d0c8;
-  --token-text-tertiary: #98a9a0;
-  --token-brand: #ed927c;
-  --token-chart-complement: #7ea3cc;
-  --token-brand-deep: #ffb09b;
-  --token-brand-soft: #533c37;
-  --token-brand-faint: #362d2a;
-  --token-line: #3d514b;
-  --token-line-strong: #567068;
-  --token-line-brand: #714b43;
-  --token-focus: #ed927c;
-  --token-surface-page: #142421;
-  --token-surface-card: #1d302c;
-  --token-surface-subtle: #27403a;
-  --token-surface-muted: #314c45;
-  --token-surface-control: #27403a;
-  --token-surface-container: #1d302c;
-  --token-surface-container-border: #3d514b;
-  --token-chevron: #98a9a0;
-  --token-status-brand-bg: #533c37;
-  --token-status-brand-text: #ffb09b;
-  --token-control-bg: #27403a;
-  --token-control-bg-hover: #314c45;
-  --token-control-bg-disabled: #334b45;
-  --token-control-border: #567068;
-  --token-control-border-hover: #ed927c;
-  --token-control-border-focus: #ed927c;
-  --token-control-placeholder: #98a9a0;
-  --token-action-secondary-bg: #1d302c;
-  --token-action-secondary-bg-hover: #27403a;
-  --token-action-secondary-bg-active: #314c45;
-  --token-action-secondary-border: #567068;
-  --token-action-secondary-text: #f5eddc;
-  --token-surface-interactive-hover: #27403a;
-  --token-surface-interactive-active: #314c45;
-  --token-surface-interactive-disabled: #314c45;
-  --token-overlay-backdrop: rgba(6, 17, 15, .74);
-  --token-network-dot: #77b7a1;
-  --token-surface-timeline-dot: #40584f;
-  --token-record-copy-small: #b8c4bc;
-  --token-metric-band-bg: #203630;
-  --token-metric-band-divider: #3d514b;
-  --token-metric-band-text: #b8c4bc;
-  --token-quick-grid-hover: #314c45;
-  --token-quick-grid-active: #3b584f;
-  --token-quick-grid-text: #9dd2bf;
-  --token-quick-section-bg: #27403a;
-  --token-today-plan-border: #55483e;
-  --token-today-insights-border: #3d514b;
-  --token-today-plan-icon-bg: #2a302b;
-  --token-today-plan-icon-border: #655a4c;
-  --token-today-plan-icon-shadow: rgba(0, 0, 0, .28);
-  --token-today-plan-icon-bg-hover: #3b4038;
-  --token-today-plan-icon-border-hover: #86735e;
-  --token-record-mark-bg: linear-gradient(135deg, #27403a, #355249);
-  --token-record-mark-border: #57756a;
-  --token-record-mark-shadow: rgba(0, 0, 0, .3);
-  --token-overview-mark-bg: #2b403a;
-  --token-overview-mark-border: #587369;
-  --token-app-nav-bg: rgba(29, 48, 44, .96);
-  --token-app-nav-border: #3d514b;
-  --token-app-nav-hover: #27403a;
-  --token-app-nav-active: #ffb09b;
-  --token-pill-bg: rgba(29, 48, 44, .95);
-  --token-pill-border: rgba(86, 112, 104, .92);
-  --token-timeline-item-border: #3d514b;
-  --token-choice-bg: #27403a;
-  --token-choice-selected-border: #ed927c;
-  --token-choice-selected-bg: #533c37;
-  --token-choice-selected-text: #ffb09b;
-  --token-identity-bg: #27403a;
-  --token-focus-ring: #ed927c;
-  --token-surface-hover: #27403a;
-  --token-surface-chip: #27403a;
-  --token-text-plan: #d9a46a;
+  --theme-page: #142421;
+  --theme-card: #1d302c;
+  --theme-brand: #ed927c;
+  --theme-ink: #f5eddc;
+  --theme-muted: #b8c4bc;
+  --theme-complement: #7ea3cc;
 }
-
 html[data-visual-theme="ocean"][data-theme="light"] body {
   background:
     radial-gradient(circle at 8% 3%, rgba(255, 255, 250, .98) 0 8%, transparent 31%),
@@ -175,79 +32,9 @@ html[data-visual-theme="ocean"][data-theme="dark"] body {
   background-attachment: fixed;
 }
 
-html[data-visual-theme="ocean"] #root { background: transparent; }
 html[data-visual-theme="ocean"] .app::before,
 html[data-visual-theme="ocean"] .app::after { background: rgba(98, 169, 164, .075); }
 
-html[data-visual-theme="ocean"] .settings-card,
-html[data-visual-theme="ocean"] .chart-card,
-html[data-visual-theme="ocean"] .archive-profile,
-html[data-visual-theme="ocean"] .growth-history,
-html[data-visual-theme="ocean"] .settings-menu,
-html[data-visual-theme="ocean"] .account-card,
-html[data-visual-theme="ocean"] .vaccine-overview,
-html[data-visual-theme="ocean"] .vaccine-next,
-html[data-visual-theme="ocean"] .vaccine-record-section,
-html[data-visual-theme="ocean"] .vaccine-archive-summary,
-html[data-visual-theme="ocean"] .vaccine-schedule-group,
-html[data-visual-theme="ocean"] .vaccine-calendar-card,
-html[data-visual-theme="ocean"] .vaccine-month-agenda,
-html[data-visual-theme="ocean"] .growth-assessment-card,
-html[data-visual-theme="ocean"] .growth-curve-card {
-  border-color: var(--surface-container-border);
-  background-color: var(--surface-card);
-}
-
-html[data-visual-theme="ocean"] .today-workbench,
-html[data-visual-theme="ocean"] .today-insights {
-  border-color: var(--token-surface-container-border);
-  background: var(--surface-card);
-  box-shadow: 0 1px 2px rgba(39, 73, 63, .05), 0 5px 14px rgba(39, 73, 63, .04);
-}
-
-html[data-visual-theme="ocean"] .metric-band { background: var(--token-metric-band-bg); }
-html[data-visual-theme="ocean"] .metric-band > div { border-color: var(--token-metric-band-divider); }
-html[data-visual-theme="ocean"] .metric-band span,
-html[data-visual-theme="ocean"] .metric-band small { color: var(--token-metric-band-text); }
-html[data-visual-theme="ocean"] .info-row-label { color: var(--brand-deep); }
-html[data-visual-theme="ocean"] .quick-grid button:hover { background: var(--token-quick-grid-hover); }
-html[data-visual-theme="ocean"] .quick-grid button:active { background: var(--token-quick-grid-active); }
-html[data-visual-theme="ocean"] .quick-grid b { color: var(--token-quick-grid-text); }
-html[data-visual-theme="ocean"] .app-nav button.active,
-html[data-visual-theme="ocean"] .app-nav button.active:hover,
-html[data-visual-theme="ocean"] .app-nav button.active:active { background: transparent; box-shadow: none; color: var(--token-app-nav-active); }
-html[data-visual-theme="ocean"] .today-timeline .time-col i,
-html[data-visual-theme="ocean"] .history-timeline .time-col i { background: var(--token-surface-timeline-dot); }
-html[data-visual-theme="ocean"] .today-timeline .timeline-item,
-html[data-visual-theme="ocean"] .history-timeline .timeline-item { border-bottom-color: var(--token-timeline-item-border); }
-html[data-visual-theme="ocean"] .today-layout .today-timeline .record-mark,
-html[data-visual-theme="ocean"] .history-timeline .record-mark {
-  border-color: var(--token-record-mark-border);
-  background: var(--token-record-mark-bg);
-  box-shadow: inset 0 2px 5px var(--token-record-mark-shadow);
-}
-html[data-visual-theme="ocean"] .overview-mark { border-color: var(--token-overview-mark-border); background: var(--token-overview-mark-bg); }
-html[data-visual-theme="ocean"] .care-choice-groups .care-choice-grid button.selected {
-  border-color: var(--token-choice-selected-border);
-  background: var(--token-choice-selected-bg);
-  color: var(--token-choice-selected-text);
-  box-shadow: inset 0 0 0 1px var(--brand);
-}
-
-html[data-visual-theme="ocean"] .baby-hero.hero-ocean .hero-greeting-title,
-  .baby-hero.hero-ocean[data-visual-theme="ocean"] .hero-greeting-title {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-html[data-visual-theme="ocean"] .baby-hero.hero-ocean .hero-greeting-title span,
-  .baby-hero.hero-ocean[data-visual-theme="ocean"] .hero-greeting-title span { font-weight: 700; }
-html[data-visual-theme="ocean"] .baby-hero.hero-ocean .hero-status p { color: rgba(255, 250, 238, .94); }
-html[data-visual-theme="ocean"][data-theme="dark"] .quick-grid button {
-  border-color: var(--line);
-  background: var(--surface-subtle);
-  color: var(--ink);
-}
 
 /* 海底天气：保留共享判断，替换水下不合理的直落雨线。 */
 .baby-hero.hero-ocean.weather-rain .diary-rain,
