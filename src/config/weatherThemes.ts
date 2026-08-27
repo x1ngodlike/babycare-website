@@ -190,7 +190,7 @@ export const WEATHER_HERO_ASSETS = {
       note: '/hero/weather/forest-press/stickers/sticker-note.webp',
     },
     tasks: {
-      medicine: '/hero/weather/forest-press/icons/tasks/medicine.webp',
+      medicine: '/hero/weather/forest-press/icons/tasks/medicine.webp?v=b12bf0b6',
       massage: '/hero/weather/forest-press/icons/tasks/massage.webp',
       bath: '/hero/weather/forest-press/icons/tasks/bath.webp',
       care: '/hero/weather/forest-press/icons/tasks/care.webp',

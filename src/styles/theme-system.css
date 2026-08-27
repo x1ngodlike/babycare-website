@@ -183,6 +183,6 @@ html[data-visual-theme] .baby-hero .hero-greeting-title span,
 html[data-visual-theme] .baby-hero .hero-status p { color: rgba(255, 250, 240, .94); }
 html[data-visual-theme][data-theme="dark"] .quick-grid button {
   color: var(--ink);
-  background: var(--surface-subtle);
+  background: transparent;
   border-color: var(--line);
 }

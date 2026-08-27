@@ -103,7 +103,7 @@
 .baby-hero.hero-ocean.diary-evening { --diary-background: url('/hero/weather/ocean/backgrounds/evening.webp'); }
 .baby-hero.hero-ocean.diary-night { --diary-background: url('/hero/weather/ocean/backgrounds/night.webp'); }
 .baby-hero.hero-forest-press.diary-morning { --diary-background: url('/hero/weather/forest-press/backgrounds/morning.webp'); }
-.baby-hero.hero-forest-press.diary-daytime { --diary-background: url('/hero/weather/forest-press/backgrounds/daytime.webp'); }
+.baby-hero.hero-forest-press.diary-daytime { --diary-background: url('/hero/weather/forest-press/backgrounds/daytime.webp?v=7c887ab3'); }
 .baby-hero.hero-forest-press.diary-evening { --diary-background: url('/hero/weather/forest-press/backgrounds/evening.webp'); }
 .baby-hero.hero-forest-press.diary-night { --diary-background: url('/hero/weather/forest-press/backgrounds/night.webp'); }
 
@@ -133,7 +133,7 @@
 .baby-hero.hero-ocean.hero-evening { --diary-background: url('/hero/weather/ocean/backgrounds/evening.webp'); }
 .baby-hero.hero-ocean.hero-night { --diary-background: url('/hero/weather/ocean/backgrounds/night.webp'); }
 .baby-hero.hero-forest-press.hero-morning { --diary-background: url('/hero/weather/forest-press/backgrounds/morning.webp'); }
-.baby-hero.hero-forest-press.hero-midday, .baby-hero.hero-forest-press.hero-afternoon { --diary-background: url('/hero/weather/forest-press/backgrounds/daytime.webp'); }
+.baby-hero.hero-forest-press.hero-midday, .baby-hero.hero-forest-press.hero-afternoon { --diary-background: url('/hero/weather/forest-press/backgrounds/daytime.webp?v=7c887ab3'); }
 .baby-hero.hero-forest-press.hero-evening { --diary-background: url('/hero/weather/forest-press/backgrounds/evening.webp'); }
 .baby-hero.hero-forest-press.hero-night { --diary-background: url('/hero/weather/forest-press/backgrounds/night.webp'); }
 .baby-hero.hero-travel::after {
@@ -1469,16 +1469,16 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
   min-height: 58px;
   margin-top: 0;
   padding: 0;
-  border: 5px solid #fff8ee;
+  border: 5px solid color-mix(in srgb, var(--surface-card) 82%, var(--brand));
   border-radius: 50%;
-  background: linear-gradient(180deg, #fa963d, #e87928);
+  background: var(--action-primary-bg);
   color: #fff;
   box-shadow: var(--shadow-float);
   display: grid;
   place-content: center;
 }
 .app-nav .nav-add:hover,
-.app-nav .nav-add:active { background: linear-gradient(180deg, #fa963d, #e87928); }
+.app-nav .nav-add:active { background: var(--action-primary-bg-hover); }
 .app-nav .nav-add span { font-size: 30px; font-weight: 400; line-height: 1; transform: translateY(-1px); }
 
 .today-layout .today-plan-list .task-icon,

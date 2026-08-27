@@ -127,10 +127,10 @@
   --control-text-disabled: var(--muted);
 
   /* 按钮 */
-  --action-primary-bg: var(--token-action-primary-bg);
-  --action-primary-bg-hover: var(--token-action-primary-bg-hover);
-  --action-primary-bg-active: var(--token-action-primary-bg-active);
-  --action-primary-border: var(--token-action-primary-border);
+  --action-primary-bg: var(--brand);
+  --action-primary-bg-hover: color-mix(in srgb, var(--brand) 84%, var(--ink));
+  --action-primary-bg-active: color-mix(in srgb, var(--brand) 70%, var(--ink));
+  --action-primary-border: var(--brand);
   --action-primary-text: var(--token-action-primary-text);
   --action-secondary-bg: var(--token-action-secondary-bg);
   --action-secondary-bg-hover: var(--token-action-secondary-bg-hover);

@@ -552,9 +552,9 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
   min-height: 58px;
   margin-top: 0;
   padding: 0;
-  border: 5px solid #fff8ee;
+  border: 5px solid color-mix(in srgb, var(--surface-card) 82%, var(--brand));
   border-radius: 50%;
-  background: linear-gradient(180deg, #fa963d, #e87928);
+  background: var(--action-primary-bg);
   color: var(--action-primary-text);
   box-shadow: var(--shadow-float);
   display: grid;
@@ -562,7 +562,7 @@ input, textarea, select, .picker-trigger { background: var(--control-bg); }
   transform: translateY(-2px);
 }
 .app-nav .nav-add:hover,
-.app-nav .nav-add:active { background: linear-gradient(180deg, #fa963d, #e87928); }
+.app-nav .nav-add:active { background: var(--action-primary-bg-hover); }
 .app-nav .nav-add span {
   font-size: 30px;
   font-weight: 400;
@@ -699,7 +699,7 @@ html[data-theme="light"] .history-timeline .record-mark {
 .today-baby-summary span {
   min-width: 0;
   overflow: hidden;
-  color: var(--brand-deep);
+  color: var(--ink);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.4;

@@ -19,7 +19,8 @@ html[data-theme="dark"] select {
 html[data-theme="dark"] .baby-hero {
   background: var(--token-hub-hero-bg);
 }
-html[data-theme="dark"] .baby-hero .kicker { color: var(--token-hub-kicker); text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+html[data-theme="dark"] .baby-hero:not(.hero-diary) .kicker { color: var(--token-hub-kicker); text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+html[data-theme="dark"] .baby-hero.hero-diary .hero-date-line { color: #fff7e0; text-shadow: 0 1px 4px rgba(0, 0, 0, .42); }
 html[data-theme="dark"] .hero-profile-line,
 html[data-theme="dark"] .hero-status p { color: var(--token-hub-text); text-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
 html[data-theme="dark"] .hero-greeting-title { text-shadow: 0 2px 5px rgba(0, 0, 0, .35); }
@@ -389,7 +390,7 @@ html[data-theme="dark"] .today-baby-summary img {
 }
 html[data-theme="dark"] .today-workbench .today-profile-strip span,
 html[data-theme="dark"] .today-baby-summary span {
-  color: var(--brand-deep);
+  color: var(--ink);
 }
 html[data-theme="dark"] .toast {
   background: var(--ink);
@@ -411,7 +412,7 @@ html[data-theme="dark"] .metric-band strong {
   color: var(--brand-deep);
 }
 html[data-theme="dark"] .quick-grid button {
-  background: var(--surface-subtle);
+  background: transparent;
   color: var(--ink);
   border-color: var(--line);
 }

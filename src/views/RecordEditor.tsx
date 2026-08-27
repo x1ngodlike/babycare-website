@@ -4,14 +4,16 @@ import { blankDraft, hasEnteredContent, recordEditorTypeOrder, typeNames, select
 import { confirmAction, Modal, SegmentedControl, useDirtyClose } from '../ui';
 import { DateTimeField, minutesAgoIso } from '../DateField';
 import { api, type FeedingPrediction } from '../api';
+import { getIconPackAssets } from '../config/weatherThemes';
 import type { BowelSize, CareItem, CareItemCategory, DraftRecord, RecordType } from '../types';
 
-function CareItemChoiceField({ items, selected, onSelect }: { items: CareItem[]; selected?: string | null; onSelect(value: string): void }) {
+function CareItemChoiceField({ items, selected, onSelect, iconPack }: { items: CareItem[]; selected?: string | null; onSelect(value: string): void; iconPack: string }) {
   const groups: { category: CareItemCategory; label: string }[] = [{ category: 'medication', label: '用药' }, { category: 'care', label: '护理' }];
-  return <fieldset className="care-choice-field"><legend>选择护理项目</legend><div className="care-choice-groups">{groups.map(group => { const choices = items.filter(item => item.category === group.category); return choices.length > 0 && <section key={group.category} aria-labelledby={`care-choice-${group.category}`}><h3 id={`care-choice-${group.category}`}>{group.label}</h3><div className="care-choice-grid">{choices.map(item => <button type="button" key={item.id} aria-label={`${group.label} ${item.name}`} aria-pressed={selected === item.name} className={selected === item.name ? 'selected' : ''} onClick={() => onSelect(item.name)}><img src={careItemIconSources[item.icon]} alt="" /><span>{item.name}</span>{selected === item.name && <i aria-hidden="true">✓</i>}</button>)}</div></section>; })}</div></fieldset>;
+  const themedIcons = getIconPackAssets(iconPack)?.tasks;
+  return <fieldset className="care-choice-field"><legend>选择护理项目</legend><div className="care-choice-groups">{groups.map(group => { const choices = items.filter(item => item.category === group.category); return choices.length > 0 && <section key={group.category} aria-labelledby={`care-choice-${group.category}`}><h3 id={`care-choice-${group.category}`}>{group.label}</h3><div className="care-choice-grid">{choices.map(item => <button type="button" key={item.id} aria-label={`${group.label} ${item.name}`} aria-pressed={selected === item.name} className={selected === item.name ? 'selected' : ''} onClick={() => onSelect(item.name)}><img src={themedIcons?.[item.icon] ?? careItemIconSources[item.icon]} alt="" /><span>{item.name}</span>{selected === item.name && <i aria-hidden="true">✓</i>}</button>)}</div></section>; })}</div></fieldset>;
 }
 
-export function RecordEditor({ initial, careItems, onClose, onSave }: { initial: DraftRecord; careItems: CareItem[]; onClose(): void; onSave(value: DraftRecord): Promise<void> }) {
+export function RecordEditor({ initial, careItems, iconPack, onClose, onSave }: { initial: DraftRecord; careItems: CareItem[]; iconPack: string; onClose(): void; onSave(value: DraftRecord): Promise<void> }) {
   const [value, setValue] = useState(initial);
   const [relativeMinutes, setRelativeMinutes] = useState<number | null>(null);
   const [error, setError] = useState('');
@@ -75,7 +77,7 @@ export function RecordEditor({ initial, careItems, onClose, onSave }: { initial:
             <div className="quick-values"><span>常用</span><div>{(prediction?.commonFormulaValues?.length ? prediction.commonFormulaValues : [90, 120, 150]).map(v => <button type="button" key={v} className="quick-value-btn" onClick={() => setValue({ ...value, formulaMl: v })}>{v}</button>)}</div></div>
           </label>
         </div>}
-        {value.type === 'supplement' && <CareItemChoiceField items={selectableCareItems(careItems, value.supplement)} selected={value.supplement} onSelect={supplement => setValue({ ...value, supplement })} />}
+        {value.type === 'supplement' && <CareItemChoiceField items={selectableCareItems(careItems, value.supplement)} selected={value.supplement} onSelect={supplement => setValue({ ...value, supplement })} iconPack={iconPack} />}
         {value.type === 'bowel' && <ChoiceField label="排便量" values={['大', '中', '小'] as BowelSize[]} selected={value.bowelSize} onSelect={bowelSize => setValue({ ...value, bowelSize })} />}
         {value.type === 'note' && <label>事项内容<input maxLength={100} placeholder="例如：换床单、剪指甲" value={value.subject ?? ''} aria-invalid={error.includes('事项内容') || undefined} onChange={e => { setError(''); setValue({ ...value, subject: e.target.value }); }} /></label>}
         <label>补充说明（选填）<textarea rows={2} maxLength={200} placeholder={value.type === 'supplement' ? '可记录服用或护理后的情况' : value.type === 'note' ? '可补充事项细节' : '可留空'} value={value.note ?? ''} onChange={e => setValue({ ...value, note: e.target.value })} /></label>
