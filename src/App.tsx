@@ -17,7 +17,7 @@ import { HistoryView } from './views/History';
 import { RecordEditor } from './views/RecordEditor';
 import { AuditDialog, GrowthEditor } from './views/RecordDialogs';
 import { useAutoConnect } from './hooks/useAutoConnect';
-import { getWeatherHeroAssets } from './config/weatherThemes';
+import { resolveThemeConfig, getIconPackAssets, getVisualThemeForPreset, legacyHeroBgToThemeId, buildOverridesFromLegacy, DEFAULT_THEME_ID, type ThemeConfig } from './config/weatherThemes';
 import type { Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineRecord, FamilyId, GrowthRecord, Profile, PushStatus, SessionUser, Supplement, VaccineCatalogItem, VaccineRecord } from './types';
 
 // 低频页面按需加载，配合 main.tsx 空闲预取与 Service Worker 运行时缓存
@@ -131,12 +131,35 @@ export default function App() {
   const [vaccineEditor, setVaccineEditor] = useState<VaccineEditorState | null>(null);
   const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(Boolean(startupUser)); const [pendingCount, setPendingCount] = useState(() => startupUser ? getOutbox(startupUser.id).length : 0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
   const [theme, setTheme] = useState<ThemeMode>(() => { try { return (localStorage.getItem('babycare-theme') as ThemeMode) || 'system'; } catch { return 'system'; } });
-  const [heroBg, setHeroBg] = useState<string>(() => { try { return localStorage.getItem('babycare-hero-bg') || 'auto'; } catch { return 'auto'; } });
-  const [heroWeatherEffects, setHeroWeatherEffects] = useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem('babycare-hero-weather-effects') || '{"hero-diary":true,"hero-travel":true,"hero-orbit":true}'); }
-    catch { return { 'hero-diary': true, 'hero-travel': true, 'hero-orbit': true }; }
+  const [heroTheme, setHeroTheme] = useState<string>(() => {
+    try {
+      const newId = localStorage.getItem('babycare-hero-theme');
+      if (newId) return newId;
+      const legacyBg = localStorage.getItem('babycare-hero-bg') || 'auto';
+      return legacyHeroBgToThemeId(legacyBg);
+    } catch { return DEFAULT_THEME_ID; }
+  });
+  const [heroThemeOverrides, setHeroThemeOverrides] = useState<Record<string, Partial<ThemeConfig>>>(() => {
+    try {
+      const raw = localStorage.getItem('babycare-hero-theme-overrides');
+      if (raw) return JSON.parse(raw);
+      // 旧版迁移：从 heroBg + heroWeatherEffects 推导
+      const legacyBg = localStorage.getItem('babycare-hero-bg') || 'auto';
+      const legacyWE = JSON.parse(localStorage.getItem('babycare-hero-weather-effects') || '{}');
+      const themeId = legacyHeroBgToThemeId(legacyBg);
+      const overrides = buildOverridesFromLegacy(legacyBg, legacyWE);
+      if (Object.keys(overrides).length) {
+        return { [themeId]: overrides };
+      }
+      return {};
+    } catch { return {}; }
   });
   const refreshingRef = useRef(false);
+  const resolvedTheme: ThemeConfig = resolveThemeConfig(heroTheme, heroThemeOverrides[heroTheme]);
+  const themeBg = resolvedTheme.bg;
+  const themeIconPack = resolvedTheme.iconPack;
+  const themeLayout = resolvedTheme.layout;
+  const themeWeatherEffects = resolvedTheme.weatherEffects;
 
   const updateLocalRecords = useCallback((userId: string, updater: (items: CareRecord[]) => CareRecord[]) => {
     setRecords(items => { const next = updater(items).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)); cacheRecords(userId, next); return next; });
@@ -290,16 +313,12 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    try { localStorage.setItem('babycare-hero-bg', heroBg); } catch { /* ignore */ }
-    if (heroBg === 'hero-travel') document.documentElement.setAttribute('data-visual-theme', 'travel');
-    else if (heroBg === 'hero-orbit') document.documentElement.setAttribute('data-visual-theme', 'orbit');
-    else if (heroBg === 'hero-shop') document.documentElement.setAttribute('data-visual-theme', 'shop');
-    else if (heroBg === 'hero-arcane') document.documentElement.setAttribute('data-visual-theme', 'arcane');
+    try { localStorage.setItem('babycare-hero-theme', heroTheme); } catch { /* ignore */ }
+    try { localStorage.setItem('babycare-hero-theme-overrides', JSON.stringify(heroThemeOverrides)); } catch { /* ignore */ }
+    const visual = getVisualThemeForPreset(heroTheme);
+    if (visual) document.documentElement.setAttribute('data-visual-theme', visual);
     else document.documentElement.removeAttribute('data-visual-theme');
-  }, [heroBg]);
-  useEffect(() => {
-    try { localStorage.setItem('babycare-hero-weather-effects', JSON.stringify(heroWeatherEffects)); } catch { /* ignore */ }
-  }, [heroWeatherEffects]);
+  }, [heroTheme, heroThemeOverrides]);
 
   useEffect(() => {
     if (!authenticated || !currentUser) return;
@@ -466,18 +485,18 @@ export default function App() {
   const connectionLabel = isConnectionFailed ? '连接失败' : offlineSession ? '离线身份' : !online ? '离线' : pendingCount ? `待同步 ${pendingCount} 条` : refreshing ? '正在更新' : '已连接';
   const pullLabel = pull.phase === 'refreshing' ? '正在更新' : pull.phase === 'done' ? '已更新' : pull.phase === 'ready' ? '松开刷新' : '继续下拉刷新';
   const pullOffset = pull.phase === 'refreshing' || pull.phase === 'done' ? 8 : Math.min(8, pull.distance - 44);
-  const themedNavIcons = getWeatherHeroAssets(heroBg)?.nav;
+  const themedNavIcons = getIconPackAssets(themeIconPack)?.nav;
   return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}{!isChatPage && <div className="top-status"><button className="user-pill" onClick={() => goToTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button>{(isConnectionFailed || !online || pendingCount > 0 || refreshing || offlineSession) && <div className={`network-pill ${isConnectionFailed ? 'offline' : online ? refreshing ? 'syncing' : '' : 'offline'}`} role="status" aria-live="polite">{connectionLabel}</div>}</div>}
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status" aria-live="polite"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}><X aria-hidden="true" /></button></div>}
     <main className={`main-content${isChatPage ? ' chat-page-fullscreen' : ''}`}>
       <Suspense fallback={null}>
       <div className={`tab-page${isChatPage ? ' chat-tab-page' : ''}`} key={tab}>
-      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} weeklyGrowth={weeklyGrowth} feedPrepEnabled={pushStatus?.feedPrepEnabled ?? true} feedPrepMinutes={pushStatus?.feedPrepMinutes ?? 30} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} heroBg={heroBg} weatherEffectsEnabled={heroWeatherEffects[heroBg] !== false} onOpenSettings={() => goToTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
-      {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} profile={profile} heroBg={heroBg} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} />}
+      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} weeklyGrowth={weeklyGrowth} feedPrepEnabled={pushStatus?.feedPrepEnabled ?? true} feedPrepMinutes={pushStatus?.feedPrepMinutes ?? 30} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} heroBg={themeBg} iconPack={themeIconPack} layout={themeLayout} weatherEffectsEnabled={themeWeatherEffects} onOpenSettings={() => goToTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
+      {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} profile={profile} iconPack={themeIconPack} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} />}
       {tab === 'chat' && <ChatView user={currentUser} capabilities={capabilities} online={online} onBack={() => goToTab('today')} />}
       {tab === 'trends' && <TrendsView records={records} careItems={careItems} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} archiveMode={archiveMode} setArchiveMode={setArchiveMode} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
-      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} heroBg={heroBg} onHeroBgChange={setHeroBg} heroWeatherEffects={heroWeatherEffects} onHeroWeatherEffectsChange={(value, enabled) => setHeroWeatherEffects(current => ({ ...current, [value]: enabled }))} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
+      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} heroTheme={heroTheme} onHeroThemeChange={setHeroTheme} heroThemeOverrides={heroThemeOverrides} onHeroThemeOverridesChange={setHeroThemeOverrides} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
       </div>
       </Suspense>
     </main>

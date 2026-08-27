@@ -5,7 +5,8 @@ import { api } from '../api';
 import { getCareItemReminderTimes, isCareItemDue } from '../careSchedule';
 import { canAutoOpenDailyReport, millisecondsUntilDailyReportAutoOpen } from '../dailyReport';
 import { isoDay } from '../date';
-import { getWeatherHeroAssets, getWeatherRecordIcon } from '../config/weatherThemes';
+import { getIconPackAssets, getWeatherRecordIconByPack } from '../config/weatherThemes';
+import type { HeroLayout } from '../config/weatherThemes';
 import { formatTimeShort } from '../../shared/feeding-prediction';
 import { diaryPeriodForHour, type WeatherSnapshot } from '../../shared/weather';
 import { DiaryHeroLayer, DiaryWeatherBadge } from '../DiaryHero';
@@ -73,7 +74,7 @@ function DailyReport({ capabilities, online, onOpenSettings, superadmin, userId 
   );
 }
 
-export function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCatalog, careItems, todayPlanStatus, capabilities, online, heroBg, weatherEffectsEnabled, onOpenSettings, onCompleteVaccine, onAppointmentVaccine, manager, superadmin, userId, weeklyGrowth, feedPrepEnabled, feedPrepMinutes, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; recentRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; careItems: CareItem[]; todayPlanStatus: 'loading' | 'ready' | 'error'; capabilities: Capabilities; online: boolean; heroBg: string; weatherEffectsEnabled: boolean; onOpenSettings(): void; onCompleteVaccine(item: VaccinePlanItem): void; onAppointmentVaccine(item: VaccinePlanItem): void; manager: boolean; superadmin: boolean; userId: FamilyId; weeklyGrowth?: GrowthRecord; feedPrepEnabled: boolean; feedPrepMinutes: number; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
+export function TodayView({ profile, records, recentRecords, vaccineRecords, vaccineCatalog, careItems, todayPlanStatus, capabilities, online, heroBg, iconPack, layout, weatherEffectsEnabled, onOpenSettings, onCompleteVaccine, onAppointmentVaccine, manager, superadmin, userId, weeklyGrowth, feedPrepEnabled, feedPrepMinutes, onAddGrowth, onAdd, onSupplement, onEdit, onDelete, onAudit }: { profile: Profile; records: CareRecord[]; recentRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; careItems: CareItem[]; todayPlanStatus: 'loading' | 'ready' | 'error'; capabilities: Capabilities; online: boolean; heroBg: string; iconPack: string; layout: HeroLayout; weatherEffectsEnabled: boolean; onOpenSettings(): void; onCompleteVaccine(item: VaccinePlanItem): void; onAppointmentVaccine(item: VaccinePlanItem): void; manager: boolean; superadmin: boolean; userId: FamilyId; weeklyGrowth?: GrowthRecord; feedPrepEnabled: boolean; feedPrepMinutes: number; onAddGrowth(): void; onAdd(type: RecordType): void; onSupplement(value: Supplement): Promise<void>; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void }) {
   const [savingSupplement, setSavingSupplement] = useState<Supplement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   useEffect(() => {
@@ -85,8 +86,8 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
   const heroPeriod = (() => {
     try { return localStorage.getItem('babycare-hero-preview') || getHeroPeriod(currentHour); } catch { return getHeroPeriod(currentHour); }
   })();
-  const weatherThemeAssets = getWeatherHeroAssets(heroBg);
-  const magazineTheme = Boolean(weatherThemeAssets);
+  const weatherThemeAssets = getIconPackAssets(iconPack);
+  const magazineTheme = layout === 'diary';
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r]));
   const recentSorted = [...recentRecords].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   const lastRecord = recentSorted[0] || null;
@@ -124,7 +125,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     note: '/icons/quick-note.png',
   };
   function themedRecordIcon(record: CareRecord) {
-    return getWeatherRecordIcon(heroBg, record, careItems) ?? careItemIconSources.medicine;
+    return getWeatherRecordIconByPack(iconPack, record, careItems) ?? careItemIconSources.medicine;
   }
   const pendingCareItems = todayPlanStatus === 'ready' ? careItems
     .filter(item => item.active && !isScheduleOver(item) && isCareItemDue(item) && !done.has(item.name))

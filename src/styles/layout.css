@@ -98,6 +98,28 @@
 .baby-hero.hero-arcane.diary-daytime { --diary-background: url('/hero/weather/arcane/backgrounds/daytime.webp'); }
 .baby-hero.hero-arcane.diary-evening { --diary-background: url('/hero/weather/arcane/backgrounds/evening.webp'); }
 .baby-hero.hero-arcane.diary-night { --diary-background: url('/hero/weather/arcane/backgrounds/night.webp'); }
+
+/* Weather 套 → classic layout period 兼容：daytime 同时覆盖 midday/afternoon */
+.baby-hero.hero-diary.hero-morning { --diary-background: url('/hero/weather/nature/backgrounds/morning.webp'); }
+.baby-hero.hero-diary.hero-midday, .baby-hero.hero-diary.hero-afternoon { --diary-background: url('/hero/weather/nature/backgrounds/daytime.webp'); }
+.baby-hero.hero-diary.hero-evening { --diary-background: url('/hero/weather/nature/backgrounds/evening.webp'); }
+.baby-hero.hero-diary.hero-night { --diary-background: url('/hero/weather/nature/backgrounds/night.webp'); }
+.baby-hero.hero-travel.hero-morning { --diary-background: url('/hero/weather/travel/backgrounds/morning.webp'); }
+.baby-hero.hero-travel.hero-midday, .baby-hero.hero-travel.hero-afternoon { --diary-background: url('/hero/weather/travel/backgrounds/daytime.webp'); }
+.baby-hero.hero-travel.hero-evening { --diary-background: url('/hero/weather/travel/backgrounds/evening.webp'); }
+.baby-hero.hero-travel.hero-night { --diary-background: url('/hero/weather/travel/backgrounds/night.webp'); }
+.baby-hero.hero-orbit.hero-morning { --diary-background: url('/hero/weather/orbit/backgrounds/morning.webp'); }
+.baby-hero.hero-orbit.hero-midday, .baby-hero.hero-orbit.hero-afternoon { --diary-background: url('/hero/weather/orbit/backgrounds/daytime.webp'); }
+.baby-hero.hero-orbit.hero-evening { --diary-background: url('/hero/weather/orbit/backgrounds/evening.webp'); }
+.baby-hero.hero-orbit.hero-night { --diary-background: url('/hero/weather/orbit/backgrounds/night.webp'); }
+.baby-hero.hero-shop.hero-morning { --diary-background: url('/hero/weather/shop/backgrounds/morning.webp'); }
+.baby-hero.hero-shop.hero-midday, .baby-hero.hero-shop.hero-afternoon { --diary-background: url('/hero/weather/shop/backgrounds/daytime.webp'); }
+.baby-hero.hero-shop.hero-evening { --diary-background: url('/hero/weather/shop/backgrounds/evening.webp'); }
+.baby-hero.hero-shop.hero-night { --diary-background: url('/hero/weather/shop/backgrounds/night.webp'); }
+.baby-hero.hero-arcane.hero-morning { --diary-background: url('/hero/weather/arcane/backgrounds/morning.webp'); }
+.baby-hero.hero-arcane.hero-midday, .baby-hero.hero-arcane.hero-afternoon { --diary-background: url('/hero/weather/arcane/backgrounds/daytime.webp'); }
+.baby-hero.hero-arcane.hero-evening { --diary-background: url('/hero/weather/arcane/backgrounds/evening.webp'); }
+.baby-hero.hero-arcane.hero-night { --diary-background: url('/hero/weather/arcane/backgrounds/night.webp'); }
 .baby-hero.hero-travel::after {
   background:
     linear-gradient(90deg, rgba(58, 48, 40, .58) 0%, rgba(74, 60, 48, .34) 42%, rgba(74, 60, 48, .08) 72%, transparent 100%),
@@ -521,9 +543,30 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 .hero-bg-row .hero-bg-item {
   flex: 1;
+  min-width: 0;
+}
+.theme-row .hero-bg-item {
+  height: auto;
+  padding: 10px 12px;
+}
+.theme-item-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.theme-item-summary {
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .hero-bg-preview-btn {
   flex-shrink: 0;
@@ -536,6 +579,316 @@
   font-weight: 600;
   color: var(--ink);
   white-space: nowrap;
+}
+
+/* 主题配置 Modal 内 */
+.theme-config-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.theme-config-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.theme-config-block-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* 可折叠配置行 */
+.theme-config-row {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-card);
+  overflow: hidden;
+}
+.theme-config-row-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s;
+}
+.theme-config-row-head:hover {
+  background: var(--surface-hover);
+}
+.theme-config-row-label {
+  flex: none;
+}
+.theme-config-row-current {
+  flex: 1;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+.theme-config-row-chevron {
+  flex: none;
+  color: var(--ink-muted);
+  font-size: 10px;
+  transition: transform .2s;
+}
+.theme-config-row-head.expanded .theme-config-row-chevron {
+  transform: rotate(90deg);
+}
+.theme-config-row-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-card);
+}
+
+/* 排版风格 picker */
+.theme-layout-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.theme-layout-card {
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-card);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.theme-layout-card b {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.theme-layout-card small {
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.theme-layout-card:hover {
+  border-color: var(--brand);
+}
+.theme-layout-card.selected {
+  border-color: var(--brand);
+  background: var(--surface-hover);
+  box-shadow: 0 0 0 3px rgba(114, 145, 96, .15);
+}
+
+/* 通用选择网格 */
+.theme-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.theme-pick-item {
+  position: relative;
+  padding: 6px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.theme-pick-item img {
+  width: 100%;
+  aspect-ratio: 2.5 / 1;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.theme-pick-item b {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+}
+.theme-pick-item:hover {
+  border-color: var(--brand);
+}
+.theme-pick-item.selected {
+  border-color: var(--brand);
+  background: var(--surface-hover);
+  box-shadow: 0 0 0 3px rgba(114, 145, 96, .15);
+}
+.theme-pick-item.selected svg {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--brand);
+  background: var(--brand);
+  color: #fff;
+  padding: 2px;
+}
+.theme-pick-item.selected svg polyline {
+  stroke-width: 3;
+}
+.theme-default-icon {
+  width: 100%;
+  aspect-ratio: 2.5 / 1;
+  display: grid;
+  place-content: center;
+  font-size: 20px;
+  color: var(--ink-muted);
+  background: var(--surface-subtle);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.theme-icon-grid .theme-pick-item img {
+  aspect-ratio: 1 / 1;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border: 0;
+}
+.theme-icon-grid .theme-pick-item b {
+  font-size: 12px;
+}
+
+/* 背景分组 */
+.theme-bg-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.theme-bg-group-title {
+  margin: 0;
+  padding-top: 10px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1.3;
+}
+.theme-bg-group:first-child .theme-bg-group-title {
+  padding-top: 0;
+}
+
+/* 天气效果开关行 */
+.theme-effect-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-card);
+  line-height: 1;
+}
+.theme-effect-label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.theme-effect-desc {
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.theme-effect-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-card);
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.theme-effect-toggle i {
+  font-style: normal;
+  font-size: 13px;
+}
+.theme-effect-toggle.on {
+  border-color: var(--brand);
+  background: var(--brand-faint);
+  color: var(--brand-deep);
+}
+.theme-effect-disabled {
+  color: var(--ink-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.editor.theme-modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+.editor.theme-modal > .editor-head {
+  flex: none;
+}
+.editor.theme-modal > .theme-config-area {
+  flex: none;
+  margin-bottom: 0;
+}
+.editor.theme-modal > .theme-preview-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.theme-modal-footer {
+  flex: none;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-container);
+  display: flex;
+  gap: 8px;
+}
+.theme-modal-footer .btn {
+  flex: 1;
+}
+
+@media (max-width: 480px) {
+  .theme-pick-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* 喂养预测设置 */
@@ -811,10 +1164,10 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 0;
 }
 .hero-theme-icons-preview {
-  margin-top: 10px;
+  margin: 10px 0 12px;
   padding: 10px 12px 9px;
   border: 1px solid var(--surface-container-border);
   border-radius: var(--radius-card);
@@ -897,7 +1250,7 @@
   text-align: center;
   font-size: 12px;
   color: var(--ink-muted);
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   line-height: 1.5;
 }
 .hero-weather-preview-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0 0 12px; }

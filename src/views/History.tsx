@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { addDays, isoDay } from '../date';
-import { getWeatherRecordIcon } from '../config/weatherThemes';
+import { getWeatherRecordIconByPack } from '../config/weatherThemes';
 import { auditNames, careItemCategory, careItemIcon, familyMembers, FeedingSummary, summary, typeNames } from '../shared';
 import { ActionMenu, EmptyState, SegmentedControl } from '../ui';
 import HistoryOverview from './HistoryOverview';
@@ -79,12 +79,12 @@ export function Timeline({ records, careItems, manager, emptyText = '这一天�
   })}</div>;
 }
 
-export function HistoryView({ records, deletedRecords, vaccineRecords, vaccineCatalog, profile, heroBg, historyMode, setHistoryMode, careItems, manager, selected, setSelected, onEdit, onDelete, onAudit, onLoadDeleted, onRestore, onPurge, onOpenVaccineEditor, onCancelVaccineAppointment, onDeleteVaccine }: { records: CareRecord[]; deletedRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; profile: Profile; heroBg: string; historyMode: 'care' | 'vaccine'; setHistoryMode(value: 'care' | 'vaccine'): void; careItems: CareItem[]; manager: boolean; selected: Date; setSelected(value: Date): void; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void; onLoadDeleted(): Promise<void>; onRestore(record: CareRecord): Promise<void>; onPurge(record: CareRecord): Promise<void>; onOpenVaccineEditor(state: VaccineEditorState): void; onCancelVaccineAppointment(item: VaccinePlanItem): void; onDeleteVaccine(record: VaccineRecord): void }) {
+export function HistoryView({ records, deletedRecords, vaccineRecords, vaccineCatalog, profile, iconPack, historyMode, setHistoryMode, careItems, manager, selected, setSelected, onEdit, onDelete, onAudit, onLoadDeleted, onRestore, onPurge, onOpenVaccineEditor, onCancelVaccineAppointment, onDeleteVaccine }: { records: CareRecord[]; deletedRecords: CareRecord[]; vaccineRecords: VaccineRecord[]; vaccineCatalog: VaccineCatalogItem[]; profile: Profile; iconPack: string; historyMode: 'care' | 'vaccine'; setHistoryMode(value: 'care' | 'vaccine'): void; careItems: CareItem[]; manager: boolean; selected: Date; setSelected(value: Date): void; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void; onLoadDeleted(): Promise<void>; onRestore(record: CareRecord): Promise<void>; onPurge(record: CareRecord): Promise<void>; onOpenVaccineEditor(state: VaccineEditorState): void; onCancelVaccineAppointment(item: VaccinePlanItem): void; onDeleteVaccine(record: VaccineRecord): void }) {
   const [query, setQuery] = useState(''); const [typeFilter, setTypeFilter] = useState<'all' | RecordType>('all'); const [actorFilter, setActorFilter] = useState<'all' | FamilyId>('all'); const [view, setView] = useState<'active' | 'deleted'>('active'); const [layout, setLayout] = useState<'day' | 'overview'>('day');
   const deletedHistoryPushed = useRef(false);
   const mobileWeekStripRef = useRef<HTMLDivElement | null>(null);
   const selectedKey = isoDay(selected);
-  const themedRecordIcon = (record: CareRecord) => getWeatherRecordIcon(heroBg, record, careItems) ?? careItemIcon(record, careItems);
+  const themedRecordIcon = (record: CareRecord) => getWeatherRecordIconByPack(iconPack, record, careItems) ?? careItemIcon(record, careItems);
   useEffect(() => { if (view === 'deleted' && manager) void onLoadDeleted(); }, [manager, onLoadDeleted, view]);
   useEffect(() => { const pop = () => { deletedHistoryPushed.current = false; setView('active'); }; window.addEventListener('popstate', pop); return () => { window.removeEventListener('popstate', pop); if (deletedHistoryPushed.current) window.history.back(); }; }, []);
   function openDeleted() { window.history.pushState({ babycareCareDeleted: true }, ''); deletedHistoryPushed.current = true; setView('deleted'); window.scrollTo({ top: 0, behavior: 'smooth' }); }

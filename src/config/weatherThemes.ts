@@ -1,8 +1,40 @@
+import type { CareItem, CareRecord } from '../types';
+
 export type WeatherHeroThemeId = 'hero-diary' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
-import type { CareItem, CareRecord } from '../types';
+
+export type HeroLayout = 'diary' | 'classic';
+export type IconPackId = 'default' | WeatherHeroThemeId;
+export type ThemeBgGroup = 'weather' | 'living' | 'classic' | 'dream' | 'pony';
+
+export interface ThemeConfig {
+  layout: HeroLayout;
+  bg: string;
+  iconPack: IconPackId;
+  weatherEffects: boolean;
+}
+
+export interface ThemePreset {
+  id: string;
+  label: string;
+  thumb: string;
+  defaults: ThemeConfig;
+}
+
+export interface HeroBgOption {
+  value: string;
+  label: string;
+  thumb: string;
+  group: ThemeBgGroup;
+}
+
+export interface IconPackOption {
+  value: IconPackId;
+  label: string;
+  thumb?: string;
+}
 
 export const WEATHER_HERO_ASSETS = {
   'hero-diary': {
@@ -132,6 +164,36 @@ export const WEATHER_HERO_ASSETS = {
   nav: Record<WeatherNavIconKind, string>;
 }>;
 
+export const DEFAULT_ICON_ASSETS = {
+  stickers: {
+    feeding: '/icons/quick-feeding.png',
+    bowel: '/icons/quick-bowel.png',
+    care: '/icons/record-care.png',
+    note: '/icons/quick-note.png',
+  },
+  tasks: {
+    medicine: '/icons/record-medicine.png',
+    massage: '/icons/record-massage.png',
+    bath: '/icons/record-bath.png',
+    care: '/icons/record-care.png',
+    vaccine: '/icons/task-vaccine-normalized.png',
+    growth: '/icons/task-growth-normalized.png',
+  },
+  nav: {
+    today: '/icons/nav-today.png',
+    history: '/icons/nav-records.png',
+    chat: '/icons/nav-chat.png',
+    trends: '/icons/nav-trends.png',
+    archive: '/icons/nav-archive.png',
+  },
+} as const;
+
+// 给定 iconPack（'default' 或某个天气主题 id），返回对应的图标资源或 null
+export function getIconPackAssets(iconPack: string) {
+  if (iconPack === 'default') return DEFAULT_ICON_ASSETS;
+  return isWeatherHeroTheme(iconPack) ? WEATHER_HERO_ASSETS[iconPack] : null;
+}
+
 export function isWeatherHeroTheme(value: string): value is WeatherHeroThemeId {
   return Object.prototype.hasOwnProperty.call(WEATHER_HERO_ASSETS, value);
 }
@@ -142,6 +204,127 @@ export function getWeatherHeroAssets(value: string) {
 
 export function getWeatherRecordIcon(value: string, record: CareRecord, careItems: CareItem[]) {
   const assets = getWeatherHeroAssets(value);
+  if (!assets) return null;
+  if (record.type === 'feeding') return assets.stickers.feeding;
+  if (record.type === 'bowel') return assets.stickers.bowel;
+  if (record.type === 'note') return assets.stickers.note;
+  const itemIcon = careItems.find(item => item.name === record.supplement)?.icon ?? 'medicine';
+  return assets.tasks[itemIcon];
+}
+
+// --------------- 主题系统 ---------------
+
+export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb, group: 'weather' },
+  { value: 'hero-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb, group: 'weather' },
+  { value: 'hero-orbit', label: '星际观测', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb, group: 'weather' },
+  { value: 'hero-shop', label: '晴雨商店', thumb: WEATHER_HERO_ASSETS['hero-shop'].thumb, group: 'weather' },
+  { value: 'hero-arcane', label: '烛光魔塔', thumb: WEATHER_HERO_ASSETS['hero-arcane'].thumb, group: 'weather' },
+  { value: 'hero-garden', label: '动态花园', thumb: '/hero/garden/morning.webp', group: 'living' },
+  { value: 'auto', label: '经典主题', thumb: '/hero/default/morning.webp', group: 'classic' },
+  { value: 'hero-paper', label: '折纸童趣', thumb: '/hero/paper/morning.webp', group: 'classic' },
+  { value: 'hero-pixel', label: '像素萌兔', thumb: '/hero/pixel/morning.webp', group: 'classic' },
+  { value: 'hero-watercolor', label: '手绘水彩', thumb: '/hero/watercolor/morning.webp', group: 'classic' },
+  { value: 'hero-clay', label: '软陶时光', thumb: '/hero/clay/morning.webp', group: 'classic' },
+  { value: 'hero-ink', label: '水墨丹青', thumb: '/hero/ink/morning.webp', group: 'classic' },
+  { value: 'hero-forest', label: '林间甜梦', thumb: '/hero/forest/morning.webp', group: 'dream' },
+  { value: 'hero-cloud', label: '云端甜梦', thumb: '/hero/cloud/morning.webp', group: 'dream' },
+  { value: 'hero-cozy', label: '暖房甜梦', thumb: '/hero/cozy/morning.webp', group: 'dream' },
+  { value: 'hero-pony', label: '星梦小马', thumb: '/hero/pony/morning.webp', group: 'pony' },
+  { value: 'hero-tale', label: '童话小马', thumb: '/hero/tale/morning.webp', group: 'pony' },
+  { value: 'hero-cyber', label: '赛博小马', thumb: '/hero/cyber/morning.webp', group: 'pony' },
+];
+
+export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
+  { key: 'weather', label: '天气画境（5）' },
+  { key: 'living', label: '动态系列（1）' },
+  { key: 'classic', label: '经典系列（6）' },
+  { key: 'dream', label: '甜梦系列（3）' },
+  { key: 'pony', label: '小马系列（3）' },
+];
+
+/** 不同排版风格可用的背景组：diary（杂志风）只有 weather 组有资源 */
+export const BG_GROUPS_FOR_LAYOUT: Record<HeroLayout, ReadonlyArray<ThemeBgGroup>> = {
+  diary: ['weather'],
+  classic: ['living', 'classic', 'dream', 'pony'],
+};
+
+/** 切换到某排版风格时，若当前 bg 不可用应回退的安全值 */
+export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
+  diary: 'hero-diary',
+  classic: 'auto',
+};
+
+export const ICON_PACKS: IconPackOption[] = [
+  { value: 'default', label: '默认图标', thumb: '/hero/default/morning.webp' },
+  { value: 'hero-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb },
+  { value: 'hero-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb },
+  { value: 'hero-orbit', label: '星际观测', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb },
+  { value: 'hero-shop', label: '晴雨商店', thumb: WEATHER_HERO_ASSETS['hero-shop'].thumb },
+  { value: 'hero-arcane', label: '烛光魔塔', thumb: WEATHER_HERO_ASSETS['hero-arcane'].thumb },
+];
+
+export const THEMES: ReadonlyArray<ThemePreset> = [
+  { id: 'theme-diary', label: '自然画报', thumb: WEATHER_HERO_ASSETS['hero-diary'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-diary', iconPack: 'hero-diary', weatherEffects: true } },
+  { id: 'theme-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-travel', iconPack: 'hero-travel', weatherEffects: true } },
+  { id: 'theme-orbit', label: '星际观测', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-orbit', iconPack: 'hero-orbit', weatherEffects: true } },
+  { id: 'theme-shop', label: '晴雨商店', thumb: WEATHER_HERO_ASSETS['hero-shop'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-shop', iconPack: 'hero-shop', weatherEffects: true } },
+  { id: 'theme-arcane', label: '烛光魔塔', thumb: WEATHER_HERO_ASSETS['hero-arcane'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-arcane', iconPack: 'hero-arcane', weatherEffects: true } },
+  { id: 'theme-classic', label: '经典主题', thumb: '/hero/default/morning.webp',
+    defaults: { layout: 'classic', bg: 'auto', iconPack: 'default', weatherEffects: false } },
+];
+
+export const DEFAULT_THEME_ID = 'theme-classic';
+
+export function findThemeById(id: string): ThemePreset | undefined {
+  return THEMES.find(t => t.id === id);
+}
+
+export function resolveThemeConfig(themeId: string, overrides?: Partial<ThemeConfig>): ThemeConfig {
+  const preset = findThemeById(themeId) ?? THEMES[THEMES.length - 1];
+  return { ...preset.defaults, ...overrides };
+}
+
+export function getVisualThemeForPreset(themeId: string): string | null {
+  if (themeId === 'theme-travel') return 'travel';
+  if (themeId === 'theme-orbit') return 'orbit';
+  if (themeId === 'theme-shop') return 'shop';
+  if (themeId === 'theme-arcane') return 'arcane';
+  return null;
+}
+
+// 旧版 heroBg → 新版 themeId 迁移映射
+const LEGACY_BG_TO_THEME: Record<string, string> = {
+  'hero-diary': 'theme-diary',
+  'hero-travel': 'theme-travel',
+  'hero-orbit': 'theme-orbit',
+  'hero-shop': 'theme-shop',
+  'hero-arcane': 'theme-arcane',
+};
+
+export function legacyHeroBgToThemeId(bg: string): string {
+  return LEGACY_BG_TO_THEME[bg] ?? DEFAULT_THEME_ID;
+}
+
+// 旧版 heroBg + heroWeatherEffects 迁移到 overrides
+export function buildOverridesFromLegacy(bg: string, weatherEffects: Record<string, boolean>): Partial<ThemeConfig> {
+  const themeId = LEGACY_BG_TO_THEME[bg];
+  const preset = findThemeById(themeId);
+  const prev = weatherEffects[bg];
+  const overrides: Partial<ThemeConfig> = {};
+  if (prev !== undefined && preset && prev !== preset.defaults.weatherEffects) {
+    overrides.weatherEffects = prev;
+  }
+  return overrides;
+}
+
+export function getWeatherRecordIconByPack(iconPack: string, record: CareRecord, careItems: CareItem[]) {
+  const assets = getIconPackAssets(iconPack);
   if (!assets) return null;
   if (record.type === 'feeding') return assets.stickers.feeding;
   if (record.type === 'bowel') return assets.stickers.bowel;
