@@ -69,7 +69,6 @@ html[data-theme="dark"] .segmented {
   color: var(--ink);
 }
 
-.choice-group button.selected,
 .weekday-buttons button.selected,
 .pattern-length-buttons button.selected,
 .pattern-day.active {
@@ -250,7 +249,6 @@ select,
 }
 
 .picker-quick button.selected,
-.choice-group button.selected,
 .care-choice-groups .care-choice-grid button.selected {
   border-color: var(--brand);
   background: var(--surface-interactive-active);

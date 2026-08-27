@@ -154,7 +154,7 @@ function getGreeting(profile: Profile, userId: FamilyId, hour = new Date().getHo
   let greeting: string;
   const period = getHeroPeriod(hour);
   if (period === 'morning') greeting = '早上好';
-  else if (period === 'midday') greeting = '下午好';
+  else if (period === 'midday') greeting = '中午好';
   else if (period === 'afternoon') greeting = '下午好';
   else if (period === 'evening') greeting = '晚上好';
   else greeting = '夜深了';

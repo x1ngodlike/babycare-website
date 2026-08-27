@@ -942,9 +942,9 @@ html[data-theme="dark"] .choice-group button {
   color: var(--ink);
 }
 html[data-theme="dark"] .choice-group button.selected {
-  border-color: var(--orange);
-  background: rgba(224, 153, 88, 0.15);
-  color: var(--orange);
+  border-color: var(--action-primary-bg);
+  background: var(--action-primary-bg);
+  color: var(--action-primary-text);
 }
 
 /* Dark mode overrides for care-choice-grid buttons */
