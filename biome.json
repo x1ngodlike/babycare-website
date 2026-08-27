@@ -9,7 +9,7 @@
       "!**/data",
       "!**/coverage",
       "!**/android-app",
-      "!**/public/.image-backup-*"
+      "!**/.image-backups"
     ]
   },
   "formatter": {

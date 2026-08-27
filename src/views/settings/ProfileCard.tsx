@@ -46,7 +46,7 @@ export function ProfileSettingsCard({ profile, onSaved }: { profile: Profile; on
     <p>用于问候语、档案页和疫苗提醒。昵称和头像用于首页展示。</p>
     <form onSubmit={submit}>
       <div className="avatar-upload-area">
-        <div className="avatar-preview" aria-label="当前头像"><ImageWithFallback src={form.avatar || undefined} fallbackSrc="/bear-bottle.png" alt="" /></div>
+        <div className="avatar-preview" aria-label="当前头像"><ImageWithFallback src={form.avatar || undefined} fallbackSrc="/images/avatars/default-baby.webp" alt="" /></div>
         <div className="avatar-actions"><button type="button" className="btn secondary" onClick={pickFile} disabled={avatarBusy}>{avatarBusy ? '处理中…' : '上传头像'}</button>{form.avatar && <button type="button" className="btn danger-button secondary" onClick={() => void removeAvatarClick()} disabled={avatarBusy}>移除</button>}</div>
         <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
       </div>

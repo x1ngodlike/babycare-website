@@ -13,4 +13,4 @@ coverage/
 .workbuddy/
 .trae-html-share-packages/
 server/uploads/
-public/.image-backup-*/
+.image-backups/

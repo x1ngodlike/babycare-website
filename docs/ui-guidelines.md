@@ -107,7 +107,7 @@
 | CSS 变量 | Token | 绑定的指标 | 配色要求 |
 |---|---|---|---|
 | `--brand` | `token-brand` | **奶粉 + 白天** | 每个主题定义自己的品牌主色 |
-| `--chart-complement` | `token-chart-complement` | **母乳 + 夜间** | 必须与 brand 保持 hue 差 ≥ 60°，新主题统一使用绿/青色系（`#2b6b3e` light / `#9bc9a7` dark） |
+| `--chart-complement` | `token-chart-complement` | **母乳 + 夜间** | 必须与 brand 保持足够色相和明度差，不与主色混淆 |
 
 `--orange` 保留给非图表语义（疫苗状态、日历今日、报告徽章、浮动按钮等），与图表配色解耦。
 
@@ -118,14 +118,16 @@
 | 主题 | brand（奶粉 + 白天） | chart-complement（母乳 + 夜间） |
 |---|---|---|
 | 经典主题（默认） | light `#657e51` · dark `#86a370` | light `#ee852f` · dark `#e09958` |
+| 云海仙门 | light `#477b70` · dark `#82b9aa` | light `#d39b3b` · dark `#e3b75e` |
+| 水果蛋糕 | light `#b95060` · dark `#e1848f` | light `#628568` · dark `#91b58b` |
+| 林间报社 | light `#66815f` · dark `#93b28b` | light `#7896ad` · dark `#95b7d0` |
 | 云端旅志 | light `#96877a` · dark `#aa9b8c` | light `#2f6c3e` · dark `#9bc9a7` |
 | 烛光魔塔 | light `#8a5a9e` · dark `#b88cce` | light `#2b6b3e` · dark `#9bc9a7` |
 | 星际观测 | light `#596fa7` · dark `#91a7e0` | light `#2b6b3e` · dark `#9bc9a7` |
 | 晴雨商店 | light `#914e49` · dark `#d58a80` | light `#2b6b3e` · dark `#9bc9a7` |
 | 海底世界 | light `#d8745f` · dark `#ed927c` | light `#2b6b3e` · dark `#9bc9a7` |
-| 自然画报 | 无独立 token，与经典主题共用 | 同左 |
 
-> 新主题统一使用绿 / 青色系作为 chart-complement（`#2b6b3e` light · `#9bc9a7` dark），确保与任意 brand 色的 Δhue ≥ 60°。
+> `chart-complement` 优先选择与 brand 色相差约 60° 以上的稳定颜色；可使用共享绿 / 青色，也可使用符合主题语义且保持数据可分的独立对比色。
 
 浅色控件使用纯白，与米白卡片形成层级；深色控件使用 `#303932`，与 `#242c26` 卡片形成稳定区分。暖橙与白色前景是当前确认的品牌主操作组合，仅用于核心记录、保存和今日待办操作，不能扩散到普通状态或装饰区域。
 
@@ -331,7 +333,7 @@ Hero 文案规范：
 - 标题描述现状，正文解释下一步。
 - 最多提供一个主要操作。
 - 插画只用于空状态和品牌场景，不进入高密度列表。
-- 数据为空场景必须配插画（`/illustrations/*.webp`）；纯引导场景（如 AI 对话首页）可豁免，使用圆点占位 + 主操作。
+- 数据为空场景必须配插画（`/images/illustrations/*.webp`）；纯引导场景（如 AI 对话首页）可豁免，使用圆点占位 + 主操作。
 
 ### 4.8 表单控件
 

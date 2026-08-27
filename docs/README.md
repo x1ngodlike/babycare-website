@@ -11,6 +11,7 @@
 | [`ui-guidelines.md`](./ui-guidelines.md) | 视觉系统、组件、交互、响应式和无障碍 | 页面布局、组件规范或设计变量变化 |
 | [`current-ui-system.html`](./current-ui-system.html) | 当前视觉规范的 HTML 配色与组件预览 | 颜色、控件、图标或导航规格变化 |
 | [`theme-design-and-delivery.md`](./theme-design-and-delivery.md) | 新主题的方向提案、完整方案、资源生成、代码接入、验收与提交规范 | 新增主题或调整主题制作流程 |
+| [`public-assets.md`](./public-assets.md) | `public` 图片目录、命名、格式、备份、缓存和自动校验 | 新增资源类型、调整目录或更改导出规格 |
 | [`../babycare.sh`](../babycare.sh) | Unraid 部署脚本（菜单、单命令、备份、状态） | 脚本功能、部署方式或菜单变化 |
 | [`../android-app/README.md`](../android-app/README.md) | Android 壳、服务器切换、构建和更新 | 原生代码、SDK、版本、权限或打包方式变化 |
 
@@ -19,8 +20,8 @@
 - 先修改事实来源对应的文档，再在根 README 保留简短入口与链接。
 - 未实现能力必须明确写为规划，不得混入"主要功能"。
 - 命令、版本、默认地址和页面路径应以仓库当前代码为准。
-- 发布前运行 `npm run check`；涉及 Android 原生改动时，再运行 `lintDebug` 和 `assembleDebug`。
+- 发布前运行 `npm run check`；涉及图片时先运行 `npm run assets:check`；涉及 Android 原生改动时，再运行 `lintDebug` 和 `assembleDebug`。
 - 图片批量优化先运行 `npm run images:check`；只有确认目标后才运行会写入文件的 `npm run images:optimize`。
 - 当前明确不包含语音录入、语音转写、浏览器系统通知和多宝宝能力。
 
-文档基线：2026-08-27。
+文档基线：2026-08-28。

@@ -114,15 +114,15 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     }).catch(() => { /* time background remains available without weather */ });
     return () => { active = false; };
   }, [magazineTheme, online]);
-  const gardenEggIcon = lastRecord?.type === 'feeding' ? '/icons/quick-feeding.png'
-    : lastRecord?.type === 'bowel' ? '/icons/quick-bowel.png'
+  const gardenEggIcon = lastRecord?.type === 'feeding' ? '/images/icons/quick/feeding.webp'
+    : lastRecord?.type === 'bowel' ? '/images/icons/quick/bowel.webp'
       : lastRecord?.type === 'supplement' ? careItemIconSources[careItems.find(item => item.name === lastRecord.supplement)?.icon || 'care']
-        : '/icons/quick-note.png';
+        : '/images/icons/quick/note.webp';
   const quickIcons = weatherThemeAssets?.stickers ?? {
-    feeding: '/icons/quick-feeding.png',
-    bowel: '/icons/quick-bowel.png',
-    care: '/icons/record-care.png',
-    note: '/icons/quick-note.png',
+    feeding: '/images/icons/quick/feeding.webp',
+    bowel: '/images/icons/quick/bowel.webp',
+    care: '/images/icons/tasks/care.webp',
+    note: '/images/icons/quick/note.webp',
   };
   function themedRecordIcon(record: CareRecord) {
     return getWeatherRecordIconByPack(iconPack, record, careItems) ?? careItemIconSources.medicine;
@@ -178,11 +178,11 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
         ? `建议日${timing.label}`
         : '建议今日';
     const appointmentLabel = hadAppointmentOverdue ? '改约' : '预约';
-    return <article className={`vaccine-task${overdue ? ' overdue' : ''}`} key={`vaccine:${item.key}`}><img className="task-icon vaccine" src={weatherThemeAssets?.tasks.vaccine ?? '/icons/task-vaccine-normalized.png'} alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{statusLabel}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`${appointmentLabel}${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>{appointmentLabel}</button>}<button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>接种</button></div></article>;
+    return <article className={`vaccine-task${overdue ? ' overdue' : ''}`} key={`vaccine:${item.key}`}><img className="task-icon vaccine" src={weatherThemeAssets?.tasks.vaccine ?? '/images/icons/tasks/vaccine.webp'} alt="" /><div><b>{item.vaccineName} · 第{item.dose}剂</b><small>{statusLabel}</small></div><div className="today-plan-actions">{(!hasTodayAppointment || overdue) && <button className="btn secondary" aria-label={`${appointmentLabel}${item.vaccineName}第${item.dose}剂`} onClick={() => onAppointmentVaccine(item)}>{appointmentLabel}</button>}<button className="btn primary" aria-label={`记录${item.vaccineName}第${item.dose}剂已接种`} onClick={() => onCompleteVaccine(item)}>接种</button></div></article>;
   }
   return <div className="today-layout">
     <div className="today-profile-strip" aria-label={`宝宝信息，${getAgeProfileLine(profile.birthDate, profile.name)}`}>
-      <div className="today-baby-summary"><ImageWithFallback src={profile.avatar || undefined} fallbackSrc="/bear-bottle.png" alt="" /><span>{getAgeProfileLine(profile.birthDate, profile.name)}</span></div>
+      <div className="today-baby-summary"><ImageWithFallback src={profile.avatar || undefined} fallbackSrc="/images/avatars/default-baby.webp" alt="" /><span>{getAgeProfileLine(profile.birthDate, profile.name)}</span></div>
     </div>
     <div className="today-main-column">
     <div className={`today-workbench${magazineTheme ? ' diary-workbench' : ''}`}>
@@ -193,7 +193,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
     </div>
     {todayPlanStatus === 'loading' && <section className="today-plan today-plan-loading" aria-label="今日待办正在读取" aria-busy="true"><h2>今日待办</h2><div className="today-plan-skeleton"><i /><div><i /><i /></div><i /></div></section>}
     {todayPlanStatus === 'error' && <section className="today-plan today-plan-error" role="status"><h2>今日待办</h2><p>计划暂时无法读取，请联网后下拉刷新。</p></section>}
-    {todayPlanStatus === 'ready' && (pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日待办</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item, task.time) : renderVaccineTask(task.item))}{untimedCareItems.map(item => renderMedicineTask(item))}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img className="task-icon growth" src={weatherThemeAssets?.tasks.growth ?? '/icons/task-growth-normalized.png'} alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>测量</button></div></article>}</div></section>}
+    {todayPlanStatus === 'ready' && (pendingCareItems.length > 0 || actionableVaccines.length > 0 || !weeklyGrowth) && <section className="today-plan" aria-labelledby="today-plan-title"><h2 id="today-plan-title">今日待办</h2><div className="today-plan-list">{overdueVaccines.map(renderVaccineTask)}{timedTodayTasks.map(task => task.kind === 'medicine' ? renderMedicineTask(task.item, task.time) : renderVaccineTask(task.item))}{untimedCareItems.map(item => renderMedicineTask(item))}{untimedTodayVaccines.map(renderVaccineTask)}{!weeklyGrowth && <article className="growth-task"><img className="task-icon growth" src={weatherThemeAssets?.tasks.growth ?? '/images/icons/tasks/growth.webp'} alt="" /><div><b>本周成长记录</b><small>本周 · 待记录</small></div><div className="today-plan-actions"><button className="btn primary" aria-label="记录本周成长" onClick={onAddGrowth}>测量</button></div></article>}</div></section>}
     <div className="today-insights" aria-label="今日信息">
       {todayPlanStatus === 'ready' && <VaccineReminderCard profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onComplete={onCompleteVaccine} onAppointment={onAppointmentVaccine} />}
       <DailyReport capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} superadmin={superadmin} userId={userId} />

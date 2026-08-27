@@ -44,7 +44,7 @@ function Login({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
     finally { setBusy(false); }
   }
   return <main className="auth-page"><section className="auth-card">
-    <div className="brand-bear"><img src="/illustrations/login-family.webp" alt="" /></div>
+    <div className="brand-bear"><img src="/images/illustrations/login-family.webp" alt="" /></div>
     <h1>宝宝照护记录</h1>
     <p className="supporting">家人共享同一份喂养、用药和排便记录。</p>
     <form onSubmit={submit}><fieldset className="identity-picker"><legend>选择身份</legend><div>{loginMembers.map(member => <button type="button" key={member.id} aria-pressed={identity === member.id} className={identity === member.id ? 'selected' : ''} onClick={() => { setIdentity(member.id); setPassword(''); }}><img src={member.icon} alt="" /><b>{member.name}</b><small>{member.role}</small></button>)}</div></fieldset>
@@ -134,7 +134,7 @@ export default function App() {
   const [heroTheme, setHeroTheme] = useState<string>(() => {
     try {
       const newId = localStorage.getItem('babycare-hero-theme');
-      if (newId) return newId;
+      if (newId) return newId === 'theme-diary' ? 'theme-fruit-cake' : newId;
       const legacyBg = localStorage.getItem('babycare-hero-bg') || 'auto';
       return legacyHeroBgToThemeId(legacyBg);
     } catch { return DEFAULT_THEME_ID; }
@@ -502,11 +502,11 @@ export default function App() {
     </main>
     {!isChatPage && <nav className="app-nav" aria-label="主要导航">
       {([
-        ['today', themedNavIcons?.today ?? '/icons/nav-today.png', '今日'],
-        ['history', themedNavIcons?.history ?? '/icons/nav-records.png', '记录'],
-        ['chat', themedNavIcons?.chat ?? '/icons/nav-chat.png', 'AI 助手'],
-        ['trends', themedNavIcons?.trends ?? '/icons/nav-trends.png', '趋势'],
-        ['archive', themedNavIcons?.archive ?? '/icons/nav-archive.png', '档案']
+        ['today', themedNavIcons?.today ?? '/images/icons/nav/today.webp', '今日'],
+        ['history', themedNavIcons?.history ?? '/images/icons/nav/records.webp', '记录'],
+        ['chat', themedNavIcons?.chat ?? '/images/icons/nav/chat.webp', 'AI 助手'],
+        ['trends', themedNavIcons?.trends ?? '/images/icons/nav/trends.webp', '趋势'],
+        ['archive', themedNavIcons?.archive ?? '/images/icons/nav/archive.webp', '档案']
       ] as [Tab, string, string][]).map(([value, icon, label]) => (
         <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => goToTab(value)}>
           <img src={icon} alt="" />

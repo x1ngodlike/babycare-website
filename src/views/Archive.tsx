@@ -49,7 +49,7 @@ function ProfileEditor({ profile, onClose, onSaved }: { profile: Profile; onClos
   return <Modal title="修改基本资料" kicker="宝宝档案" onClose={() => void requestClose()}><form className="editor-form" onSubmit={submit}>
     <div className="avatar-upload-area">
       <div className="avatar-preview" aria-label="当前头像">
-        <ImageWithFallback src={form.avatar || undefined} fallbackSrc="/bear-bottle.png" alt="" />
+        <ImageWithFallback src={form.avatar || undefined} fallbackSrc="/images/avatars/default-baby.webp" alt="" />
       </div>
       <div className="avatar-actions">
         <button type="button" className="btn secondary" onClick={pickFile} disabled={avatarBusy}>{avatarBusy ? '处理中…' : '上传头像'}</button>
@@ -104,11 +104,11 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
   if (archiveMode === 'milestone') {
     return <MilestoneHistory profile={profile} manager={canManage(user)} onBack={() => setArchiveMode('main')} />;
   }
-  if (showDeleted && canManage(user)) return <div className="page-stack archive-page"><header className="subpage-head"><button onClick={closeDeletedArchive} aria-label="返回宝宝档案">←</button><div><p className="kicker">宝宝档案</p><h1>已删除的成长记录</h1></div></header><section className="growth-history growth-deleted-page">{deletedGrowthRecords.length ? <div className="growth-deleted-list">{visibleDeletedRecords.map(record => <article key={record.id}><span>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span><b>{record.heightCm} cm · {record.weightKg} kg</b><button className="btn secondary" onClick={() => void onRestoreGrowth(record)}>恢复</button><button className="btn danger-button" onClick={() => void onPurgeGrowth(record)}>彻底删除</button></article>)}</div> : <EmptyState title="没有已删除的成长记录" description="删除的记录会保留在这里。" image="/illustrations/empty-records.webp" />}<Pagination page={deletedPage} totalPages={deletedPages} onChange={setDeletedPage} /></section></div>;
+  if (showDeleted && canManage(user)) return <div className="page-stack archive-page"><header className="subpage-head"><button onClick={closeDeletedArchive} aria-label="返回宝宝档案">←</button><div><p className="kicker">宝宝档案</p><h1>已删除的成长记录</h1></div></header><section className="growth-history growth-deleted-page">{deletedGrowthRecords.length ? <div className="growth-deleted-list">{visibleDeletedRecords.map(record => <article key={record.id}><span>{new Date(`${record.measuredOn}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span><b>{record.heightCm} cm · {record.weightKg} kg</b><button className="btn secondary" onClick={() => void onRestoreGrowth(record)}>恢复</button><button className="btn danger-button" onClick={() => void onPurgeGrowth(record)}>彻底删除</button></article>)}</div> : <EmptyState title="没有已删除的成长记录" description="删除的记录会保留在这里。" image="/images/illustrations/empty-records.webp" />}<Pagination page={deletedPage} totalPages={deletedPages} onChange={setDeletedPage} /></section></div>;
 
   return <div className="page-stack archive-page">
     <header className="page-head"><h1>宝宝档案</h1><p>集中查看基本资料和成长变化。</p></header>
-    <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像"><ImageWithFallback src={profile.avatar || undefined} fallbackSrc="/bear-bottle.png" alt="" /></div><div className="archive-profile-meta"><h2>{profile.name}{profile.nickname?.trim() ? <small className="nickname"> · {profile.nickname.trim()}</small> : null}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div></section>
+    <section className="archive-profile"><p className="kicker">基本资料</p><div className="archive-profile-head"><div className="archive-profile-avatar" aria-label="宝宝头像"><ImageWithFallback src={profile.avatar || undefined} fallbackSrc="/images/avatars/default-baby.webp" alt="" /></div><div className="archive-profile-meta"><h2>{profile.name}{profile.nickname?.trim() ? <small className="nickname"> · {profile.nickname.trim()}</small> : null}</h2><p className="archive-profile-summary">{sexLabels[profile.sex || 'unspecified']} · {calculateAge(profile.birthDate)} · 出生于 {profile.birthDate.replaceAll('-', '.')}</p></div></div></section>
     <MilestoneArchiveSummary profile={profile} onOpen={() => setArchiveMode('milestone')} />
     <VaccineArchiveSummary profile={profile} records={vaccineRecords} catalog={vaccineCatalog} onOpen={onOpenVaccines} />
     <GrowthAssessmentCard user={user} growthRecords={growthRecords} />
@@ -129,7 +129,7 @@ function ArchiveView({ profile, growthRecords, deletedGrowthRecords, vaccineReco
             <div className="growth-row-actions" role="cell"><ActionMenu label={`${record.measuredOn}成长记录操作`} items={[{ label: '修改记录', onSelect: () => onEditGrowth(record) }, ...(canManage(user) ? [{ label: '删除记录', danger: true, onSelect: () => onDeleteGrowth(record) }] : [])]} /></div>
           </article>;
         })}
-      </div> : <EmptyState title="还没有成长记录" description="可以从今日开始记录身高和体重。" image="/illustrations/empty-records.webp" />}
+      </div> : <EmptyState title="还没有成长记录" description="可以从今日开始记录身高和体重。" image="/images/illustrations/empty-records.webp" />}
       <Pagination page={growthPage} totalPages={growthPages} onChange={setGrowthPage} />
     </section>
     {editingProfile && <ProfileEditor profile={profile} onClose={() => setEditingProfile(false)} onSaved={onProfileSaved} />}

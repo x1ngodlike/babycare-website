@@ -435,7 +435,7 @@ npm run check
 
 该命令依次执行单元测试、静态检查（Biome）、严格类型检查、生产构建和 CSS 结构检查。单项排查可使用 `npm test`、`npm run lint`、`npm run typecheck`、`npm run build` 或 `npm run check:css`。
 
-图片维护工具依赖 Python 3 和 Pillow。`npm run images:check` 只列出受管图片，不写入；`npm run images:optimize` 才会创建 `public/.image-backup-*` 备份并原地优化。它不接入 `npm run check` 或生产构建，避免常规检查意外改写资源。
+图片维护工具依赖 Python 3 和 Pillow。`npm run images:check` 只列出 `public/images` 的通用 WebP，不写入；`npm run images:optimize` 才会在项目根目录 `.image-backups/` 创建备份并原地优化。`npm run assets:check` 校验整个 `public` 的目录、规格和代码引用，并已接入生产构建；所有检查均不会改写资源。
 
 Docker Compose 关键约定：
 

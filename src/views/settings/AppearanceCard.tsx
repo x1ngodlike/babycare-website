@@ -47,7 +47,7 @@ const DIARY_PERIOD_DETAILS: Record<string, { range: string; weather: Pick<Weathe
 };
 
 const LABEL_FOR_LAYOUT: Record<HeroLayout, string> = { diary: '杂志风', classic: '经典风' };
-const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'hero-fruit-cake': '水果蛋糕', 'hero-diary': '自然画报', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界', 'hero-forest-press': '林间报社' };
+const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'hero-immortal-gate': '云海仙门', 'hero-fruit-cake': '水果蛋糕', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界', 'hero-forest-press': '林间报社' };
 
 function findBgLabel(bg: string): string {
   return HERO_BACKGROUNDS.find(o => o.value === bg)?.label ?? bg;

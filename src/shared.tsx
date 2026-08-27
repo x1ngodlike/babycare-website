@@ -8,17 +8,17 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export const typeNames: Record<RecordType, string> = { feeding: '喂奶', supplement: '护理', bowel: '排便', note: '其他' };
 
 export const typeIcons: Record<RecordType, string> = {
-  feeding: '/icons/quick-feeding.png',
-  supplement: '/icons/record-care.png',
-  bowel: '/icons/quick-bowel.png',
-  note: '/icons/quick-note.png'
+  feeding: '/images/icons/quick/feeding.webp',
+  supplement: '/images/icons/tasks/care.webp',
+  bowel: '/images/icons/quick/bowel.webp',
+  note: '/images/icons/quick/note.webp'
 };
 
 export const familyMembers: { id: FamilyId; name: string; role: string; icon: string }[] = [
-  { id: 'father', name: '爸爸', role: '超管', icon: '/icons/father.png' },
-  { id: 'mother', name: '妈妈', role: '管理', icon: '/icons/mother.png' },
-  { id: 'grandfather', name: '爷爷', role: '普通', icon: '/icons/grandfather.png' },
-  { id: 'grandmother', name: '奶奶', role: '普通', icon: '/icons/grandmother.png' }
+  { id: 'father', name: '爸爸', role: '超管', icon: '/images/avatars/roles/father.webp' },
+  { id: 'mother', name: '妈妈', role: '管理', icon: '/images/avatars/roles/mother.webp' },
+  { id: 'grandfather', name: '爷爷', role: '普通', icon: '/images/avatars/roles/grandfather.webp' },
+  { id: 'grandmother', name: '奶奶', role: '普通', icon: '/images/avatars/roles/grandmother.webp' }
 ];
 
 export const auditNames: Record<AuditIdentity, string> = { father: '爸爸', mother: '妈妈', grandfather: '爷爷', grandmother: '奶奶', legacy: '历史数据' };
@@ -78,10 +78,10 @@ export const sexLabels: Record<BabySex, string> = { male: '男宝宝', female: '
 export const canManage = (user: SessionUser | null) => user?.role === 'superadmin' || user?.role === 'admin';
 
 export const careItemIconSources: Record<CareItemIcon, string> = {
-  medicine: '/icons/record-medicine.png',
-  massage: '/icons/record-massage.png',
-  bath: '/icons/record-bath.png',
-  care: '/icons/record-care.png'
+  medicine: '/images/icons/tasks/medicine.webp',
+  massage: '/images/icons/tasks/massage.webp',
+  bath: '/images/icons/tasks/bath.webp',
+  care: '/images/icons/tasks/care.webp'
 };
 
 export const careItemFor = (name: string | null | undefined, items: CareItem[]) => items.find(item => item.name === name);

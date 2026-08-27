@@ -269,16 +269,18 @@ recommendedBgs: ['hero-fruit-cake', 'hero-candy-workshop']
 ```text
 public/hero/weather/{slug}/
 ├── backgrounds/
-│   ├── morning.webp
-│   ├── daytime.webp
-│   ├── evening.webp
-│   └── night.webp
-├── stickers/
-│   ├── sticker-feeding.webp
-│   ├── sticker-bowel.webp
-│   ├── sticker-care.webp
-│   └── sticker-note.webp
+│   ├── default/
+│   │   ├── morning.webp
+│   │   ├── daytime.webp
+│   │   ├── evening.webp
+│   │   └── night.webp
+│   └── {recommended-bg}/        # 可选，同样包含四时段
 ├── icons/
+│   ├── quick/
+│   │   ├── feeding.webp
+│   │   ├── bowel.webp
+│   │   ├── care.webp
+│   │   └── note.webp
 │   ├── tasks/
 │   │   ├── medicine.webp
 │   │   ├── massage.webp
@@ -292,8 +294,12 @@ public/hero/weather/{slug}/
 │       ├── chat.webp
 │       ├── trends.webp
 │       └── archive.webp
-└── thumb.webp
+└── thumbnails/
+    ├── theme.webp
+    └── {recommended-bg}.webp       # 与新增推荐背景一一对应
 ```
+
+其他公共图片、经典 Hero、PWA 图标与备份边界见 [`public-assets.md`](./public-assets.md)。主题交付不得在 `public` 根目录新建临时文件、备份目录或未归类图片。
 
 ## 6. Hero 设计与生图规范
 
@@ -422,7 +428,7 @@ Constraints: genuinely transparent background; RGBA output with real alpha; no c
 
 1. `src/config/weatherThemes.ts`
    - 扩展 `WeatherHeroThemeId`。
-   - 在 `WEATHER_HERO_ASSETS` 添加 `thumb`、`stickers`、`tasks`、`nav`。
+   - 在 `WEATHER_HERO_ASSETS` 添加 `thumb`、`stickers`、`tasks`、`nav`；其中代码属性 `stickers` 对应资源目录 `icons/quick`。
    - 在 `HERO_BACKGROUNDS`、`ICON_PACKS` 和 `THEMES` 注册主题。
    - 更新天气主题分组显示数量。
    - 在 `getVisualThemeForPreset` 和 `LEGACY_BG_TO_THEME` 添加映射。
@@ -456,6 +462,7 @@ Constraints: genuinely transparent background; RGBA output with real alpha; no c
 
 ### 资源机器校验
 
+- [ ] 运行 `npm run assets:check`。
 - [ ] 自动核对 4 张 Hero、15 枚图标和 1 张缩略图的数量、路径、尺寸、格式及 Alpha。
 - [ ] 自动检查配置引用的资源路径存在，文件可读取且导出规格正确。
 - [ ] 替换过同名线上资源时，确认构建缓存版本变化；使用查询参数时确认所有引用一致。

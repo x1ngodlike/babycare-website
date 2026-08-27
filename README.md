@@ -240,7 +240,7 @@ python3 -m pip install Pillow
 npm run images:check
 ```
 
-确认目标与尺寸无误后，再运行 `npm run images:optimize`。写入前会把所有目标文件备份到 `public/.image-backup-日期时间/`；PWA 的 `icon-192.png` 和 `icon-512.png` 固定跳过。该工具不属于日常构建流程。
+确认目标与尺寸无误后，再运行 `npm run images:optimize`。该工具只处理 `public/images` 的通用 WebP，写入前备份到项目根目录 `.image-backups/日期时间/`，不会把备份发布到线上；Hero 和 PWA 图标不由该工具改写。详细目录和规格见 [`docs/public-assets.md`](./docs/public-assets.md)。
 
 ## 数据与隐私
 

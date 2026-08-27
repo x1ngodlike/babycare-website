@@ -215,7 +215,7 @@ html[data-theme="dark"] .app-nav .nav-add:active {
 html[data-theme="dark"] .baby-hero::after {
   background:
     linear-gradient(90deg, rgba(20, 20, 19, .78) 0%, rgba(20, 20, 19, .52) 48%, rgba(20, 20, 19, .1) 100%),
-    var(--hero-background, url('/hero/default/midday.webp')) center / cover no-repeat;
+    var(--hero-background, url('/hero/classic/default/midday.webp')) center / cover no-repeat;
 }
 html[data-theme="dark"] .baby-hero.hero-diary::after {
   background:

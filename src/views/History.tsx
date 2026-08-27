@@ -61,7 +61,7 @@ function RecordNotePreview({ note }: { note: string }) {
 }
 
 export function Timeline({ records, careItems, manager, emptyText = '这一天还没有记录', emptyAction, onEdit, onDelete, onAudit, iconForRecord, searchMode = false, compactMetadata = false, hideMetadata = false }: { records: CareRecord[]; careItems: CareItem[]; manager: boolean; emptyText?: string; emptyAction?: ReactNode; onEdit(record: CareRecord): void; onDelete(record: CareRecord): void; onAudit(record: CareRecord): void; iconForRecord?(record: CareRecord): string; searchMode?: boolean; compactMetadata?: boolean; hideMetadata?: boolean }) {
-  if (!records.length) return <EmptyState title={emptyText} description="记录后会按时间排列在这里。" image={emptyText.includes('找到') ? '/illustrations/empty-search.webp' : '/illustrations/empty-records.webp'} action={emptyAction} />;
+  if (!records.length) return <EmptyState title={emptyText} description="记录后会按时间排列在这里。" image={emptyText.includes('找到') ? '/images/illustrations/empty-search.webp' : '/images/illustrations/empty-records.webp'} action={emptyAction} />;
   return <div className="timeline">{records.map(record => {
     const created = auditNames[record.createdBy || 'legacy'];
     const updated = auditNames[record.updatedBy || record.createdBy || 'legacy'];

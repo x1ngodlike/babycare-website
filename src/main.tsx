@@ -15,6 +15,7 @@ import './styles/milestone.css';
 import './ui.css';
 import './styles/components.css';
 import './styles/theme-system.css';
+import './styles/theme-immortal-gate.css';
 import './styles/theme-travel.css';
 import './styles/theme-orbit.css';
 import './styles/theme-shop.css';

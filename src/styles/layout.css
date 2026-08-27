@@ -8,18 +8,18 @@
 .baby-hero {
   background: var(--token-hub-hero-bg);
 }
-.baby-hero.hero-morning { --hero-background: url('/hero/default/morning.webp'); }
-.baby-hero.hero-midday { --hero-background: url('/hero/default/midday.webp'); }
-.baby-hero.hero-afternoon { --hero-background: url('/hero/default/afternoon.webp'); }
-.baby-hero.hero-evening { --hero-background: url('/hero/default/evening.webp'); }
-.baby-hero.hero-night { --hero-background: url('/hero/default/night.webp'); }
+.baby-hero.hero-morning { --hero-background: url('/hero/classic/default/morning.webp'); }
+.baby-hero.hero-midday { --hero-background: url('/hero/classic/default/midday.webp'); }
+.baby-hero.hero-afternoon { --hero-background: url('/hero/classic/default/afternoon.webp'); }
+.baby-hero.hero-evening { --hero-background: url('/hero/classic/default/evening.webp'); }
+.baby-hero.hero-night { --hero-background: url('/hero/classic/default/night.webp'); }
 
 /* Hero 动态花园方案 */
-.baby-hero.hero-garden.hero-morning { --hero-background: url('/hero/garden/morning.webp'); }
-.baby-hero.hero-garden.hero-midday { --hero-background: url('/hero/garden/midday.webp'); }
-.baby-hero.hero-garden.hero-afternoon { --hero-background: url('/hero/garden/afternoon.webp'); }
-.baby-hero.hero-garden.hero-evening { --hero-background: url('/hero/garden/evening.webp'); }
-.baby-hero.hero-garden.hero-night { --hero-background: url('/hero/garden/night.webp'); }
+.baby-hero.hero-garden.hero-morning { --hero-background: url('/hero/classic/garden/morning.webp'); }
+.baby-hero.hero-garden.hero-midday { --hero-background: url('/hero/classic/garden/midday.webp'); }
+.baby-hero.hero-garden.hero-afternoon { --hero-background: url('/hero/classic/garden/afternoon.webp'); }
+.baby-hero.hero-garden.hero-evening { --hero-background: url('/hero/classic/garden/evening.webp'); }
+.baby-hero.hero-garden.hero-night { --hero-background: url('/hero/classic/garden/night.webp'); }
 .baby-hero.hero-garden > div:first-child { z-index: 2; }
 .baby-hero.hero-garden::after {
   transform-origin: 72% 55%;
@@ -60,7 +60,7 @@
 .garden-note .garden-egg { background: rgba(255, 229, 190, .88); }
 .garden-welcome .garden-egg { display: none; }
 
-/* Hero 自然画报：独立的四时段 + 实时天气组合，不复用其他主题资源 */
+/* 杂志风 Hero 基础：提供共享排版、天气层和安全兜底背景。 */
 .baby-hero.hero-diary {
   --diary-paper: #f4e4bd;
   --diary-line: rgba(90, 105, 75, .1);
@@ -78,80 +78,93 @@
   clip-path: inset(0 round 24px 24px 0 0);
   animation: diary-page-arrive .45s ease-out both, diary-postcard-breathe 14s .45s ease-in-out infinite alternate;
 }
-.baby-hero.hero-diary.diary-morning { --diary-background: url('/hero/weather/nature/backgrounds/morning.webp'); }
-.baby-hero.hero-diary.diary-daytime { --diary-background: url('/hero/weather/nature/backgrounds/daytime.webp'); }
-.baby-hero.hero-diary.diary-evening { --diary-background: url('/hero/weather/nature/backgrounds/evening.webp'); }
-.baby-hero.hero-diary.diary-night { --diary-background: url('/hero/weather/nature/backgrounds/night.webp'); }
-.baby-hero.hero-travel.diary-morning { --diary-background: url('/hero/weather/travel/backgrounds/morning.webp'); }
-.baby-hero.hero-travel.diary-daytime { --diary-background: url('/hero/weather/travel/backgrounds/daytime.webp'); }
-.baby-hero.hero-travel.diary-evening { --diary-background: url('/hero/weather/travel/backgrounds/evening.webp'); }
-.baby-hero.hero-travel.diary-night { --diary-background: url('/hero/weather/travel/backgrounds/night.webp'); }
-.baby-hero.hero-orbit.diary-morning { --diary-background: url('/hero/weather/orbit/backgrounds/morning.webp'); }
-.baby-hero.hero-orbit.diary-daytime { --diary-background: url('/hero/weather/orbit/backgrounds/daytime.webp'); }
-.baby-hero.hero-orbit.diary-evening { --diary-background: url('/hero/weather/orbit/backgrounds/evening.webp'); }
-.baby-hero.hero-orbit.diary-night { --diary-background: url('/hero/weather/orbit/backgrounds/night.webp'); }
-.baby-hero.hero-shop.diary-morning { --diary-background: url('/hero/weather/shop/backgrounds/morning.webp'); }
-.baby-hero.hero-shop.diary-daytime { --diary-background: url('/hero/weather/shop/backgrounds/daytime.webp'); }
-.baby-hero.hero-shop.diary-evening { --diary-background: url('/hero/weather/shop/backgrounds/evening.webp'); }
-.baby-hero.hero-shop.diary-night { --diary-background: url('/hero/weather/shop/backgrounds/night.webp'); }
-.baby-hero.hero-arcane.diary-morning { --diary-background: url('/hero/weather/arcane/backgrounds/morning.webp'); }
-.baby-hero.hero-arcane.diary-daytime { --diary-background: url('/hero/weather/arcane/backgrounds/daytime.webp'); }
-.baby-hero.hero-arcane.diary-evening { --diary-background: url('/hero/weather/arcane/backgrounds/evening.webp'); }
-.baby-hero.hero-arcane.diary-night { --diary-background: url('/hero/weather/arcane/backgrounds/night.webp'); }
-.baby-hero.hero-ocean.diary-morning { --diary-background: url('/hero/weather/ocean/backgrounds/morning.webp'); }
-.baby-hero.hero-ocean.diary-daytime { --diary-background: url('/hero/weather/ocean/backgrounds/daytime.webp'); }
-.baby-hero.hero-ocean.diary-evening { --diary-background: url('/hero/weather/ocean/backgrounds/evening.webp'); }
-.baby-hero.hero-ocean.diary-night { --diary-background: url('/hero/weather/ocean/backgrounds/night.webp'); }
-.baby-hero.hero-forest-press.diary-morning { --diary-background: url('/hero/weather/forest-press/backgrounds/morning.webp'); }
-.baby-hero.hero-forest-press.diary-daytime { --diary-background: url('/hero/weather/forest-press/backgrounds/daytime.webp?v=7c887ab3'); }
-.baby-hero.hero-forest-press.diary-evening { --diary-background: url('/hero/weather/forest-press/backgrounds/evening.webp'); }
-.baby-hero.hero-forest-press.diary-night { --diary-background: url('/hero/weather/forest-press/backgrounds/night.webp'); }
-.baby-hero.hero-fruit-cake.diary-morning { --diary-background: url('/hero/weather/fruit-cake/backgrounds/morning.webp'); }
-.baby-hero.hero-fruit-cake.diary-daytime { --diary-background: url('/hero/weather/fruit-cake/backgrounds/daytime.webp'); }
-.baby-hero.hero-fruit-cake.diary-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/evening.webp'); }
-.baby-hero.hero-fruit-cake.diary-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/night.webp'); }
+.baby-hero.hero-diary.diary-morning { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/morning.webp'); }
+.baby-hero.hero-diary.diary-daytime { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-diary.diary-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/evening.webp'); }
+.baby-hero.hero-diary.diary-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/night.webp'); }
+.baby-hero.hero-immortal-gate.diary-morning { --diary-background: url('/hero/weather/immortal-gate/backgrounds/default/morning.webp'); }
+.baby-hero.hero-immortal-gate.diary-daytime { --diary-background: url('/hero/weather/immortal-gate/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-immortal-gate.diary-evening { --diary-background: url('/hero/weather/immortal-gate/backgrounds/default/evening.webp'); }
+.baby-hero.hero-immortal-gate.diary-night { --diary-background: url('/hero/weather/immortal-gate/backgrounds/default/night.webp'); }
+.baby-hero.hero-travel.diary-morning { --diary-background: url('/hero/weather/travel/backgrounds/default/morning.webp'); }
+.baby-hero.hero-travel.diary-daytime { --diary-background: url('/hero/weather/travel/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-travel.diary-evening { --diary-background: url('/hero/weather/travel/backgrounds/default/evening.webp'); }
+.baby-hero.hero-travel.diary-night { --diary-background: url('/hero/weather/travel/backgrounds/default/night.webp'); }
+.baby-hero.hero-orbit.diary-morning { --diary-background: url('/hero/weather/orbit/backgrounds/default/morning.webp'); }
+.baby-hero.hero-orbit.diary-daytime { --diary-background: url('/hero/weather/orbit/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-orbit.diary-evening { --diary-background: url('/hero/weather/orbit/backgrounds/default/evening.webp'); }
+.baby-hero.hero-orbit.diary-night { --diary-background: url('/hero/weather/orbit/backgrounds/default/night.webp'); }
+.baby-hero.hero-shop.diary-morning { --diary-background: url('/hero/weather/shop/backgrounds/default/morning.webp'); }
+.baby-hero.hero-shop.diary-daytime { --diary-background: url('/hero/weather/shop/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-shop.diary-evening { --diary-background: url('/hero/weather/shop/backgrounds/default/evening.webp'); }
+.baby-hero.hero-shop.diary-night { --diary-background: url('/hero/weather/shop/backgrounds/default/night.webp'); }
+.baby-hero.hero-arcane.diary-morning { --diary-background: url('/hero/weather/arcane/backgrounds/default/morning.webp'); }
+.baby-hero.hero-arcane.diary-daytime { --diary-background: url('/hero/weather/arcane/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-arcane.diary-evening { --diary-background: url('/hero/weather/arcane/backgrounds/default/evening.webp'); }
+.baby-hero.hero-arcane.diary-night { --diary-background: url('/hero/weather/arcane/backgrounds/default/night.webp'); }
+.baby-hero.hero-ocean.diary-morning { --diary-background: url('/hero/weather/ocean/backgrounds/default/morning.webp'); }
+.baby-hero.hero-ocean.diary-daytime { --diary-background: url('/hero/weather/ocean/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-ocean.diary-evening { --diary-background: url('/hero/weather/ocean/backgrounds/default/evening.webp'); }
+.baby-hero.hero-ocean.diary-night { --diary-background: url('/hero/weather/ocean/backgrounds/default/night.webp'); }
+.baby-hero.hero-forest-press.diary-morning { --diary-background: url('/hero/weather/forest-press/backgrounds/default/morning.webp'); }
+.baby-hero.hero-forest-press.diary-daytime { --diary-background: url('/hero/weather/forest-press/backgrounds/default/daytime.webp?v=7c887ab3'); }
+.baby-hero.hero-forest-press.diary-evening { --diary-background: url('/hero/weather/forest-press/backgrounds/default/evening.webp'); }
+.baby-hero.hero-forest-press.diary-night { --diary-background: url('/hero/weather/forest-press/backgrounds/default/night.webp'); }
+.baby-hero.hero-fruit-cake.diary-morning { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/morning.webp'); }
+.baby-hero.hero-fruit-cake.diary-daytime { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-fruit-cake.diary-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/evening.webp'); }
+.baby-hero.hero-fruit-cake.diary-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/night.webp'); }
 .baby-hero.hero-candy-workshop.diary-morning { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/morning.webp'); }
 .baby-hero.hero-candy-workshop.diary-daytime { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/daytime.webp'); }
 .baby-hero.hero-candy-workshop.diary-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/evening.webp'); }
 .baby-hero.hero-candy-workshop.diary-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/night.webp'); }
 
 /* Weather 套 → classic layout period 兼容：daytime 同时覆盖 midday/afternoon */
-.baby-hero.hero-diary.hero-morning { --diary-background: url('/hero/weather/nature/backgrounds/morning.webp'); }
-.baby-hero.hero-diary.hero-midday, .baby-hero.hero-diary.hero-afternoon { --diary-background: url('/hero/weather/nature/backgrounds/daytime.webp'); }
-.baby-hero.hero-diary.hero-evening { --diary-background: url('/hero/weather/nature/backgrounds/evening.webp'); }
-.baby-hero.hero-diary.hero-night { --diary-background: url('/hero/weather/nature/backgrounds/night.webp'); }
-.baby-hero.hero-travel.hero-morning { --diary-background: url('/hero/weather/travel/backgrounds/morning.webp'); }
-.baby-hero.hero-travel.hero-midday, .baby-hero.hero-travel.hero-afternoon { --diary-background: url('/hero/weather/travel/backgrounds/daytime.webp'); }
-.baby-hero.hero-travel.hero-evening { --diary-background: url('/hero/weather/travel/backgrounds/evening.webp'); }
-.baby-hero.hero-travel.hero-night { --diary-background: url('/hero/weather/travel/backgrounds/night.webp'); }
-.baby-hero.hero-orbit.hero-morning { --diary-background: url('/hero/weather/orbit/backgrounds/morning.webp'); }
-.baby-hero.hero-orbit.hero-midday, .baby-hero.hero-orbit.hero-afternoon { --diary-background: url('/hero/weather/orbit/backgrounds/daytime.webp'); }
-.baby-hero.hero-orbit.hero-evening { --diary-background: url('/hero/weather/orbit/backgrounds/evening.webp'); }
-.baby-hero.hero-orbit.hero-night { --diary-background: url('/hero/weather/orbit/backgrounds/night.webp'); }
-.baby-hero.hero-shop.hero-morning { --diary-background: url('/hero/weather/shop/backgrounds/morning.webp'); }
-.baby-hero.hero-shop.hero-midday, .baby-hero.hero-shop.hero-afternoon { --diary-background: url('/hero/weather/shop/backgrounds/daytime.webp'); }
-.baby-hero.hero-shop.hero-evening { --diary-background: url('/hero/weather/shop/backgrounds/evening.webp'); }
-.baby-hero.hero-shop.hero-night { --diary-background: url('/hero/weather/shop/backgrounds/night.webp'); }
-.baby-hero.hero-arcane.hero-morning { --diary-background: url('/hero/weather/arcane/backgrounds/morning.webp'); }
-.baby-hero.hero-arcane.hero-midday, .baby-hero.hero-arcane.hero-afternoon { --diary-background: url('/hero/weather/arcane/backgrounds/daytime.webp'); }
-.baby-hero.hero-arcane.hero-evening { --diary-background: url('/hero/weather/arcane/backgrounds/evening.webp'); }
-.baby-hero.hero-arcane.hero-night { --diary-background: url('/hero/weather/arcane/backgrounds/night.webp'); }
-.baby-hero.hero-ocean.hero-morning { --diary-background: url('/hero/weather/ocean/backgrounds/morning.webp'); }
-.baby-hero.hero-ocean.hero-midday, .baby-hero.hero-ocean.hero-afternoon { --diary-background: url('/hero/weather/ocean/backgrounds/daytime.webp'); }
-.baby-hero.hero-ocean.hero-evening { --diary-background: url('/hero/weather/ocean/backgrounds/evening.webp'); }
-.baby-hero.hero-ocean.hero-night { --diary-background: url('/hero/weather/ocean/backgrounds/night.webp'); }
-.baby-hero.hero-forest-press.hero-morning { --diary-background: url('/hero/weather/forest-press/backgrounds/morning.webp'); }
-.baby-hero.hero-forest-press.hero-midday, .baby-hero.hero-forest-press.hero-afternoon { --diary-background: url('/hero/weather/forest-press/backgrounds/daytime.webp?v=7c887ab3'); }
-.baby-hero.hero-forest-press.hero-evening { --diary-background: url('/hero/weather/forest-press/backgrounds/evening.webp'); }
-.baby-hero.hero-forest-press.hero-night { --diary-background: url('/hero/weather/forest-press/backgrounds/night.webp'); }
-.baby-hero.hero-fruit-cake.hero-morning { --diary-background: url('/hero/weather/fruit-cake/backgrounds/morning.webp'); }
-.baby-hero.hero-fruit-cake.hero-midday, .baby-hero.hero-fruit-cake.hero-afternoon { --diary-background: url('/hero/weather/fruit-cake/backgrounds/daytime.webp'); }
-.baby-hero.hero-fruit-cake.hero-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/evening.webp'); }
-.baby-hero.hero-fruit-cake.hero-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/night.webp'); }
+.baby-hero.hero-diary.hero-morning { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/morning.webp'); }
+.baby-hero.hero-diary.hero-midday, .baby-hero.hero-diary.hero-afternoon { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-diary.hero-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/evening.webp'); }
+.baby-hero.hero-diary.hero-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/night.webp'); }
+.baby-hero.hero-immortal-gate.hero-morning { --diary-background: url('/hero/weather/immortal-gate/backgrounds/default/morning.webp'); }
+.baby-hero.hero-immortal-gate.hero-midday, .baby-hero.hero-immortal-gate.hero-afternoon { --diary-background: url('/hero/weather/immortal-gate/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-immortal-gate.hero-evening { --diary-background: url('/hero/weather/immortal-gate/backgrounds/default/evening.webp'); }
+.baby-hero.hero-immortal-gate.hero-night { --diary-background: url('/hero/weather/immortal-gate/backgrounds/default/night.webp'); }
+.baby-hero.hero-travel.hero-morning { --diary-background: url('/hero/weather/travel/backgrounds/default/morning.webp'); }
+.baby-hero.hero-travel.hero-midday, .baby-hero.hero-travel.hero-afternoon { --diary-background: url('/hero/weather/travel/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-travel.hero-evening { --diary-background: url('/hero/weather/travel/backgrounds/default/evening.webp'); }
+.baby-hero.hero-travel.hero-night { --diary-background: url('/hero/weather/travel/backgrounds/default/night.webp'); }
+.baby-hero.hero-orbit.hero-morning { --diary-background: url('/hero/weather/orbit/backgrounds/default/morning.webp'); }
+.baby-hero.hero-orbit.hero-midday, .baby-hero.hero-orbit.hero-afternoon { --diary-background: url('/hero/weather/orbit/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-orbit.hero-evening { --diary-background: url('/hero/weather/orbit/backgrounds/default/evening.webp'); }
+.baby-hero.hero-orbit.hero-night { --diary-background: url('/hero/weather/orbit/backgrounds/default/night.webp'); }
+.baby-hero.hero-shop.hero-morning { --diary-background: url('/hero/weather/shop/backgrounds/default/morning.webp'); }
+.baby-hero.hero-shop.hero-midday, .baby-hero.hero-shop.hero-afternoon { --diary-background: url('/hero/weather/shop/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-shop.hero-evening { --diary-background: url('/hero/weather/shop/backgrounds/default/evening.webp'); }
+.baby-hero.hero-shop.hero-night { --diary-background: url('/hero/weather/shop/backgrounds/default/night.webp'); }
+.baby-hero.hero-arcane.hero-morning { --diary-background: url('/hero/weather/arcane/backgrounds/default/morning.webp'); }
+.baby-hero.hero-arcane.hero-midday, .baby-hero.hero-arcane.hero-afternoon { --diary-background: url('/hero/weather/arcane/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-arcane.hero-evening { --diary-background: url('/hero/weather/arcane/backgrounds/default/evening.webp'); }
+.baby-hero.hero-arcane.hero-night { --diary-background: url('/hero/weather/arcane/backgrounds/default/night.webp'); }
+.baby-hero.hero-ocean.hero-morning { --diary-background: url('/hero/weather/ocean/backgrounds/default/morning.webp'); }
+.baby-hero.hero-ocean.hero-midday, .baby-hero.hero-ocean.hero-afternoon { --diary-background: url('/hero/weather/ocean/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-ocean.hero-evening { --diary-background: url('/hero/weather/ocean/backgrounds/default/evening.webp'); }
+.baby-hero.hero-ocean.hero-night { --diary-background: url('/hero/weather/ocean/backgrounds/default/night.webp'); }
+.baby-hero.hero-forest-press.hero-morning { --diary-background: url('/hero/weather/forest-press/backgrounds/default/morning.webp'); }
+.baby-hero.hero-forest-press.hero-midday, .baby-hero.hero-forest-press.hero-afternoon { --diary-background: url('/hero/weather/forest-press/backgrounds/default/daytime.webp?v=7c887ab3'); }
+.baby-hero.hero-forest-press.hero-evening { --diary-background: url('/hero/weather/forest-press/backgrounds/default/evening.webp'); }
+.baby-hero.hero-forest-press.hero-night { --diary-background: url('/hero/weather/forest-press/backgrounds/default/night.webp'); }
+.baby-hero.hero-fruit-cake.hero-morning { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/morning.webp'); }
+.baby-hero.hero-fruit-cake.hero-midday, .baby-hero.hero-fruit-cake.hero-afternoon { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-fruit-cake.hero-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/evening.webp'); }
+.baby-hero.hero-fruit-cake.hero-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/night.webp'); }
 .baby-hero.hero-candy-workshop.hero-morning { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/morning.webp'); }
 .baby-hero.hero-candy-workshop.hero-midday, .baby-hero.hero-candy-workshop.hero-afternoon { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/daytime.webp'); }
 .baby-hero.hero-candy-workshop.hero-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/evening.webp'); }
 .baby-hero.hero-candy-workshop.hero-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/night.webp'); }
+.baby-hero.hero-immortal-gate::after {
+  background:
+    linear-gradient(90deg, rgba(27, 48, 43, .68) 0%, rgba(38, 65, 58, .42) 41%, rgba(38, 65, 58, .08) 72%, transparent 100%),
+    var(--diary-background) center / cover no-repeat;
+}
 .baby-hero.hero-travel::after {
   background:
     linear-gradient(90deg, rgba(58, 48, 40, .58) 0%, rgba(74, 60, 48, .34) 42%, rgba(74, 60, 48, .08) 72%, transparent 100%),
@@ -322,6 +335,7 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
   isolation: isolate;
 }
 .baby-hero.hero-diary .hero-status::before { content: ''; position: absolute; z-index: -1; inset: 0; border-radius: inherit; background: rgba(75, 70, 47, .48); mix-blend-mode: multiply; }
+.baby-hero.hero-immortal-gate .hero-status::before { background: rgba(35, 66, 58, .56); }
 .baby-hero.hero-travel .hero-status::before { background: rgba(74, 60, 48, .52); }
 .baby-hero.hero-orbit .hero-status::before { background: rgba(27, 39, 70, .58); }
 .baby-hero.hero-shop .hero-status::before { background: rgba(62, 38, 29, .56); }
@@ -370,22 +384,22 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
 .diary-hill-two { right: -31%; bottom: -51%; width: 74%; border-radius: 44% 56% 0 0 / 54% 46% 0 0; background: #667e60; transform: rotate(8deg); }
 .diary-sun-moon { position: absolute; right: 16%; top: 31%; width: 33px; height: 33px; border-radius: 50%; background: #f7c45f; box-shadow: 0 0 0 8px rgba(255, 227, 142, .14), 0 0 24px rgba(255, 213, 105, .42); animation: diary-orbit-breathe 5s ease-in-out infinite alternate; }
 .diary-night .diary-sun-moon { background: #f4e4b2; box-shadow: inset -8px -3px 0 #d7d5c3, 0 0 20px rgba(245, 232, 178, .25); }
-.diary-cloud { position: absolute; z-index: 1; inset: -10%; background: url('/hero/weather/overlays/cloud-wisp.webp') center / 100% 100% no-repeat; opacity: 0; mix-blend-mode: screen; will-change: transform, opacity; }
+.diary-cloud { position: absolute; z-index: 1; inset: -10%; background: url('/hero/weather/shared/overlays/cloud-wisp.webp') center / 100% 100% no-repeat; opacity: 0; mix-blend-mode: screen; will-change: transform, opacity; }
 .diary-cloud-two { inset: -14%; transform: scale(.94) scaleX(-1); }
 .weather-cloudy .diary-cloud, .weather-overcast .diary-cloud { opacity: .26; animation: diary-cloud-drift 14s ease-in-out infinite alternate; }
 .weather-cloudy .diary-cloud-two { opacity: .1; animation-duration: 18s; animation-direction: alternate-reverse; }
 .weather-overcast .diary-cloud { opacity: .19; filter: saturate(.62) brightness(.94); }
 .weather-overcast .diary-cloud-two { opacity: .09; }
-.weather-fog .diary-fog { position: absolute; z-index: 2; inset: -10%; background: url('/hero/weather/overlays/fog-veil.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .34; will-change: transform, opacity; animation: diary-fog-drift 11s ease-in-out infinite alternate; }
+.weather-fog .diary-fog { position: absolute; z-index: 2; inset: -10%; background: url('/hero/weather/shared/overlays/fog-veil.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .34; will-change: transform, opacity; animation: diary-fog-drift 11s ease-in-out infinite alternate; }
 .weather-fog .diary-fog::after { content: ''; position: absolute; inset: -8%; background: inherit; background-size: 100% 100%; opacity: .36; transform: scaleX(-1); }
-.diary-rain { display: none; position: absolute; z-index: 2; inset: -10%; background: url('/hero/weather/overlays/rain-glass.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .23; will-change: transform; animation: diary-rain-fall 1.8s linear infinite; }
+.diary-rain { display: none; position: absolute; z-index: 2; inset: -10%; background: url('/hero/weather/shared/overlays/rain-glass.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .23; will-change: transform; animation: diary-rain-fall 1.8s linear infinite; }
 .weather-rain .diary-rain, .weather-thunder .diary-rain { display: block; }
-.diary-snow { display: none; position: absolute; z-index: 2; inset: -14%; background: url('/hero/weather/overlays/snow-depth.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .34; will-change: transform, opacity; animation: diary-snow-fall 7s linear infinite; }
+.diary-snow { display: none; position: absolute; z-index: 2; inset: -14%; background: url('/hero/weather/shared/overlays/snow-depth.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .34; will-change: transform, opacity; animation: diary-snow-fall 7s linear infinite; }
 .diary-snow-two { inset: -18%; opacity: .2; animation-delay: -3.5s; transform: scale(.94) scaleX(-1); }
 .weather-snow .diary-snow { display: block; }
 .diary-scene.weather-thunder::after { content: ''; position: absolute; inset: 0 0 0 48%; background: radial-gradient(circle at 62% 22%, rgba(255, 247, 197, .34), transparent 58%); opacity: 0; animation: diary-distant-flash 5.2s ease-in-out infinite; }
 .diary-scene.weather-clear::before { display: none; }
-.diary-scene.weather-thunder::before { content: ''; position: absolute; z-index: 3; inset: -10%; background: url('/hero/weather/overlays/lightning-glow.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .23; will-change: opacity, transform; animation: diary-lightning-pulse 4.2s ease-in-out infinite; }
+.diary-scene.weather-thunder::before { content: ''; position: absolute; z-index: 3; inset: -10%; background: url('/hero/weather/shared/overlays/lightning-glow.webp') center / 100% 100% no-repeat; mix-blend-mode: screen; opacity: .23; will-change: opacity, transform; animation: diary-lightning-pulse 4.2s ease-in-out infinite; }
 .baby-hero.hero-diary.weather-effects-off[class*="weather-"]::before { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
 .weather-effects-off .diary-cloud,
 .weather-effects-off .diary-rain,
@@ -403,6 +417,7 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
 .baby-hero.hero-diary .diary-period-mark { display: none; }
 .baby-hero.hero-diary .diary-day-stamp { display: flex; right: 12px; bottom: 12px; flex-direction: column; align-items: flex-end; gap: 1px; padding: 0; border: 0; color: rgba(255, 249, 229, .68); font-size: 7px; letter-spacing: .18em; transform: none; }
 .baby-hero.hero-diary .diary-day-stamp::after { content: 'GROWING NOTES'; font-size: 5px; letter-spacing: .12em; opacity: .72; }
+.baby-hero.hero-immortal-gate .diary-day-stamp::after { content: 'CLOUD ASCENT'; }
 .baby-hero.hero-travel .diary-day-stamp::after { content: 'CLOUD JOURNEY'; }
 .baby-hero.hero-orbit .diary-day-stamp::after { content: 'LITTLE ORBIT'; }
 .baby-hero.hero-shop .diary-day-stamp::after { content: 'DAILY SHOP'; }
@@ -428,81 +443,81 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
 }
 
 /* Hero 折纸童趣方案 */
-.baby-hero.hero-paper.hero-morning { --hero-background: url('/hero/paper/morning.webp'); }
-.baby-hero.hero-paper.hero-midday { --hero-background: url('/hero/paper/midday.webp'); }
-.baby-hero.hero-paper.hero-afternoon { --hero-background: url('/hero/paper/afternoon.webp'); }
-.baby-hero.hero-paper.hero-evening { --hero-background: url('/hero/paper/evening.webp'); }
-.baby-hero.hero-paper.hero-night { --hero-background: url('/hero/paper/night.webp'); }
+.baby-hero.hero-paper.hero-morning { --hero-background: url('/hero/classic/paper/morning.webp'); }
+.baby-hero.hero-paper.hero-midday { --hero-background: url('/hero/classic/paper/midday.webp'); }
+.baby-hero.hero-paper.hero-afternoon { --hero-background: url('/hero/classic/paper/afternoon.webp'); }
+.baby-hero.hero-paper.hero-evening { --hero-background: url('/hero/classic/paper/evening.webp'); }
+.baby-hero.hero-paper.hero-night { --hero-background: url('/hero/classic/paper/night.webp'); }
 
 /* Hero 手绘水彩方案 */
-.baby-hero.hero-watercolor.hero-morning { --hero-background: url('/hero/watercolor/morning.webp'); }
-.baby-hero.hero-watercolor.hero-midday { --hero-background: url('/hero/watercolor/midday.webp'); }
-.baby-hero.hero-watercolor.hero-afternoon { --hero-background: url('/hero/watercolor/afternoon.webp'); }
-.baby-hero.hero-watercolor.hero-evening { --hero-background: url('/hero/watercolor/evening.webp'); }
-.baby-hero.hero-watercolor.hero-night { --hero-background: url('/hero/watercolor/night.webp'); }
+.baby-hero.hero-watercolor.hero-morning { --hero-background: url('/hero/classic/watercolor/morning.webp'); }
+.baby-hero.hero-watercolor.hero-midday { --hero-background: url('/hero/classic/watercolor/midday.webp'); }
+.baby-hero.hero-watercolor.hero-afternoon { --hero-background: url('/hero/classic/watercolor/afternoon.webp'); }
+.baby-hero.hero-watercolor.hero-evening { --hero-background: url('/hero/classic/watercolor/evening.webp'); }
+.baby-hero.hero-watercolor.hero-night { --hero-background: url('/hero/classic/watercolor/night.webp'); }
 
 /* Hero 软陶时光方案 */
-.baby-hero.hero-clay.hero-morning { --hero-background: url('/hero/clay/morning.webp'); }
-.baby-hero.hero-clay.hero-midday { --hero-background: url('/hero/clay/midday.webp'); }
-.baby-hero.hero-clay.hero-afternoon { --hero-background: url('/hero/clay/afternoon.webp'); }
-.baby-hero.hero-clay.hero-evening { --hero-background: url('/hero/clay/evening.webp'); }
-.baby-hero.hero-clay.hero-night { --hero-background: url('/hero/clay/night.webp'); }
+.baby-hero.hero-clay.hero-morning { --hero-background: url('/hero/classic/clay/morning.webp'); }
+.baby-hero.hero-clay.hero-midday { --hero-background: url('/hero/classic/clay/midday.webp'); }
+.baby-hero.hero-clay.hero-afternoon { --hero-background: url('/hero/classic/clay/afternoon.webp'); }
+.baby-hero.hero-clay.hero-evening { --hero-background: url('/hero/classic/clay/evening.webp'); }
+.baby-hero.hero-clay.hero-night { --hero-background: url('/hero/classic/clay/night.webp'); }
 
 /* Hero 水墨丹青方案 */
-.baby-hero.hero-ink.hero-morning { --hero-background: url('/hero/ink/morning.webp'); }
-.baby-hero.hero-ink.hero-midday { --hero-background: url('/hero/ink/midday.webp'); }
-.baby-hero.hero-ink.hero-afternoon { --hero-background: url('/hero/ink/afternoon.webp'); }
-.baby-hero.hero-ink.hero-evening { --hero-background: url('/hero/ink/evening.webp'); }
-.baby-hero.hero-ink.hero-night { --hero-background: url('/hero/ink/night.webp'); }
+.baby-hero.hero-ink.hero-morning { --hero-background: url('/hero/classic/ink/morning.webp'); }
+.baby-hero.hero-ink.hero-midday { --hero-background: url('/hero/classic/ink/midday.webp'); }
+.baby-hero.hero-ink.hero-afternoon { --hero-background: url('/hero/classic/ink/afternoon.webp'); }
+.baby-hero.hero-ink.hero-evening { --hero-background: url('/hero/classic/ink/evening.webp'); }
+.baby-hero.hero-ink.hero-night { --hero-background: url('/hero/classic/ink/night.webp'); }
 
 /* Hero 像素萌兔方案 */
-.baby-hero.hero-pixel.hero-morning { --hero-background: url('/hero/pixel/morning.webp'); }
-.baby-hero.hero-pixel.hero-midday { --hero-background: url('/hero/pixel/midday.webp'); }
-.baby-hero.hero-pixel.hero-afternoon { --hero-background: url('/hero/pixel/afternoon.webp'); }
-.baby-hero.hero-pixel.hero-evening { --hero-background: url('/hero/pixel/evening.webp'); }
-.baby-hero.hero-pixel.hero-night { --hero-background: url('/hero/pixel/night.webp'); }
+.baby-hero.hero-pixel.hero-morning { --hero-background: url('/hero/classic/pixel/morning.webp'); }
+.baby-hero.hero-pixel.hero-midday { --hero-background: url('/hero/classic/pixel/midday.webp'); }
+.baby-hero.hero-pixel.hero-afternoon { --hero-background: url('/hero/classic/pixel/afternoon.webp'); }
+.baby-hero.hero-pixel.hero-evening { --hero-background: url('/hero/classic/pixel/evening.webp'); }
+.baby-hero.hero-pixel.hero-night { --hero-background: url('/hero/classic/pixel/night.webp'); }
 
 /* Hero 林间甜梦方案 */
-.baby-hero.hero-forest.hero-morning { --hero-background: url('/hero/forest/morning.webp'); }
-.baby-hero.hero-forest.hero-midday { --hero-background: url('/hero/forest/midday.webp'); }
-.baby-hero.hero-forest.hero-afternoon { --hero-background: url('/hero/forest/afternoon.webp'); }
-.baby-hero.hero-forest.hero-evening { --hero-background: url('/hero/forest/evening.webp'); }
-.baby-hero.hero-forest.hero-night { --hero-background: url('/hero/forest/night.webp'); }
+.baby-hero.hero-forest.hero-morning { --hero-background: url('/hero/classic/forest/morning.webp'); }
+.baby-hero.hero-forest.hero-midday { --hero-background: url('/hero/classic/forest/midday.webp'); }
+.baby-hero.hero-forest.hero-afternoon { --hero-background: url('/hero/classic/forest/afternoon.webp'); }
+.baby-hero.hero-forest.hero-evening { --hero-background: url('/hero/classic/forest/evening.webp'); }
+.baby-hero.hero-forest.hero-night { --hero-background: url('/hero/classic/forest/night.webp'); }
 
 /* Hero 云端甜梦方案 */
-.baby-hero.hero-cloud.hero-morning { --hero-background: url('/hero/cloud/morning.webp'); }
-.baby-hero.hero-cloud.hero-midday { --hero-background: url('/hero/cloud/midday.webp'); }
-.baby-hero.hero-cloud.hero-afternoon { --hero-background: url('/hero/cloud/afternoon.webp'); }
-.baby-hero.hero-cloud.hero-evening { --hero-background: url('/hero/cloud/evening.webp'); }
-.baby-hero.hero-cloud.hero-night { --hero-background: url('/hero/cloud/night.webp'); }
+.baby-hero.hero-cloud.hero-morning { --hero-background: url('/hero/classic/cloud/morning.webp'); }
+.baby-hero.hero-cloud.hero-midday { --hero-background: url('/hero/classic/cloud/midday.webp'); }
+.baby-hero.hero-cloud.hero-afternoon { --hero-background: url('/hero/classic/cloud/afternoon.webp'); }
+.baby-hero.hero-cloud.hero-evening { --hero-background: url('/hero/classic/cloud/evening.webp'); }
+.baby-hero.hero-cloud.hero-night { --hero-background: url('/hero/classic/cloud/night.webp'); }
 
 /* Hero 暖房甜梦方案 */
-.baby-hero.hero-cozy.hero-morning { --hero-background: url('/hero/cozy/morning.webp'); }
-.baby-hero.hero-cozy.hero-midday { --hero-background: url('/hero/cozy/midday.webp'); }
-.baby-hero.hero-cozy.hero-afternoon { --hero-background: url('/hero/cozy/afternoon.webp'); }
-.baby-hero.hero-cozy.hero-evening { --hero-background: url('/hero/cozy/evening.webp'); }
-.baby-hero.hero-cozy.hero-night { --hero-background: url('/hero/cozy/night.webp'); }
+.baby-hero.hero-cozy.hero-morning { --hero-background: url('/hero/classic/cozy/morning.webp'); }
+.baby-hero.hero-cozy.hero-midday { --hero-background: url('/hero/classic/cozy/midday.webp'); }
+.baby-hero.hero-cozy.hero-afternoon { --hero-background: url('/hero/classic/cozy/afternoon.webp'); }
+.baby-hero.hero-cozy.hero-evening { --hero-background: url('/hero/classic/cozy/evening.webp'); }
+.baby-hero.hero-cozy.hero-night { --hero-background: url('/hero/classic/cozy/night.webp'); }
 
 /* Hero 星梦小马方案 */
-.baby-hero.hero-pony.hero-morning { --hero-background: url('/hero/pony/morning.webp'); }
-.baby-hero.hero-pony.hero-midday { --hero-background: url('/hero/pony/midday.webp'); }
-.baby-hero.hero-pony.hero-afternoon { --hero-background: url('/hero/pony/afternoon.webp'); }
-.baby-hero.hero-pony.hero-evening { --hero-background: url('/hero/pony/evening.webp'); }
-.baby-hero.hero-pony.hero-night { --hero-background: url('/hero/pony/night.webp'); }
+.baby-hero.hero-pony.hero-morning { --hero-background: url('/hero/classic/pony/morning.webp'); }
+.baby-hero.hero-pony.hero-midday { --hero-background: url('/hero/classic/pony/midday.webp'); }
+.baby-hero.hero-pony.hero-afternoon { --hero-background: url('/hero/classic/pony/afternoon.webp'); }
+.baby-hero.hero-pony.hero-evening { --hero-background: url('/hero/classic/pony/evening.webp'); }
+.baby-hero.hero-pony.hero-night { --hero-background: url('/hero/classic/pony/night.webp'); }
 
 /* Hero 赛博甜梦方案 */
-.baby-hero.hero-cyber.hero-morning { --hero-background: url('/hero/cyber/morning.webp'); }
-.baby-hero.hero-cyber.hero-midday { --hero-background: url('/hero/cyber/midday.webp'); }
-.baby-hero.hero-cyber.hero-afternoon { --hero-background: url('/hero/cyber/afternoon.webp'); }
-.baby-hero.hero-cyber.hero-evening { --hero-background: url('/hero/cyber/evening.webp'); }
-.baby-hero.hero-cyber.hero-night { --hero-background: url('/hero/cyber/night.webp'); }
+.baby-hero.hero-cyber.hero-morning { --hero-background: url('/hero/classic/cyber/morning.webp'); }
+.baby-hero.hero-cyber.hero-midday { --hero-background: url('/hero/classic/cyber/midday.webp'); }
+.baby-hero.hero-cyber.hero-afternoon { --hero-background: url('/hero/classic/cyber/afternoon.webp'); }
+.baby-hero.hero-cyber.hero-evening { --hero-background: url('/hero/classic/cyber/evening.webp'); }
+.baby-hero.hero-cyber.hero-night { --hero-background: url('/hero/classic/cyber/night.webp'); }
 
 /* Hero 童话甜梦方案 */
-.baby-hero.hero-tale.hero-morning { --hero-background: url('/hero/tale/morning.webp'); }
-.baby-hero.hero-tale.hero-midday { --hero-background: url('/hero/tale/midday.webp'); }
-.baby-hero.hero-tale.hero-afternoon { --hero-background: url('/hero/tale/afternoon.webp'); }
-.baby-hero.hero-tale.hero-evening { --hero-background: url('/hero/tale/evening.webp'); }
-.baby-hero.hero-tale.hero-night { --hero-background: url('/hero/tale/night.webp'); }
+.baby-hero.hero-tale.hero-morning { --hero-background: url('/hero/classic/tale/morning.webp'); }
+.baby-hero.hero-tale.hero-midday { --hero-background: url('/hero/classic/tale/midday.webp'); }
+.baby-hero.hero-tale.hero-afternoon { --hero-background: url('/hero/classic/tale/afternoon.webp'); }
+.baby-hero.hero-tale.hero-evening { --hero-background: url('/hero/classic/tale/evening.webp'); }
+.baby-hero.hero-tale.hero-night { --hero-background: url('/hero/classic/tale/night.webp'); }
 
 @keyframes hero-background-in { from { opacity: .72; } to { opacity: 1; } }
 @keyframes garden-scene-breathe {

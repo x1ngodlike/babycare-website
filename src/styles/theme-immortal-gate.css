@@ -1,0 +1,107 @@
+/* 云海仙门：天青玉色、朱砂与杏金构成的明亮东方仙侠主题。 */
+html[data-visual-theme="immortal-gate"][data-theme="light"] {
+  --theme-page: #f2f6ef;
+  --theme-card: #fbfcf7;
+  --theme-brand: #477b70;
+  --theme-ink: #26352f;
+  --theme-muted: #6f7d76;
+  --theme-complement: #d39b3b;
+}
+
+html[data-visual-theme="immortal-gate"][data-theme="dark"] {
+  --theme-page: #101918;
+  --theme-card: #182321;
+  --theme-brand: #82b9aa;
+  --theme-ink: #e8f0e9;
+  --theme-muted: #aebdb6;
+  --theme-complement: #e3b75e;
+}
+
+html[data-visual-theme="immortal-gate"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 7% 4%, rgba(255, 255, 251, .98) 0 8%, transparent 31%),
+    radial-gradient(circle at 93% 88%, rgba(211, 155, 59, .07), transparent 28%),
+    linear-gradient(155deg, #fbfdf8 0%, #f2f6ef 56%, #e2ebe5 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="immortal-gate"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 91% 7%, rgba(130, 185, 170, .09), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(227, 183, 94, .045), transparent 27%),
+    linear-gradient(180deg, #172321 0%, #101918 54%, #0b1110 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="immortal-gate"] .app::before,
+html[data-visual-theme="immortal-gate"] .app::after { background: rgba(71, 123, 112, .07); }
+
+/* 复用共享天气层，只调整云海中的明度、雾感与雷光。 */
+.baby-hero.hero-immortal-gate.weather-cloudy::before { background: linear-gradient(108deg, transparent 36%, rgba(235, 241, 235, .14) 63%, rgba(205, 220, 214, .18)); }
+.baby-hero.hero-immortal-gate.weather-overcast::before { background: rgba(47, 67, 64, .17); backdrop-filter: saturate(.84) brightness(.97); -webkit-backdrop-filter: saturate(.84) brightness(.97); }
+.baby-hero.hero-immortal-gate.weather-rain::before { background: linear-gradient(90deg, transparent 42%, rgba(49, 75, 78, .14)); }
+.baby-hero.hero-immortal-gate.weather-fog::before { background: linear-gradient(90deg, transparent 28%, rgba(238, 244, 237, .13) 57%, rgba(226, 237, 232, .24)); backdrop-filter: blur(1px) saturate(.9); -webkit-backdrop-filter: blur(1px) saturate(.9); }
+.baby-hero.hero-immortal-gate.weather-snow .diary-snow { opacity: .28; animation-duration: 10s; }
+.baby-hero.hero-immortal-gate.weather-thunder::before { background: linear-gradient(90deg, transparent 36%, rgba(39, 58, 69, .2) 67%, rgba(47, 48, 76, .27)); }
+
+/* 四时段轻动态：云海、瀑雾、归舟灯火与剑阵流光。 */
+.immortal-gate-motion { display: none; }
+.baby-hero.hero-immortal-gate .immortal-gate-motion { display: block; position: absolute; z-index: 1; inset: 0; overflow: hidden; }
+.baby-hero.hero-immortal-gate .immortal-gate-motion i { position: absolute; display: block; pointer-events: none; }
+.baby-hero.hero-immortal-gate .immortal-gate-motion-morning .immortal-gate-motion-primary {
+  right: 4%; bottom: -14%; width: 54%; height: 54%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 250, 235, .18), transparent 68%);
+  animation: immortal-gate-cloud-sea 9s ease-in-out infinite alternate;
+}
+.baby-hero.hero-immortal-gate .immortal-gate-motion-morning .immortal-gate-motion-secondary {
+  right: 27%; top: 23%; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 225, 145, .74);
+  box-shadow: 32px 13px 0 rgba(255, 238, 185, .46);
+  animation: immortal-gate-bell-glint 5.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-immortal-gate .immortal-gate-motion-daytime .immortal-gate-motion-primary {
+  right: 6%; top: 10%; width: 19%; height: 77%; border-radius: 50%;
+  background: linear-gradient(92deg, transparent, rgba(229, 249, 244, .13), transparent);
+  filter: blur(2px);
+  animation: immortal-gate-waterfall-mist 7.2s ease-in-out infinite alternate;
+}
+.baby-hero.hero-immortal-gate .immortal-gate-motion-daytime .immortal-gate-motion-secondary {
+  right: 17%; top: 9%; width: 38%; height: 62%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 244, 196, .11), transparent 68%);
+  animation: immortal-gate-daylight 7.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-immortal-gate .immortal-gate-motion-evening .immortal-gate-motion-primary {
+  right: 7%; top: 5%; width: 45%; height: 82%; border-radius: 48%;
+  background: radial-gradient(ellipse, rgba(255, 166, 82, .18), transparent 68%);
+  mix-blend-mode: screen;
+  animation: immortal-gate-lanterns 6.4s ease-in-out infinite alternate;
+}
+.baby-hero.hero-immortal-gate .immortal-gate-motion-evening .immortal-gate-motion-secondary {
+  right: 35%; bottom: 20%; width: 72px; height: 22px; border-radius: 50%;
+  background: rgba(255, 232, 178, .09); filter: blur(2px);
+  animation: immortal-gate-boat-trail 7s ease-in-out infinite;
+}
+.baby-hero.hero-immortal-gate .immortal-gate-motion-night .immortal-gate-motion-primary {
+  right: 12%; top: 11%; width: 41%; height: 72%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 226, 139, .17), transparent 66%);
+  mix-blend-mode: screen;
+  animation: immortal-gate-sword-ring 7.5s ease-in-out infinite alternate;
+}
+.baby-hero.hero-immortal-gate .immortal-gate-motion-night .immortal-gate-motion-secondary {
+  right: 17%; top: 14%; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 239, 187, .82);
+  box-shadow: 38px 17px 0 rgba(255, 239, 187, .55), 81px -9px 0 rgba(202, 220, 255, .62), 121px 14px 0 rgba(255, 224, 139, .5);
+  animation: immortal-gate-stars 5.6s ease-in-out infinite alternate;
+}
+
+@keyframes immortal-gate-cloud-sea { from { opacity: .36; transform: translateX(-5px) scale(.98); } to { opacity: .75; transform: translateX(7px) scale(1.03); } }
+@keyframes immortal-gate-bell-glint { from { opacity: .32; transform: translateY(1px) scale(.92); } to { opacity: .9; transform: translateY(-2px) scale(1.08); } }
+@keyframes immortal-gate-waterfall-mist { from { opacity: .34; transform: translateY(4px); } to { opacity: .78; transform: translateY(-5px); } }
+@keyframes immortal-gate-daylight { from { opacity: .38; transform: scale(.97); } to { opacity: .76; transform: scale(1.035); } }
+@keyframes immortal-gate-lanterns { from { opacity: .43; transform: scale(.97); } to { opacity: .86; transform: scale(1.04); } }
+@keyframes immortal-gate-boat-trail { 0%, 100% { opacity: .28; transform: translateX(5px) scale(.94); } 50% { opacity: .72; transform: translateX(-5px) scale(1.06); } }
+@keyframes immortal-gate-sword-ring { from { opacity: .4; transform: scale(.97) rotate(-1deg); } to { opacity: .86; transform: scale(1.035) rotate(1deg); } }
+@keyframes immortal-gate-stars { from { opacity: .4; } to { opacity: .94; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="immortal-gate"] .baby-hero.hero-immortal-gate::after,
+  html[data-visual-theme="immortal-gate"] .immortal-gate-motion i { animation: none; }
+}
