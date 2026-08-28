@@ -319,6 +319,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
   { value: 'hero-candy-workshop', label: '糖果工坊', thumb: '/hero/weather/fruit-cake/thumbnails/candy-workshop.webp', group: 'weather' },
   { value: 'hero-forest-press', label: '林间报社', thumb: WEATHER_HERO_ASSETS['hero-forest-press'].thumb, group: 'weather' },
   { value: 'hero-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb, group: 'weather' },
+  { value: 'hero-cloud-station', label: '云间车站', thumb: '/hero/weather/travel/thumbnails/cloud-station.webp', group: 'weather' },
   { value: 'hero-orbit', label: '星际观测', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb, group: 'weather' },
   { value: 'hero-shop', label: '晴雨商店', thumb: WEATHER_HERO_ASSETS['hero-shop'].thumb, group: 'weather' },
   { value: 'hero-arcane', label: '烛光魔塔', thumb: WEATHER_HERO_ASSETS['hero-arcane'].thumb, group: 'weather' },
@@ -339,7 +340,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（11）' },
+  { key: 'weather', label: '天气画境（12）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -393,7 +394,8 @@ export const THEMES: ReadonlyArray<ThemePreset> = [
   { id: 'theme-orbit', label: '星际观测', thumb: WEATHER_HERO_ASSETS['hero-orbit'].thumb,
     defaults: { layout: 'diary', bg: 'hero-orbit', iconPack: 'hero-orbit', weatherEffects: true } },
   { id: 'theme-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb,
-    defaults: { layout: 'diary', bg: 'hero-travel', iconPack: 'hero-travel', weatherEffects: true } },
+    defaults: { layout: 'diary', bg: 'hero-travel', iconPack: 'hero-travel', weatherEffects: true },
+    recommendedBgs: ['hero-travel', 'hero-cloud-station'] },
   { id: 'theme-basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp',
     defaults: { layout: 'diary', bg: 'hero-basic-shapes', iconPack: 'basic-shapes', weatherEffects: true },
     recommendedBgs: ['hero-basic-shapes'] },

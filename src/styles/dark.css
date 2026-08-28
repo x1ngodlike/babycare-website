@@ -222,7 +222,8 @@ html[data-theme="dark"] .baby-hero.hero-diary::after {
     linear-gradient(90deg, rgba(14, 23, 17, .7) 0%, rgba(17, 28, 20, .44) 43%, rgba(17, 28, 20, .1) 74%, transparent 100%),
     var(--diary-background) center / cover no-repeat;
 }
-html[data-theme="dark"] .baby-hero.hero-travel::after {
+html[data-theme="dark"] .baby-hero.hero-travel::after,
+html[data-theme="dark"] .baby-hero.hero-cloud-station::after {
   background:
     linear-gradient(90deg, rgba(40, 34, 28, .7) 0%, rgba(55, 46, 36, .43) 43%, rgba(55, 46, 36, .09) 74%, transparent 100%),
     var(--diary-background) center / cover no-repeat;

@@ -98,6 +98,10 @@
 .baby-hero.hero-travel.diary-daytime { --diary-background: url('/hero/weather/travel/backgrounds/default/daytime.webp'); }
 .baby-hero.hero-travel.diary-evening { --diary-background: url('/hero/weather/travel/backgrounds/default/evening.webp'); }
 .baby-hero.hero-travel.diary-night { --diary-background: url('/hero/weather/travel/backgrounds/default/night.webp'); }
+.baby-hero.hero-cloud-station.diary-morning { --diary-background: url('/hero/weather/travel/backgrounds/cloud-station/morning.webp'); }
+.baby-hero.hero-cloud-station.diary-daytime { --diary-background: url('/hero/weather/travel/backgrounds/cloud-station/daytime.webp'); }
+.baby-hero.hero-cloud-station.diary-evening { --diary-background: url('/hero/weather/travel/backgrounds/cloud-station/evening.webp'); }
+.baby-hero.hero-cloud-station.diary-night { --diary-background: url('/hero/weather/travel/backgrounds/cloud-station/night.webp'); }
 .baby-hero.hero-orbit.diary-morning { --diary-background: url('/hero/weather/orbit/backgrounds/default/morning.webp'); }
 .baby-hero.hero-orbit.diary-daytime { --diary-background: url('/hero/weather/orbit/backgrounds/default/daytime.webp'); }
 .baby-hero.hero-orbit.diary-evening { --diary-background: url('/hero/weather/orbit/backgrounds/default/evening.webp'); }
@@ -148,6 +152,10 @@
 .baby-hero.hero-travel.hero-midday, .baby-hero.hero-travel.hero-afternoon { --diary-background: url('/hero/weather/travel/backgrounds/default/daytime.webp'); }
 .baby-hero.hero-travel.hero-evening { --diary-background: url('/hero/weather/travel/backgrounds/default/evening.webp'); }
 .baby-hero.hero-travel.hero-night { --diary-background: url('/hero/weather/travel/backgrounds/default/night.webp'); }
+.baby-hero.hero-cloud-station.hero-morning { --diary-background: url('/hero/weather/travel/backgrounds/cloud-station/morning.webp'); }
+.baby-hero.hero-cloud-station.hero-midday, .baby-hero.hero-cloud-station.hero-afternoon { --diary-background: url('/hero/weather/travel/backgrounds/cloud-station/daytime.webp'); }
+.baby-hero.hero-cloud-station.hero-evening { --diary-background: url('/hero/weather/travel/backgrounds/cloud-station/evening.webp'); }
+.baby-hero.hero-cloud-station.hero-night { --diary-background: url('/hero/weather/travel/backgrounds/cloud-station/night.webp'); }
 .baby-hero.hero-orbit.hero-morning { --diary-background: url('/hero/weather/orbit/backgrounds/default/morning.webp'); }
 .baby-hero.hero-orbit.hero-midday, .baby-hero.hero-orbit.hero-afternoon { --diary-background: url('/hero/weather/orbit/backgrounds/default/daytime.webp'); }
 .baby-hero.hero-orbit.hero-evening { --diary-background: url('/hero/weather/orbit/backgrounds/default/evening.webp'); }
@@ -191,7 +199,8 @@
     linear-gradient(90deg, rgba(27, 48, 43, .68) 0%, rgba(38, 65, 58, .42) 41%, rgba(38, 65, 58, .08) 72%, transparent 100%),
     var(--diary-background) center / cover no-repeat;
 }
-.baby-hero.hero-travel::after {
+.baby-hero.hero-travel::after,
+.baby-hero.hero-cloud-station::after {
   background:
     linear-gradient(90deg, rgba(58, 48, 40, .58) 0%, rgba(74, 60, 48, .34) 42%, rgba(74, 60, 48, .08) 72%, transparent 100%),
     var(--diary-background) center / cover no-repeat;
@@ -364,7 +373,8 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
 .baby-hero.hero-basic-shapes .hero-status::before { background: rgba(55, 61, 57, .52); }
 .baby-hero.hero-block-factory .hero-status::before { background: rgba(58, 48, 39, .56); }
 .baby-hero.hero-immortal-gate .hero-status::before { background: rgba(35, 66, 58, .56); }
-.baby-hero.hero-travel .hero-status::before { background: rgba(74, 60, 48, .52); }
+.baby-hero.hero-travel .hero-status::before,
+.baby-hero.hero-cloud-station .hero-status::before { background: rgba(74, 60, 48, .52); }
 .baby-hero.hero-orbit .hero-status::before { background: rgba(27, 39, 70, .58); }
 .baby-hero.hero-shop .hero-status::before { background: rgba(62, 38, 29, .56); }
 .baby-hero.hero-arcane .hero-status::before { background: rgba(39, 26, 44, .62); }
@@ -449,6 +459,7 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
 .baby-hero.hero-block-factory .diary-day-stamp::after { content: 'BLOCK WORKS'; }
 .baby-hero.hero-immortal-gate .diary-day-stamp::after { content: 'CLOUD ASCENT'; }
 .baby-hero.hero-travel .diary-day-stamp::after { content: 'CLOUD JOURNEY'; }
+.baby-hero.hero-cloud-station .diary-day-stamp::after { content: 'CLOUD STATION'; }
 .baby-hero.hero-orbit .diary-day-stamp::after { content: 'LITTLE ORBIT'; }
 .baby-hero.hero-shop .diary-day-stamp::after { content: 'DAILY SHOP'; }
 .baby-hero.hero-arcane .diary-day-stamp::after { content: 'LUMEN TOWER'; }
