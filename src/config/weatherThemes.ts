@@ -312,6 +312,7 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp', group: 'weather' },
   { value: 'hero-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb, group: 'weather' },
   { value: 'hero-immortal-gate', label: '云海仙门', thumb: WEATHER_HERO_ASSETS['hero-immortal-gate'].thumb, group: 'weather' },
   { value: 'hero-fruit-cake', label: '水果蛋糕', thumb: WEATHER_HERO_ASSETS['hero-fruit-cake'].thumb, group: 'weather' },
@@ -338,7 +339,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（10）' },
+  { key: 'weather', label: '天气画境（11）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -359,7 +360,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/classic/default/morning.webp' },
-  { value: 'basic-shapes', label: '基础图形', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb },
+  { value: 'basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp' },
   { value: 'hero-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb },
   { value: 'hero-immortal-gate', label: '云海仙门', thumb: WEATHER_HERO_ASSETS['hero-immortal-gate'].thumb },
   { value: 'hero-fruit-cake', label: '水果蛋糕', thumb: WEATHER_HERO_ASSETS['hero-fruit-cake'].thumb },
@@ -393,9 +394,9 @@ export const THEMES: ReadonlyArray<ThemePreset> = [
     defaults: { layout: 'diary', bg: 'hero-orbit', iconPack: 'hero-orbit', weatherEffects: true } },
   { id: 'theme-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb,
     defaults: { layout: 'diary', bg: 'hero-travel', iconPack: 'hero-travel', weatherEffects: true } },
-  { id: 'theme-basic-shapes', label: '基础图形', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb,
-    defaults: { layout: 'diary', bg: 'hero-travel', iconPack: 'basic-shapes', weatherEffects: true },
-    recommendedBgs: ['hero-travel'] },
+  { id: 'theme-basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp',
+    defaults: { layout: 'diary', bg: 'hero-basic-shapes', iconPack: 'basic-shapes', weatherEffects: true },
+    recommendedBgs: ['hero-basic-shapes'] },
   { id: 'theme-classic', label: '经典主题', thumb: '/hero/classic/default/morning.webp',
     defaults: { layout: 'classic', bg: 'auto', iconPack: 'default', weatherEffects: false } },
 ];

@@ -82,6 +82,10 @@
 .baby-hero.hero-diary.diary-daytime { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/daytime.webp'); }
 .baby-hero.hero-diary.diary-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/evening.webp'); }
 .baby-hero.hero-diary.diary-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/night.webp'); }
+.baby-hero.hero-basic-shapes.diary-morning { --diary-background: url('/hero/weather/basic-shapes/backgrounds/default/morning.webp'); }
+.baby-hero.hero-basic-shapes.diary-daytime { --diary-background: url('/hero/weather/basic-shapes/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-basic-shapes.diary-evening { --diary-background: url('/hero/weather/basic-shapes/backgrounds/default/evening.webp'); }
+.baby-hero.hero-basic-shapes.diary-night { --diary-background: url('/hero/weather/basic-shapes/backgrounds/default/night.webp'); }
 .baby-hero.hero-block-factory.diary-morning { --diary-background: url('/hero/weather/block-factory/backgrounds/default/morning.webp'); }
 .baby-hero.hero-block-factory.diary-daytime { --diary-background: url('/hero/weather/block-factory/backgrounds/default/daytime.webp'); }
 .baby-hero.hero-block-factory.diary-evening { --diary-background: url('/hero/weather/block-factory/backgrounds/default/evening.webp'); }
@@ -128,6 +132,10 @@
 .baby-hero.hero-diary.hero-midday, .baby-hero.hero-diary.hero-afternoon { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/daytime.webp'); }
 .baby-hero.hero-diary.hero-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/evening.webp'); }
 .baby-hero.hero-diary.hero-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/default/night.webp'); }
+.baby-hero.hero-basic-shapes.hero-morning { --diary-background: url('/hero/weather/basic-shapes/backgrounds/default/morning.webp'); }
+.baby-hero.hero-basic-shapes.hero-midday, .baby-hero.hero-basic-shapes.hero-afternoon { --diary-background: url('/hero/weather/basic-shapes/backgrounds/default/daytime.webp'); }
+.baby-hero.hero-basic-shapes.hero-evening { --diary-background: url('/hero/weather/basic-shapes/backgrounds/default/evening.webp'); }
+.baby-hero.hero-basic-shapes.hero-night { --diary-background: url('/hero/weather/basic-shapes/backgrounds/default/night.webp'); }
 .baby-hero.hero-block-factory.hero-morning { --diary-background: url('/hero/weather/block-factory/backgrounds/default/morning.webp'); }
 .baby-hero.hero-block-factory.hero-midday, .baby-hero.hero-block-factory.hero-afternoon { --diary-background: url('/hero/weather/block-factory/backgrounds/default/daytime.webp'); }
 .baby-hero.hero-block-factory.hero-evening { --diary-background: url('/hero/weather/block-factory/backgrounds/default/evening.webp'); }
@@ -168,6 +176,11 @@
 .baby-hero.hero-candy-workshop.hero-midday, .baby-hero.hero-candy-workshop.hero-afternoon { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/daytime.webp'); }
 .baby-hero.hero-candy-workshop.hero-evening { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/evening.webp'); }
 .baby-hero.hero-candy-workshop.hero-night { --diary-background: url('/hero/weather/fruit-cake/backgrounds/candy-workshop/night.webp'); }
+.baby-hero.hero-basic-shapes::after {
+  background:
+    linear-gradient(90deg, rgba(59, 55, 49, .56) 0%, rgba(66, 61, 54, .28) 42%, rgba(66, 61, 54, .04) 72%, transparent 100%),
+    var(--diary-background) center / cover no-repeat;
+}
 .baby-hero.hero-block-factory::after {
   background:
     linear-gradient(90deg, rgba(54, 47, 39, .66) 0%, rgba(63, 55, 45, .38) 42%, rgba(63, 55, 45, .07) 72%, transparent 100%),
@@ -348,6 +361,7 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
   isolation: isolate;
 }
 .baby-hero.hero-diary .hero-status::before { content: ''; position: absolute; z-index: -1; inset: 0; border-radius: inherit; background: rgba(75, 70, 47, .48); mix-blend-mode: multiply; }
+.baby-hero.hero-basic-shapes .hero-status::before { background: rgba(55, 61, 57, .52); }
 .baby-hero.hero-block-factory .hero-status::before { background: rgba(58, 48, 39, .56); }
 .baby-hero.hero-immortal-gate .hero-status::before { background: rgba(35, 66, 58, .56); }
 .baby-hero.hero-travel .hero-status::before { background: rgba(74, 60, 48, .52); }
@@ -431,6 +445,7 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
 .baby-hero.hero-diary .diary-period-mark { display: none; }
 .baby-hero.hero-diary .diary-day-stamp { display: flex; right: 12px; bottom: 12px; flex-direction: column; align-items: flex-end; gap: 1px; padding: 0; border: 0; color: rgba(255, 249, 229, .68); font-size: 7px; letter-spacing: .18em; transform: none; }
 .baby-hero.hero-diary .diary-day-stamp::after { content: 'GROWING NOTES'; font-size: 5px; letter-spacing: .12em; opacity: .72; }
+.baby-hero.hero-basic-shapes .diary-day-stamp::after { content: 'BASIC FORMS'; }
 .baby-hero.hero-block-factory .diary-day-stamp::after { content: 'BLOCK WORKS'; }
 .baby-hero.hero-immortal-gate .diary-day-stamp::after { content: 'CLOUD ASCENT'; }
 .baby-hero.hero-travel .diary-day-stamp::after { content: 'CLOUD JOURNEY'; }

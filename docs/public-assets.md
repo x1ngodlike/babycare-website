@@ -46,6 +46,8 @@ public/
 
 如果新增完整主题，必须同时交付 4 张默认 Hero、15 枚图标和 1 张主题缩略图。新增推荐背景时，每套增加 4 张 Hero 和 1 张同名缩略图，不复制图标。
 
+使用系统 Emoji / 线性图标的代码原生轻量主题可在 `scripts/check-assets.mjs` 的明确白名单中登记为背景包，只包含 4 张 Hero 与 1 张缩略图；不得把普通图片主题借此拆成不完整资源包。
+
 ## 4. 备份、优化与缓存
 
 - 备份不得位于 `public`。`npm run images:optimize` 只优化 `public/images/**/*.webp`，写入前备份到项目根目录 `.image-backups/{timestamp}/`。

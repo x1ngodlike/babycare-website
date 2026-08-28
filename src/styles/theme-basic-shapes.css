@@ -35,3 +35,60 @@ html[data-visual-theme="basic-shapes"][data-theme="dark"] body {
 
 html[data-visual-theme="basic-shapes"] .app::before,
 html[data-visual-theme="basic-shapes"] .app::after { background: rgba(79, 127, 122, .065); }
+
+/* 四时段轻动态：形状展开、模块流动、落日呼吸与月相轨道。 */
+.basic-shapes-motion { display: none; }
+.baby-hero.hero-basic-shapes .basic-shapes-motion { display: block; position: absolute; z-index: 1; inset: 0; overflow: hidden; }
+.baby-hero.hero-basic-shapes .basic-shapes-motion i { position: absolute; display: block; pointer-events: none; }
+.baby-hero.hero-basic-shapes .basic-shapes-motion-morning .basic-shapes-motion-primary {
+  right: 7%; top: 5%; width: 43%; height: 86%; border-radius: 50%;
+  background: conic-gradient(from 205deg, transparent 0 65%, rgba(255, 239, 200, .18) 69% 74%, transparent 78%);
+  animation: basic-shapes-unfold 10s ease-in-out infinite alternate;
+}
+.baby-hero.hero-basic-shapes .basic-shapes-motion-morning .basic-shapes-motion-secondary {
+  right: 29%; top: 22%; width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 236, 177, .72);
+  box-shadow: 44px 21px 0 rgba(84, 155, 149, .48), 84px -8px 0 rgba(111, 145, 201, .5);
+  animation: basic-shapes-dots 6s ease-in-out infinite alternate;
+}
+.baby-hero.hero-basic-shapes .basic-shapes-motion-daytime .basic-shapes-motion-primary {
+  right: 3%; bottom: 10%; width: 53%; height: 12%; border-radius: 999px;
+  background: repeating-linear-gradient(90deg, transparent 0 20px, rgba(255, 255, 242, .15) 21px 36px, transparent 37px 58px);
+  animation: basic-shapes-flow 8s linear infinite;
+}
+.baby-hero.hero-basic-shapes .basic-shapes-motion-daytime .basic-shapes-motion-secondary {
+  right: 16%; top: 8%; width: 38%; height: 72%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 245, 205, .12), transparent 68%);
+  animation: basic-shapes-breathe 7s ease-in-out infinite alternate;
+}
+.baby-hero.hero-basic-shapes .basic-shapes-motion-evening .basic-shapes-motion-primary {
+  right: 12%; top: 9%; width: 42%; height: 78%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 174, 95, .16), transparent 67%);
+  mix-blend-mode: screen; animation: basic-shapes-sunset 7s ease-in-out infinite alternate;
+}
+.baby-hero.hero-basic-shapes .basic-shapes-motion-evening .basic-shapes-motion-secondary {
+  right: 29%; bottom: 20%; width: 64px; height: 3px; border-radius: 999px;
+  background: rgba(255, 229, 177, .22); animation: basic-shapes-shadow 6s ease-in-out infinite alternate;
+}
+.baby-hero.hero-basic-shapes .basic-shapes-motion-night .basic-shapes-motion-primary {
+  right: 16%; top: 7%; width: 37%; height: 80%; border: 1px solid rgba(226, 235, 218, .17); border-radius: 50%;
+  animation: basic-shapes-orbit 18s linear infinite;
+}
+.baby-hero.hero-basic-shapes .basic-shapes-motion-night .basic-shapes-motion-secondary {
+  right: 20%; top: 17%; width: 6px; height: 6px; border-radius: 50%; background: rgba(240, 154, 131, .82);
+  box-shadow: 54px 19px 0 rgba(238, 188, 94, .75), 108px -4px 0 rgba(132, 185, 178, .72);
+  animation: basic-shapes-night-nodes 5s ease-in-out infinite alternate;
+}
+
+@keyframes basic-shapes-unfold { from { opacity: .3; transform: rotate(-3deg) scale(.97); } to { opacity: .78; transform: rotate(2deg) scale(1.03); } }
+@keyframes basic-shapes-dots { from { opacity: .34; transform: translateY(3px); } to { opacity: .9; transform: translateY(-4px); } }
+@keyframes basic-shapes-flow { to { background-position-x: 58px; } }
+@keyframes basic-shapes-breathe { from { opacity: .32; transform: scale(.97); } to { opacity: .76; transform: scale(1.035); } }
+@keyframes basic-shapes-sunset { from { opacity: .4; transform: scale(.97); } to { opacity: .85; transform: scale(1.04); } }
+@keyframes basic-shapes-shadow { from { opacity: .3; transform: translateX(8px) scaleX(.85); } to { opacity: .78; transform: translateX(-7px) scaleX(1.08); } }
+@keyframes basic-shapes-orbit { to { transform: rotate(360deg); } }
+@keyframes basic-shapes-night-nodes { from { opacity: .4; } to { opacity: .96; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="basic-shapes"] .baby-hero.hero-basic-shapes::after,
+  html[data-visual-theme="basic-shapes"] .basic-shapes-motion i { animation: none; }
+}

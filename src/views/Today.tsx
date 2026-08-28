@@ -7,7 +7,7 @@ import { canAutoOpenDailyReport, millisecondsUntilDailyReportAutoOpen } from '..
 import { isoDay } from '../date';
 import { getIconPackAssets, getWeatherRecordIconByPack } from '../config/weatherThemes';
 import type { HeroLayout } from '../config/weatherThemes';
-import { BASIC_SHAPES_ICON_PACK_ID, BASIC_SHAPES_QUICK_EMOJI, BASIC_SHAPES_TASK_EMOJI } from '../basicShapesIcons';
+import { BASIC_SHAPES_ICON_PACK_ID, BASIC_SHAPES_QUICK_EMOJI, BASIC_SHAPES_TASK_EMOJI, getBasicShapesRecordEmoji } from '../basicShapesIcons';
 import { formatTimeShort } from '../../shared/feeding-prediction';
 import { diaryPeriodForHour, type WeatherSnapshot } from '../../shared/weather';
 import { DiaryHeroLayer, DiaryWeatherBadge } from '../DiaryHero';
@@ -89,6 +89,7 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
   })();
   const weatherThemeAssets = getIconPackAssets(iconPack);
   const useBasicShapesEmoji = iconPack === BASIC_SHAPES_ICON_PACK_ID;
+  const recordEmoji = (record: CareRecord) => useBasicShapesEmoji ? getBasicShapesRecordEmoji(record, careItems) : undefined;
   const magazineTheme = layout === 'diary';
   const feed = records.filter(r => r.type === 'feeding'); const breast = feed.reduce((sum, r) => sum + (r.breastMilkMl || 0), 0); const formula = feed.reduce((sum, r) => sum + (r.formulaMl || 0), 0); const done = new Map(records.filter(r => r.type === 'supplement').map(r => [r.supplement, r]));
   const recentSorted = [...recentRecords].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
@@ -203,6 +204,6 @@ export function TodayView({ profile, records, recentRecords, vaccineRecords, vac
       <DailyReport capabilities={capabilities} online={online} onOpenSettings={onOpenSettings} superadmin={superadmin} userId={userId} />
     </div>
     </div>
-    <div className="today-timeline"><div className="section-title"><h2>今日记录</h2><span>{records.length} 条</span></div><Timeline records={[...records].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))} careItems={careItems} manager={manager} emptyText="今日还没有记录" emptyAction={<button className="btn secondary" onClick={() => onAdd('feeding')}>记录喂奶</button>} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} iconForRecord={weatherThemeAssets ? themedRecordIcon : undefined} hideMetadata /></div>
+    <div className="today-timeline"><div className="section-title"><h2>今日记录</h2><span>{records.length} 条</span></div><Timeline records={[...records].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))} careItems={careItems} manager={manager} emptyText="今日还没有记录" emptyAction={<button className="btn secondary" onClick={() => onAdd('feeding')}>记录喂奶</button>} onEdit={onEdit} onDelete={onDelete} onAudit={onAudit} iconForRecord={weatherThemeAssets ? themedRecordIcon : undefined} emojiForRecord={recordEmoji} hideMetadata /></div>
   </div>;
 }

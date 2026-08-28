@@ -5,12 +5,14 @@ import { confirmAction, Modal, SegmentedControl, useDirtyClose } from '../ui';
 import { DateTimeField, minutesAgoIso } from '../DateField';
 import { api, type FeedingPrediction } from '../api';
 import { getIconPackAssets } from '../config/weatherThemes';
+import { BASIC_SHAPES_ICON_PACK_ID, BASIC_SHAPES_TASK_EMOJI } from '../basicShapesIcons';
 import type { BowelSize, CareItem, CareItemCategory, DraftRecord, RecordType } from '../types';
 
 function CareItemChoiceField({ items, selected, onSelect, iconPack }: { items: CareItem[]; selected?: string | null; onSelect(value: string): void; iconPack: string }) {
   const groups: { category: CareItemCategory; label: string }[] = [{ category: 'medication', label: '用药' }, { category: 'care', label: '护理' }];
   const themedIcons = getIconPackAssets(iconPack)?.tasks;
-  return <fieldset className="care-choice-field"><legend>选择护理项目</legend><div className="care-choice-groups">{groups.map(group => { const choices = items.filter(item => item.category === group.category); return choices.length > 0 && <section key={group.category} aria-labelledby={`care-choice-${group.category}`}><h3 id={`care-choice-${group.category}`}>{group.label}</h3><div className="care-choice-grid">{choices.map(item => <button type="button" key={item.id} aria-label={`${group.label} ${item.name}`} aria-pressed={selected === item.name} className={selected === item.name ? 'selected' : ''} onClick={() => onSelect(item.name)}><img src={themedIcons?.[item.icon] ?? careItemIconSources[item.icon]} alt="" /><span>{item.name}</span>{selected === item.name && <i aria-hidden="true">✓</i>}</button>)}</div></section>; })}</div></fieldset>;
+  const useEmoji = iconPack === BASIC_SHAPES_ICON_PACK_ID;
+  return <fieldset className="care-choice-field"><legend>选择护理项目</legend><div className="care-choice-groups">{groups.map(group => { const choices = items.filter(item => item.category === group.category); return choices.length > 0 && <section key={group.category} aria-labelledby={`care-choice-${group.category}`}><h3 id={`care-choice-${group.category}`}>{group.label}</h3><div className="care-choice-grid">{choices.map(item => <button type="button" key={item.id} aria-label={`${group.label} ${item.name}`} aria-pressed={selected === item.name} className={selected === item.name ? 'selected' : ''} onClick={() => onSelect(item.name)}>{useEmoji ? <span className="emoji-icon" aria-hidden="true">{BASIC_SHAPES_TASK_EMOJI[item.icon]}</span> : <img src={themedIcons?.[item.icon] ?? careItemIconSources[item.icon]} alt="" />}<span>{item.name}</span>{selected === item.name && <i aria-hidden="true">✓</i>}</button>)}</div></section>; })}</div></fieldset>;
 }
 
 export function RecordEditor({ initial, careItems, iconPack, onClose, onSave }: { initial: DraftRecord; careItems: CareItem[]; iconPack: string; onClose(): void; onSave(value: DraftRecord): Promise<void> }) {

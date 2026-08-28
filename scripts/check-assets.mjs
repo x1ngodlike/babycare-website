@@ -80,6 +80,7 @@ const iconGroups = {
   tasks: ['medicine', 'massage', 'bath', 'care', 'vaccine', 'growth'],
   nav: ['today', 'records', 'chat', 'trends', 'archive'],
 };
+const backgroundOnlyWeatherThemes = new Set(['basic-shapes']);
 
 for (const entry of readdirSync(weatherRoot, { withFileTypes: true })) {
   if (!entry.isDirectory() || entry.name === 'shared') continue;
@@ -105,11 +106,13 @@ for (const entry of readdirSync(weatherRoot, { withFileTypes: true })) {
       await checkImage(thumbnail, { width: 540, height: 216, alpha: false });
     }
   }
-  for (const [group, names] of Object.entries(iconGroups)) {
-    for (const name of names) {
-      const path = join(themeRoot, `icons/${group}/${name}.webp`);
-      expectedFiles.add(path);
-      await checkImage(path, { width: 256, height: 256, alpha: true });
+  if (!backgroundOnlyWeatherThemes.has(theme)) {
+    for (const [group, names] of Object.entries(iconGroups)) {
+      for (const name of names) {
+        const path = join(themeRoot, `icons/${group}/${name}.webp`);
+        expectedFiles.add(path);
+        await checkImage(path, { width: 256, height: 256, alpha: true });
+      }
     }
   }
   const themeThumbnail = join(themeRoot, 'thumbnails/theme.webp');

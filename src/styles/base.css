@@ -404,6 +404,8 @@ label, fieldset { display: grid; gap: var(--space-2); color: var(--ink); font-si
 .emoji-icon { display: grid; place-items: center; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-style: normal; line-height: 1; filter: none; }
 .today-workbench .quick-icon.emoji-icon { font-size: 31px; }
 .today-plan-list .task-icon.emoji-icon { font-size: 27px; }
+.record-mark.emoji-icon { font-size: 28px; }
+.care-choice-grid button > .emoji-icon { width: 32px; height: 32px; font-size: 25px; }
 .today-plan-list .task-icon { width: 36px; height: 36px; object-fit: contain; }
 .today-plan-loading { min-height: 91px; }
 .today-plan-skeleton { min-height: 52px; display: grid; grid-template-columns: 36px minmax(0, 1fr) 52px; align-items: center; gap: 9px; }

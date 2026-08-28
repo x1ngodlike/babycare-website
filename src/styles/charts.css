@@ -50,6 +50,7 @@ html[data-theme="dark"] .rhythm-dot.night { fill: var(--chart-complement); }
 .overview-mark-btn { position: absolute; width: 34px; height: 34px; padding: 0; border: 0; background: none; transform: translate(-50%, -50%); cursor: pointer; }
 .overview-mark-btn.near-edge { top: clamp(26px, var(--overview-top), calc(100% - 26px)) !important; }
 .overview-mark { width: 34px; height: 34px; padding: 4px; box-sizing: border-box; border: 1px solid var(--surface-chip); border-radius: 50%; background: var(--token-surface-plan); object-fit: contain; box-shadow: inset 0 2px 4px rgba(105, 90, 65, .1), 0 0 0 2px var(--surface-card); }
+.overview-mark.emoji-icon { padding: 0; font-size: 20px; }
 .overview-detail { position: absolute; z-index: 6; top: 10px; left: calc(var(--overview-axis) + 8px); right: 8px; max-height: 40%; overflow-y: auto; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface-card); box-shadow: var(--shadow-popover); font-size: 12px; line-height: 1.6; }
 .overview-detail-head { margin-bottom: 4px; font-weight: 800; color: var(--ink); }
 .overview-detail-row { display: flex; gap: 12px; color: var(--ink); word-break: keep-all; overflow-wrap: anywhere; }
@@ -122,4 +123,3 @@ html[data-theme="dark"] .gc-dot.latest { fill: var(--chart-complement); }
   html:not([data-theme="light"]) .gc-band { fill: var(--brand); fill-opacity: 0.12; }
   html:not([data-theme="light"]) .gc-dot.latest { fill: var(--chart-complement); }
 }
-

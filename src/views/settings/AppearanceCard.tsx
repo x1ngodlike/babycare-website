@@ -392,7 +392,7 @@ export function AppearanceSettingsCard({
               <section className="hero-theme-icons-preview basic-shapes-icons-preview" aria-label="基础图形配套图标预览">
                 <h3>配套图标</h3>
                 <div className="hero-theme-icon-group">
-                  <p>快捷区</p>
+                  <p>快捷与记录</p>
                   <div>{[
                     ['喂奶', BASIC_SHAPES_QUICK_EMOJI.feeding],
                     ['排便', BASIC_SHAPES_QUICK_EMOJI.bowel],
