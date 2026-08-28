@@ -1,0 +1,109 @@
+/* 仲夏夜梦：盛夏草木、水彩月色与克制的萤火微光。 */
+html[data-visual-theme="midsummer-dream"][data-theme="light"] {
+  --theme-page: #f6f4e8;
+  --theme-card: #fcfbf3;
+  --theme-brand: #587b62;
+  --theme-ink: #343b36;
+  --theme-muted: #737c74;
+  --theme-complement: #c58445;
+}
+
+html[data-visual-theme="midsummer-dream"][data-theme="dark"] {
+  --theme-page: #171d1b;
+  --theme-card: #212925;
+  --theme-brand: #8db99a;
+  --theme-ink: #eaf0e8;
+  --theme-muted: #a8b3ab;
+  --theme-complement: #e2ad62;
+}
+
+html[data-visual-theme="midsummer-dream"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 7% 5%, rgba(255, 254, 247, .98) 0 9%, transparent 31%),
+    radial-gradient(circle at 93% 88%, rgba(197, 132, 69, .06), transparent 28%),
+    linear-gradient(155deg, #fffdf6 0%, #f6f4e8 55%, #e4ece2 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="midsummer-dream"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 91% 7%, rgba(141, 185, 154, .09), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(226, 173, 98, .045), transparent 27%),
+    linear-gradient(180deg, #222a27 0%, #171d1b 55%, #101513 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="midsummer-dream"] .app::before,
+html[data-visual-theme="midsummer-dream"] .app::after { background: rgba(88, 123, 98, .07); }
+
+/* 共享天气优先，主题只校准盛夏草木中的云雾、雨色与暗部密度。 */
+.baby-hero.hero-midsummer-dream.weather-cloudy::before { background: linear-gradient(108deg, transparent 37%, rgba(235, 240, 226, .13) 64%, rgba(199, 215, 204, .18)); }
+.baby-hero.hero-midsummer-dream.weather-overcast::before { background: rgba(47, 62, 54, .17); backdrop-filter: saturate(.84) brightness(.97); -webkit-backdrop-filter: saturate(.84) brightness(.97); }
+.baby-hero.hero-midsummer-dream.weather-rain::before { background: linear-gradient(90deg, transparent 42%, rgba(47, 71, 67, .14)); }
+.baby-hero.hero-midsummer-dream.weather-fog::before { background: linear-gradient(90deg, transparent 29%, rgba(240, 242, 229, .13) 58%, rgba(216, 228, 219, .23)); backdrop-filter: blur(1px) saturate(.9); -webkit-backdrop-filter: blur(1px) saturate(.9); }
+.baby-hero.hero-midsummer-dream.weather-snow .diary-snow { opacity: .26; animation-duration: 10s; }
+.baby-hero.hero-midsummer-dream.weather-thunder::before { background: linear-gradient(90deg, transparent 37%, rgba(37, 55, 62, .2) 67%, rgba(42, 44, 65, .27)); }
+
+/* 四时段轻动态：晨雾露光、叶影光尘、水面晚光与蜻蜓、流萤月尘。 */
+.midsummer-dream-motion { display: none; }
+.baby-hero.hero-midsummer-dream::after { animation: diary-page-arrive .45s ease-out both; }
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion { display: block; position: absolute; z-index: 1; inset: 0; overflow: hidden; transition: opacity .35s ease; }
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion i { position: absolute; display: block; pointer-events: none; }
+
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion-morning .midsummer-dream-motion-primary {
+  right: 1%; bottom: -13%; width: 57%; height: 55%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(245, 249, 229, .21), transparent 68%);
+  filter: blur(2px); animation: midsummer-mist 9.2s ease-in-out infinite alternate;
+}
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion-morning .midsummer-dream-motion-secondary {
+  right: 20%; top: 18%; width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 248, 196, .74);
+  box-shadow: 34px 16px 0 rgba(230, 247, 213, .46), 72px -5px 0 rgba(255, 248, 196, .36);
+  animation: midsummer-dew 6.6s ease-in-out infinite alternate;
+}
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion-daytime .midsummer-dream-motion-primary {
+  right: 3%; top: -18%; width: 49%; height: 127%;
+  background: linear-gradient(109deg, transparent 24%, rgba(54, 94, 60, .095) 29% 33%, transparent 38% 51%, rgba(54, 94, 60, .075) 56% 60%, transparent 65%);
+  transform-origin: 50% 0; animation: midsummer-leaf-shadow 8.6s ease-in-out infinite alternate;
+}
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion-daytime .midsummer-dream-motion-secondary {
+  right: 10%; top: 16%; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 246, 198, .7);
+  box-shadow: 42px 29px 0 rgba(255, 246, 198, .4), 84px 7px 0 rgba(243, 234, 177, .45);
+  animation: midsummer-dust 7.4s ease-in-out infinite alternate;
+}
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion-evening .midsummer-dream-motion-primary {
+  right: 3%; bottom: -15%; width: 54%; height: 57%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 166, 92, .18), transparent 68%);
+  mix-blend-mode: screen; animation: midsummer-water-glow 7s ease-in-out infinite alternate;
+}
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion-evening .midsummer-dream-motion-secondary {
+  right: 22%; top: 39%; width: 15px; height: 5px; border-radius: 50%;
+  background: rgba(92, 71, 45, .54); box-shadow: -4px -3px 0 -1px rgba(232, 205, 157, .5), 4px -3px 0 -1px rgba(232, 205, 157, .5);
+  animation: midsummer-dragonfly 7.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion-night .midsummer-dream-motion-primary {
+  right: 8%; top: 15%; width: 6px; height: 6px; border-radius: 50%; background: rgba(242, 244, 129, .86);
+  box-shadow: 31px 18px 0 rgba(231, 244, 125, .56), 66px -8px 0 rgba(255, 232, 125, .72), 99px 29px 0 rgba(231, 244, 125, .48), 131px 4px 0 rgba(255, 232, 125, .6);
+  animation: midsummer-fireflies 7.2s ease-in-out infinite alternate;
+}
+.baby-hero.hero-midsummer-dream .midsummer-dream-motion-night .midsummer-dream-motion-secondary {
+  right: 2%; top: -10%; width: 54%; height: 112%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(200, 224, 211, .105), transparent 68%);
+  animation: midsummer-moon-dust 9.6s ease-in-out infinite alternate;
+}
+
+.baby-hero.hero-midsummer-dream:is(.weather-rain, .weather-snow, .weather-fog) .midsummer-dream-motion { opacity: .35; }
+.baby-hero.hero-midsummer-dream.weather-thunder .midsummer-dream-motion { opacity: .2; }
+
+@keyframes midsummer-mist { from { opacity: .34; transform: translateX(-8px) scale(.98); } to { opacity: .72; transform: translateX(9px) scale(1.025); } }
+@keyframes midsummer-dew { from { opacity: .3; transform: translateY(1px) scale(.9); } to { opacity: .9; transform: translateY(-2px) scale(1.08); } }
+@keyframes midsummer-leaf-shadow { from { opacity: .34; transform: rotate(-1.1deg) translateX(-2px); } to { opacity: .7; transform: rotate(1.2deg) translateX(4px); } }
+@keyframes midsummer-dust { from { opacity: .28; transform: translate3d(0, 5px, 0); } to { opacity: .76; transform: translate3d(-6px, -5px, 0); } }
+@keyframes midsummer-water-glow { from { opacity: .4; transform: translateX(3px) scale(.98); } to { opacity: .82; transform: translateX(-4px) scale(1.03); } }
+@keyframes midsummer-dragonfly { from { opacity: .36; transform: translate3d(7px, 3px, 0) rotate(-4deg); } to { opacity: .76; transform: translate3d(-18px, -5px, 0) rotate(4deg); } }
+@keyframes midsummer-fireflies { from { opacity: .34; transform: translate3d(0, 4px, 0); } to { opacity: .96; transform: translate3d(-7px, -6px, 0); } }
+@keyframes midsummer-moon-dust { from { opacity: .3; transform: translateX(4px); } to { opacity: .7; transform: translateX(-7px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="midsummer-dream"] .baby-hero.hero-midsummer-dream::after,
+  html[data-visual-theme="midsummer-dream"] .midsummer-dream-motion i { animation: none; }
+}

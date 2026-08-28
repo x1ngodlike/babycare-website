@@ -1,6 +1,6 @@
 import type { CareItem, CareRecord } from '../types';
 
-export type WeatherHeroThemeId = 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
+export type WeatherHeroThemeId = 'hero-midsummer-dream' | 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -38,6 +38,30 @@ export interface IconPackOption {
 }
 
 export const WEATHER_HERO_ASSETS = {
+  'hero-midsummer-dream': {
+    thumb: '/hero/weather/midsummer-dream/thumbnails/theme.webp',
+    stickers: {
+      feeding: '/hero/weather/midsummer-dream/icons/quick/feeding.webp',
+      bowel: '/hero/weather/midsummer-dream/icons/quick/bowel.webp',
+      care: '/hero/weather/midsummer-dream/icons/quick/care.webp',
+      note: '/hero/weather/midsummer-dream/icons/quick/note.webp',
+    },
+    tasks: {
+      medicine: '/hero/weather/midsummer-dream/icons/tasks/medicine.webp',
+      massage: '/hero/weather/midsummer-dream/icons/tasks/massage.webp',
+      bath: '/hero/weather/midsummer-dream/icons/tasks/bath.webp',
+      care: '/hero/weather/midsummer-dream/icons/tasks/care.webp',
+      vaccine: '/hero/weather/midsummer-dream/icons/tasks/vaccine.webp',
+      growth: '/hero/weather/midsummer-dream/icons/tasks/growth.webp',
+    },
+    nav: {
+      today: '/hero/weather/midsummer-dream/icons/nav/today.webp',
+      history: '/hero/weather/midsummer-dream/icons/nav/records.webp',
+      chat: '/hero/weather/midsummer-dream/icons/nav/chat.webp',
+      trends: '/hero/weather/midsummer-dream/icons/nav/trends.webp',
+      archive: '/hero/weather/midsummer-dream/icons/nav/archive.webp',
+    },
+  },
   'hero-bamboo-court': {
     thumb: '/hero/weather/bamboo-court/thumbnails/theme.webp',
     stickers: {
@@ -336,6 +360,7 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-midsummer-dream', label: '仲夏夜梦', thumb: WEATHER_HERO_ASSETS['hero-midsummer-dream'].thumb, group: 'weather' },
   { value: 'hero-bamboo-court', label: '青篁小院', thumb: WEATHER_HERO_ASSETS['hero-bamboo-court'].thumb, group: 'weather' },
   { value: 'hero-basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp', group: 'weather' },
   { value: 'hero-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb, group: 'weather' },
@@ -365,7 +390,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（13）' },
+  { key: 'weather', label: '天气画境（14）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -386,6 +411,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/classic/default/morning.webp' },
+  { value: 'hero-midsummer-dream', label: '仲夏夜梦', thumb: WEATHER_HERO_ASSETS['hero-midsummer-dream'].thumb },
   { value: 'hero-bamboo-court', label: '青篁小院', thumb: WEATHER_HERO_ASSETS['hero-bamboo-court'].thumb },
   { value: 'basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp' },
   { value: 'hero-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb },
@@ -400,6 +426,9 @@ export const ICON_PACKS: IconPackOption[] = [
 ];
 
 export const THEMES: ReadonlyArray<ThemePreset> = [
+  { id: 'theme-midsummer-dream', label: '仲夏夜梦', thumb: WEATHER_HERO_ASSETS['hero-midsummer-dream'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-midsummer-dream', iconPack: 'hero-midsummer-dream', weatherEffects: true },
+    recommendedBgs: ['hero-midsummer-dream'] },
   { id: 'theme-bamboo-court', label: '青篁小院', thumb: WEATHER_HERO_ASSETS['hero-bamboo-court'].thumb,
     defaults: { layout: 'diary', bg: 'hero-bamboo-court', iconPack: 'hero-bamboo-court', weatherEffects: true },
     recommendedBgs: ['hero-bamboo-court'] },
@@ -444,6 +473,7 @@ export function resolveThemeConfig(themeId: string, overrides?: Partial<ThemeCon
 }
 
 export function getVisualThemeForPreset(themeId: string): string | null {
+  if (themeId === 'theme-midsummer-dream') return 'midsummer-dream';
   if (themeId === 'theme-bamboo-court') return 'bamboo-court';
   if (themeId === 'theme-basic-shapes') return 'basic-shapes';
   if (themeId === 'theme-block-factory') return 'block-factory';
@@ -460,6 +490,7 @@ export function getVisualThemeForPreset(themeId: string): string | null {
 
 // 旧版 heroBg → 新版 themeId 迁移映射
 const LEGACY_BG_TO_THEME: Record<string, string> = {
+  'hero-midsummer-dream': 'theme-midsummer-dream',
   'hero-bamboo-court': 'theme-bamboo-court',
   'hero-block-factory': 'theme-block-factory',
   'hero-immortal-gate': 'theme-immortal-gate',
