@@ -1,39 +1,39 @@
-/* 海底世界：珊瑚橙、海藻绿与珍珠色构成的温暖童话海底主题。 */
+/* 海底世界：深海青、珊瑚橙与珍珠色构成的清透童话海底主题。 */
 html[data-visual-theme="ocean"][data-theme="light"] {
-  --theme-page: #f7f2e7;
-  --theme-card: #fffdf7;
-  --theme-brand: #d8745f;
-  --theme-ink: #30423f;
-  --theme-muted: #6d7973;
-  --theme-complement: #3e6aa0;
+  --theme-page: #eef5f2;
+  --theme-card: #fafcf8;
+  --theme-brand: #287b82;
+  --theme-ink: #263d3c;
+  --theme-muted: #667a76;
+  --theme-complement: #d36f5b;
 }
 
 html[data-visual-theme="ocean"][data-theme="dark"] {
-  --theme-page: #142421;
-  --theme-card: #1d302c;
-  --theme-brand: #ed927c;
-  --theme-ink: #f5eddc;
-  --theme-muted: #b8c4bc;
-  --theme-complement: #7ea3cc;
+  --theme-page: #102321;
+  --theme-card: #18312e;
+  --theme-brand: #68b5b8;
+  --theme-ink: #edf4ef;
+  --theme-muted: #aebdb7;
+  --theme-complement: #f09a83;
 }
 html[data-visual-theme="ocean"][data-theme="light"] body {
   background:
-    radial-gradient(circle at 8% 3%, rgba(255, 255, 250, .98) 0 8%, transparent 31%),
-    radial-gradient(circle at 93% 88%, rgba(98, 169, 164, .1), transparent 28%),
-    linear-gradient(155deg, #fffaf1 0%, #f7f2e7 55%, #e9e3d4 100%);
+    radial-gradient(circle at 8% 3%, rgba(252, 255, 251, .98) 0 8%, transparent 31%),
+    radial-gradient(circle at 93% 88%, rgba(211, 111, 91, .055), transparent 28%),
+    linear-gradient(155deg, #f8fbf7 0%, #eef5f2 55%, #dceae5 100%);
   background-attachment: fixed;
 }
 
 html[data-visual-theme="ocean"][data-theme="dark"] body {
   background:
-    radial-gradient(circle at 91% 7%, rgba(121, 199, 193, .09), transparent 31%),
-    radial-gradient(circle at 8% 92%, rgba(237, 146, 124, .055), transparent 26%),
-    linear-gradient(180deg, #192b27 0%, #142421 54%, #0e1a18 100%);
+    radial-gradient(circle at 91% 7%, rgba(104, 181, 184, .09), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(240, 154, 131, .045), transparent 26%),
+    linear-gradient(180deg, #162d2a 0%, #102321 54%, #0b1817 100%);
   background-attachment: fixed;
 }
 
 html[data-visual-theme="ocean"] .app::before,
-html[data-visual-theme="ocean"] .app::after { background: rgba(98, 169, 164, .075); }
+html[data-visual-theme="ocean"] .app::after { background: rgba(40, 123, 130, .07); }
 
 
 /* 海底天气：保留共享判断，替换水下不合理的直落雨线。 */

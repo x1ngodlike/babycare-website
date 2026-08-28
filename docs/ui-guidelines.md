@@ -127,7 +127,7 @@
 | 烛光魔塔 | light `#8a5a9e` · dark `#b88cce` | light `#2b6b3e` · dark `#9bc9a7` |
 | 星际观测 | light `#596fa7` · dark `#91a7e0` | light `#2b6b3e` · dark `#9bc9a7` |
 | 晴雨商店 | light `#914e49` · dark `#d58a80` | light `#2b6b3e` · dark `#9bc9a7` |
-| 海底世界 | light `#d8745f` · dark `#ed927c` | light `#2b6b3e` · dark `#9bc9a7` |
+| 海底世界 | light `#287b82` · dark `#68b5b8` | light `#d36f5b` · dark `#f09a83` |
 
 > `chart-complement` 优先选择与 brand 色相差约 60° 以上的稳定颜色；可使用共享绿 / 青色，也可使用符合主题语义且保持数据可分的独立对比色。
 
