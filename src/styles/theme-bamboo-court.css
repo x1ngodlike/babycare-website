@@ -1,0 +1,107 @@
+/* 青篁小院：水彩竹影、温润陶器与浅木色构成的东方日常主题。 */
+html[data-visual-theme="bamboo-court"][data-theme="light"] {
+  --theme-page: #f7f4ea;
+  --theme-card: #fcfaf4;
+  --theme-brand: #688b70;
+  --theme-ink: #353b35;
+  --theme-muted: #70786f;
+  --theme-complement: #c97852;
+}
+
+html[data-visual-theme="bamboo-court"][data-theme="dark"] {
+  --theme-page: #181d19;
+  --theme-card: #212822;
+  --theme-brand: #91ba9a;
+  --theme-ink: #e7eee7;
+  --theme-muted: #a5b0a5;
+  --theme-complement: #e1a07c;
+}
+
+html[data-visual-theme="bamboo-court"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 5%, rgba(255, 253, 246, .98) 0 9%, transparent 31%),
+    radial-gradient(circle at 92% 88%, rgba(201, 120, 82, .055), transparent 28%),
+    linear-gradient(155deg, #fffdf7 0%, #f7f4ea 56%, #e8eee4 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="bamboo-court"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 92% 7%, rgba(145, 186, 154, .085), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(225, 160, 124, .045), transparent 27%),
+    linear-gradient(180deg, #212822 0%, #181d19 55%, #101411 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="bamboo-court"] .app::before,
+html[data-visual-theme="bamboo-court"] .app::after { background: rgba(104, 139, 112, .07); }
+
+/* 复用共享天气层，只校准竹林环境中的雾、雨与暗部密度。 */
+.baby-hero.hero-bamboo-court.weather-cloudy::before { background: linear-gradient(108deg, transparent 37%, rgba(239, 241, 226, .13) 64%, rgba(205, 218, 205, .18)); }
+.baby-hero.hero-bamboo-court.weather-overcast::before { background: rgba(49, 65, 54, .16); backdrop-filter: saturate(.86) brightness(.97); -webkit-backdrop-filter: saturate(.86) brightness(.97); }
+.baby-hero.hero-bamboo-court.weather-rain::before { background: linear-gradient(90deg, transparent 43%, rgba(51, 76, 67, .14)); }
+.baby-hero.hero-bamboo-court.weather-fog::before { background: linear-gradient(90deg, transparent 30%, rgba(244, 244, 230, .12) 59%, rgba(220, 231, 220, .23)); backdrop-filter: blur(1px) saturate(.9); -webkit-backdrop-filter: blur(1px) saturate(.9); }
+.baby-hero.hero-bamboo-court.weather-snow .diary-snow { opacity: .27; animation-duration: 10s; }
+.baby-hero.hero-bamboo-court.weather-thunder::before { background: linear-gradient(90deg, transparent 38%, rgba(39, 59, 59, .19) 67%, rgba(44, 48, 67, .25)); }
+
+/* 四时段轻动态：晨雾与露光、叶影与浮尘、灯晕与落叶、流萤与月尘。 */
+.bamboo-court-motion { display: none; }
+.baby-hero.hero-bamboo-court::after { animation: diary-page-arrive .45s ease-out both; }
+.baby-hero.hero-bamboo-court .bamboo-court-motion { display: block; position: absolute; z-index: 1; inset: 0; overflow: hidden; transition: opacity .35s ease; }
+.baby-hero.hero-bamboo-court .bamboo-court-motion i { position: absolute; display: block; pointer-events: none; }
+
+.baby-hero.hero-bamboo-court .bamboo-court-motion-morning .bamboo-court-motion-primary {
+  right: 2%; bottom: -12%; width: 56%; height: 54%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(244, 250, 235, .2), transparent 68%);
+  filter: blur(2px); animation: bamboo-court-mist 9s ease-in-out infinite alternate;
+}
+.baby-hero.hero-bamboo-court .bamboo-court-motion-morning .bamboo-court-motion-secondary {
+  right: 24%; top: 18%; width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 247, 201, .72);
+  box-shadow: 31px 15px 0 rgba(235, 248, 218, .42); animation: bamboo-court-dew 6.4s ease-in-out infinite alternate;
+}
+.baby-hero.hero-bamboo-court .bamboo-court-motion-daytime .bamboo-court-motion-primary {
+  right: 5%; top: -18%; width: 47%; height: 126%;
+  background: linear-gradient(108deg, transparent 26%, rgba(69, 103, 70, .09) 31% 34%, transparent 39% 53%, rgba(69, 103, 70, .075) 57% 60%, transparent 65%);
+  transform-origin: 50% 0; animation: bamboo-court-leaf-shadow 8.5s ease-in-out infinite alternate;
+}
+.baby-hero.hero-bamboo-court .bamboo-court-motion-daytime .bamboo-court-motion-secondary {
+  right: 13%; top: 18%; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 246, 204, .68);
+  box-shadow: 40px 28px 0 rgba(255, 246, 204, .38), 78px 5px 0 rgba(246, 237, 190, .44);
+  animation: bamboo-court-dust 7.2s ease-in-out infinite alternate;
+}
+.baby-hero.hero-bamboo-court .bamboo-court-motion-evening .bamboo-court-motion-primary {
+  right: 8%; top: 9%; width: 43%; height: 78%; border-radius: 48%;
+  background: radial-gradient(ellipse, rgba(255, 173, 105, .18), transparent 68%);
+  mix-blend-mode: screen; animation: bamboo-court-lantern 6.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-bamboo-court .bamboo-court-motion-evening .bamboo-court-motion-secondary {
+  right: 30%; top: 12%; width: 13px; height: 6px; border-radius: 90% 10% 90% 10%; background: rgba(191, 130, 70, .56);
+  transform: rotate(20deg); animation: bamboo-court-falling-leaf 8.8s ease-in-out infinite;
+}
+.baby-hero.hero-bamboo-court .bamboo-court-motion-night .bamboo-court-motion-primary {
+  right: 12%; top: 16%; width: 5px; height: 5px; border-radius: 50%; background: rgba(237, 246, 153, .78);
+  box-shadow: 37px 23px 0 rgba(221, 244, 151, .52), 81px -5px 0 rgba(244, 236, 171, .6), 116px 31px 0 rgba(221, 244, 151, .42);
+  animation: bamboo-court-fireflies 7.6s ease-in-out infinite alternate;
+}
+.baby-hero.hero-bamboo-court .bamboo-court-motion-night .bamboo-court-motion-secondary {
+  right: 4%; top: -12%; width: 53%; height: 112%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(208, 225, 210, .1), transparent 68%);
+  animation: bamboo-court-moon-dust 9.4s ease-in-out infinite alternate;
+}
+
+.baby-hero.hero-bamboo-court:is(.weather-rain, .weather-snow, .weather-fog) .bamboo-court-motion { opacity: .38; }
+.baby-hero.hero-bamboo-court.weather-thunder .bamboo-court-motion { opacity: .2; }
+
+@keyframes bamboo-court-mist { from { opacity: .34; transform: translateX(-7px) scale(.98); } to { opacity: .72; transform: translateX(8px) scale(1.025); } }
+@keyframes bamboo-court-dew { from { opacity: .3; transform: translateY(1px) scale(.9); } to { opacity: .9; transform: translateY(-2px) scale(1.08); } }
+@keyframes bamboo-court-leaf-shadow { from { opacity: .35; transform: rotate(-1deg) translateX(-2px); } to { opacity: .7; transform: rotate(1.2deg) translateX(4px); } }
+@keyframes bamboo-court-dust { from { opacity: .28; transform: translate3d(0, 5px, 0); } to { opacity: .76; transform: translate3d(-5px, -5px, 0); } }
+@keyframes bamboo-court-lantern { from { opacity: .4; transform: scale(.98); } to { opacity: .82; transform: scale(1.03); } }
+@keyframes bamboo-court-falling-leaf { 0% { opacity: 0; transform: translate3d(0, -8px, 0) rotate(8deg); } 18%, 72% { opacity: .64; } 100% { opacity: 0; transform: translate3d(-28px, 96px, 0) rotate(105deg); } }
+@keyframes bamboo-court-fireflies { from { opacity: .35; transform: translate3d(0, 3px, 0); } to { opacity: .92; transform: translate3d(-7px, -5px, 0); } }
+@keyframes bamboo-court-moon-dust { from { opacity: .32; transform: translateX(3px); } to { opacity: .72; transform: translateX(-6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="bamboo-court"] .baby-hero.hero-bamboo-court::after,
+  html[data-visual-theme="bamboo-court"] .bamboo-court-motion i { animation: none; }
+}

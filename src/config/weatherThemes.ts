@@ -1,6 +1,6 @@
 import type { CareItem, CareRecord } from '../types';
 
-export type WeatherHeroThemeId = 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
+export type WeatherHeroThemeId = 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -38,6 +38,30 @@ export interface IconPackOption {
 }
 
 export const WEATHER_HERO_ASSETS = {
+  'hero-bamboo-court': {
+    thumb: '/hero/weather/bamboo-court/thumbnails/theme.webp',
+    stickers: {
+      feeding: '/hero/weather/bamboo-court/icons/quick/feeding.webp',
+      bowel: '/hero/weather/bamboo-court/icons/quick/bowel.webp',
+      care: '/hero/weather/bamboo-court/icons/quick/care.webp',
+      note: '/hero/weather/bamboo-court/icons/quick/note.webp',
+    },
+    tasks: {
+      medicine: '/hero/weather/bamboo-court/icons/tasks/medicine.webp',
+      massage: '/hero/weather/bamboo-court/icons/tasks/massage.webp',
+      bath: '/hero/weather/bamboo-court/icons/tasks/bath.webp',
+      care: '/hero/weather/bamboo-court/icons/tasks/care.webp',
+      vaccine: '/hero/weather/bamboo-court/icons/tasks/vaccine.webp',
+      growth: '/hero/weather/bamboo-court/icons/tasks/growth.webp',
+    },
+    nav: {
+      today: '/hero/weather/bamboo-court/icons/nav/today.webp',
+      history: '/hero/weather/bamboo-court/icons/nav/records.webp',
+      chat: '/hero/weather/bamboo-court/icons/nav/chat.webp',
+      trends: '/hero/weather/bamboo-court/icons/nav/trends.webp',
+      archive: '/hero/weather/bamboo-court/icons/nav/archive.webp',
+    },
+  },
   'hero-block-factory': {
     thumb: '/hero/weather/block-factory/thumbnails/theme.webp',
     stickers: {
@@ -312,6 +336,7 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-bamboo-court', label: '青篁小院', thumb: WEATHER_HERO_ASSETS['hero-bamboo-court'].thumb, group: 'weather' },
   { value: 'hero-basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp', group: 'weather' },
   { value: 'hero-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb, group: 'weather' },
   { value: 'hero-immortal-gate', label: '云海仙门', thumb: WEATHER_HERO_ASSETS['hero-immortal-gate'].thumb, group: 'weather' },
@@ -340,7 +365,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（12）' },
+  { key: 'weather', label: '天气画境（13）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -361,6 +386,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/classic/default/morning.webp' },
+  { value: 'hero-bamboo-court', label: '青篁小院', thumb: WEATHER_HERO_ASSETS['hero-bamboo-court'].thumb },
   { value: 'basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp' },
   { value: 'hero-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb },
   { value: 'hero-immortal-gate', label: '云海仙门', thumb: WEATHER_HERO_ASSETS['hero-immortal-gate'].thumb },
@@ -374,6 +400,9 @@ export const ICON_PACKS: IconPackOption[] = [
 ];
 
 export const THEMES: ReadonlyArray<ThemePreset> = [
+  { id: 'theme-bamboo-court', label: '青篁小院', thumb: WEATHER_HERO_ASSETS['hero-bamboo-court'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-bamboo-court', iconPack: 'hero-bamboo-court', weatherEffects: true },
+    recommendedBgs: ['hero-bamboo-court'] },
   { id: 'theme-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb,
     defaults: { layout: 'diary', bg: 'hero-block-factory', iconPack: 'hero-block-factory', weatherEffects: true },
     recommendedBgs: ['hero-block-factory'] },
@@ -415,6 +444,7 @@ export function resolveThemeConfig(themeId: string, overrides?: Partial<ThemeCon
 }
 
 export function getVisualThemeForPreset(themeId: string): string | null {
+  if (themeId === 'theme-bamboo-court') return 'bamboo-court';
   if (themeId === 'theme-basic-shapes') return 'basic-shapes';
   if (themeId === 'theme-block-factory') return 'block-factory';
   if (themeId === 'theme-immortal-gate') return 'immortal-gate';
@@ -430,6 +460,7 @@ export function getVisualThemeForPreset(themeId: string): string | null {
 
 // 旧版 heroBg → 新版 themeId 迁移映射
 const LEGACY_BG_TO_THEME: Record<string, string> = {
+  'hero-bamboo-court': 'theme-bamboo-court',
   'hero-block-factory': 'theme-block-factory',
   'hero-immortal-gate': 'theme-immortal-gate',
   'hero-fruit-cake': 'theme-fruit-cake',
