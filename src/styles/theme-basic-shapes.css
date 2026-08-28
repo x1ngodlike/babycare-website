@@ -1,0 +1,37 @@
+/* 基础图形：云端旅志背景之上的青绿、珊瑚与原生图形主题。 */
+html[data-visual-theme="basic-shapes"][data-theme="light"] {
+  --theme-page: #f7f3ec;
+  --theme-card: #fffdf9;
+  --theme-brand: #4f7f7a;
+  --theme-ink: #3f3b36;
+  --theme-muted: #777168;
+  --theme-complement: #d8755f;
+}
+
+html[data-visual-theme="basic-shapes"][data-theme="dark"] {
+  --theme-page: #1c1d1c;
+  --theme-card: #272927;
+  --theme-brand: #84b9b2;
+  --theme-ink: #f3ede4;
+  --theme-muted: #b9b3aa;
+  --theme-complement: #e7937f;
+}
+
+html[data-visual-theme="basic-shapes"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 5%, rgba(255, 253, 249, .98) 0 9%, transparent 31%),
+    radial-gradient(circle at 93% 89%, rgba(216, 117, 95, .055), transparent 28%),
+    linear-gradient(155deg, #fffdf9 0%, #f7f3ec 55%, #e9e3da 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="basic-shapes"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 92% 7%, rgba(132, 185, 178, .08), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(231, 147, 127, .04), transparent 27%),
+    linear-gradient(180deg, #272927 0%, #1c1d1c 55%, #141514 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="basic-shapes"] .app::before,
+html[data-visual-theme="basic-shapes"] .app::after { background: rgba(79, 127, 122, .065); }

@@ -18,6 +18,7 @@ import { RecordEditor } from './views/RecordEditor';
 import { AuditDialog, GrowthEditor } from './views/RecordDialogs';
 import { useAutoConnect } from './hooks/useAutoConnect';
 import { resolveThemeConfig, getIconPackAssets, getVisualThemeForPreset, legacyHeroBgToThemeId, buildOverridesFromLegacy, DEFAULT_THEME_ID, type ThemeConfig } from './config/weatherThemes';
+import { BASIC_SHAPES_ICON_PACK_ID, BASIC_SHAPES_NAV_ICONS, type BasicShapesNavKey } from './basicShapesIcons';
 import type { Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineRecord, FamilyId, GrowthRecord, Profile, PushStatus, SessionUser, Supplement, VaccineCatalogItem, VaccineRecord } from './types';
 
 // 低频页面按需加载，配合 main.tsx 空闲预取与 Service Worker 运行时缓存
@@ -27,6 +28,7 @@ const SettingsView = lazy(() => import('./views/Settings'));
 const ChatView = lazy(() => import('./views/Chat'));
 
 type Tab = 'today' | 'history' | 'chat' | 'trends' | 'archive' | 'settings';
+type NavTab = Exclude<Tab, 'settings'>;
 type ChangeScope = 'records' | 'profile' | 'all';
 type ToastState = { message: string; actionLabel?: string; onAction?: () => void | Promise<void> };
 
@@ -486,6 +488,7 @@ export default function App() {
   const pullLabel = pull.phase === 'refreshing' ? '正在更新' : pull.phase === 'done' ? '已更新' : pull.phase === 'ready' ? '松开刷新' : '继续下拉刷新';
   const pullOffset = pull.phase === 'refreshing' || pull.phase === 'done' ? 8 : Math.min(8, pull.distance - 44);
   const themedNavIcons = getIconPackAssets(themeIconPack)?.nav;
+  const useBasicShapesNav = themeIconPack === BASIC_SHAPES_ICON_PACK_ID;
   return <div className="app">{pull.phase !== 'idle' && <div className={`pull-indicator ${pull.phase}`} style={{ transform: `translate(-50%, ${pullOffset}px)` }} role="status"><i aria-hidden="true" />{pullLabel}</div>}{!isChatPage && <div className="top-status"><button className="user-pill" onClick={() => goToTab('settings')} aria-label={`打开设置，当前身份${currentUser.name}${roleNames[currentUser.role]}`}><img src={currentMember.icon} alt="" /><b>{currentUser.name}</b><span>{roleNames[currentUser.role]}</span></button>{(isConnectionFailed || !online || pendingCount > 0 || refreshing || offlineSession) && <div className={`network-pill ${isConnectionFailed ? 'offline' : online ? refreshing ? 'syncing' : '' : 'offline'}`} role="status" aria-live="polite">{connectionLabel}</div>}</div>}
     {toast && <div className={`toast ${toast.actionLabel ? 'with-action' : ''}`} onAnimationEnd={() => !toast.actionLabel && setToast(null)} role="status" aria-live="polite"><span>{toast.message}</span>{toast.actionLabel && <button onClick={async () => { await toast.onAction?.(); }}>{toast.actionLabel}</button>}<button className="toast-close" aria-label="关闭提示" onClick={() => setToast(null)}><X aria-hidden="true" /></button></div>}
     <main className={`main-content${isChatPage ? ' chat-page-fullscreen' : ''}`}>
@@ -507,12 +510,17 @@ export default function App() {
         ['chat', themedNavIcons?.chat ?? '/images/icons/nav/chat.webp', 'AI 助手'],
         ['trends', themedNavIcons?.trends ?? '/images/icons/nav/trends.webp', '趋势'],
         ['archive', themedNavIcons?.archive ?? '/images/icons/nav/archive.webp', '档案']
-      ] as [Tab, string, string][]).map(([value, icon, label]) => (
-        <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => goToTab(value)}>
-          <img src={icon} alt="" />
-          <b>{label}</b>
-        </button>
-      ))}
+      ] as [NavTab, string, string][]).map(([value, icon, label]) => {
+        const LineIcon = BASIC_SHAPES_NAV_ICONS[value as BasicShapesNavKey];
+        return (
+          <button key={value} aria-current={tab === value ? 'page' : undefined} className={tab === value ? 'active' : ''} onClick={() => goToTab(value)}>
+            {useBasicShapesNav
+              ? <span className="app-nav-line-icon" aria-hidden="true"><LineIcon /></span>
+              : <img src={icon} alt="" />}
+            <b>{label}</b>
+          </button>
+        );
+      })}
     </nav>}
     {tab === 'today' && !isChatPage && <button type="button" className="floating-add" onClick={() => setEditor(blankDraft())} aria-label="添加照护记录"><Plus aria-hidden="true" /><b>记录</b></button>}
     {editor && <RecordEditor initial={editor} careItems={careItems} iconPack={themeIconPack} onClose={() => setEditor(null)} onSave={saveOne} />}{growthEditor && <GrowthEditor key={growthEditor === 'new' ? 'new' : growthEditor.id} profile={profile} records={growthRecords} initial={growthEditor === 'new' ? undefined : growthEditor} onClose={() => setGrowthEditor(null)} onSave={saveGrowth} />}{vaccineEditor && <VaccineEditor state={vaccineEditor} profile={profile} catalog={vaccineCatalog} records={vaccineRecords} onClose={() => setVaccineEditor(null)} onSave={saveVaccine} />}{auditRecord && <AuditDialog record={auditRecord} onClose={() => setAuditRecord(null)} />}

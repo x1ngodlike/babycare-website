@@ -10,6 +10,7 @@ import {
   type ThemeConfig, type ThemePreset, type HeroLayout, type IconPackId,
 } from '../../config/weatherThemes';
 import type { FamilyId, Profile } from '../../types';
+import { BASIC_SHAPES_ICON_PACK_ID, BASIC_SHAPES_NAV_ICONS, BASIC_SHAPES_QUICK_EMOJI, BASIC_SHAPES_TASK_EMOJI } from '../../basicShapesIcons';
 
 const HERO_PERIODS = [
   { key: 'morning', label: '早晨', icon: '🌅', fileIndex: 1 },
@@ -47,7 +48,7 @@ const DIARY_PERIOD_DETAILS: Record<string, { range: string; weather: Pick<Weathe
 };
 
 const LABEL_FOR_LAYOUT: Record<HeroLayout, string> = { diary: '杂志风', classic: '经典风' };
-const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'hero-block-factory': '积木工厂', 'hero-immortal-gate': '云海仙门', 'hero-fruit-cake': '水果蛋糕', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界', 'hero-forest-press': '林间报社' };
+const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'basic-shapes': '基础图形', 'hero-block-factory': '积木工厂', 'hero-immortal-gate': '云海仙门', 'hero-fruit-cake': '水果蛋糕', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界', 'hero-forest-press': '林间报社' };
 
 function findBgLabel(bg: string): string {
   return HERO_BACKGROUNDS.find(o => o.value === bg)?.label ?? bg;
@@ -384,6 +385,45 @@ export function AppearanceSettingsCard({
                     ))}</div>
                   </div>
                 ))}
+              </section>
+            )}
+
+            {config.iconPack === BASIC_SHAPES_ICON_PACK_ID && (
+              <section className="hero-theme-icons-preview basic-shapes-icons-preview" aria-label="基础图形配套图标预览">
+                <h3>配套图标</h3>
+                <div className="hero-theme-icon-group">
+                  <p>快捷区</p>
+                  <div>{[
+                    ['喂奶', BASIC_SHAPES_QUICK_EMOJI.feeding],
+                    ['排便', BASIC_SHAPES_QUICK_EMOJI.bowel],
+                    ['护理', BASIC_SHAPES_QUICK_EMOJI.care],
+                    ['其他', BASIC_SHAPES_QUICK_EMOJI.note],
+                  ].map(([label, emoji]) => <span key={label}><i className="theme-preview-emoji" aria-hidden="true">{emoji}</i><b>{label}</b></span>)}</div>
+                </div>
+                <div className="hero-theme-icon-group">
+                  <p>今日待办</p>
+                  <div>{[
+                    ['服药', BASIC_SHAPES_TASK_EMOJI.medicine],
+                    ['推拿', BASIC_SHAPES_TASK_EMOJI.massage],
+                    ['洗澡', BASIC_SHAPES_TASK_EMOJI.bath],
+                    ['护理', BASIC_SHAPES_TASK_EMOJI.care],
+                    ['疫苗', BASIC_SHAPES_TASK_EMOJI.vaccine],
+                    ['成长', BASIC_SHAPES_TASK_EMOJI.growth],
+                  ].map(([label, emoji]) => <span key={label}><i className="theme-preview-emoji" aria-hidden="true">{emoji}</i><b>{label}</b></span>)}</div>
+                </div>
+                <div className="hero-theme-icon-group">
+                  <p>底部导航</p>
+                  <div>{[
+                    ['今日', BASIC_SHAPES_NAV_ICONS.today],
+                    ['记录', BASIC_SHAPES_NAV_ICONS.history],
+                    ['AI', BASIC_SHAPES_NAV_ICONS.chat],
+                    ['趋势', BASIC_SHAPES_NAV_ICONS.trends],
+                    ['档案', BASIC_SHAPES_NAV_ICONS.archive],
+                  ].map(([label, Icon]) => {
+                    const PreviewIcon = Icon as typeof BASIC_SHAPES_NAV_ICONS.today;
+                    return <span key={label as string}><PreviewIcon className="theme-preview-line-icon" aria-hidden="true" /><b>{label as string}</b></span>;
+                  })}</div>
+                </div>
               </section>
             )}
 

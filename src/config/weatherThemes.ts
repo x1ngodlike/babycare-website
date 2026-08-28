@@ -6,7 +6,7 @@ export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'va
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
 
 export type HeroLayout = 'diary' | 'classic';
-export type IconPackId = 'default' | WeatherHeroThemeId;
+export type IconPackId = 'default' | 'basic-shapes' | WeatherHeroThemeId;
 export type ThemeBgGroup = 'weather' | 'living' | 'classic' | 'dream' | 'pony';
 
 export interface ThemeConfig {
@@ -359,6 +359,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/classic/default/morning.webp' },
+  { value: 'basic-shapes', label: '基础图形', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb },
   { value: 'hero-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb },
   { value: 'hero-immortal-gate', label: '云海仙门', thumb: WEATHER_HERO_ASSETS['hero-immortal-gate'].thumb },
   { value: 'hero-fruit-cake', label: '水果蛋糕', thumb: WEATHER_HERO_ASSETS['hero-fruit-cake'].thumb },
@@ -392,6 +393,9 @@ export const THEMES: ReadonlyArray<ThemePreset> = [
     defaults: { layout: 'diary', bg: 'hero-orbit', iconPack: 'hero-orbit', weatherEffects: true } },
   { id: 'theme-travel', label: '云端旅志', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb,
     defaults: { layout: 'diary', bg: 'hero-travel', iconPack: 'hero-travel', weatherEffects: true } },
+  { id: 'theme-basic-shapes', label: '基础图形', thumb: WEATHER_HERO_ASSETS['hero-travel'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-travel', iconPack: 'basic-shapes', weatherEffects: true },
+    recommendedBgs: ['hero-travel'] },
   { id: 'theme-classic', label: '经典主题', thumb: '/hero/classic/default/morning.webp',
     defaults: { layout: 'classic', bg: 'auto', iconPack: 'default', weatherEffects: false } },
 ];
@@ -408,6 +412,7 @@ export function resolveThemeConfig(themeId: string, overrides?: Partial<ThemeCon
 }
 
 export function getVisualThemeForPreset(themeId: string): string | null {
+  if (themeId === 'theme-basic-shapes') return 'basic-shapes';
   if (themeId === 'theme-block-factory') return 'block-factory';
   if (themeId === 'theme-immortal-gate') return 'immortal-gate';
   if (themeId === 'theme-fruit-cake') return 'fruit-cake';

@@ -1296,6 +1296,18 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
   height: 38px;
   object-fit: contain;
 }
+.hero-theme-icon-group .theme-preview-emoji,
+.hero-theme-icon-group .theme-preview-line-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: var(--brand-deep);
+}
+.hero-theme-icon-group .theme-preview-emoji {
+  font: normal 27px/38px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+.hero-theme-icon-group .theme-preview-line-icon { padding: 7px; stroke-width: 2; }
 .hero-theme-icon-group b {
   color: var(--ink);
   font-size: 10px;
