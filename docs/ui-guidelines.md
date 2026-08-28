@@ -122,7 +122,7 @@
 | 积木工厂 | light `#3f7c78` · dark `#75b5ae` | light `#b85645` · dark `#e1806b` |
 | 云海仙门 | light `#477b70` · dark `#82b9aa` | light `#d39b3b` · dark `#e3b75e` |
 | 水果蛋糕 | light `#b95060` · dark `#e1848f` | light `#628568` · dark `#91b58b` |
-| 林间报社 | light `#66815f` · dark `#93b28b` | light `#7896ad` · dark `#95b7d0` |
+| 林间报社 | light `#66815f` · dark `#a7b487` | light `#7896ad` · dark `#8faabd` |
 | 云端旅志 | light `#96877a` · dark `#aa9b8c` | light `#2f6c3e` · dark `#9bc9a7` |
 | 烛光魔塔 | light `#8a5a9e` · dark `#b88cce` | light `#2b6b3e` · dark `#9bc9a7` |
 | 星际观测 | light `#596fa7` · dark `#91a7e0` | light `#2b6b3e` · dark `#9bc9a7` |

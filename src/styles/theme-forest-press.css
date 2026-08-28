@@ -9,12 +9,12 @@ html[data-visual-theme="forest-press"][data-theme="light"] {
 }
 
 html[data-visual-theme="forest-press"][data-theme="dark"] {
-  --theme-page: #18211c;
-  --theme-card: #223029;
-  --theme-brand: #93b28b;
-  --theme-ink: #f3ead7;
-  --theme-muted: #b7c1b6;
-  --theme-complement: #95b7d0;
+  --theme-page: #211d17;
+  --theme-card: #2d2820;
+  --theme-brand: #a7b487;
+  --theme-ink: #f3e8d1;
+  --theme-muted: #b8ae9f;
+  --theme-complement: #8faabd;
 }
 html[data-visual-theme="forest-press"][data-theme="light"] body {
   background:
@@ -26,9 +26,9 @@ html[data-visual-theme="forest-press"][data-theme="light"] body {
 
 html[data-visual-theme="forest-press"][data-theme="dark"] body {
   background:
-    radial-gradient(circle at 91% 7%, rgba(149, 183, 208, .075), transparent 31%),
-    radial-gradient(circle at 8% 92%, rgba(228, 154, 105, .045), transparent 26%),
-    linear-gradient(180deg, #1d2922 0%, #18211c 54%, #111713 100%);
+    radial-gradient(circle at 91% 7%, rgba(167, 180, 135, .07), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(218, 157, 89, .045), transparent 26%),
+    linear-gradient(180deg, #2b241b 0%, #211d17 54%, #15120e 100%);
   background-attachment: fixed;
 }
 
