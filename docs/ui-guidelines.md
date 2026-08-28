@@ -118,6 +118,7 @@
 | 主题 | brand（奶粉 + 白天） | chart-complement（母乳 + 夜间） |
 |---|---|---|
 | 经典主题（默认） | light `#657e51` · dark `#86a370` | light `#ee852f` · dark `#e09958` |
+| 积木工厂 | light `#3f7c78` · dark `#75b5ae` | light `#b85645` · dark `#e1806b` |
 | 云海仙门 | light `#477b70` · dark `#82b9aa` | light `#d39b3b` · dark `#e3b75e` |
 | 水果蛋糕 | light `#b95060` · dark `#e1848f` | light `#628568` · dark `#91b58b` |
 | 林间报社 | light `#66815f` · dark `#93b28b` | light `#7896ad` · dark `#95b7d0` |

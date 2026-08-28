@@ -1,6 +1,6 @@
 import type { CareItem, CareRecord } from '../types';
 
-export type WeatherHeroThemeId = 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
+export type WeatherHeroThemeId = 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -38,6 +38,30 @@ export interface IconPackOption {
 }
 
 export const WEATHER_HERO_ASSETS = {
+  'hero-block-factory': {
+    thumb: '/hero/weather/block-factory/thumbnails/theme.webp',
+    stickers: {
+      feeding: '/hero/weather/block-factory/icons/quick/feeding.webp',
+      bowel: '/hero/weather/block-factory/icons/quick/bowel.webp',
+      care: '/hero/weather/block-factory/icons/quick/care.webp',
+      note: '/hero/weather/block-factory/icons/quick/note.webp',
+    },
+    tasks: {
+      medicine: '/hero/weather/block-factory/icons/tasks/medicine.webp',
+      massage: '/hero/weather/block-factory/icons/tasks/massage.webp',
+      bath: '/hero/weather/block-factory/icons/tasks/bath.webp',
+      care: '/hero/weather/block-factory/icons/tasks/care.webp',
+      vaccine: '/hero/weather/block-factory/icons/tasks/vaccine.webp',
+      growth: '/hero/weather/block-factory/icons/tasks/growth.webp',
+    },
+    nav: {
+      today: '/hero/weather/block-factory/icons/nav/today.webp',
+      history: '/hero/weather/block-factory/icons/nav/records.webp',
+      chat: '/hero/weather/block-factory/icons/nav/chat.webp',
+      trends: '/hero/weather/block-factory/icons/nav/trends.webp',
+      archive: '/hero/weather/block-factory/icons/nav/archive.webp',
+    },
+  },
   'hero-immortal-gate': {
     thumb: '/hero/weather/immortal-gate/thumbnails/theme.webp',
     stickers: {
@@ -288,6 +312,7 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb, group: 'weather' },
   { value: 'hero-immortal-gate', label: '云海仙门', thumb: WEATHER_HERO_ASSETS['hero-immortal-gate'].thumb, group: 'weather' },
   { value: 'hero-fruit-cake', label: '水果蛋糕', thumb: WEATHER_HERO_ASSETS['hero-fruit-cake'].thumb, group: 'weather' },
   { value: 'hero-candy-workshop', label: '糖果工坊', thumb: '/hero/weather/fruit-cake/thumbnails/candy-workshop.webp', group: 'weather' },
@@ -313,7 +338,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（9）' },
+  { key: 'weather', label: '天气画境（10）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -334,6 +359,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/classic/default/morning.webp' },
+  { value: 'hero-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb },
   { value: 'hero-immortal-gate', label: '云海仙门', thumb: WEATHER_HERO_ASSETS['hero-immortal-gate'].thumb },
   { value: 'hero-fruit-cake', label: '水果蛋糕', thumb: WEATHER_HERO_ASSETS['hero-fruit-cake'].thumb },
   { value: 'hero-forest-press', label: '林间报社', thumb: WEATHER_HERO_ASSETS['hero-forest-press'].thumb },
@@ -345,6 +371,9 @@ export const ICON_PACKS: IconPackOption[] = [
 ];
 
 export const THEMES: ReadonlyArray<ThemePreset> = [
+  { id: 'theme-block-factory', label: '积木工厂', thumb: WEATHER_HERO_ASSETS['hero-block-factory'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-block-factory', iconPack: 'hero-block-factory', weatherEffects: true },
+    recommendedBgs: ['hero-block-factory'] },
   { id: 'theme-immortal-gate', label: '云海仙门', thumb: WEATHER_HERO_ASSETS['hero-immortal-gate'].thumb,
     defaults: { layout: 'diary', bg: 'hero-immortal-gate', iconPack: 'hero-immortal-gate', weatherEffects: true },
     recommendedBgs: ['hero-immortal-gate'] },
@@ -379,6 +408,7 @@ export function resolveThemeConfig(themeId: string, overrides?: Partial<ThemeCon
 }
 
 export function getVisualThemeForPreset(themeId: string): string | null {
+  if (themeId === 'theme-block-factory') return 'block-factory';
   if (themeId === 'theme-immortal-gate') return 'immortal-gate';
   if (themeId === 'theme-fruit-cake') return 'fruit-cake';
   if (themeId === 'theme-travel') return 'travel';
@@ -392,6 +422,7 @@ export function getVisualThemeForPreset(themeId: string): string | null {
 
 // 旧版 heroBg → 新版 themeId 迁移映射
 const LEGACY_BG_TO_THEME: Record<string, string> = {
+  'hero-block-factory': 'theme-block-factory',
   'hero-immortal-gate': 'theme-immortal-gate',
   'hero-fruit-cake': 'theme-fruit-cake',
   'hero-diary': 'theme-fruit-cake',

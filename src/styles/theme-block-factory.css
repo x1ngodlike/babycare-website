@@ -1,0 +1,102 @@
+/* 积木工厂：中世纪现代木玩、帆布传送带与克制的黄铜细节。 */
+html[data-visual-theme="block-factory"][data-theme="light"] {
+  --theme-page: #f5f1e7;
+  --theme-card: #fffdf7;
+  --theme-brand: #3f7c78;
+  --theme-ink: #3e3a34;
+  --theme-muted: #756f65;
+  --theme-complement: #b85645;
+}
+
+html[data-visual-theme="block-factory"][data-theme="dark"] {
+  --theme-page: #191b1a;
+  --theme-card: #242827;
+  --theme-brand: #75b5ae;
+  --theme-ink: #f5ecdd;
+  --theme-muted: #b8b3a8;
+  --theme-complement: #e1806b;
+}
+
+html[data-visual-theme="block-factory"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 7% 5%, rgba(255, 253, 247, .98) 0 9%, transparent 31%),
+    radial-gradient(circle at 93% 88%, rgba(184, 86, 69, .06), transparent 28%),
+    linear-gradient(155deg, #fffdf7 0%, #f5f1e7 55%, #e9e1d2 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="block-factory"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 92% 7%, rgba(117, 181, 174, .085), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(225, 128, 107, .045), transparent 27%),
+    linear-gradient(180deg, #242827 0%, #191b1a 55%, #111312 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="block-factory"] .app::before,
+html[data-visual-theme="block-factory"] .app::after { background: rgba(63, 124, 120, .07); }
+
+/* 复用共享天气层，只让室外天气通过工厂高窗影响室内光线。 */
+.baby-hero.hero-block-factory.weather-cloudy::before { background: linear-gradient(108deg, transparent 38%, rgba(231, 231, 216, .12) 66%, rgba(192, 203, 196, .17)); }
+.baby-hero.hero-block-factory.weather-overcast::before { background: rgba(48, 58, 56, .15); backdrop-filter: saturate(.86) brightness(.97); -webkit-backdrop-filter: saturate(.86) brightness(.97); }
+.baby-hero.hero-block-factory.weather-rain::before { background: linear-gradient(90deg, transparent 45%, rgba(55, 79, 81, .13)); }
+.baby-hero.hero-block-factory.weather-fog::before { background: linear-gradient(90deg, transparent 31%, rgba(239, 238, 225, .11) 60%, rgba(218, 226, 220, .2)); backdrop-filter: blur(1px) saturate(.9); -webkit-backdrop-filter: blur(1px) saturate(.9); }
+.baby-hero.hero-block-factory.weather-snow .diary-snow { opacity: .25; animation-duration: 10s; }
+.baby-hero.hero-block-factory.weather-thunder::before { background: linear-gradient(90deg, transparent 39%, rgba(38, 53, 61, .19) 68%, rgba(42, 45, 63, .25)); }
+
+/* 四时段轻动态：启动轮、传送带、装箱灯与质检扫描。 */
+.block-factory-motion { display: none; }
+.baby-hero.hero-block-factory .block-factory-motion { display: block; position: absolute; z-index: 1; inset: 0; overflow: hidden; }
+.baby-hero.hero-block-factory .block-factory-motion i { position: absolute; display: block; pointer-events: none; }
+.baby-hero.hero-block-factory .block-factory-motion-morning .block-factory-motion-primary {
+  right: 17%; top: 16%; width: 30%; height: 69%; border-radius: 50%;
+  background: conic-gradient(from 15deg, transparent 0 16%, rgba(255, 231, 166, .17) 19% 24%, transparent 27% 48%, rgba(255, 244, 203, .12) 51% 56%, transparent 59%);
+  animation: block-factory-wheel 16s linear infinite;
+}
+.baby-hero.hero-block-factory .block-factory-motion-morning .block-factory-motion-secondary {
+  right: 36%; top: 9%; width: 2px; height: 43%; background: rgba(255, 239, 195, .28);
+  transform-origin: 50% 0; animation: block-factory-rope 5.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-block-factory .block-factory-motion-daytime .block-factory-motion-primary {
+  right: 1%; bottom: 7%; width: 55%; height: 9%; border-radius: 999px;
+  background: repeating-linear-gradient(90deg, transparent 0 24px, rgba(255, 245, 215, .13) 25px 38px, transparent 39px 62px);
+  animation: block-factory-belt 8s linear infinite;
+}
+.baby-hero.hero-block-factory .block-factory-motion-daytime .block-factory-motion-secondary {
+  right: 18%; top: 10%; width: 34%; height: 65%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 245, 204, .12), transparent 69%);
+  animation: block-factory-arm-glow 6.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-block-factory .block-factory-motion-evening .block-factory-motion-primary {
+  right: 14%; top: 18%; width: 39%; height: 64%; border-radius: 45%;
+  background: radial-gradient(ellipse, rgba(255, 157, 93, .17), transparent 69%);
+  mix-blend-mode: screen; animation: block-factory-packing 6.4s ease-in-out infinite alternate;
+}
+.baby-hero.hero-block-factory .block-factory-motion-evening .block-factory-motion-secondary {
+  right: 12%; bottom: 22%; width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 197, 91, .88);
+  box-shadow: 0 0 10px rgba(255, 171, 75, .72); animation: block-factory-status 2.8s ease-in-out infinite alternate;
+}
+.baby-hero.hero-block-factory .block-factory-motion-night .block-factory-motion-primary {
+  right: 15%; top: 8%; width: 18%; height: 78%;
+  background: linear-gradient(90deg, transparent, rgba(122, 232, 222, .15), transparent);
+  filter: blur(1px); animation: block-factory-scan 5.6s ease-in-out infinite alternate;
+}
+.baby-hero.hero-block-factory .block-factory-motion-night .block-factory-motion-secondary {
+  right: 15%; top: 20%; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 207, 103, .85);
+  box-shadow: 27px 0 0 rgba(117, 181, 174, .8), 54px 0 0 rgba(225, 128, 107, .8), 81px 0 0 rgba(255, 207, 103, .72);
+  animation: block-factory-indicators 3.8s ease-in-out infinite alternate;
+}
+
+@keyframes block-factory-wheel { to { transform: rotate(360deg); } }
+@keyframes block-factory-rope { from { opacity: .35; transform: rotate(-1.5deg); } to { opacity: .72; transform: rotate(1.5deg); } }
+@keyframes block-factory-belt { to { background-position-x: 62px; } }
+@keyframes block-factory-arm-glow { from { opacity: .35; transform: scale(.97); } to { opacity: .78; transform: scale(1.035); } }
+@keyframes block-factory-packing { from { opacity: .4; transform: translateX(2px) scale(.98); } to { opacity: .82; transform: translateX(-3px) scale(1.03); } }
+@keyframes block-factory-status { from { opacity: .38; } to { opacity: 1; } }
+@keyframes block-factory-scan { from { opacity: .32; transform: translateX(-28px); } to { opacity: .8; transform: translateX(24px); } }
+@keyframes block-factory-indicators { from { opacity: .42; } to { opacity: .96; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="block-factory"] .baby-hero.hero-block-factory::after,
+  html[data-visual-theme="block-factory"] .block-factory-motion i { animation: none; }
+}
