@@ -607,7 +607,7 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
 }
 .hero-bg-thumb {
   flex-shrink: 0;
-  width: 64px;
+  width: 96px;
   aspect-ratio: 2.5 / 1;
   height: auto;
   border-radius: 8px;
