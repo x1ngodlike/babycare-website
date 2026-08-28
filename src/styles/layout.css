@@ -607,7 +607,7 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
 }
 .hero-bg-thumb {
   flex-shrink: 0;
-  width: 96px;
+  width: 75px;
   aspect-ratio: 2.5 / 1;
   height: auto;
   border-radius: 8px;
@@ -857,11 +857,11 @@ html[data-visual-theme] .baby-hero.hero-diary .hero-greeting-title,
   border: 1px solid var(--border);
 }
 .theme-icon-grid .theme-pick-item img {
-  aspect-ratio: 1 / 1;
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  border: 0;
+  aspect-ratio: 2.5 / 1;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
 }
 .theme-icon-grid .theme-pick-item b {
   font-size: 12px;
