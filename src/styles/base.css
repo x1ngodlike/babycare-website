@@ -488,3 +488,4 @@ label, fieldset { display: grid; gap: var(--space-2); color: var(--ink); font-si
 
 
 /* 统一页面顶距、记录列表、图标容器与底部主操作 */
+.trend-summary .trend-average-note { font-size: 8px; }
