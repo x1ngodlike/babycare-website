@@ -515,9 +515,9 @@ export default function App() {
     {!isChatPage && <nav className="app-nav" aria-label="主要导航">
       {([
         ['today', themedNavIcons?.today ?? '/images/icons/nav/today.webp', '今日'],
-        ['history', themedNavIcons?.history ?? '/images/icons/nav/records.webp', '记录'],
-        ['chat', themedNavIcons?.chat ?? '/images/icons/nav/chat.webp', 'AI 助手'],
         ['trends', themedNavIcons?.trends ?? '/images/icons/nav/trends.webp', '趋势'],
+        ['chat', themedNavIcons?.chat ?? '/images/icons/nav/chat.webp', 'AI 助手'],
+        ['history', themedNavIcons?.history ?? '/images/icons/nav/records.webp', '记录'],
         ['archive', themedNavIcons?.archive ?? '/images/icons/nav/archive.webp', '档案']
       ] as [NavTab, string, string][]).map(([value, icon, label]) => {
         const LineIcon = BASIC_SHAPES_NAV_ICONS[value as BasicShapesNavKey];

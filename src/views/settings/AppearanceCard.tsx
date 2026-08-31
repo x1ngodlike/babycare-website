@@ -377,7 +377,7 @@ export function AppearanceSettingsCard({
                 {[
                   { title: '快捷与记录', items: [['喂奶', iconPackAssets.stickers.feeding], ['排便', iconPackAssets.stickers.bowel], ['护理', iconPackAssets.stickers.care], ['其他', iconPackAssets.stickers.note]] },
                   { title: '今日待办', items: [['服药', iconPackAssets.tasks.medicine], ['推拿', iconPackAssets.tasks.massage], ['洗澡', iconPackAssets.tasks.bath], ['护理', iconPackAssets.tasks.care], ['疫苗', iconPackAssets.tasks.vaccine], ['成长', iconPackAssets.tasks.growth]] },
-                  { title: '底部导航', items: [['今日', iconPackAssets.nav.today], ['记录', iconPackAssets.nav.history], ['AI', iconPackAssets.nav.chat], ['趋势', iconPackAssets.nav.trends], ['档案', iconPackAssets.nav.archive]] },
+                  { title: '底部导航', items: [['今日', iconPackAssets.nav.today], ['趋势', iconPackAssets.nav.trends], ['AI', iconPackAssets.nav.chat], ['记录', iconPackAssets.nav.history], ['档案', iconPackAssets.nav.archive]] },
                 ].map(group => (
                   <div className="hero-theme-icon-group" key={group.title}>
                     <p>{group.title}</p>
@@ -416,9 +416,9 @@ export function AppearanceSettingsCard({
                   <p>底部导航</p>
                   <div>{[
                     ['今日', BASIC_SHAPES_NAV_ICONS.today],
-                    ['记录', BASIC_SHAPES_NAV_ICONS.history],
-                    ['AI', BASIC_SHAPES_NAV_ICONS.chat],
                     ['趋势', BASIC_SHAPES_NAV_ICONS.trends],
+                    ['AI', BASIC_SHAPES_NAV_ICONS.chat],
+                    ['记录', BASIC_SHAPES_NAV_ICONS.history],
                     ['档案', BASIC_SHAPES_NAV_ICONS.archive],
                   ].map(([label, Icon]) => {
                     const PreviewIcon = Icon as typeof BASIC_SHAPES_NAV_ICONS.today;
