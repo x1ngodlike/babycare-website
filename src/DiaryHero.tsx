@@ -9,10 +9,24 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
   </div>;
 }
 
-export function DiaryHeroLayer({ period, weather }: { period: DiaryPeriod; weather: WeatherSnapshot | null }) {
+const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
+  'hero-midsummer-dream': 'midsummer-dream',
+  'hero-bamboo-court': 'bamboo-court',
+  'hero-basic-shapes': 'basic-shapes',
+  'hero-block-factory': 'block-factory',
+  'hero-immortal-gate': 'immortal-gate',
+  'hero-fruit-cake': 'fruit-cake',
+  'hero-candy-workshop': 'fruit-cake',
+  'hero-forest-press': 'forest-press',
+  'hero-shop': 'shop',
+  'hero-arcane': 'arcane',
+  'hero-ocean': 'ocean',
+};
+
+export function DiaryHeroLayer({ period, weather, background }: { period: DiaryPeriod; weather: WeatherSnapshot | null; background: string }) {
   const periodMark = { morning: '晨', daytime: '昼', evening: '暮', night: '夜' }[period];
-  return <>
-    <div className={`diary-scene diary-${period} weather-${weather?.kind || 'unknown'}`} aria-hidden="true">
+  const motionTheme = MOTION_THEME_BY_BACKGROUND[background];
+  return <div className={`diary-scene diary-${period} weather-${weather?.kind || 'unknown'}`} aria-hidden="true">
       <i className="diary-paper-grain" />
       <i className="diary-washi" />
       <i className="diary-stars" />
@@ -26,49 +40,12 @@ export function DiaryHeroLayer({ period, weather }: { period: DiaryPeriod; weath
       <i className="diary-fog" />
       <i className="diary-snow diary-snow-one" />
       <i className="diary-snow diary-snow-two" />
-      <div className={`midsummer-dream-motion midsummer-dream-motion-${period}`}>
-        <i className="midsummer-dream-motion-primary" />
-        <i className="midsummer-dream-motion-secondary" />
-      </div>
-      <div className={`bamboo-court-motion bamboo-court-motion-${period}`}>
-        <i className="bamboo-court-motion-primary" />
-        <i className="bamboo-court-motion-secondary" />
-      </div>
-      <div className={`shop-motion shop-motion-${period}`}>
-        <i className="shop-motion-primary" />
-        <i className="shop-motion-secondary" />
-        <i className="shop-motion-accent" />
-      </div>
-      <div className={`arcane-motion arcane-motion-${period}`}>
-        <i className="arcane-motion-primary" />
-        <i className="arcane-motion-secondary" />
-      </div>
-      <div className={`ocean-motion ocean-motion-${period}`}>
-        <i className="ocean-motion-primary" />
-        <i className="ocean-motion-secondary" />
-      </div>
-      <div className={`forest-press-motion forest-press-motion-${period}`}>
-        <i className="forest-press-motion-primary" />
-        <i className="forest-press-motion-secondary" />
-      </div>
-      <div className={`fruit-cake-motion fruit-cake-motion-${period}`}>
-        <i className="fruit-cake-motion-primary" />
-        <i className="fruit-cake-motion-secondary" />
-      </div>
-      <div className={`immortal-gate-motion immortal-gate-motion-${period}`}>
-        <i className="immortal-gate-motion-primary" />
-        <i className="immortal-gate-motion-secondary" />
-      </div>
-      <div className={`block-factory-motion block-factory-motion-${period}`}>
-        <i className="block-factory-motion-primary" />
-        <i className="block-factory-motion-secondary" />
-      </div>
-      <div className={`basic-shapes-motion basic-shapes-motion-${period}`}>
-        <i className="basic-shapes-motion-primary" />
-        <i className="basic-shapes-motion-secondary" />
-      </div>
+      {motionTheme && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
+        <i className={`${motionTheme}-motion-primary`} />
+        <i className={`${motionTheme}-motion-secondary`} />
+        {motionTheme === 'shop' && <i className="shop-motion-accent" />}
+      </div>}
       <span className="diary-period-mark">{periodMark}</span>
       <span className="diary-day-stamp">TODAY</span>
-    </div>
-  </>;
+  </div>;
 }

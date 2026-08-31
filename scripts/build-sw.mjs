@@ -1,5 +1,5 @@
 // 在 vite build 之后运行：扫描 dist 产物，生成带内容哈希版本号的 dist/sw.js。
-// 预缓存清单自动包含哈希 JS/CSS bundle、PWA 图标、公共图片和 hero 主题资源。
+// 预缓存清单只包含应用外壳、通用图片和默认 Hero。其他主题由 Service Worker 按需缓存。
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
@@ -30,7 +30,8 @@ const appIconFiles = walkFiles(appIconsDir)
 const imageFiles = walkFiles(imagesDir)
   .map((p) => `/${relative(dist, p).replace(/\\/g, '/')}`);
 const heroFiles = walkFiles(heroDir)
-  .map((p) => `/${relative(dist, p).replace(/\\/g, '/')}`);
+  .map((p) => `/${relative(dist, p).replace(/\\/g, '/')}`)
+  .filter((url) => url.startsWith('/hero/classic/default/') || url.startsWith('/hero/weather/shared/'));
 
 const precache = ['/', '/manifest.webmanifest', ...assets, ...appIconFiles, ...imageFiles, ...heroFiles];
 
@@ -46,4 +47,4 @@ const output = template
   .replace('__PRECACHE_JSON__', JSON.stringify(precache, null, 2));
 
 writeFileSync(join(dist, 'sw.js'), output);
-console.log(`[build-sw] 预缓存 ${precache.length} 个资源（${assets.length} 哈希产物 + ${appIconFiles.length} PWA 图标 + ${imageFiles.length} 公共图片 + ${heroFiles.length} hero 资源），缓存版本 babycare-${hash}`);
+console.log(`[build-sw] 预缓存 ${precache.length} 个资源（${assets.length} 哈希产物 + ${appIconFiles.length} PWA 图标 + ${imageFiles.length} 公共图片 + ${heroFiles.length} 默认/共享 hero 资源），其他主题按需缓存，缓存版本 babycare-${hash}`);

@@ -1,12 +1,12 @@
 // 外观主题设置卡 —— 合并后的统一主题卡 + 配置/预览 Modal
-import React, { useState } from 'react';
+import React, { useState, type CSSProperties } from 'react';
 import { Modal, SegmentedControl } from '../../ui';
 import { getGreeting, type ThemeMode } from '../../shared';
 import { DiaryHeroLayer, DiaryWeatherBadge } from '../../DiaryHero';
 import { diaryPeriodForHour, type WeatherKind, type WeatherSnapshot } from '../../../shared/weather';
 import {
   THEMES, HERO_BACKGROUNDS, ICON_PACKS,
-  resolveThemeConfig, getIconPackAssets, BG_GROUPS_FOR_LAYOUT, DEFAULT_BG_FOR_LAYOUT,
+  resolveThemeConfig, getIconPackAssets, getWeatherBackgroundAsset, BG_GROUPS_FOR_LAYOUT, DEFAULT_BG_FOR_LAYOUT,
   type ThemeConfig, type ThemePreset, type HeroLayout, type IconPackId,
 } from '../../config/weatherThemes';
 import type { FamilyId, Profile } from '../../types';
@@ -80,8 +80,9 @@ function PreviewHero({ profile, userId, periodKey, layout, bg, hour, weatherKind
   };
   const themeClass = magazineTheme ? `hero-diary ${bg}` : bg !== 'auto' ? bg : '';
   const periodClass = `baby-hero ${themeClass} hero-${periodKey}${magazineTheme ? ` diary-${diaryPeriod} weather-${previewWeather.kind}${weatherEffectsEnabled ? '' : ' weather-effects-off'}` : ''}`;
+  const diaryBackground = magazineTheme ? getWeatherBackgroundAsset(bg, diaryPeriod) : null;
   return (
-    <section className={periodClass} data-visual-theme={visualTheme} aria-label={`${periodLabel}时段预览`}>
+    <section className={periodClass} data-visual-theme={visualTheme} style={diaryBackground ? { '--diary-background': `url('${diaryBackground}')` } as CSSProperties : undefined} aria-label={`${periodLabel}时段预览`}>
       <div>
         {magazineTheme
           ? <h1 className="hero-greeting-title"><span>{greeting}，</span><strong>{displayName}～</strong></h1>
@@ -89,7 +90,7 @@ function PreviewHero({ profile, userId, periodKey, layout, bg, hour, weatherKind
         {magazineTheme ? <div className="diary-date-weather-row"><p className="kicker hero-date-line">{dateStr}</p><DiaryWeatherBadge weather={previewWeather} /></div> : <p className="kicker hero-date-line">{dateStr}</p>}
         <div className="hero-status"><p>{magazineTheme ? `上次记录 ${String(hour).padStart(2, '0')}:27 · 喂奶 · 120 mL` : `上次记录：${String(hour).padStart(2, '0')}:27 · 喂奶 · 奶粉 120 mL`}</p></div>
       </div>
-      {magazineTheme && <DiaryHeroLayer period={diaryPeriod} weather={previewWeather} />}
+      {magazineTheme && <DiaryHeroLayer period={diaryPeriod} weather={previewWeather} background={bg} />}
     </section>
   );
 }

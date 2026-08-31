@@ -17,7 +17,7 @@ import { HistoryView } from './views/History';
 import { RecordEditor } from './views/RecordEditor';
 import { AuditDialog, GrowthEditor } from './views/RecordDialogs';
 import { useAutoConnect } from './hooks/useAutoConnect';
-import { resolveThemeConfig, getIconPackAssets, getVisualThemeForPreset, legacyHeroBgToThemeId, buildOverridesFromLegacy, DEFAULT_THEME_ID, type ThemeConfig } from './config/weatherThemes';
+import { resolveThemeConfig, getIconPackAssets, getVisualThemeForPreset, getThemeHeroAssetUrls, legacyHeroBgToThemeId, buildOverridesFromLegacy, DEFAULT_THEME_ID, type ThemeConfig } from './config/weatherThemes';
 import { BASIC_SHAPES_ICON_PACK_ID, BASIC_SHAPES_NAV_ICONS, type BasicShapesNavKey } from './basicShapesIcons';
 import type { Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineRecord, FamilyId, GrowthRecord, Profile, PushStatus, SessionUser, Supplement, VaccineCatalogItem, VaccineRecord } from './types';
 
@@ -321,6 +321,15 @@ export default function App() {
     if (visual) document.documentElement.setAttribute('data-visual-theme', visual);
     else document.documentElement.removeAttribute('data-visual-theme');
   }, [heroTheme, heroThemeOverrides]);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
+    const urls = getThemeHeroAssetUrls(resolvedTheme);
+    void navigator.serviceWorker.ready.then((registration) => {
+      const worker = navigator.serviceWorker.controller ?? registration.active;
+      worker?.postMessage({ type: 'CACHE_THEME_ASSETS', urls });
+    });
+  }, [resolvedTheme.bg, resolvedTheme.iconPack]);
 
   useEffect(() => {
     if (!authenticated || !currentUser) return;
