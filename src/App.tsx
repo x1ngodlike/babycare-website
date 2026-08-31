@@ -19,6 +19,7 @@ import { AuditDialog, GrowthEditor } from './views/RecordDialogs';
 import { useAutoConnect } from './hooks/useAutoConnect';
 import { resolveThemeConfig, getIconPackAssets, getVisualThemeForPreset, getThemeHeroAssetUrls, legacyHeroBgToThemeId, buildOverridesFromLegacy, DEFAULT_THEME_ID, type ThemeConfig } from './config/weatherThemes';
 import { BASIC_SHAPES_ICON_PACK_ID, BASIC_SHAPES_NAV_ICONS, type BasicShapesNavKey } from './basicShapesIcons';
+import { getDailyRandomTheme, readRandomThemeEnabled, saveRandomThemeEnabled, shuffleDailyRandomTheme } from './randomTheme';
 import type { Capabilities, CareItem, CareRecord, DraftGrowthRecord, DraftRecord, DraftVaccineRecord, FamilyId, GrowthRecord, Profile, PushStatus, SessionUser, Supplement, VaccineCatalogItem, VaccineRecord } from './types';
 
 // 低频页面按需加载，配合 main.tsx 空闲预取与 Service Worker 运行时缓存
@@ -133,8 +134,13 @@ export default function App() {
   const [vaccineEditor, setVaccineEditor] = useState<VaccineEditorState | null>(null);
   const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(Boolean(startupUser)); const [pendingCount, setPendingCount] = useState(() => startupUser ? getOutbox(startupUser.id).length : 0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
   const [theme, setTheme] = useState<ThemeMode>(() => { try { return (localStorage.getItem('babycare-theme') as ThemeMode) || 'system'; } catch { return 'system'; } });
+  const [randomThemeEnabled, setRandomThemeEnabled] = useState(readRandomThemeEnabled);
   const [heroTheme, setHeroTheme] = useState<string>(() => {
     try {
+      if (readRandomThemeEnabled()) {
+        const randomTheme = getDailyRandomTheme();
+        if (randomTheme) return randomTheme;
+      }
       const newId = localStorage.getItem('babycare-hero-theme');
       if (newId) return newId === 'theme-diary' ? 'theme-fruit-cake' : newId;
       const legacyBg = localStorage.getItem('babycare-hero-bg') || 'auto';
@@ -162,6 +168,20 @@ export default function App() {
   const themeIconPack = resolvedTheme.iconPack;
   const themeLayout = resolvedTheme.layout;
   const themeWeatherEffects = resolvedTheme.weatherEffects;
+
+  const changeRandomThemeEnabled = useCallback((enabled: boolean) => {
+    setRandomThemeEnabled(enabled);
+    saveRandomThemeEnabled(enabled);
+    if (enabled) {
+      const next = getDailyRandomTheme();
+      if (next) setHeroTheme(next);
+    }
+  }, []);
+
+  const shuffleRandomTheme = useCallback(() => {
+    const next = shuffleDailyRandomTheme(heroTheme);
+    if (next) setHeroTheme(next);
+  }, [heroTheme]);
 
   const updateLocalRecords = useCallback((userId: string, updater: (items: CareRecord[]) => CareRecord[]) => {
     setRecords(items => { const next = updater(items).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)); cacheRecords(userId, next); return next; });
@@ -321,6 +341,22 @@ export default function App() {
     if (visual) document.documentElement.setAttribute('data-visual-theme', visual);
     else document.documentElement.removeAttribute('data-visual-theme');
   }, [heroTheme, heroThemeOverrides]);
+
+  useEffect(() => {
+    if (!randomThemeEnabled) return;
+    const applyTodayTheme = () => {
+      const next = getDailyRandomTheme();
+      if (next) setHeroTheme(next);
+    };
+    const now = new Date();
+    const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+    const timer = window.setTimeout(applyTodayTheme, nextDay.getTime() - now.getTime());
+    window.addEventListener('focus', applyTodayTheme);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('focus', applyTodayTheme);
+    };
+  }, [randomThemeEnabled]);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
@@ -508,7 +544,7 @@ export default function App() {
       {tab === 'chat' && <ChatView user={currentUser} capabilities={capabilities} online={online} onBack={() => goToTab('today')} />}
       {tab === 'trends' && <TrendsView records={records} careItems={careItems} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} archiveMode={archiveMode} setArchiveMode={setArchiveMode} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
-      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} heroTheme={heroTheme} onHeroThemeChange={setHeroTheme} heroThemeOverrides={heroThemeOverrides} onHeroThemeOverridesChange={setHeroThemeOverrides} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
+      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} heroTheme={heroTheme} onHeroThemeChange={setHeroTheme} randomThemeEnabled={randomThemeEnabled} onRandomThemeEnabledChange={changeRandomThemeEnabled} onRandomThemeShuffle={shuffleRandomTheme} heroThemeOverrides={heroThemeOverrides} onHeroThemeOverridesChange={setHeroThemeOverrides} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
       </div>
       </Suspense>
     </main>

@@ -73,7 +73,7 @@ export function FeedingSettingsCard({ pushStatus, onSave }: { pushStatus: PushSt
                   aria-label={`提前 ${mins} 分钟`}
                 />
                 <span className="feed-prep-checkmark" aria-hidden="true">
-                  {prepMinutes === mins && <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,7 6,10 11,4" /></svg>}
+                  {prepMinutes === mins && <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,7 6,10 11,4" /></svg>}
                 </span>
                 <span className="feed-prep-label">{mins} 分钟</span>
               </label>

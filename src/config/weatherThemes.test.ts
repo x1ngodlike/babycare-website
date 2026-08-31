@@ -14,12 +14,12 @@ describe('theme hero assets', () => {
   });
 
   it('returns the complete active theme package for on-demand caching', () => {
-    const urls = getThemeHeroAssetUrls(resolveThemeConfig('theme-ocean'));
+    const urls = getThemeHeroAssetUrls(resolveThemeConfig('theme-dino-museum'));
     expect(urls).toHaveLength(20);
-    expect(urls).toContain('/hero/weather/ocean/backgrounds/default/morning.webp');
-    expect(urls).toContain('/hero/weather/ocean/icons/quick/feeding.webp');
-    expect(urls).toContain('/hero/weather/ocean/icons/tasks/medicine.webp');
-    expect(urls).toContain('/hero/weather/ocean/icons/nav/archive.webp');
+    expect(urls).toContain('/hero/weather/dino-museum/backgrounds/default/morning.webp');
+    expect(urls).toContain('/hero/weather/dino-museum/icons/quick/feeding.webp?v=3e37eceb');
+    expect(urls).toContain('/hero/weather/dino-museum/icons/tasks/medicine.webp?v=3e37eceb');
+    expect(urls).toContain('/hero/weather/dino-museum/icons/nav/archive.webp?v=3e37eceb');
   });
 
   it('preserves theme-specific icon path exceptions', () => {

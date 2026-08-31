@@ -1,6 +1,6 @@
 // 外观主题设置卡 —— 合并后的统一主题卡 + 配置/预览 Modal
 import React, { useState, type CSSProperties } from 'react';
-import { Modal, SegmentedControl } from '../../ui';
+import { confirmAction, Modal, SegmentedControl } from '../../ui';
 import { getGreeting, type ThemeMode } from '../../shared';
 import { DiaryHeroLayer, DiaryWeatherBadge } from '../../DiaryHero';
 import { diaryPeriodForHour, type WeatherKind, type WeatherSnapshot } from '../../../shared/weather';
@@ -48,7 +48,7 @@ const DIARY_PERIOD_DETAILS: Record<string, { range: string; weather: Pick<Weathe
 };
 
 const LABEL_FOR_LAYOUT: Record<HeroLayout, string> = { diary: '杂志风', classic: '经典风' };
-const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'basic-shapes': '基础图形', 'hero-midsummer-dream': '仲夏夜梦', 'hero-bamboo-court': '青篁小院', 'hero-block-factory': '积木工厂', 'hero-immortal-gate': '云海仙门', 'hero-fruit-cake': '水果蛋糕', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界', 'hero-forest-press': '林间报社' };
+const LABEL_FOR_PACK: Record<IconPackId, string> = { default: '默认图标', 'basic-shapes': '基础图形', 'hero-dino-museum': '恐龙博馆', 'hero-midsummer-dream': '仲夏夜梦', 'hero-bamboo-court': '青篁小院', 'hero-block-factory': '积木工厂', 'hero-immortal-gate': '云海仙门', 'hero-fruit-cake': '水果蛋糕', 'hero-travel': '云端旅志', 'hero-orbit': '星际观测', 'hero-shop': '晴雨商店', 'hero-arcane': '烛光魔塔', 'hero-ocean': '海底世界', 'hero-forest-press': '林间报社' };
 
 function findBgLabel(bg: string): string {
   return HERO_BACKGROUNDS.find(o => o.value === bg)?.label ?? bg;
@@ -168,11 +168,15 @@ interface ModalState {
 export function AppearanceSettingsCard({
   theme, onChange,
   heroTheme, onHeroThemeChange,
+  randomThemeEnabled, onRandomThemeEnabledChange, onRandomThemeShuffle,
   heroThemeOverrides, onHeroThemeOverridesChange,
   profile, userId,
 }: {
   theme: ThemeMode; onChange(value: ThemeMode): void;
   heroTheme: string; onHeroThemeChange(value: string): void;
+  randomThemeEnabled: boolean;
+  onRandomThemeEnabledChange(value: boolean): void;
+  onRandomThemeShuffle(): void;
   heroThemeOverrides: Record<string, Partial<ThemeConfig>>;
   onHeroThemeOverridesChange(value: Record<string, Partial<ThemeConfig>>): void;
   profile: Profile; userId: FamilyId;
@@ -213,7 +217,16 @@ export function AppearanceSettingsCard({
     setModal(null);
   }
 
-  function clickThemeRow(preset: ThemePreset) {
+  async function clickThemeRow(preset: ThemePreset) {
+    if (randomThemeEnabled) {
+      const confirmed = await confirmAction({
+        title: `改用${preset.label}？`,
+        description: '手动选择主题会同时关闭随机漫游。',
+        confirmLabel: '关闭随机并使用',
+      });
+      if (!confirmed) return;
+      onRandomThemeEnabledChange(false);
+    }
     onHeroThemeChange(preset.id);
   }
 
@@ -224,6 +237,26 @@ export function AppearanceSettingsCard({
       <div style={{ marginTop: 14 }}>
         <SegmentedControl label="主题模式" value={theme} options={themeOptions} onChange={onChange} />
       </div>
+    </section>
+
+    <section className="settings-card random-theme-card">
+      <div className="random-theme-heading">
+        <h2>随机漫游</h2>
+        <button type="button" role="switch" aria-checked={randomThemeEnabled} className={`random-theme-switch${randomThemeEnabled ? ' on' : ''}`} onClick={() => onRandomThemeEnabledChange(!randomThemeEnabled)}>
+          <span aria-hidden="true" />
+          <b>{randomThemeEnabled ? '已开启' : '已关闭'}</b>
+        </button>
+      </div>
+      <p className="random-theme-description">每天从全新主题中随机选择一套，当天保持不变。</p>
+      {randomThemeEnabled && (() => {
+        const active = THEMES.find(preset => preset.id === heroTheme);
+        return <div className="random-theme-current">
+          {active && <img src={active.thumb} alt="" />}
+          <div><small>今日主题</small><b>{active?.label ?? '全新主题'}</b><span>明日更新 · 避免重复</span></div>
+          <button type="button" className="text-button" onClick={onRandomThemeShuffle}>换一个</button>
+        </div>;
+      })()}
+      <p className="random-theme-note">经典与基础图形除外 · 新主题自动加入</p>
     </section>
 
     <section className="settings-card">
@@ -240,7 +273,7 @@ export function AppearanceSettingsCard({
               <label className={`hero-bg-item theme-item${isActive ? ' selected' : ''}`}>
                 <input type="radio" name="hero-theme" value={preset.id} checked={isActive} onChange={() => clickThemeRow(preset)} aria-label={preset.label} />
                 <span className="hero-bg-checkmark" aria-hidden="true">
-                  {isActive && <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,7 6,10 11,4" /></svg>}
+                  {isActive && <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,7 6,10 11,4" /></svg>}
                 </span>
                 <img className="hero-bg-thumb" src={preset.thumb} alt="" />
                 <div className="theme-item-copy">

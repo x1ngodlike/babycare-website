@@ -56,7 +56,7 @@ export function PermissionCard() {
                           aria-label={`${roleNames[role]}：${has ? '有权' : '无权限'}`}
                         >
                           {has ? (
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="3,7 6,10 11,4" />
                             </svg>
                           ) : (

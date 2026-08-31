@@ -1,7 +1,7 @@
 import type { CareItem, CareRecord } from '../types';
 import type { DiaryPeriod } from '../../shared/weather';
 
-export type WeatherHeroThemeId = 'hero-midsummer-dream' | 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
+export type WeatherHeroThemeId = 'hero-dino-museum' | 'hero-midsummer-dream' | 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -48,37 +48,38 @@ type WeatherHeroAssetSet = {
 function createWeatherHeroAssets(folder: string, overrides?: {
   stickers?: Partial<WeatherHeroAssetSet['stickers']>;
   tasks?: Partial<WeatherHeroAssetSet['tasks']>;
-}): WeatherHeroAssetSet {
+}, version = ''): WeatherHeroAssetSet {
   const root = `/hero/weather/${folder}`;
   return {
-    thumb: `${root}/thumbnails/theme.webp`,
+    thumb: `${root}/thumbnails/theme.webp${version}`,
     stickers: {
-      feeding: `${root}/icons/quick/feeding.webp`,
-      bowel: `${root}/icons/quick/bowel.webp`,
-      care: `${root}/icons/quick/care.webp`,
-      note: `${root}/icons/quick/note.webp`,
+      feeding: `${root}/icons/quick/feeding.webp${version}`,
+      bowel: `${root}/icons/quick/bowel.webp${version}`,
+      care: `${root}/icons/quick/care.webp${version}`,
+      note: `${root}/icons/quick/note.webp${version}`,
       ...overrides?.stickers,
     },
     tasks: {
-      medicine: `${root}/icons/tasks/medicine.webp`,
-      massage: `${root}/icons/tasks/massage.webp`,
-      bath: `${root}/icons/tasks/bath.webp`,
-      care: `${root}/icons/tasks/care.webp`,
-      vaccine: `${root}/icons/tasks/vaccine.webp`,
-      growth: `${root}/icons/tasks/growth.webp`,
+      medicine: `${root}/icons/tasks/medicine.webp${version}`,
+      massage: `${root}/icons/tasks/massage.webp${version}`,
+      bath: `${root}/icons/tasks/bath.webp${version}`,
+      care: `${root}/icons/tasks/care.webp${version}`,
+      vaccine: `${root}/icons/tasks/vaccine.webp${version}`,
+      growth: `${root}/icons/tasks/growth.webp${version}`,
       ...overrides?.tasks,
     },
     nav: {
-      today: `${root}/icons/nav/today.webp`,
-      history: `${root}/icons/nav/records.webp`,
-      chat: `${root}/icons/nav/chat.webp`,
-      trends: `${root}/icons/nav/trends.webp`,
-      archive: `${root}/icons/nav/archive.webp`,
+      today: `${root}/icons/nav/today.webp${version}`,
+      history: `${root}/icons/nav/records.webp${version}`,
+      chat: `${root}/icons/nav/chat.webp${version}`,
+      trends: `${root}/icons/nav/trends.webp${version}`,
+      archive: `${root}/icons/nav/archive.webp${version}`,
     },
   };
 }
 
 export const WEATHER_HERO_ASSETS: Record<WeatherHeroThemeId, WeatherHeroAssetSet> = {
+  'hero-dino-museum': createWeatherHeroAssets('dino-museum', undefined, '?v=3e37eceb'),
   'hero-midsummer-dream': createWeatherHeroAssets('midsummer-dream'),
   'hero-bamboo-court': createWeatherHeroAssets('bamboo-court'),
   'hero-block-factory': createWeatherHeroAssets('block-factory'),
@@ -137,6 +138,7 @@ export function getWeatherHeroAssets(value: string) {
 
 const WEATHER_BACKGROUND_SOURCES: Record<string, { folder: string; variant: string }> = {
   'hero-diary': { folder: 'fruit-cake', variant: 'default' },
+  'hero-dino-museum': { folder: 'dino-museum', variant: 'default' },
   'hero-midsummer-dream': { folder: 'midsummer-dream', variant: 'default' },
   'hero-bamboo-court': { folder: 'bamboo-court', variant: 'default' },
   'hero-basic-shapes': { folder: 'basic-shapes', variant: 'default' },
@@ -215,6 +217,7 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-dino-museum', label: '恐龙博馆', thumb: WEATHER_HERO_ASSETS['hero-dino-museum'].thumb, group: 'weather' },
   { value: 'hero-midsummer-dream', label: '仲夏夜梦', thumb: WEATHER_HERO_ASSETS['hero-midsummer-dream'].thumb, group: 'weather' },
   { value: 'hero-bamboo-court', label: '青篁小院', thumb: WEATHER_HERO_ASSETS['hero-bamboo-court'].thumb, group: 'weather' },
   { value: 'hero-basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp', group: 'weather' },
@@ -245,7 +248,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（14）' },
+  { key: 'weather', label: '天气画境（15）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -266,6 +269,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/classic/default/morning.webp' },
+  { value: 'hero-dino-museum', label: '恐龙博馆', thumb: WEATHER_HERO_ASSETS['hero-dino-museum'].thumb },
   { value: 'hero-midsummer-dream', label: '仲夏夜梦', thumb: WEATHER_HERO_ASSETS['hero-midsummer-dream'].thumb },
   { value: 'hero-bamboo-court', label: '青篁小院', thumb: WEATHER_HERO_ASSETS['hero-bamboo-court'].thumb },
   { value: 'basic-shapes', label: '基础图形', thumb: '/hero/weather/basic-shapes/thumbnails/theme.webp' },
@@ -281,6 +285,9 @@ export const ICON_PACKS: IconPackOption[] = [
 ];
 
 export const THEMES: ReadonlyArray<ThemePreset> = [
+  { id: 'theme-dino-museum', label: '恐龙博馆', thumb: WEATHER_HERO_ASSETS['hero-dino-museum'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-dino-museum', iconPack: 'hero-dino-museum', weatherEffects: true },
+    recommendedBgs: ['hero-dino-museum'] },
   { id: 'theme-midsummer-dream', label: '仲夏夜梦', thumb: WEATHER_HERO_ASSETS['hero-midsummer-dream'].thumb,
     defaults: { layout: 'diary', bg: 'hero-midsummer-dream', iconPack: 'hero-midsummer-dream', weatherEffects: true },
     recommendedBgs: ['hero-midsummer-dream'] },
@@ -338,6 +345,7 @@ export function getVisualThemeForPreset(themeId: string): string | null {
 
 // 旧版 heroBg → 新版 themeId 迁移映射
 const LEGACY_BG_TO_THEME: Record<string, string> = {
+  'hero-dino-museum': 'theme-dino-museum',
   'hero-midsummer-dream': 'theme-midsummer-dream',
   'hero-bamboo-court': 'theme-bamboo-court',
   'hero-block-factory': 'theme-block-factory',

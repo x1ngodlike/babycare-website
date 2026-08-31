@@ -195,11 +195,11 @@ export function EmptyState({ title, description, image, action }: { title: strin
   return <div className="empty-state">{image ? <img className="empty-state-image" src={image} alt="" /> : <span className="empty-state-placeholder" aria-hidden="true"><Inbox /></span>}<h3>{title}</h3>{description && <p>{description}</p>}{action && <div className="empty-state-action">{action}</div>}</div>;
 }
 
-export function ImageWithFallback({ src, fallbackSrc, onError, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { fallbackSrc: string }) {
+export function ImageWithFallback({ src, fallbackSrc, onError, alt, ...props }: Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'alt'> & { alt: string; fallbackSrc: string }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => { setFailed(false); }, [src]);
   const resolvedSrc = !failed && src ? src : fallbackSrc;
-  return <img {...props} src={resolvedSrc} onError={event => {
+  return <img {...props} src={resolvedSrc} alt={alt} onError={event => {
     onError?.(event);
     if (resolvedSrc !== fallbackSrc) setFailed(true);
   }} />;

@@ -1,0 +1,85 @@
+/* 恐龙博馆：自然史展馆、化石暖石色与克制的博物绿。 */
+html[data-visual-theme="dino-museum"][data-theme="light"] {
+  --theme-page: #f3efe3;
+  --theme-card: #fffdf5;
+  --theme-brand: #617853;
+  --theme-ink: #30382f;
+  --theme-muted: #737a6e;
+  --theme-complement: #c66c48;
+}
+
+html[data-visual-theme="dino-museum"][data-theme="dark"] {
+  --theme-page: #1c231e;
+  --theme-card: #262e27;
+  --theme-brand: #91b17b;
+  --theme-ink: #f1eddf;
+  --theme-muted: #aab2a4;
+  --theme-complement: #e1946e;
+}
+
+html[data-visual-theme="dino-museum"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 5%, rgba(255, 254, 247, .98) 0 9%, transparent 31%),
+    radial-gradient(circle at 93% 88%, rgba(198, 108, 72, .055), transparent 28%),
+    linear-gradient(155deg, #fffdf5 0%, #f3efe3 56%, #e8eadc 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="dino-museum"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 92% 7%, rgba(145, 177, 123, .085), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(225, 148, 110, .045), transparent 27%),
+    linear-gradient(180deg, #293129 0%, #1c231e 55%, #121713 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="dino-museum"] .app::before,
+html[data-visual-theme="dino-museum"] .app::after { background: rgba(97, 120, 83, .07); }
+
+/* 复用共享天气层，只校准展馆玻璃、石材和夜间投影下的遮罩密度。 */
+.baby-hero.hero-dino-museum.weather-cloudy::before { background: linear-gradient(108deg, transparent 38%, rgba(241, 239, 220, .12) 65%, rgba(204, 215, 198, .18)); }
+.baby-hero.hero-dino-museum.weather-overcast::before { background: rgba(53, 61, 54, .16); backdrop-filter: saturate(.86) brightness(.97); -webkit-backdrop-filter: saturate(.86) brightness(.97); }
+.baby-hero.hero-dino-museum.weather-rain::before { background: linear-gradient(90deg, transparent 43%, rgba(51, 70, 65, .14)); }
+.baby-hero.hero-dino-museum.weather-fog::before { background: linear-gradient(90deg, transparent 31%, rgba(245, 241, 222, .12) 59%, rgba(220, 227, 213, .22)); backdrop-filter: blur(1px) saturate(.9); -webkit-backdrop-filter: blur(1px) saturate(.9); }
+.baby-hero.hero-dino-museum.weather-snow .diary-snow { opacity: .24; animation-duration: 10s; }
+.baby-hero.hero-dino-museum.weather-thunder::before { background: linear-gradient(90deg, transparent 39%, rgba(42, 56, 57, .19) 68%, rgba(47, 48, 66, .25)); }
+
+/*
+ * 动态层与背景共用 1080×432 坐标系和 xMidYMid slice。
+ * 视口变化时二者执行同一套 cover 裁切，装饰不会因桌面/移动比例不同而漂移。
+ */
+.dino-museum-motion { display: none; }
+.baby-hero.hero-dino-museum::after { animation: diary-page-arrive .45s ease-out both; }
+.baby-hero.hero-dino-museum .dino-museum-motion {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity .35s ease;
+}
+
+.dino-museum-motion-primary,
+.dino-museum-motion-secondary { transform-box: view-box; transform-origin: center; }
+.dino-museum-motion-morning .dino-museum-motion-primary { fill: rgba(255, 244, 192, .16); animation: dino-museum-beam 8.4s ease-in-out infinite alternate; }
+.dino-museum-motion-daytime .dino-museum-motion-primary { fill: rgba(255, 250, 218, .12); animation: dino-museum-beam 9.2s ease-in-out infinite alternate; }
+.dino-museum-motion-evening .dino-museum-motion-primary { fill: rgba(247, 154, 83, .13); mix-blend-mode: screen; animation: dino-museum-glow 7.4s ease-in-out infinite alternate; }
+.dino-museum-motion-night .dino-museum-motion-primary { fill: rgba(151, 203, 191, .105); mix-blend-mode: screen; animation: dino-museum-projector 8.8s ease-in-out infinite alternate; }
+.dino-museum-motion-secondary { fill: rgba(255, 238, 174, .7); filter: drop-shadow(0 0 5px rgba(255, 222, 130, .42)); animation: dino-museum-dust 7.2s ease-in-out infinite alternate; }
+.dino-museum-motion-night .dino-museum-motion-secondary { fill: rgba(188, 226, 208, .7); filter: drop-shadow(0 0 5px rgba(156, 210, 195, .38)); }
+
+.baby-hero.hero-dino-museum:is(.weather-rain, .weather-snow, .weather-fog) .dino-museum-motion { opacity: .36; }
+.baby-hero.hero-dino-museum.weather-thunder .dino-museum-motion { opacity: .2; }
+
+@keyframes dino-museum-beam { from { opacity: .38; transform: translateX(-5px); } to { opacity: .78; transform: translateX(7px); } }
+@keyframes dino-museum-glow { from { opacity: .4; transform: scale(.98); } to { opacity: .82; transform: scale(1.025); } }
+@keyframes dino-museum-projector { from { opacity: .35; transform: translateY(3px); } to { opacity: .72; transform: translateY(-4px); } }
+@keyframes dino-museum-dust { from { opacity: .28; transform: translate3d(0, 5px, 0); } to { opacity: .82; transform: translate3d(-7px, -5px, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="dino-museum"] .baby-hero.hero-dino-museum::after,
+  html[data-visual-theme="dino-museum"] .dino-museum-motion * { animation: none; }
+}
