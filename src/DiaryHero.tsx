@@ -10,6 +10,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
 }
 
 const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
+  'hero-desert-oasis': 'desert-oasis',
   'hero-dino-museum': 'dino-museum',
   'hero-midsummer-dream': 'midsummer-dream',
   'hero-bamboo-court': 'bamboo-court',
@@ -45,6 +46,27 @@ function DinoMuseumMotion({ period }: { period: DiaryPeriod }) {
   </svg>;
 }
 
+function DesertOasisMotion({ period }: { period: DiaryPeriod }) {
+  return <svg className={`desert-oasis-motion desert-oasis-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+    {period === 'morning' && <>
+      <path className="desert-oasis-motion-primary" d="M720 333 C790 318 866 350 944 329 C986 318 1022 321 1060 333" />
+      <g className="desert-oasis-motion-secondary"><path d="M899 116 C916 99 930 88 943 67" /><path d="M958 149 C978 133 991 117 998 94" /></g>
+    </>}
+    {period === 'daytime' && <>
+      <path className="desert-oasis-motion-primary" d="M707 338 C786 317 866 339 944 322 C995 311 1035 317 1070 326" />
+      <g className="desert-oasis-motion-secondary"><circle cx="824" cy="304" r="4" /><circle cx="887" cy="287" r="3" /><circle cx="954" cy="310" r="5" /></g>
+    </>}
+    {period === 'evening' && <>
+      <ellipse className="desert-oasis-motion-primary" cx="908" cy="256" rx="105" ry="88" />
+      <g className="desert-oasis-motion-secondary"><circle cx="832" cy="179" r="3" /><circle cx="954" cy="154" r="4" /></g>
+    </>}
+    {period === 'night' && <>
+      <ellipse className="desert-oasis-motion-primary" cx="899" cy="246" rx="96" ry="80" />
+      <g className="desert-oasis-motion-secondary"><path d="M755 345 C820 330 883 354 944 337 C982 326 1017 330 1055 342" /><circle cx="994" cy="109" r="3" /></g>
+    </>}
+  </svg>;
+}
+
 export function DiaryHeroLayer({ period, weather, background }: { period: DiaryPeriod; weather: WeatherSnapshot | null; background: string }) {
   const periodMark = { morning: '晨', daytime: '昼', evening: '暮', night: '夜' }[period];
   const motionTheme = MOTION_THEME_BY_BACKGROUND[background];
@@ -63,7 +85,8 @@ export function DiaryHeroLayer({ period, weather, background }: { period: DiaryP
       <i className="diary-snow diary-snow-one" />
       <i className="diary-snow diary-snow-two" />
       {motionTheme === 'dino-museum' && <DinoMuseumMotion period={period} />}
-      {motionTheme && motionTheme !== 'dino-museum' && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
+      {motionTheme === 'desert-oasis' && <DesertOasisMotion period={period} />}
+      {motionTheme && motionTheme !== 'dino-museum' && motionTheme !== 'desert-oasis' && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
         <i className={`${motionTheme}-motion-primary`} />
         <i className={`${motionTheme}-motion-secondary`} />
         {motionTheme === 'shop' && <i className="shop-motion-accent" />}

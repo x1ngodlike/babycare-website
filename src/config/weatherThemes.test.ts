@@ -22,6 +22,15 @@ describe('theme hero assets', () => {
     expect(urls).toContain('/hero/weather/dino-museum/icons/nav/archive.webp?v=3e37eceb');
   });
 
+  it('returns the complete desert oasis theme package', () => {
+    const urls = getThemeHeroAssetUrls(resolveThemeConfig('theme-desert-oasis'));
+    expect(urls).toHaveLength(20);
+    expect(urls).toContain('/hero/weather/desert-oasis/backgrounds/default/morning.webp');
+    expect(urls).toContain('/hero/weather/desert-oasis/icons/quick/feeding.webp');
+    expect(urls).toContain('/hero/weather/desert-oasis/icons/tasks/medicine.webp');
+    expect(urls).toContain('/hero/weather/desert-oasis/icons/nav/archive.webp');
+  });
+
   it('preserves theme-specific icon path exceptions', () => {
     const urls = getThemeHeroAssetUrls(resolveThemeConfig('theme-travel'));
     expect(urls).toContain('/hero/weather/travel/icons/tasks/care.webp');

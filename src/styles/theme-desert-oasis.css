@@ -1,0 +1,106 @@
+/* 沙漠绿洲：复古丝网版画、暖沙土色与清澈绿松石。 */
+html[data-visual-theme="desert-oasis"][data-theme="light"] {
+  --theme-page: #f7f0df;
+  --theme-card: #fff9ec;
+  --theme-brand: #8b6b3f;
+  --theme-ink: #3f352a;
+  --theme-muted: #7b7064;
+  --theme-complement: #2f7a71;
+}
+
+html[data-visual-theme="desert-oasis"][data-theme="dark"] {
+  --theme-page: #211b17;
+  --theme-card: #2c241e;
+  --theme-brand: #d5aa70;
+  --theme-ink: #f3e8d8;
+  --theme-muted: #b8aa9b;
+  --theme-complement: #75bbb0;
+}
+
+html[data-visual-theme="desert-oasis"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 6%, rgba(255, 252, 237, .98) 0 8%, transparent 30%),
+    radial-gradient(circle at 92% 88%, rgba(47, 122, 113, .055), transparent 28%),
+    linear-gradient(155deg, #fff9ec 0%, #f7f0df 58%, #eee0c5 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="desert-oasis"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 91% 8%, rgba(117, 187, 176, .07), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(213, 170, 112, .055), transparent 28%),
+    linear-gradient(180deg, #30261f 0%, #211b17 57%, #17120f 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="desert-oasis"] .app::before,
+html[data-visual-theme="desert-oasis"] .app::after { background: rgba(139, 107, 63, .07); }
+
+/* 共享天气层只校准沙尘、绿洲水面和夜色中的遮罩密度。 */
+.baby-hero.hero-desert-oasis.weather-cloudy::before { background: linear-gradient(108deg, transparent 38%, rgba(244, 228, 195, .12) 66%, rgba(203, 211, 193, .16)); }
+.baby-hero.hero-desert-oasis.weather-overcast::before { background: rgba(70, 61, 51, .15); backdrop-filter: saturate(.88) brightness(.98); -webkit-backdrop-filter: saturate(.88) brightness(.98); }
+.baby-hero.hero-desert-oasis.weather-rain::before { background: linear-gradient(90deg, transparent 42%, rgba(49, 89, 84, .13)); }
+.baby-hero.hero-desert-oasis.weather-fog::before { background: linear-gradient(90deg, transparent 30%, rgba(250, 240, 215, .13) 60%, rgba(226, 226, 209, .2)); backdrop-filter: blur(1px) saturate(.9); -webkit-backdrop-filter: blur(1px) saturate(.9); }
+.baby-hero.hero-desert-oasis.weather-snow .diary-snow { opacity: .22; animation-duration: 10s; }
+.baby-hero.hero-desert-oasis.weather-thunder::before { background: linear-gradient(90deg, transparent 38%, rgba(42, 55, 53, .19) 69%, rgba(48, 45, 61, .24)); }
+
+/* 动态层与背景共用 1080×432 坐标系；桌面和移动端执行相同的 cover 裁切。 */
+.desert-oasis-motion { display: none; }
+.baby-hero.hero-desert-oasis::after { animation: diary-page-arrive .45s ease-out both; }
+.baby-hero.hero-desert-oasis .desert-oasis-motion {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity .35s ease;
+}
+
+.desert-oasis-motion-primary,
+.desert-oasis-motion-secondary { transform-box: view-box; transform-origin: center; }
+.desert-oasis-motion-morning .desert-oasis-motion-primary,
+.desert-oasis-motion-daytime .desert-oasis-motion-primary,
+.desert-oasis-motion-night .desert-oasis-motion-secondary path {
+  fill: none;
+  stroke: rgba(128, 203, 188, .48);
+  stroke-width: 4;
+  stroke-linecap: round;
+  animation: desert-oasis-water 8.6s ease-in-out infinite alternate;
+}
+.desert-oasis-motion-morning .desert-oasis-motion-secondary path {
+  fill: none;
+  stroke: rgba(58, 112, 77, .46);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transform-origin: bottom center;
+  animation: desert-oasis-palm 7.6s ease-in-out infinite alternate;
+}
+.desert-oasis-motion-daytime .desert-oasis-motion-secondary,
+.desert-oasis-motion-evening .desert-oasis-motion-secondary {
+  fill: rgba(234, 179, 99, .65);
+  filter: drop-shadow(0 0 4px rgba(213, 157, 79, .28));
+  animation: desert-oasis-dust 9.4s ease-in-out infinite alternate;
+}
+.desert-oasis-motion-evening .desert-oasis-motion-primary,
+.desert-oasis-motion-night .desert-oasis-motion-primary {
+  fill: rgba(245, 161, 77, .12);
+  mix-blend-mode: screen;
+  animation: desert-oasis-glow 7.8s ease-in-out infinite alternate;
+}
+.desert-oasis-motion-night .desert-oasis-motion-secondary { fill: rgba(176, 225, 211, .66); filter: drop-shadow(0 0 5px rgba(129, 203, 185, .35)); }
+
+.baby-hero.hero-desert-oasis:is(.weather-rain, .weather-snow, .weather-fog) .desert-oasis-motion { opacity: .34; }
+.baby-hero.hero-desert-oasis.weather-thunder .desert-oasis-motion { opacity: .18; }
+
+@keyframes desert-oasis-water { from { opacity: .3; transform: translateX(-5px); } to { opacity: .78; transform: translateX(7px); } }
+@keyframes desert-oasis-palm { from { opacity: .34; transform: rotate(-1.2deg); } to { opacity: .72; transform: rotate(1.5deg); } }
+@keyframes desert-oasis-dust { from { opacity: .22; transform: translate3d(0, 4px, 0); } to { opacity: .7; transform: translate3d(-9px, -4px, 0); } }
+@keyframes desert-oasis-glow { from { opacity: .34; transform: scale(.98); } to { opacity: .8; transform: scale(1.025); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="desert-oasis"] .baby-hero.hero-desert-oasis::after,
+  html[data-visual-theme="desert-oasis"] .desert-oasis-motion * { animation: none; }
+}
