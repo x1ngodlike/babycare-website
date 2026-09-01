@@ -168,13 +168,14 @@ interface ModalState {
 export function AppearanceSettingsCard({
   theme, onChange,
   heroTheme, onHeroThemeChange,
-  randomThemeEnabled, onRandomThemeEnabledChange, onRandomThemeShuffle,
+  randomThemeEnabled, randomThemeBackground, onRandomThemeEnabledChange, onRandomThemeShuffle,
   heroThemeOverrides, onHeroThemeOverridesChange,
   profile, userId,
 }: {
   theme: ThemeMode; onChange(value: ThemeMode): void;
   heroTheme: string; onHeroThemeChange(value: string): void;
   randomThemeEnabled: boolean;
+  randomThemeBackground?: string;
   onRandomThemeEnabledChange(value: boolean): void;
   onRandomThemeShuffle(): void;
   heroThemeOverrides: Record<string, Partial<ThemeConfig>>;
@@ -250,8 +251,9 @@ export function AppearanceSettingsCard({
       <p className="random-theme-description">每天从全新主题中随机选择一套，当天保持不变。</p>
       {randomThemeEnabled && (() => {
         const active = THEMES.find(preset => preset.id === heroTheme);
+        const activeBackground = HERO_BACKGROUNDS.find(background => background.value === randomThemeBackground);
         return <div className="random-theme-current">
-          {active && <img src={active.thumb} alt="" />}
+          {active && <img src={activeBackground?.thumb ?? active.thumb} alt="" />}
           <div><small>今日主题</small><b>{active?.label ?? '全新主题'}</b><span>明日更新 · 避免重复</span></div>
           <button type="button" className="text-button" onClick={onRandomThemeShuffle}>换一个</button>
         </div>;

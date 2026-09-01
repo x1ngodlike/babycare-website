@@ -135,12 +135,10 @@ export default function App() {
   const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(Boolean(startupUser)); const [pendingCount, setPendingCount] = useState(() => startupUser ? getOutbox(startupUser.id).length : 0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
   const [theme, setTheme] = useState<ThemeMode>(() => { try { return (localStorage.getItem('babycare-theme') as ThemeMode) || 'system'; } catch { return 'system'; } });
   const [randomThemeEnabled, setRandomThemeEnabled] = useState(readRandomThemeEnabled);
+  const [randomThemeSelection, setRandomThemeSelection] = useState(() => readRandomThemeEnabled() ? getDailyRandomTheme() : null);
   const [heroTheme, setHeroTheme] = useState<string>(() => {
     try {
-      if (readRandomThemeEnabled()) {
-        const randomTheme = getDailyRandomTheme();
-        if (randomTheme) return randomTheme;
-      }
+      if (randomThemeSelection) return randomThemeSelection.themeId;
       const newId = localStorage.getItem('babycare-hero-theme');
       if (newId) return newId === 'theme-diary' ? 'theme-fruit-cake' : newId;
       const legacyBg = localStorage.getItem('babycare-hero-bg') || 'auto';
@@ -163,7 +161,8 @@ export default function App() {
     } catch { return {}; }
   });
   const refreshingRef = useRef(false);
-  const resolvedTheme: ThemeConfig = resolveThemeConfig(heroTheme, heroThemeOverrides[heroTheme]);
+  const randomBackground = randomThemeEnabled && randomThemeSelection?.themeId === heroTheme ? randomThemeSelection.background : undefined;
+  const resolvedTheme: ThemeConfig = resolveThemeConfig(heroTheme, randomBackground ? { ...heroThemeOverrides[heroTheme], bg: randomBackground } : heroThemeOverrides[heroTheme]);
   const themeBg = resolvedTheme.bg;
   const themeIconPack = resolvedTheme.iconPack;
   const themeLayout = resolvedTheme.layout;
@@ -174,13 +173,19 @@ export default function App() {
     saveRandomThemeEnabled(enabled);
     if (enabled) {
       const next = getDailyRandomTheme();
-      if (next) setHeroTheme(next);
+      if (next) {
+        setRandomThemeSelection(next);
+        setHeroTheme(next.themeId);
+      }
     }
   }, []);
 
   const shuffleRandomTheme = useCallback(() => {
     const next = shuffleDailyRandomTheme(heroTheme);
-    if (next) setHeroTheme(next);
+    if (next) {
+      setRandomThemeSelection(next);
+      setHeroTheme(next.themeId);
+    }
   }, [heroTheme]);
 
   const updateLocalRecords = useCallback((userId: string, updater: (items: CareRecord[]) => CareRecord[]) => {
@@ -346,7 +351,10 @@ export default function App() {
     if (!randomThemeEnabled) return;
     const applyTodayTheme = () => {
       const next = getDailyRandomTheme();
-      if (next) setHeroTheme(next);
+      if (next) {
+        setRandomThemeSelection(next);
+        setHeroTheme(next.themeId);
+      }
     };
     const now = new Date();
     const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
@@ -544,7 +552,7 @@ export default function App() {
       {tab === 'chat' && <ChatView user={currentUser} capabilities={capabilities} online={online} onBack={() => goToTab('today')} />}
       {tab === 'trends' && <TrendsView records={records} careItems={careItems} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} archiveMode={archiveMode} setArchiveMode={setArchiveMode} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}
-      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} heroTheme={heroTheme} onHeroThemeChange={setHeroTheme} randomThemeEnabled={randomThemeEnabled} onRandomThemeEnabledChange={changeRandomThemeEnabled} onRandomThemeShuffle={shuffleRandomTheme} heroThemeOverrides={heroThemeOverrides} onHeroThemeOverridesChange={setHeroThemeOverrides} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
+      {tab === 'settings' && <SettingsView profile={profile} careItems={careItems} vaccineCatalog={vaccineCatalog} capabilities={capabilities} user={currentUser} pushStatus={pushStatus} theme={theme} onThemeChange={setTheme} heroTheme={heroTheme} onHeroThemeChange={setHeroTheme} randomThemeEnabled={randomThemeEnabled} randomThemeBackground={randomBackground} onRandomThemeEnabledChange={changeRandomThemeEnabled} onRandomThemeShuffle={shuffleRandomTheme} heroThemeOverrides={heroThemeOverrides} onHeroThemeOverridesChange={setHeroThemeOverrides} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} onVaccineCatalogChanged={async () => { await loadVaccineCatalog(); }} onCapabilitiesChanged={loadCapabilities} onCareItemsChanged={async () => { await loadCareItems(); }} onImported={refreshAll} onLogout={async () => { try { await api.logout(); } catch { /* local logout still succeeds */ } clearRememberedUser(); setAuthenticated(false); setCurrentUser(null); setRecords([]); setDeletedRecords([]); setGrowthRecords([]); setDeletedGrowthRecords([]); setVaccineRecords([]); setVaccineRecordsReady(false); setVaccineCatalog([]); setPushStatus(null); }} onRefreshPush={loadPushStatus} onTestMorning={testMorningDigest} onTestFeedingGap={testFeedingGap} onTestCareItem={testCareItem} onSavePush={savePush} />}
       </div>
       </Suspense>
     </main>
