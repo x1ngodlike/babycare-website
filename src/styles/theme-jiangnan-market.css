@@ -1,0 +1,101 @@
+/* 江南灯市：旧年画工笔、水巷黛瓦与克制的朱砂灯色。 */
+html[data-visual-theme="jiangnan-market"][data-theme="light"] {
+  --theme-page: #f8f3e9;
+  --theme-card: #fff9ee;
+  --theme-brand: #8e4a42;
+  --theme-ink: #3d342d;
+  --theme-muted: #786c62;
+  --theme-complement: #33766f;
+}
+
+html[data-visual-theme="jiangnan-market"][data-theme="dark"] {
+  --theme-page: #211b19;
+  --theme-card: #2e2521;
+  --theme-brand: #d98b7f;
+  --theme-ink: #f3e7d8;
+  --theme-muted: #baaaa0;
+  --theme-complement: #78b9b1;
+}
+
+html[data-visual-theme="jiangnan-market"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 5%, rgba(255, 252, 239, .98) 0 9%, transparent 31%),
+    radial-gradient(circle at 92% 88%, rgba(51, 118, 111, .055), transparent 28%),
+    linear-gradient(155deg, #fff9ee 0%, #f8f3e9 57%, #f1ecdf 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="jiangnan-market"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 91% 7%, rgba(120, 185, 177, .075), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(217, 139, 127, .05), transparent 27%),
+    linear-gradient(180deg, #302622 0%, #211b19 56%, #171210 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="jiangnan-market"] .app::before,
+html[data-visual-theme="jiangnan-market"] .app::after { background: rgba(142, 74, 66, .065); }
+
+/* 共享天气层只校准烟雨、水面反光和灯色下的遮罩密度。 */
+.baby-hero.hero-jiangnan-market.weather-cloudy::before { background: linear-gradient(108deg, transparent 39%, rgba(228, 225, 207, .11) 66%, rgba(190, 207, 201, .17)); }
+.baby-hero.hero-jiangnan-market.weather-overcast::before { background: rgba(54, 64, 62, .15); backdrop-filter: saturate(.87) brightness(.98); -webkit-backdrop-filter: saturate(.87) brightness(.98); }
+.baby-hero.hero-jiangnan-market.weather-rain::before { background: linear-gradient(90deg, transparent 41%, rgba(43, 84, 82, .14)); }
+.baby-hero.hero-jiangnan-market.weather-fog::before { background: linear-gradient(90deg, transparent 30%, rgba(241, 239, 224, .13) 60%, rgba(211, 222, 216, .22)); backdrop-filter: blur(1px) saturate(.9); -webkit-backdrop-filter: blur(1px) saturate(.9); }
+.baby-hero.hero-jiangnan-market.weather-snow .diary-snow { opacity: .22; animation-duration: 10s; }
+.baby-hero.hero-jiangnan-market.weather-thunder::before { background: linear-gradient(90deg, transparent 38%, rgba(37, 55, 57, .2) 69%, rgba(46, 44, 61, .25)); }
+
+/* 动态层与 Hero 共用 1080×432 坐标系及 cover 裁切，避免跨端漂移。 */
+.jiangnan-market-motion { display: none; }
+.baby-hero.hero-jiangnan-market::after { animation: diary-page-arrive .45s ease-out both; }
+.baby-hero.hero-jiangnan-market .jiangnan-market-motion {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity .35s ease;
+}
+
+.jiangnan-market-motion-primary,
+.jiangnan-market-motion-secondary { transform-box: view-box; transform-origin: center; }
+.jiangnan-market-motion-morning .jiangnan-market-motion-primary,
+.jiangnan-market-motion-daytime .jiangnan-market-motion-primary,
+.jiangnan-market-motion-evening .jiangnan-market-motion-secondary,
+.jiangnan-market-motion-night .jiangnan-market-motion-secondary {
+  fill: none;
+  stroke: rgba(112, 184, 177, .5);
+  stroke-width: 4;
+  stroke-linecap: round;
+  animation: jiangnan-water 8.8s ease-in-out infinite alternate;
+}
+.jiangnan-market-motion-morning .jiangnan-market-motion-secondary path,
+.jiangnan-market-motion-daytime .jiangnan-market-motion-secondary path {
+  fill: none;
+  stroke: rgba(119, 69, 56, .48);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transform-origin: top center;
+  animation: jiangnan-sway 7.8s ease-in-out infinite alternate;
+}
+.jiangnan-market-motion-evening .jiangnan-market-motion-primary,
+.jiangnan-market-motion-night .jiangnan-market-motion-primary {
+  fill: rgba(246, 154, 91, .12);
+  mix-blend-mode: screen;
+  filter: blur(.3px);
+  animation: jiangnan-lantern-glow 8.2s ease-in-out infinite alternate;
+}
+
+.baby-hero.hero-jiangnan-market:is(.weather-rain, .weather-snow, .weather-fog) .jiangnan-market-motion { opacity: .34; }
+.baby-hero.hero-jiangnan-market.weather-thunder .jiangnan-market-motion { opacity: .18; }
+
+@keyframes jiangnan-water { from { opacity: .28; transform: translateX(-5px); } to { opacity: .76; transform: translateX(7px); } }
+@keyframes jiangnan-sway { from { opacity: .36; transform: rotate(-1deg); } to { opacity: .72; transform: rotate(1.3deg); } }
+@keyframes jiangnan-lantern-glow { from { opacity: .34; transform: scale(.985); } to { opacity: .8; transform: scale(1.025); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="jiangnan-market"] .baby-hero.hero-jiangnan-market::after,
+  html[data-visual-theme="jiangnan-market"] .jiangnan-market-motion * { animation: none; }
+}

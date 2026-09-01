@@ -1,10 +1,10 @@
 /* 沙漠绿洲：复古丝网版画、暖沙土色与清澈绿松石。 */
 html[data-visual-theme="desert-oasis"][data-theme="light"] {
-  --theme-page: #f7f0df;
+  --theme-page: #f9f4e8;
   --theme-card: #fff9ec;
   --theme-brand: #8b6b3f;
   --theme-ink: #3f352a;
-  --theme-muted: #7b7064;
+  --theme-muted: #776c61;
   --theme-complement: #2f7a71;
 }
 
@@ -21,7 +21,7 @@ html[data-visual-theme="desert-oasis"][data-theme="light"] body {
   background:
     radial-gradient(circle at 8% 6%, rgba(255, 252, 237, .98) 0 8%, transparent 30%),
     radial-gradient(circle at 92% 88%, rgba(47, 122, 113, .055), transparent 28%),
-    linear-gradient(155deg, #fff9ec 0%, #f7f0df 58%, #eee0c5 100%);
+    linear-gradient(155deg, #fff9ec 0%, #f9f4e8 58%, #f2e9d6 100%);
   background-attachment: fixed;
 }
 

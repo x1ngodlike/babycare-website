@@ -136,7 +136,7 @@ html[data-visual-theme] .record-copy small { color: var(--token-record-copy-smal
 html[data-visual-theme] .today-workbench .quick-section { background: var(--token-quick-section-bg); }
 html[data-visual-theme] .user-pill,
 html[data-visual-theme] .network-pill {
-  color: var(--brand);
+  color: var(--brand-deep);
   border-color: var(--token-pill-border);
   background: var(--token-pill-bg);
 }

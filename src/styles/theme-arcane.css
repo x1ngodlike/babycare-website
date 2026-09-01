@@ -1,6 +1,6 @@
 /* 烛光魔塔：羊皮纸、烛火与少量炼金紫构成的暖调魔法主题。 */
 html[data-visual-theme="arcane"][data-theme="light"] {
-  --theme-page: #f7f1e7;
+  --theme-page: #f9f5ed;
   --theme-card: #fff9ef;
   --theme-brand: #8a5a9e;
   --theme-ink: #32283c;
@@ -20,7 +20,7 @@ html[data-visual-theme="arcane"][data-theme="light"] body {
   background:
     radial-gradient(circle at 9% 4%, rgba(255, 253, 246, .96) 0 8%, transparent 31%),
     radial-gradient(circle at 92% 88%, rgba(138, 90, 158, .09), transparent 28%),
-    linear-gradient(155deg, #fffaf2 0%, #f7f1e7 55%, #efe4d3 100%);
+    linear-gradient(155deg, #fffdf7 0%, #f9f5ed 55%, #f2ebdf 100%);
   background-attachment: fixed;
 }
 

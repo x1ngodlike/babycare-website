@@ -1,7 +1,7 @@
 import type { CareItem, CareRecord } from '../types';
 import type { DiaryPeriod } from '../../shared/weather';
 
-export type WeatherHeroThemeId = 'hero-desert-oasis' | 'hero-dino-museum' | 'hero-midsummer-dream' | 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
+export type WeatherHeroThemeId = 'hero-jiangnan-market' | 'hero-desert-oasis' | 'hero-dino-museum' | 'hero-midsummer-dream' | 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -79,6 +79,7 @@ function createWeatherHeroAssets(folder: string, overrides?: {
 }
 
 export const WEATHER_HERO_ASSETS: Record<WeatherHeroThemeId, WeatherHeroAssetSet> = {
+  'hero-jiangnan-market': createWeatherHeroAssets('jiangnan-market'),
   'hero-desert-oasis': createWeatherHeroAssets('desert-oasis'),
   'hero-dino-museum': createWeatherHeroAssets('dino-museum', undefined, '?v=3e37eceb'),
   'hero-midsummer-dream': createWeatherHeroAssets('midsummer-dream'),
@@ -139,6 +140,7 @@ export function getWeatherHeroAssets(value: string) {
 
 const WEATHER_BACKGROUND_SOURCES: Record<string, { folder: string; variant: string }> = {
   'hero-diary': { folder: 'fruit-cake', variant: 'default' },
+  'hero-jiangnan-market': { folder: 'jiangnan-market', variant: 'default' },
   'hero-desert-oasis': { folder: 'desert-oasis', variant: 'default' },
   'hero-dino-museum': { folder: 'dino-museum', variant: 'default' },
   'hero-midsummer-dream': { folder: 'midsummer-dream', variant: 'default' },
@@ -219,6 +221,7 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-jiangnan-market', label: '江南灯市', thumb: WEATHER_HERO_ASSETS['hero-jiangnan-market'].thumb, group: 'weather' },
   { value: 'hero-desert-oasis', label: '沙漠绿洲', thumb: WEATHER_HERO_ASSETS['hero-desert-oasis'].thumb, group: 'weather' },
   { value: 'hero-dino-museum', label: '恐龙博馆', thumb: WEATHER_HERO_ASSETS['hero-dino-museum'].thumb, group: 'weather' },
   { value: 'hero-midsummer-dream', label: '仲夏夜梦', thumb: WEATHER_HERO_ASSETS['hero-midsummer-dream'].thumb, group: 'weather' },
@@ -251,7 +254,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（16）' },
+  { key: 'weather', label: '天气画境（17）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -272,6 +275,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/classic/default/morning.webp' },
+  { value: 'hero-jiangnan-market', label: '江南灯市', thumb: WEATHER_HERO_ASSETS['hero-jiangnan-market'].thumb },
   { value: 'hero-desert-oasis', label: '沙漠绿洲', thumb: WEATHER_HERO_ASSETS['hero-desert-oasis'].thumb },
   { value: 'hero-dino-museum', label: '恐龙博馆', thumb: WEATHER_HERO_ASSETS['hero-dino-museum'].thumb },
   { value: 'hero-midsummer-dream', label: '仲夏夜梦', thumb: WEATHER_HERO_ASSETS['hero-midsummer-dream'].thumb },
@@ -289,6 +293,9 @@ export const ICON_PACKS: IconPackOption[] = [
 ];
 
 export const THEMES: ReadonlyArray<ThemePreset> = [
+  { id: 'theme-jiangnan-market', label: '江南灯市', thumb: WEATHER_HERO_ASSETS['hero-jiangnan-market'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-jiangnan-market', iconPack: 'hero-jiangnan-market', weatherEffects: true },
+    recommendedBgs: ['hero-jiangnan-market'] },
   { id: 'theme-desert-oasis', label: '沙漠绿洲', thumb: WEATHER_HERO_ASSETS['hero-desert-oasis'].thumb,
     defaults: { layout: 'diary', bg: 'hero-desert-oasis', iconPack: 'hero-desert-oasis', weatherEffects: true },
     recommendedBgs: ['hero-desert-oasis'] },
@@ -352,6 +359,7 @@ export function getVisualThemeForPreset(themeId: string): string | null {
 
 // 旧版 heroBg → 新版 themeId 迁移映射
 const LEGACY_BG_TO_THEME: Record<string, string> = {
+  'hero-jiangnan-market': 'theme-jiangnan-market',
   'hero-desert-oasis': 'theme-desert-oasis',
   'hero-dino-museum': 'theme-dino-museum',
   'hero-midsummer-dream': 'theme-midsummer-dream',

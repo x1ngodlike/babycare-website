@@ -1,7 +1,7 @@
 /* 云端旅志：暖灰旅行手账。业务状态色与核心记录橙保持全局语义。 */
 html[data-visual-theme="travel"][data-theme="light"] {
   --theme-page: #fbf8f5;
-  --theme-card: #fcfaf7;
+  --theme-card: #fffdf9;
   --theme-brand: #96877a;
   --theme-ink: #3a3734;
   --theme-muted: #6f6a64;

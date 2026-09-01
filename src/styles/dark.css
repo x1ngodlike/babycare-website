@@ -36,7 +36,7 @@ html[data-theme="dark"] .network-pill,
 html[data-theme="dark"] .user-pill {
   background: rgba(38, 37, 35, .92);
   border-color: rgba(82, 79, 74, .85);
-  color: var(--brand);
+  color: var(--brand-deep);
 }
 html[data-theme="dark"] .network-pill::before { background: var(--token-network-dot); }
 html[data-theme="dark"] .today-workbench,
@@ -110,9 +110,9 @@ html[data-theme="dark"] .prediction-ai-insights li { color: var(--token-ink); }
 html[data-theme="dark"] .prediction-meta { color: var(--muted); }
 html[data-theme="dark"] .confidence-bar { background: var(--line); }
 html[data-theme="dark"] .confidence-fill { background: var(--brand); }
-html[data-theme="dark"] .prediction-ai-badge { color: var(--brand); }
+html[data-theme="dark"] .prediction-ai-badge { color: var(--brand-deep); }
 html[data-theme="dark"] .prediction-banner.ai-predicted .prediction-time::after {
-  color: var(--brand);
+  color: var(--brand-deep);
   background: var(--token-brand-faint);
 }
 html[data-theme="dark"] .prediction-banner.ai-predicted.overdue .prediction-time::after {
@@ -123,7 +123,7 @@ html[data-theme="dark"] .prediction-banner.ai-predicted.soon .prediction-time::a
   color: var(--text-soon);
   background: var(--surface-soon-soft);
 }
-html[data-theme="dark"] .prediction-upcoming-count { background: var(--brand-faint); color: var(--brand); }
+html[data-theme="dark"] .prediction-upcoming-count { background: var(--brand-faint); color: var(--brand-deep); }
 html[data-theme="dark"] .import-mode-option {
   background: var(--surface-card);
   color: var(--text-primary);

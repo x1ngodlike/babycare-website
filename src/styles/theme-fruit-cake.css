@@ -1,7 +1,7 @@
 /* 水果蛋糕：暖色果味蛋糕房。组件语义继续由 theme-system.css 统一派生。 */
 html[data-visual-theme="fruit-cake"][data-theme="light"] {
-  --theme-page: #f8eddc;
-  --theme-card: #fff8ec;
+  --theme-page: #fbf3e7;
+  --theme-card: #fffbf3;
   --theme-brand: #b95060;
   --theme-ink: #493330;
   --theme-muted: #826a65;
@@ -21,7 +21,7 @@ html[data-visual-theme="fruit-cake"][data-theme="light"] body {
   background:
     radial-gradient(circle at 7% 4%, rgba(255, 253, 245, .96) 0 8%, transparent 31%),
     radial-gradient(circle at 94% 88%, rgba(185, 80, 96, .07), transparent 28%),
-    linear-gradient(155deg, #fff8e9 0%, #f8eddc 56%, #ead9c4 100%);
+    linear-gradient(155deg, #fffbf3 0%, #fbf3e7 56%, #f3e7d8 100%);
   background-attachment: fixed;
 }
 
