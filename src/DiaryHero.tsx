@@ -10,6 +10,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
 }
 
 const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
+  'hero-moon-camp': 'moon-camp',
   'hero-jiangnan-market': 'jiangnan-market',
   'hero-desert-oasis': 'desert-oasis',
   'hero-dino-museum': 'dino-museum',
@@ -89,6 +90,27 @@ function JiangnanMarketMotion({ period }: { period: DiaryPeriod }) {
   </svg>;
 }
 
+function MoonCampMotion({ period }: { period: DiaryPeriod }) {
+  return <svg className={`moon-camp-motion moon-camp-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+    {period === 'morning' && <>
+      <path className="moon-camp-motion-primary" d="M590 174 L590 258 M590 185 L632 199 L590 213 Z" />
+      <circle className="moon-camp-motion-secondary" cx="758" cy="391" r="11" />
+    </>}
+    {period === 'daytime' && <>
+      <g className="moon-camp-motion-primary"><circle cx="626" cy="405" r="27" /><circle cx="722" cy="405" r="27" /></g>
+      <path className="moon-camp-motion-secondary" d="M932 256 L982 213 L1012 256" />
+    </>}
+    {period === 'evening' && <>
+      <g className="moon-camp-motion-primary"><circle cx="490" cy="350" r="8" /><circle cx="780" cy="347" r="8" /><circle cx="1058" cy="350" r="8" /></g>
+      <path className="moon-camp-motion-secondary" d="M630 294 C664 286 706 288 744 300" />
+    </>}
+    {period === 'night' && <>
+      <g className="moon-camp-motion-primary"><circle cx="577" cy="218" r="20" /><circle cx="577" cy="218" r="33" /></g>
+      <ellipse className="moon-camp-motion-secondary" cx="824" cy="319" rx="96" ry="63" />
+    </>}
+  </svg>;
+}
+
 export function DiaryHeroLayer({ period, weather, background }: { period: DiaryPeriod; weather: WeatherSnapshot | null; background: string }) {
   const periodMark = { morning: '晨', daytime: '昼', evening: '暮', night: '夜' }[period];
   const motionTheme = MOTION_THEME_BY_BACKGROUND[background];
@@ -106,10 +128,11 @@ export function DiaryHeroLayer({ period, weather, background }: { period: DiaryP
       <i className="diary-fog" />
       <i className="diary-snow diary-snow-one" />
       <i className="diary-snow diary-snow-two" />
+      {motionTheme === 'moon-camp' && <MoonCampMotion period={period} />}
       {motionTheme === 'dino-museum' && <DinoMuseumMotion period={period} />}
       {motionTheme === 'desert-oasis' && <DesertOasisMotion period={period} />}
       {motionTheme === 'jiangnan-market' && <JiangnanMarketMotion period={period} />}
-      {motionTheme && !['dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
+      {motionTheme && !['moon-camp', 'dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
         <i className={`${motionTheme}-motion-primary`} />
         <i className={`${motionTheme}-motion-secondary`} />
         {motionTheme === 'shop' && <i className="shop-motion-accent" />}

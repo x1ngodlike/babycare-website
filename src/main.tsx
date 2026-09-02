@@ -16,6 +16,7 @@ import './ui.css';
 import './styles/components.css';
 import './styles/theme-system.css';
 import './styles/theme-basic-shapes.css';
+import './styles/theme-moon-camp.css';
 import './styles/theme-jiangnan-market.css';
 import './styles/theme-desert-oasis.css';
 import './styles/theme-dino-museum.css';

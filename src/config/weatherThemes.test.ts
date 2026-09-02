@@ -40,6 +40,15 @@ describe('theme hero assets', () => {
     expect(urls).toContain('/hero/weather/jiangnan-market/icons/nav/archive.webp');
   });
 
+  it('returns the complete Moon Camp theme package', () => {
+    const urls = getThemeHeroAssetUrls(resolveThemeConfig('theme-moon-camp'));
+    expect(urls).toHaveLength(20);
+    expect(urls).toContain('/hero/weather/moon-camp/backgrounds/default/morning.webp');
+    expect(urls).toContain('/hero/weather/moon-camp/icons/quick/feeding.webp');
+    expect(urls).toContain('/hero/weather/moon-camp/icons/tasks/medicine.webp');
+    expect(urls).toContain('/hero/weather/moon-camp/icons/nav/archive.webp');
+  });
+
   it('preserves theme-specific icon path exceptions', () => {
     const urls = getThemeHeroAssetUrls(resolveThemeConfig('theme-travel'));
     expect(urls).toContain('/hero/weather/travel/icons/tasks/care.webp');

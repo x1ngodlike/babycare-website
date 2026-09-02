@@ -1,0 +1,140 @@
+/* 月球营地：复古科教版画、月壤米白与宇航信号橙。 */
+html[data-visual-theme="moon-camp"][data-theme="light"] {
+  --theme-page: #f5f0e6;
+  --theme-card: #fffdf8;
+  --theme-brand: #c95d35;
+  --theme-ink: #343536;
+  --theme-muted: #66645f;
+  --theme-complement: #3f7d83;
+}
+
+html[data-visual-theme="moon-camp"][data-theme="dark"] {
+  --theme-page: #171b25;
+  --theme-card: #232936;
+  --theme-brand: #f08a58;
+  --theme-ink: #f1eee7;
+  --theme-muted: #b9bdc5;
+  --theme-complement: #79bbc0;
+}
+
+html[data-visual-theme="moon-camp"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 8% 5%, rgba(255, 253, 248, .98) 0 9%, transparent 31%),
+    radial-gradient(circle at 92% 88%, rgba(63, 125, 131, .055), transparent 28%),
+    linear-gradient(155deg, #fffdf8 0%, #f5f0e6 57%, #ece5d8 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="moon-camp"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 91% 7%, rgba(121, 187, 192, .075), transparent 31%),
+    radial-gradient(circle at 8% 92%, rgba(240, 138, 88, .05), transparent 27%),
+    linear-gradient(180deg, #252b39 0%, #171b25 57%, #10131a 100%);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="moon-camp"] .app::before,
+html[data-visual-theme="moon-camp"] .app::after { background: rgba(201, 93, 53, .055); }
+
+.baby-hero.hero-moon-camp .hero-status::before { background: rgba(27, 35, 47, .58); }
+
+/* 共享天气层保留月壤暖度，阴雨只降低饱和与环境明度。 */
+.baby-hero.hero-moon-camp.weather-cloudy::before { background: linear-gradient(108deg, transparent 39%, rgba(221, 226, 223, .11) 66%, rgba(167, 190, 192, .17)); }
+.baby-hero.hero-moon-camp.weather-overcast::before { background: rgba(42, 49, 59, .17); backdrop-filter: saturate(.84) brightness(.97); -webkit-backdrop-filter: saturate(.84) brightness(.97); }
+.baby-hero.hero-moon-camp.weather-rain::before { background: linear-gradient(90deg, transparent 42%, rgba(43, 75, 82, .15)); }
+.baby-hero.hero-moon-camp.weather-fog::before { background: linear-gradient(90deg, transparent 30%, rgba(237, 235, 225, .11) 60%, rgba(198, 211, 214, .22)); backdrop-filter: blur(1px) saturate(.88); -webkit-backdrop-filter: blur(1px) saturate(.88); }
+.baby-hero.hero-moon-camp.weather-snow .diary-snow { opacity: .2; animation-duration: 10s; }
+.baby-hero.hero-moon-camp.weather-thunder::before { background: linear-gradient(90deg, transparent 37%, rgba(28, 42, 57, .2) 69%, rgba(31, 35, 57, .28)); }
+
+/* 动态层与 Hero 共用 1080×432 坐标系和 cover 裁切，跨端不重算位置。 */
+.moon-camp-motion { display: none; }
+.baby-hero.hero-moon-camp::after { animation: diary-page-arrive .45s ease-out both; }
+.baby-hero.hero-moon-camp .moon-camp-motion {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity .35s ease;
+}
+
+.moon-camp-motion-primary,
+.moon-camp-motion-secondary { transform-box: view-box; transform-origin: center; }
+
+.moon-camp-motion-morning .moon-camp-motion-primary {
+  fill: rgba(222, 107, 54, .16);
+  stroke: rgba(104, 67, 48, .46);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: moon-camp-signal-sway 8.4s ease-in-out infinite alternate;
+}
+.moon-camp-motion-morning .moon-camp-motion-secondary {
+  fill: rgba(255, 190, 93, .16);
+  filter: drop-shadow(0 0 5px rgba(244, 156, 72, .34));
+  animation: moon-camp-light-breathe 7.2s ease-in-out infinite alternate;
+}
+
+.moon-camp-motion-daytime .moon-camp-motion-primary circle {
+  fill: none;
+  stroke: rgba(61, 111, 117, .5);
+  stroke-width: 3;
+  stroke-dasharray: 11 8;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: moon-camp-wheel-turn 9.6s linear infinite;
+}
+.moon-camp-motion-daytime .moon-camp-motion-secondary {
+  fill: none;
+  stroke: rgba(207, 100, 55, .42);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: moon-camp-arm-check 8.2s ease-in-out infinite alternate;
+}
+
+.moon-camp-motion-evening .moon-camp-motion-primary {
+  fill: rgba(255, 172, 80, .34);
+  filter: drop-shadow(0 0 6px rgba(239, 126, 61, .46));
+  animation: moon-camp-light-breathe 7.6s ease-in-out infinite alternate;
+}
+.moon-camp-motion-evening .moon-camp-motion-secondary {
+  fill: none;
+  stroke: rgba(75, 125, 128, .38);
+  stroke-width: 3;
+  stroke-linecap: round;
+  animation: moon-camp-strap-sway 8.8s ease-in-out infinite alternate;
+}
+
+.moon-camp-motion-night .moon-camp-motion-primary {
+  fill: none;
+  stroke: rgba(239, 132, 72, .45);
+  stroke-width: 3;
+  transform-origin: 577px 218px;
+  animation: moon-camp-signal-ring 8.6s ease-out infinite;
+}
+.moon-camp-motion-night .moon-camp-motion-secondary {
+  fill: rgba(255, 185, 104, .075);
+  mix-blend-mode: screen;
+  filter: blur(.4px);
+  animation: moon-camp-pod-breathe 8s ease-in-out infinite alternate;
+}
+
+.baby-hero.hero-moon-camp:is(.weather-rain, .weather-snow, .weather-fog) .moon-camp-motion { opacity: .34; }
+.baby-hero.hero-moon-camp.weather-thunder .moon-camp-motion { opacity: .18; }
+
+@keyframes moon-camp-signal-sway { from { opacity: .34; transform: rotate(-.45deg); } to { opacity: .7; transform: rotate(.65deg); } }
+@keyframes moon-camp-light-breathe { from { opacity: .28; } to { opacity: .82; } }
+@keyframes moon-camp-wheel-turn { to { transform: rotate(360deg); } }
+@keyframes moon-camp-arm-check { from { opacity: .28; transform: translateY(2px); } to { opacity: .68; transform: translateY(-3px); } }
+@keyframes moon-camp-strap-sway { from { opacity: .28; transform: translateX(-2px); } to { opacity: .66; transform: translateX(3px); } }
+@keyframes moon-camp-signal-ring { 0%, 18% { opacity: 0; transform: scale(.94); } 48% { opacity: .72; } 100% { opacity: 0; transform: scale(1.06); } }
+@keyframes moon-camp-pod-breathe { from { opacity: .3; transform: scale(.99); } to { opacity: .76; transform: scale(1.015); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-theme="moon-camp"] .baby-hero.hero-moon-camp::after,
+  html[data-visual-theme="moon-camp"] .moon-camp-motion * { animation: none; }
+}
