@@ -84,7 +84,6 @@ export const WEATHER_HERO_ASSETS: Record<WeatherHeroThemeId, WeatherHeroAssetSet
   'hero-moon-camp': createWeatherHeroAssets('moon-camp', {
     stickers: { care: '/hero/weather/moon-camp/icons/tasks/care.webp' },
     tasks: { care: '/hero/weather/moon-camp/icons/quick/care.webp' },
-    nav: { trends: '/hero/weather/moon-camp/icons/nav/trends-v2.webp' },
   }),
   'hero-jiangnan-market': createWeatherHeroAssets('jiangnan-market'),
   'hero-desert-oasis': createWeatherHeroAssets('desert-oasis'),
