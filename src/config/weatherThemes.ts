@@ -79,7 +79,10 @@ function createWeatherHeroAssets(folder: string, overrides?: {
 }
 
 export const WEATHER_HERO_ASSETS: Record<WeatherHeroThemeId, WeatherHeroAssetSet> = {
-  'hero-moon-camp': createWeatherHeroAssets('moon-camp'),
+  'hero-moon-camp': createWeatherHeroAssets('moon-camp', {
+    stickers: { care: '/hero/weather/moon-camp/icons/tasks/care.webp' },
+    tasks: { care: '/hero/weather/moon-camp/icons/quick/care.webp' },
+  }),
   'hero-jiangnan-market': createWeatherHeroAssets('jiangnan-market'),
   'hero-desert-oasis': createWeatherHeroAssets('desert-oasis'),
   'hero-dino-museum': createWeatherHeroAssets('dino-museum', undefined, '?v=3e37eceb'),
