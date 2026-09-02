@@ -34,7 +34,7 @@ export const chatSchema = z.object({
     category: z.enum(['preferences', 'health', 'notes']),
     content: z.string().trim().min(1).max(300),
     expiresAt: z.string().datetime({ offset: true }).nullable().optional(),
-    supersedes: z.string().trim().max(300).optional()
+    supersedes: z.string().trim().max(300).nullish()
   })).max(10),
   title: z.string().trim().max(40).optional()
 });
