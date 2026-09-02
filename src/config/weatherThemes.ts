@@ -48,6 +48,7 @@ type WeatherHeroAssetSet = {
 function createWeatherHeroAssets(folder: string, overrides?: {
   stickers?: Partial<WeatherHeroAssetSet['stickers']>;
   tasks?: Partial<WeatherHeroAssetSet['tasks']>;
+  nav?: Partial<WeatherHeroAssetSet['nav']>;
 }, version = ''): WeatherHeroAssetSet {
   const root = `/hero/weather/${folder}`;
   return {
@@ -74,6 +75,7 @@ function createWeatherHeroAssets(folder: string, overrides?: {
       chat: `${root}/icons/nav/chat.webp${version}`,
       trends: `${root}/icons/nav/trends.webp${version}`,
       archive: `${root}/icons/nav/archive.webp${version}`,
+      ...overrides?.nav,
     },
   };
 }
@@ -82,6 +84,7 @@ export const WEATHER_HERO_ASSETS: Record<WeatherHeroThemeId, WeatherHeroAssetSet
   'hero-moon-camp': createWeatherHeroAssets('moon-camp', {
     stickers: { care: '/hero/weather/moon-camp/icons/tasks/care.webp' },
     tasks: { care: '/hero/weather/moon-camp/icons/quick/care.webp' },
+    nav: { trends: '/hero/weather/moon-camp/icons/nav/trends-v2.webp' },
   }),
   'hero-jiangnan-market': createWeatherHeroAssets('jiangnan-market'),
   'hero-desert-oasis': createWeatherHeroAssets('desert-oasis'),
