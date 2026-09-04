@@ -119,6 +119,7 @@
 |---|---|---|
 | 经典主题（默认） | light `#657e51` · dark `#86a370` | light `#ee852f` · dark `#e09958` |
 | 月球营地 | light `#c95d35` · dark `#f08a58` | light `#3f7d83` · dark `#79bbc0` |
+| 花窗乐园 | light `#a84f64` · dark `#df8295` | light `#347e86` · dark `#75bdc4` |
 | 江南灯市 | light `#8e4a42` · dark `#d98b7f` | light `#33766f` · dark `#78b9b1` |
 | 沙漠绿洲 | light `#8b6b3f` · dark `#d5aa70` | light `#2f7a71` · dark `#75bbb0` |
 | 恐龙博馆 | light `#617853` · dark `#91b17b` | light `#c66c48` · dark `#e1946e` |

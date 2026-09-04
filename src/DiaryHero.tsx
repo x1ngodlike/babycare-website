@@ -10,6 +10,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
 }
 
 const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
+  'hero-glass-park': 'glass-park',
   'hero-moon-camp': 'moon-camp',
   'hero-jiangnan-market': 'jiangnan-market',
   'hero-desert-oasis': 'desert-oasis',
@@ -90,6 +91,14 @@ function JiangnanMarketMotion({ period }: { period: DiaryPeriod }) {
   </svg>;
 }
 
+function GlassParkMotion({ period }: { period: DiaryPeriod }) {
+  // 环境反光而非活动部件；与背景使用相同 cover 坐标，避免跨端漂移。
+  return <svg className={`glass-park-motion glass-park-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+    <path className="glass-park-motion-primary" d="M748 32 L805 32 L937 368 L851 368 Z" />
+    <ellipse className="glass-park-motion-secondary" cx="847" cy="281" rx="128" ry="87" />
+  </svg>;
+}
+
 function MoonCampMotion({ period }: { period: DiaryPeriod }) {
   return <svg className={`moon-camp-motion moon-camp-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
     {period === 'morning' && <>
@@ -128,11 +137,12 @@ export function DiaryHeroLayer({ period, weather, background }: { period: DiaryP
       <i className="diary-fog" />
       <i className="diary-snow diary-snow-one" />
       <i className="diary-snow diary-snow-two" />
+      {motionTheme === 'glass-park' && <GlassParkMotion period={period} />}
       {motionTheme === 'moon-camp' && <MoonCampMotion period={period} />}
       {motionTheme === 'dino-museum' && <DinoMuseumMotion period={period} />}
       {motionTheme === 'desert-oasis' && <DesertOasisMotion period={period} />}
       {motionTheme === 'jiangnan-market' && <JiangnanMarketMotion period={period} />}
-      {motionTheme && !['moon-camp', 'dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
+      {motionTheme && !['glass-park', 'moon-camp', 'dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
         <i className={`${motionTheme}-motion-primary`} />
         <i className={`${motionTheme}-motion-secondary`} />
         {motionTheme === 'shop' && <i className="shop-motion-accent" />}

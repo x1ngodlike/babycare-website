@@ -1,0 +1,74 @@
+/* 花窗乐园：彩色玻璃、暖白表面与玫瑰铅线。组件颜色交由共享层派生。 */
+html[data-visual-theme="glass-park"][data-theme="light"] {
+  --theme-page: #f7f2ee;
+  --theme-card: #fffbf7;
+  --theme-brand: #a84f64;
+  --theme-ink: #343441;
+  --theme-muted: #6d6873;
+  --theme-complement: #347e86;
+}
+
+html[data-visual-theme="glass-park"][data-theme="dark"] {
+  --theme-page: #191a24;
+  --theme-card: #252633;
+  --theme-brand: #df8295;
+  --theme-ink: #f3edf0;
+  --theme-muted: #b9b2bc;
+  --theme-complement: #75bdc4;
+}
+
+html[data-visual-theme="glass-park"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(52, 126, 134, .045), transparent 30%),
+    linear-gradient(155deg, #fffbf7, #f7f2ee 65%, #f2eaeb);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="glass-park"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(117, 189, 196, .06), transparent 30%),
+    linear-gradient(180deg, #252633, #191a24 65%, #15151f);
+  background-attachment: fixed;
+}
+
+html[data-visual-theme="glass-park"] .app::before,
+html[data-visual-theme="glass-park"] .app::after { background: rgba(168, 79, 100, .045); }
+
+.baby-hero.hero-glass-park .hero-status::before { background: rgba(31, 44, 53, .58); }
+.baby-hero.hero-glass-park.weather-overcast::before { background: rgba(38, 46, 59, .15); backdrop-filter: saturate(.85); -webkit-backdrop-filter: saturate(.85); }
+.baby-hero.hero-glass-park.weather-rain::before { background: linear-gradient(90deg, transparent 42%, rgba(49, 103, 112, .14)); }
+.baby-hero.hero-glass-park.weather-fog::before { background: linear-gradient(90deg, transparent 35%, rgba(228, 232, 225, .18)); backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px); }
+.baby-hero.hero-glass-park.weather-thunder::before { background: linear-gradient(90deg, transparent 38%, rgba(36, 39, 67, .25)); }
+
+.glass-park-motion { display: none; }
+.baby-hero.hero-glass-park .glass-park-motion {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.glass-park-motion-primary {
+  fill: #a5d4cd;
+  filter: blur(10px);
+  animation: glass-park-reflection 8s ease-in-out infinite alternate;
+}
+.glass-park-motion-secondary {
+  fill: #f5c779;
+  filter: blur(22px);
+  animation: glass-park-glow 9s ease-in-out infinite alternate;
+}
+.glass-park-motion-evening .glass-park-motion-primary { fill: #eeb0ac; }
+.glass-park-motion-night .glass-park-motion-primary { fill: #ada0dd; }
+.baby-hero.hero-glass-park:is(.weather-rain, .weather-snow, .weather-fog) .glass-park-motion { opacity: .35; }
+.baby-hero.hero-glass-park.weather-thunder .glass-park-motion { opacity: .18; }
+@keyframes glass-park-reflection { from { opacity: .025; transform: translateX(-2px); } to { opacity: .105; transform: translateX(2px); } }
+@keyframes glass-park-glow { from { opacity: .02; } to { opacity: .1; } }
+@media (prefers-reduced-motion: reduce) {
+  .glass-park-motion-primary,
+  .glass-park-motion-secondary { animation: none; opacity: .04; }
+}
