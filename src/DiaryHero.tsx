@@ -10,6 +10,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
 }
 
 const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
+  'hero-west-lake': 'west-lake',
   'hero-nutshell-village': 'nutshell-village',
   'hero-pixel-farm': 'pixel-farm',
   'hero-glass-park': 'glass-park',
@@ -143,6 +144,13 @@ function MoonCampMotion({ period }: { period: DiaryPeriod }) {
   </svg>;
 }
 
+function WestLakeNightMotion() {
+  return <svg className="west-lake-night-motion" viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+    <g className="west-lake-night-lamps"><circle cx="775" cy="313" r="8" /><circle cx="869" cy="289" r="4" /><circle cx="943" cy="274" r="3" /></g>
+    <path className="west-lake-night-water" d="M632 377h31 M640 382h19 M768 408h18" />
+  </svg>;
+}
+
 export function DiaryHeroLayer({ period, weather, background }: { period: DiaryPeriod; weather: WeatherSnapshot | null; background: string }) {
   const periodMark = { morning: '晨', daytime: '昼', evening: '暮', night: '夜' }[period];
   const motionTheme = MOTION_THEME_BY_BACKGROUND[background];
@@ -161,12 +169,13 @@ export function DiaryHeroLayer({ period, weather, background }: { period: DiaryP
       <i className="diary-snow diary-snow-one" />
       <i className="diary-snow diary-snow-two" />
       {motionTheme === 'pixel-farm' && <PixelFarmMotion period={period} />}
+      {motionTheme === 'west-lake' && period === 'night' && <WestLakeNightMotion />}
       {motionTheme === 'glass-park' && <GlassParkMotion period={period} />}
       {motionTheme === 'moon-camp' && <MoonCampMotion period={period} />}
       {motionTheme === 'dino-museum' && <DinoMuseumMotion period={period} />}
       {motionTheme === 'desert-oasis' && <DesertOasisMotion period={period} />}
       {motionTheme === 'jiangnan-market' && <JiangnanMarketMotion period={period} />}
-      {motionTheme && !['pixel-farm', 'glass-park', 'moon-camp', 'dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
+      {motionTheme && !(motionTheme === 'west-lake' && period === 'night') && !['pixel-farm', 'glass-park', 'moon-camp', 'dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
         <i className={`${motionTheme}-motion-primary`} />
         <i className={`${motionTheme}-motion-secondary`} />
         {motionTheme === 'shop' && <i className="shop-motion-accent" />}

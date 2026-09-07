@@ -1,0 +1,57 @@
+/* 西湖烟柳：瓷白、柳绿与藕荷紫；组件语义色统一派生。 */
+html[data-visual-theme="west-lake"][data-theme="light"] {
+  --theme-page: #f6f8f3;
+  --theme-card: #fffefa;
+  --theme-brand: #52765c;
+  --theme-ink: #2f3933;
+  --theme-muted: #6b776f;
+  --theme-complement: #a56885;
+}
+html[data-visual-theme="west-lake"][data-theme="dark"] {
+  --theme-page: #192827;
+  --theme-card: #243735;
+  --theme-brand: #a3c7a7;
+  --theme-ink: #eef3ea;
+  --theme-muted: #b2c1b7;
+  --theme-complement: #dda9c1;
+}
+html[data-visual-theme="west-lake"][data-theme="light"] body {
+  background: linear-gradient(155deg, #fffefa, #f6f8f3 64%, #eef3ec);
+  background-attachment: fixed;
+}
+html[data-visual-theme="west-lake"][data-theme="dark"] body {
+  background: linear-gradient(180deg, #243735, #192827 64%, #162322);
+  background-attachment: fixed;
+}
+html[data-visual-theme="west-lake"] .app::before,
+html[data-visual-theme="west-lake"] .app::after { background: rgba(82, 118, 92, .04); }
+.baby-hero.hero-west-lake .hero-status::before { background: rgba(37, 58, 48, .58); }
+.baby-hero.hero-west-lake.weather-overcast::before { background: rgba(49, 64, 55, .13); }
+.baby-hero.hero-west-lake.weather-rain::before { background: linear-gradient(90deg, transparent 38%, rgba(42, 77, 71, .14)); }
+.baby-hero.hero-west-lake.weather-fog::before { background: linear-gradient(90deg, transparent 32%, rgba(236, 242, 227, .19)); }
+.baby-hero.hero-west-lake.weather-thunder::before { background: linear-gradient(90deg, transparent 36%, rgba(28, 44, 43, .25)); }
+
+/* 非物件绑定的薄雾与水光，复用共享动态容器。 */
+.west-lake-motion { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.west-lake-motion-primary,
+.west-lake-motion-secondary { position: absolute; display: block; border-radius: 50%; background: #f2edcc; animation: west-lake-glimmer 8s ease-in-out infinite alternate; }
+.west-lake-motion-primary { left: 65%; top: 78%; width: 45px; height: 2px; }
+.west-lake-motion-secondary { left: 83%; top: 87%; width: 26px; height: 2px; animation-duration: 10s; animation-direction: alternate-reverse; }
+.west-lake-motion-morning .west-lake-motion-primary { top: 64%; width: 120px; height: 20px; filter: blur(9px); background: #e5eddf; }
+.west-lake-motion-daytime .west-lake-motion-secondary { top: 46%; width: 3px; height: 3px; box-shadow: 18px 24px 2px #f2edcc; }
+.west-lake-motion-evening i { background: #f4d4a5; }
+.west-lake-motion-night i { background: #e1e9ce; }
+.west-lake-night-motion { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.west-lake-night-lamps { fill: #ffe1a4; animation: west-lake-lamp 8s ease-in-out infinite alternate; }
+.west-lake-night-water { fill: none; stroke: #eee8c9; stroke-width: 1; animation: west-lake-lamp 10s ease-in-out infinite alternate-reverse; }
+.baby-hero.hero-west-lake:is(.weather-rain, .weather-snow, .weather-fog) .west-lake-night-motion { opacity: .35; }
+.baby-hero.hero-west-lake.weather-thunder .west-lake-night-motion { opacity: .18; }
+.baby-hero.hero-west-lake:is(.weather-rain, .weather-snow, .weather-fog) .west-lake-motion { opacity: .35; }
+.baby-hero.hero-west-lake.weather-thunder .west-lake-motion { opacity: .18; }
+@keyframes west-lake-glimmer { from { opacity: .06; transform: translateX(-2px); } to { opacity: .19; transform: translateX(2px); } }
+@keyframes west-lake-lamp { from { opacity: .04; } to { opacity: .16; } }
+@media (prefers-reduced-motion: reduce) {
+  .west-lake-motion i { animation: none; opacity: .1; }
+  .west-lake-night-lamps,
+  .west-lake-night-water { animation: none; opacity: .08; }
+}
