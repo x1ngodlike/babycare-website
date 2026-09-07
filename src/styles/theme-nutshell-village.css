@@ -1,0 +1,47 @@
+/* 果壳村庄：燕麦暖白、栗棕与苔绿，组件颜色由共享层派生。 */
+html[data-visual-theme="nutshell-village"][data-theme="light"] {
+  --theme-page: #f8f4ed;
+  --theme-card: #fffcf7;
+  --theme-brand: #996044;
+  --theme-ink: #3b3029;
+  --theme-muted: #796d60;
+  --theme-complement: #567c63;
+}
+html[data-visual-theme="nutshell-village"][data-theme="dark"] {
+  --theme-page: #241e1b;
+  --theme-card: #322923;
+  --theme-brand: #dca17b;
+  --theme-ink: #f3ede4;
+  --theme-muted: #c1b3a4;
+  --theme-complement: #91b59a;
+}
+html[data-visual-theme="nutshell-village"][data-theme="light"] body {
+  background: linear-gradient(155deg, #fffcf7, #f8f4ed 64%, #f3ede3);
+  background-attachment: fixed;
+}
+html[data-visual-theme="nutshell-village"][data-theme="dark"] body {
+  background: linear-gradient(180deg, #322923, #241e1b 64%, #201a17);
+  background-attachment: fixed;
+}
+html[data-visual-theme="nutshell-village"] .app::before,
+html[data-visual-theme="nutshell-village"] .app::after { background: rgba(153, 96, 68, .04); }
+.baby-hero.hero-nutshell-village .hero-status::before { background: rgba(52, 39, 29, .58); }
+.baby-hero.hero-nutshell-village.weather-overcast::before { background: rgba(49, 42, 33, .15); }
+.baby-hero.hero-nutshell-village.weather-fog::before { background: linear-gradient(90deg, transparent 32%, rgba(244, 235, 215, .19)); }
+.baby-hero.hero-nutshell-village.weather-thunder::before { background: linear-gradient(90deg, transparent 36%, rgba(32, 29, 28, .25)); }
+
+/* 仅作环境光尘，不绑定底图物件，适应不同视口裁切。 */
+.nutshell-village-motion { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.nutshell-village-motion-primary,
+.nutshell-village-motion-secondary { position: absolute; display: block; border-radius: 50%; background: #ffe3a1; animation: nutshell-village-glow 8s ease-in-out infinite alternate; }
+.nutshell-village-motion-primary { left: 66%; top: 38%; width: 3px; height: 3px; box-shadow: 38px 28px 3px #f5dfaa; }
+.nutshell-village-motion-secondary { left: 83%; top: 60%; width: 2px; height: 2px; animation-duration: 10s; animation-direction: alternate-reverse; }
+.nutshell-village-motion-morning i { background: #f2eed4; }
+.nutshell-village-motion-evening i { width: 28px; height: 2px; top: 84%; box-shadow: none; }
+.nutshell-village-motion-night i { box-shadow: 0 0 6px #f7d586; }
+.baby-hero.hero-nutshell-village:is(.weather-rain, .weather-snow, .weather-fog) .nutshell-village-motion { opacity: .35; }
+.baby-hero.hero-nutshell-village.weather-thunder .nutshell-village-motion { opacity: .18; }
+@keyframes nutshell-village-glow { from { opacity: .06; transform: translateY(2px); } to { opacity: .2; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) {
+  .nutshell-village-motion i { animation: none; opacity: .1; }
+}

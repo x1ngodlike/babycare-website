@@ -10,6 +10,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
 }
 
 const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
+  'hero-nutshell-village': 'nutshell-village',
   'hero-pixel-farm': 'pixel-farm',
   'hero-glass-park': 'glass-park',
   'hero-moon-camp': 'moon-camp',

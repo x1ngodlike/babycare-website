@@ -1,7 +1,7 @@
 import type { CareItem, CareRecord } from '../types';
 import type { DiaryPeriod } from '../../shared/weather';
 
-export type WeatherHeroThemeId = 'hero-pixel-farm' | 'hero-glass-park' | 'hero-moon-camp' | 'hero-jiangnan-market' | 'hero-desert-oasis' | 'hero-dino-museum' | 'hero-midsummer-dream' | 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
+export type WeatherHeroThemeId = 'hero-nutshell-village' | 'hero-pixel-farm' | 'hero-glass-park' | 'hero-moon-camp' | 'hero-jiangnan-market' | 'hero-desert-oasis' | 'hero-dino-museum' | 'hero-midsummer-dream' | 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -81,6 +81,7 @@ function createWeatherHeroAssets(folder: string, overrides?: {
 }
 
 export const WEATHER_HERO_ASSETS: Record<WeatherHeroThemeId, WeatherHeroAssetSet> = {
+  'hero-nutshell-village': createWeatherHeroAssets('nutshell-village'),
   'hero-pixel-farm': createWeatherHeroAssets('pixel-farm', {
     stickers: { care: '/hero/weather/pixel-farm/icons/tasks/care.webp?v=1ad72280' },
     tasks: { care: '/hero/weather/pixel-farm/icons/quick/care.webp?v=1ad72280' },
@@ -150,6 +151,7 @@ export function getWeatherHeroAssets(value: string) {
 }
 
 const WEATHER_BACKGROUND_SOURCES: Record<string, { folder: string; variant: string }> = {
+  'hero-nutshell-village': { folder: 'nutshell-village', variant: 'default' },
   'hero-pixel-farm': { folder: 'pixel-farm', variant: 'default' },
   'hero-glass-park': { folder: 'glass-park', variant: 'default' },
   'hero-diary': { folder: 'fruit-cake', variant: 'default' },
@@ -235,6 +237,7 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-nutshell-village', label: '果壳村庄', thumb: WEATHER_HERO_ASSETS['hero-nutshell-village'].thumb, group: 'weather' },
   { value: 'hero-pixel-farm', label: '像素农庄', thumb: WEATHER_HERO_ASSETS['hero-pixel-farm'].thumb, group: 'weather' },
   { value: 'hero-glass-park', label: '花窗乐园', thumb: WEATHER_HERO_ASSETS['hero-glass-park'].thumb, group: 'weather' },
   { value: 'hero-moon-camp', label: '月球营地', thumb: WEATHER_HERO_ASSETS['hero-moon-camp'].thumb, group: 'weather' },
@@ -271,7 +274,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（20）' },
+  { key: 'weather', label: '天气画境（21）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -292,6 +295,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/classic/default/morning.webp' },
+  { value: 'hero-nutshell-village', label: '果壳村庄', thumb: WEATHER_HERO_ASSETS['hero-nutshell-village'].thumb },
   { value: 'hero-pixel-farm', label: '像素农庄', thumb: WEATHER_HERO_ASSETS['hero-pixel-farm'].thumb },
   { value: 'hero-glass-park', label: '花窗乐园', thumb: WEATHER_HERO_ASSETS['hero-glass-park'].thumb },
   { value: 'hero-moon-camp', label: '月球营地', thumb: WEATHER_HERO_ASSETS['hero-moon-camp'].thumb },
@@ -313,6 +317,9 @@ export const ICON_PACKS: IconPackOption[] = [
 ];
 
 export const THEMES: ReadonlyArray<ThemePreset> = [
+  { id: 'theme-nutshell-village', label: '果壳村庄', thumb: WEATHER_HERO_ASSETS['hero-nutshell-village'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-nutshell-village', iconPack: 'hero-nutshell-village', weatherEffects: true },
+    recommendedBgs: ['hero-nutshell-village'] },
   { id: 'theme-pixel-farm', label: '像素农庄', thumb: WEATHER_HERO_ASSETS['hero-pixel-farm'].thumb,
     defaults: { layout: 'diary', bg: 'hero-pixel-farm', iconPack: 'hero-pixel-farm', weatherEffects: true },
     recommendedBgs: ['hero-pixel-farm'] },
@@ -388,6 +395,7 @@ export function getVisualThemeForPreset(themeId: string): string | null {
 
 // 旧版 heroBg → 新版 themeId 迁移映射
 const LEGACY_BG_TO_THEME: Record<string, string> = {
+  'hero-nutshell-village': 'theme-nutshell-village',
   'hero-pixel-farm': 'theme-pixel-farm',
   'hero-glass-park': 'theme-glass-park',
   'hero-moon-camp': 'theme-moon-camp',
