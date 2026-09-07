@@ -10,11 +10,18 @@ import {
 } from './weatherThemes';
 
 describe('theme hero assets', () => {
-  it('registers Glass Park first with a complete independent package', () => {
-    expect(THEMES[0].id).toBe('theme-glass-park');
-    expect(THEMES[0].recommendedBgs).toEqual(['hero-glass-park']);
-    expect(HERO_BACKGROUNDS[0].value).toBe('hero-glass-park');
-    expect(ICON_PACKS[1].value).toBe('hero-glass-park');
+  it('registers the latest complete theme first across selectors', () => {
+    expect(THEMES[0].id).toBe('theme-pixel-farm');
+    expect(THEMES[0].recommendedBgs).toEqual(['hero-pixel-farm']);
+    expect(HERO_BACKGROUNDS[0].value).toBe(THEMES[0].defaults.bg);
+    expect(ICON_PACKS[1].value).toBe(THEMES[0].defaults.iconPack);
+    expect(getVisualThemeForPreset(THEMES[0].id)).toBe('pixel-farm');
+    const urls = getThemeHeroAssetUrls(resolveThemeConfig(THEMES[0].id));
+    expect(urls).toHaveLength(20);
+    expect(new Set(urls).size).toBe(20);
+    expect(urls.every(url => url.startsWith('/hero/weather/pixel-farm/'))).toBe(true);
+  });
+  it('preserves the complete independent Glass Park package', () => {
     expect(getVisualThemeForPreset('theme-glass-park')).toBe('glass-park');
     const urls = getThemeHeroAssetUrls(resolveThemeConfig('theme-glass-park'));
     expect(urls).toHaveLength(20);

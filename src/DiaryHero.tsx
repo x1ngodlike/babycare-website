@@ -10,6 +10,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
 }
 
 const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
+  'hero-pixel-farm': 'pixel-farm',
   'hero-glass-park': 'glass-park',
   'hero-moon-camp': 'moon-camp',
   'hero-jiangnan-market': 'jiangnan-market',
@@ -91,6 +92,27 @@ function JiangnanMarketMotion({ period }: { period: DiaryPeriod }) {
   </svg>;
 }
 
+function PixelFarmMotion({ period }: { period: DiaryPeriod }) {
+  return <svg className={`pixel-farm-motion pixel-farm-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice" shapeRendering="crispEdges">
+    {period === 'morning' && <>
+      <rect className="pixel-farm-motion-primary" x="705" y="348" width="4" height="4" />
+      <rect className="pixel-farm-motion-secondary" x="854" y="369" width="4" height="4" />
+    </>}
+    {period === 'daytime' && <>
+      <rect className="pixel-farm-motion-primary" x="821" y="198" width="3" height="3" />
+      <rect className="pixel-farm-motion-secondary" x="847" y="214" width="3" height="3" />
+    </>}
+    {period === 'evening' && <>
+      <path className="pixel-farm-motion-primary" d="M560 394 h37 v3 h-37z M575 402 h24 v3 h-24z" />
+      <path className="pixel-farm-motion-secondary" d="M589 378 h26 v3 h-26z M601 387 h17 v3 h-17z" />
+    </>}
+    {period === 'night' && <>
+      <path className="pixel-farm-motion-primary" d="M690 164 h19 v16 h-19z M716 164 h16 v16 h-16z M690 186 h19 v14 h-19z M716 186 h16 v14 h-16z M690 207 h19 v15 h-19z M716 207 h16 v15 h-16z" />
+      <rect className="pixel-farm-motion-secondary" x="581" y="295" width="3" height="3" />
+    </>}
+  </svg>;
+}
+
 function GlassParkMotion({ period }: { period: DiaryPeriod }) {
   // 环境反光而非活动部件；与背景使用相同 cover 坐标，避免跨端漂移。
   return <svg className={`glass-park-motion glass-park-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
@@ -137,12 +159,13 @@ export function DiaryHeroLayer({ period, weather, background }: { period: DiaryP
       <i className="diary-fog" />
       <i className="diary-snow diary-snow-one" />
       <i className="diary-snow diary-snow-two" />
+      {motionTheme === 'pixel-farm' && <PixelFarmMotion period={period} />}
       {motionTheme === 'glass-park' && <GlassParkMotion period={period} />}
       {motionTheme === 'moon-camp' && <MoonCampMotion period={period} />}
       {motionTheme === 'dino-museum' && <DinoMuseumMotion period={period} />}
       {motionTheme === 'desert-oasis' && <DesertOasisMotion period={period} />}
       {motionTheme === 'jiangnan-market' && <JiangnanMarketMotion period={period} />}
-      {motionTheme && !['glass-park', 'moon-camp', 'dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
+      {motionTheme && !['pixel-farm', 'glass-park', 'moon-camp', 'dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
         <i className={`${motionTheme}-motion-primary`} />
         <i className={`${motionTheme}-motion-secondary`} />
         {motionTheme === 'shop' && <i className="shop-motion-accent" />}

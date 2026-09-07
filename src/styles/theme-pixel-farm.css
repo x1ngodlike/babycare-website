@@ -1,0 +1,64 @@
+/* 像素农庄：麦田暖白、农田绿与陶土橙。 */
+html[data-visual-theme="pixel-farm"][data-theme="light"] {
+  --theme-page: #f7f4ea;
+  --theme-card: #fffdf6;
+  --theme-brand: #54764a;
+  --theme-ink: #333b30;
+  --theme-muted: #6e7365;
+  --theme-complement: #b66b3f;
+}
+html[data-visual-theme="pixel-farm"][data-theme="dark"] {
+  --theme-page: #19232a;
+  --theme-card: #25323a;
+  --theme-brand: #a4c486;
+  --theme-ink: #f1f1e5;
+  --theme-muted: #b6c0b4;
+  --theme-complement: #e6a16c;
+}
+html[data-visual-theme="pixel-farm"][data-theme="light"] body {
+  background: linear-gradient(155deg, #fffdf6, #f7f4ea 64%, #f0edde);
+  background-attachment: fixed;
+}
+html[data-visual-theme="pixel-farm"][data-theme="dark"] body {
+  background: linear-gradient(180deg, #25323a, #19232a 64%, #151e25);
+  background-attachment: fixed;
+}
+html[data-visual-theme="pixel-farm"] .app::before,
+html[data-visual-theme="pixel-farm"] .app::after { background: rgba(84, 118, 74, .045); }
+
+/* 跟随素材 URL，混搭背景或图标时也保持像素边缘，头像不受影响。 */
+img[src*="/hero/weather/pixel-farm/"],
+.baby-hero.hero-pixel-farm::after { image-rendering: pixelated; }
+.baby-hero.hero-pixel-farm .hero-status::before { background: rgba(34, 46, 35, .58); }
+.baby-hero.hero-pixel-farm.weather-overcast::before { background: rgba(40, 50, 40, .15); }
+.baby-hero.hero-pixel-farm.weather-rain::before { background: linear-gradient(90deg, transparent 40%, rgba(38, 65, 70, .14)); }
+.baby-hero.hero-pixel-farm.weather-fog::before { background: linear-gradient(90deg, transparent 32%, rgba(236, 236, 216, .19)); }
+.baby-hero.hero-pixel-farm.weather-thunder::before { background: linear-gradient(90deg, transparent 36%, rgba(22, 33, 49, .25)); }
+
+/* 与背景共用 cover 坐标，阶梯式光照保留像素感。 */
+.pixel-farm-motion { display: none; }
+.baby-hero.hero-pixel-farm .pixel-farm-motion {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.pixel-farm-motion-primary,
+.pixel-farm-motion-secondary { fill: #f8df94; opacity: .12; }
+.pixel-farm-motion-primary { animation: pixel-farm-light 7s steps(4, end) infinite alternate; }
+.pixel-farm-motion-secondary { animation: pixel-farm-light 9s steps(4, end) infinite alternate-reverse; }
+.pixel-farm-motion-morning rect { fill: #e7efd0; }
+.pixel-farm-motion-daytime rect { animation-name: pixel-farm-dust; }
+.pixel-farm-motion-night .pixel-farm-motion-primary { fill: #ffd580; }
+.baby-hero.hero-pixel-farm:is(.weather-rain, .weather-snow, .weather-fog) .pixel-farm-motion { opacity: .35; }
+.baby-hero.hero-pixel-farm.weather-thunder .pixel-farm-motion { opacity: .18; }
+@keyframes pixel-farm-light { from { opacity: .04; } to { opacity: .16; } }
+@keyframes pixel-farm-dust { from { opacity: .04; transform: translateY(2px); } to { opacity: .16; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) {
+  .pixel-farm-motion-primary,
+  .pixel-farm-motion-secondary { animation: none; opacity: .08; }
+}
