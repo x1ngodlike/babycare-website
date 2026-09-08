@@ -21,15 +21,15 @@
 .history-timeline .timeline-item {
   position: relative;
   width: 100%;
-  min-height: 72px;
+  min-height: 80px;
   margin-left: 0;
-  padding: 10px 0;
+  padding: 12px 0;
   border: 0;
   border-bottom: 1px solid var(--line);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  grid-template-columns: 52px 48px minmax(0, 1fr) 44px;
+  grid-template-columns: 48px 48px minmax(0, 1fr) 44px;
   align-items: start;
   gap: 10px;
 }
@@ -55,8 +55,9 @@
   background: var(--surface-page);
   color: var(--brand-deep);
   font-size: 13px;
-  line-height: 1.35;
-  font-weight: 800;
+  line-height: 1.5;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   text-align: left;
   white-space: nowrap;
   display: flex;
@@ -80,8 +81,8 @@
 .history-timeline .time-col i {
   position: absolute;
   top: 25px;
-  bottom: -21px;
-  left: 25px;
+  bottom: -25px;
+  left: 23px;
   width: 1px;
   height: auto;
   background: var(--brand-faint);
@@ -101,39 +102,43 @@
 }
 .today-layout .today-timeline .record-copy small,
 .history-timeline .record-copy small {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.35;
+  display: block;
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 500;
 }
 .today-layout .today-timeline .record-copy strong,
 .history-timeline .record-copy strong {
   display: block;
-  margin-top: 2px;
+  margin-top: 0;
   font-size: 16px;
-  line-height: 1.4;
-  font-weight: 800;
+  line-height: 1.5;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 .record-note-preview {
   position: relative;
   max-width: 100%;
-  margin-top: 3px;
-  color: var(--text-muted);
+  margin-top: 6px;
+  color: var(--text-secondary);
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 24px;
   overflow-wrap: anywhere;
 }
 .record-note-preview button {
-  display: inline;
-  min-height: 0;
+  display: inline-block;
+  min-height: 24px;
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--brand-deep);
   font: inherit;
   font-size: 13px;
-  line-height: 1.45;
-  font-weight: 500;
+  line-height: 24px;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -169,9 +174,9 @@
   .push-channel-head .app-notification-settings-button { min-width: 76px; padding-inline: 10px; font-size: 12px; }
   .today-layout .today-timeline .timeline-item,
   .history-timeline .timeline-item {
-    grid-template-columns: 46px 48px minmax(0, 1fr) 36px;
-    gap: 8px;
+    grid-template-columns: 44px 48px minmax(0, 1fr) 44px;
+    gap: 6px;
   }
   .today-layout .today-timeline .time-col i,
-  .history-timeline .time-col i { left: 22px; }
+  .history-timeline .time-col i { left: 21px; }
 }
