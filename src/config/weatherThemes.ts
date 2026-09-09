@@ -1,7 +1,7 @@
 import type { CareItem, CareRecord } from '../types';
 import type { DiaryPeriod } from '../../shared/weather';
 
-export type WeatherHeroThemeId = 'hero-west-lake' | 'hero-nutshell-village' | 'hero-pixel-farm' | 'hero-glass-park' | 'hero-moon-camp' | 'hero-jiangnan-market' | 'hero-desert-oasis' | 'hero-dino-museum' | 'hero-midsummer-dream' | 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
+export type WeatherHeroThemeId = 'hero-yarn-corner' | 'hero-west-lake' | 'hero-nutshell-village' | 'hero-pixel-farm' | 'hero-glass-park' | 'hero-moon-camp' | 'hero-jiangnan-market' | 'hero-desert-oasis' | 'hero-dino-museum' | 'hero-midsummer-dream' | 'hero-bamboo-court' | 'hero-block-factory' | 'hero-immortal-gate' | 'hero-travel' | 'hero-orbit' | 'hero-shop' | 'hero-arcane' | 'hero-ocean' | 'hero-forest-press' | 'hero-fruit-cake';
 export type WeatherStickerKind = 'feeding' | 'bowel' | 'care' | 'note';
 export type WeatherTaskIconKind = 'medicine' | 'massage' | 'bath' | 'care' | 'vaccine' | 'growth';
 export type WeatherNavIconKind = 'today' | 'history' | 'chat' | 'trends' | 'archive';
@@ -81,6 +81,7 @@ function createWeatherHeroAssets(folder: string, overrides?: {
 }
 
 export const WEATHER_HERO_ASSETS: Record<WeatherHeroThemeId, WeatherHeroAssetSet> = {
+  'hero-yarn-corner': createWeatherHeroAssets('yarn-corner'),
   'hero-west-lake': createWeatherHeroAssets('west-lake'),
   'hero-nutshell-village': createWeatherHeroAssets('nutshell-village'),
   'hero-pixel-farm': createWeatherHeroAssets('pixel-farm', {
@@ -152,6 +153,7 @@ export function getWeatherHeroAssets(value: string) {
 }
 
 const WEATHER_BACKGROUND_SOURCES: Record<string, { folder: string; variant: string }> = {
+  'hero-yarn-corner': { folder: 'yarn-corner', variant: 'default' },
   'hero-west-lake': { folder: 'west-lake', variant: 'default' },
   'hero-nutshell-village': { folder: 'nutshell-village', variant: 'default' },
   'hero-pixel-farm': { folder: 'pixel-farm', variant: 'default' },
@@ -239,6 +241,7 @@ export function getWeatherRecordIcon(value: string, record: CareRecord, careItem
 // --------------- 主题系统 ---------------
 
 export const HERO_BACKGROUNDS: HeroBgOption[] = [
+  { value: 'hero-yarn-corner', label: '绒线街角', thumb: WEATHER_HERO_ASSETS['hero-yarn-corner'].thumb, group: 'weather' },
   { value: 'hero-west-lake', label: '西湖烟柳', thumb: WEATHER_HERO_ASSETS['hero-west-lake'].thumb, group: 'weather' },
   { value: 'hero-nutshell-village', label: '果壳村庄', thumb: WEATHER_HERO_ASSETS['hero-nutshell-village'].thumb, group: 'weather' },
   { value: 'hero-pixel-farm', label: '像素农庄', thumb: WEATHER_HERO_ASSETS['hero-pixel-farm'].thumb, group: 'weather' },
@@ -277,7 +280,7 @@ export const HERO_BACKGROUNDS: HeroBgOption[] = [
 ];
 
 export const HERO_BG_GROUPS: ReadonlyArray<{ key: ThemeBgGroup; label: string }> = [
-  { key: 'weather', label: '天气画境（22）' },
+  { key: 'weather', label: '天气画境（23）' },
   { key: 'living', label: '动态系列（1）' },
   { key: 'classic', label: '经典系列（6）' },
   { key: 'dream', label: '甜梦系列（3）' },
@@ -298,6 +301,7 @@ export const DEFAULT_BG_FOR_LAYOUT: Record<HeroLayout, string> = {
 
 export const ICON_PACKS: IconPackOption[] = [
   { value: 'default', label: '默认图标', thumb: '/hero/classic/default/morning.webp' },
+  { value: 'hero-yarn-corner', label: '绒线街角', thumb: WEATHER_HERO_ASSETS['hero-yarn-corner'].thumb },
   { value: 'hero-west-lake', label: '西湖烟柳', thumb: WEATHER_HERO_ASSETS['hero-west-lake'].thumb },
   { value: 'hero-nutshell-village', label: '果壳村庄', thumb: WEATHER_HERO_ASSETS['hero-nutshell-village'].thumb },
   { value: 'hero-pixel-farm', label: '像素农庄', thumb: WEATHER_HERO_ASSETS['hero-pixel-farm'].thumb },
@@ -321,6 +325,9 @@ export const ICON_PACKS: IconPackOption[] = [
 ];
 
 export const THEMES: ReadonlyArray<ThemePreset> = [
+  { id: 'theme-yarn-corner', label: '绒线街角', thumb: WEATHER_HERO_ASSETS['hero-yarn-corner'].thumb,
+    defaults: { layout: 'diary', bg: 'hero-yarn-corner', iconPack: 'hero-yarn-corner', weatherEffects: true },
+    recommendedBgs: ['hero-yarn-corner'] },
   { id: 'theme-west-lake', label: '西湖烟柳', thumb: WEATHER_HERO_ASSETS['hero-west-lake'].thumb,
     defaults: { layout: 'diary', bg: 'hero-west-lake', iconPack: 'hero-west-lake', weatherEffects: true },
     recommendedBgs: ['hero-west-lake'] },
@@ -402,6 +409,7 @@ export function getVisualThemeForPreset(themeId: string): string | null {
 
 // 旧版 heroBg → 新版 themeId 迁移映射
 const LEGACY_BG_TO_THEME: Record<string, string> = {
+  'hero-yarn-corner': 'theme-yarn-corner',
   'hero-west-lake': 'theme-west-lake',
   'hero-nutshell-village': 'theme-nutshell-village',
   'hero-pixel-farm': 'theme-pixel-farm',

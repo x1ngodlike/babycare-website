@@ -120,6 +120,7 @@
 | 经典主题（默认） | light `#657e51` · dark `#86a370` | light `#ee852f` · dark `#e09958` |
 | 月球营地 | light `#c95d35` · dark `#f08a58` | light `#3f7d83` · dark `#79bbc0` |
 | 花窗乐园 | light `#a84f64` · dark `#df8295` | light `#347e86` · dark `#75bdc4` |
+| 绒线街角 | light `#a14f61` · dark `#dea1ae` | light `#527b9b` · dark `#9abcd5` |
 | 西湖烟柳 | light `#52765c` · dark `#a3c7a7` | light `#a56885` · dark `#dda9c1` |
 | 果壳村庄 | light `#996044` · dark `#dca17b` | light `#567c63` · dark `#91b59a` |
 | 像素农庄 | light `#54764a` · dark `#a4c486` | light `#b66b3f` · dark `#e6a16c` |

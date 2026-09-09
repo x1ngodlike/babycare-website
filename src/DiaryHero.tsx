@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { DiaryPeriod, WeatherSnapshot } from '../shared/weather';
 
 export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null }) {
@@ -10,6 +11,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
 }
 
 const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
+  'hero-yarn-corner': 'yarn-corner',
   'hero-west-lake': 'west-lake',
   'hero-nutshell-village': 'nutshell-village',
   'hero-pixel-farm': 'pixel-farm',
@@ -144,6 +146,19 @@ function MoonCampMotion({ period }: { period: DiaryPeriod }) {
   </svg>;
 }
 
+function YarnCornerWindowWeather({ period, weather }: { period: DiaryPeriod; weather: WeatherSnapshot | null }) {
+  const clipId = useId();
+  const kind = weather?.kind;
+  const overlay = kind === 'rain' || kind === 'thunder' ? 'rain-glass' : kind === 'snow' ? 'snow-depth' : kind === 'fog' ? 'fog-veil' : kind === 'cloudy' || kind === 'overcast' ? 'cloud-wisp' : null;
+  if (!overlay) return null;
+  return <svg className="yarn-corner-window-weather" viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+    <defs><clipPath id={clipId}>
+      {period === 'daytime' ? <path d="M675 0h270v88H675z M961 0h95v115h-95z" /> : <path d="M843 0h91v14h-91z M947 0h92v14h-92z M843 24h91v70h-91z M947 24h92v73h-92z" />}
+    </clipPath></defs>
+    <g clipPath={`url(#${clipId})`}><image href={`/hero/weather/shared/overlays/${overlay}.webp`} x="640" y="-8" width="440" height="180" preserveAspectRatio="none" /></g>
+  </svg>;
+}
+
 function WestLakeNightMotion() {
   return <svg className="west-lake-night-motion" viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
     <g className="west-lake-night-lamps"><circle cx="775" cy="313" r="8" /><circle cx="869" cy="289" r="4" /><circle cx="943" cy="274" r="3" /></g>
@@ -169,6 +184,7 @@ export function DiaryHeroLayer({ period, weather, background }: { period: DiaryP
       <i className="diary-snow diary-snow-one" />
       <i className="diary-snow diary-snow-two" />
       {motionTheme === 'pixel-farm' && <PixelFarmMotion period={period} />}
+      {motionTheme === 'yarn-corner' && (period === 'daytime' || period === 'night') && <YarnCornerWindowWeather period={period} weather={weather} />}
       {motionTheme === 'west-lake' && period === 'night' && <WestLakeNightMotion />}
       {motionTheme === 'glass-park' && <GlassParkMotion period={period} />}
       {motionTheme === 'moon-camp' && <MoonCampMotion period={period} />}

@@ -1,0 +1,49 @@
+/* 绒线街角：燕麦白、莓果红与牛仔蓝。 */
+html[data-visual-theme="yarn-corner"][data-theme="light"] {
+  --theme-page: #f8f5ef;
+  --theme-card: #fffcf7;
+  --theme-brand: #a14f61;
+  --theme-ink: #39322f;
+  --theme-muted: #796e65;
+  --theme-complement: #527b9b;
+}
+html[data-visual-theme="yarn-corner"][data-theme="dark"] {
+  --theme-page: #292321;
+  --theme-card: #372f2b;
+  --theme-brand: #dea1ae;
+  --theme-ink: #f4ede5;
+  --theme-muted: #c4b5a8;
+  --theme-complement: #9abcd5;
+}
+html[data-visual-theme="yarn-corner"][data-theme="light"] body {
+  background: linear-gradient(155deg, #fffcf7, #f8f5ef 64%, #f3eee7);
+  background-attachment: fixed;
+}
+html[data-visual-theme="yarn-corner"][data-theme="dark"] body {
+  background: linear-gradient(180deg, #372f2b, #292321 64%, #241f1d);
+  background-attachment: fixed;
+}
+html[data-visual-theme="yarn-corner"] .app::before,
+html[data-visual-theme="yarn-corner"] .app::after { background: rgba(161, 79, 97, .04); }
+.baby-hero.hero-yarn-corner .hero-status::before { background: rgba(58, 43, 38, .58); }
+.baby-hero.hero-yarn-corner.weather-overcast::before { background: rgba(60, 53, 47, .13); }
+.baby-hero.hero-yarn-corner.weather-fog::before { background: linear-gradient(90deg, transparent 35%, rgba(243, 234, 219, .13)); }
+.baby-hero.hero-yarn-corner.weather-thunder::before { background: linear-gradient(90deg, transparent 36%, rgba(43, 39, 36, .2)); }
+.yarn-corner-motion { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.yarn-corner-motion-primary,
+.yarn-corner-motion-secondary { position: absolute; display: block; border-radius: 50%; background: #f5dfb6; animation: yarn-corner-glow 8s ease-in-out infinite alternate; }
+.yarn-corner-motion-primary { left: 69%; top: 40%; width: 3px; height: 3px; }
+.yarn-corner-motion-secondary { left: 83%; top: 58%; width: 2px; height: 2px; animation-duration: 10s; animation-direction: alternate-reverse; }
+.yarn-corner-motion-evening i { width: 30px; height: 20px; filter: blur(10px); }
+.yarn-corner-motion-night .yarn-corner-motion-primary { width: 35px; height: 25px; filter: blur(12px); }
+.baby-hero.hero-yarn-corner:is(.weather-rain, .weather-snow, .weather-fog, .weather-thunder) .yarn-corner-motion { opacity: .3; }
+/* 室内粒子交给同裁切坐标的窗区层，不穿过家具。 */
+.baby-hero.hero-yarn-corner :is(.diary-daytime, .diary-night) :is(.diary-rain, .diary-snow, .diary-fog, .diary-cloud) { display: none; }
+.yarn-corner-window-weather { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+.yarn-corner-window-weather image { opacity: .3; animation: yarn-corner-window 8s ease-in-out infinite alternate; }
+@keyframes yarn-corner-glow { from { opacity: .06; transform: translateY(2px); } to { opacity: .19; transform: translateY(-2px); } }
+@keyframes yarn-corner-window { from { opacity: .18; transform: translateY(-2px); } to { opacity: .32; transform: translateY(2px); } }
+@media (prefers-reduced-motion: reduce) {
+  .yarn-corner-motion i,
+  .yarn-corner-window-weather image { animation: none; }
+}

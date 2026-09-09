@@ -16,6 +16,7 @@ import './ui.css';
 import './styles/components.css';
 import './styles/theme-system.css';
 import './styles/theme-basic-shapes.css';
+import './styles/theme-yarn-corner.css';
 import './styles/theme-west-lake.css';
 import './styles/theme-nutshell-village.css';
 import './styles/theme-pixel-farm.css';
