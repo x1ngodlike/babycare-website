@@ -123,3 +123,6 @@ html[data-theme="dark"] .gc-dot.latest { fill: var(--chart-complement); }
   html:not([data-theme="light"]) .gc-band { fill: var(--brand); fill-opacity: 0.12; }
   html:not([data-theme="light"]) .gc-dot.latest { fill: var(--chart-complement); }
 }
+
+/* 总量变化只作为现有指标的辅助行，不新增卡片。 */
+.trend-summary .trend-milk-change { display: block; margin-top: 3px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
