@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Inbox, X } from 'lucide-react';
+import { HelpCircle, Inbox, X } from 'lucide-react';
 
 export type ConfirmOptions = {
   title: string;
@@ -254,4 +254,42 @@ export function Modal({ title, kicker, headerExtra, onClose, children, className
     </div>,
     document.body,
   );
+}
+
+/** 轻量帮助气泡：点击问号图标弹出说明，再次点击或点击外部关闭。Portal 渲染避免被父容器裁剪。 */
+export function InfoPopover({ content, placement = 'bottom-end', className = '' }: { content: React.ReactNode; placement?: 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end'; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const toggle = () => {
+    if (open) { setOpen(false); setPos(null); return; }
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      const isTop = placement.startsWith('top');
+      const isEnd = placement.endsWith('end');
+      setPos({
+        top: isTop ? rect.top - 6 : rect.bottom + 6,
+        ...(isEnd ? { right: window.innerWidth - rect.right } : { left: rect.left }),
+      });
+    }
+    setOpen(true);
+  };
+  useEffect(() => {
+    if (!open) return;
+    const pointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !triggerRef.current?.contains(event.target) && !popoverRef.current?.contains(event.target)) setOpen(false);
+    };
+    const key = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); };
+    const scroll = () => setOpen(false);
+    window.addEventListener('resize', scroll);
+    window.addEventListener('scroll', scroll, true);
+    document.addEventListener('pointerdown', pointer);
+    document.addEventListener('keydown', key);
+    return () => { window.removeEventListener('resize', scroll); window.removeEventListener('scroll', scroll, true); document.removeEventListener('pointerdown', pointer); document.removeEventListener('keydown', key); };
+  }, [open]);
+  return <>
+    <button ref={triggerRef} type="button" className={`info-help-btn ${className}`} aria-label="查看说明" aria-expanded={open} aria-haspopup="dialog" onClick={toggle}><HelpCircle aria-hidden="true" size={13} strokeWidth={2} /></button>
+    {open && pos && createPortal(<div ref={popoverRef} role="dialog" className="info-popover" style={{ position: 'fixed', top: pos.top, ...(pos.right != null ? { right: pos.right } : { left: pos.left }) }}>{content}</div>, document.body)}
+  </>;
 }

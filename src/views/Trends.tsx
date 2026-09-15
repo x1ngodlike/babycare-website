@@ -3,7 +3,7 @@ import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { addDays, isoDay, startOfWeek } from '../date';
 import { formatMilkVolume } from '../format';
-import { SegmentedControl } from '../ui';
+import { InfoPopover, SegmentedControl } from '../ui';
 import FeedingRhythmChart from './FeedingRhythmChart';
 import type { CareItem, CareRecord } from '../types';
 import { compareSevenDays, feedingStats, sevenDayWindow } from '../trendStats';
@@ -139,7 +139,32 @@ export default function TrendsView({ records, careItems }: { records: CareRecord
     <SegmentedControl<TrendMode> className="trend-tabs" label="趋势统计范围" value={mode} options={[{ value: 'seven', label: '七日' }, { value: 'month', label: '月数据' }, { value: 'total', label: '总数据' }]} onChange={setMode} />
     {mode === 'seven' && <div className="trend-period-nav"><button type="button" onClick={() => shiftDay(-1)} aria-label="往前一天"><ChevronLeft size={18} strokeWidth={2.2} /></button><strong>{sevenRangeLabel}</strong><button type="button" onClick={() => shiftDay(1)} disabled={!canShiftForward} aria-label="往后一天"><ChevronRight size={18} strokeWidth={2.2} /></button></div>}
     {mode === 'month' && <div className="trend-period-nav"><button onClick={() => shiftMonth(-1)} aria-label="上一个月"><ChevronLeft size={18} strokeWidth={2.2} /></button><strong>{selectedMonth.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</strong><button onClick={() => shiftMonth(1)} disabled={selectedMonth >= todayMonth} aria-label="下一个月"><ChevronRight size={18} strokeWidth={2.2} /></button></div>}
-    <section className="trend-summary"><div title={`${totalMilk} mL`}><span>{totalLabel}</span><strong>{totalMilkDisplay.amount}</strong><small>{totalMilkDisplay.unit}</small>{comparison && <small className="trend-milk-change" title={comparisonDescription} aria-label={`${milkChange}。${comparisonDescription}`}>{milkChange}</small>}</div><div title={`日均按范围内有喂奶记录的 ${activeDays} 天计算${averageExcludesToday ? '，排除今天' : ''}。无记录不按零计算；有记录不代表当天记录完整。`}><span>记录日均奶量</span><strong>{activeDays ? dailyMilkDisplay.amount : '—'}</strong><small>{activeDays ? dailyMilkDisplay.unit : ''}</small>{comparison && <small className="trend-milk-change" title={averageComparisonDescription} aria-label={`${dailyMilkChange}。${averageComparisonDescription}`}>{dailyMilkChange}</small>}</div><div title="范围内今天之前相邻喂奶记录的平均时间，包含夜间及可能漏记的时段。"><span>平均记录间隔</span><strong>{scopeGap === null ? '—' : scopeGap.toFixed(1)}</strong><small>小时</small>{comparison && <small className="trend-milk-change" title={averageComparisonDescription} aria-label={`${gapChange}。${averageComparisonDescription}`}>{gapChange}</small>}</div></section>
+    <section className="trend-summary">
+      <div>
+        <span>{totalLabel}<InfoPopover content={<>
+          <strong>{totalLabel}</strong>
+          <p>{mode === 'seven' ? `所选七天（${isoDay(sevenDays[0])} 至 ${isoDay(sevenDays[6])}）每天记录的奶量之和，母乳 + 奶粉。今日记录截至当前时刻。` : mode === 'month' ? '所选自然月全部喂奶记录的奶量之和（母乳 + 奶粉）。' : '全部历史喂奶记录的奶量之和（母乳 + 奶粉）。'}</p>
+        </>} /></span>
+        <strong>{totalMilkDisplay.amount}</strong><small>{totalMilkDisplay.unit}</small>
+        {comparison && <small className="trend-milk-change" title={comparisonDescription} aria-label={`${milkChange}。${comparisonDescription}`}>{milkChange}</small>}
+      </div>
+      <div>
+        <span>记录日均奶量<InfoPopover content={<>
+          <strong>记录日均奶量</strong>
+          <p>范围内有喂奶记录的 {activeDays} 天的平均奶量，{averageExcludesToday ? '排除今天' : '包含今天已记录的数据'}。无记录的日期不按零计算；有记录不代表当天记录完整。</p>
+        </>} /></span>
+        <strong>{activeDays ? dailyMilkDisplay.amount : '—'}</strong><small>{activeDays ? dailyMilkDisplay.unit : ''}</small>
+        {comparison && <small className="trend-milk-change" title={averageComparisonDescription} aria-label={`${dailyMilkChange}。${averageComparisonDescription}`}>{dailyMilkChange}</small>}
+      </div>
+      <div>
+        <span>平均记录间隔<InfoPopover content={<>
+          <strong>平均记录间隔</strong>
+          <p>范围内{averageExcludesToday ? '今天之前' : ''}相邻喂奶记录的平均时间，包含夜间及可能漏记的时段。不足两条记录时显示“—”。</p>
+        </>} /></span>
+        <strong>{scopeGap === null ? '—' : scopeGap.toFixed(1)}</strong><small>小时</small>
+        {comparison && <small className="trend-milk-change" title={averageComparisonDescription} aria-label={`${gapChange}。${averageComparisonDescription}`}>{gapChange}</small>}
+      </div>
+    </section>
     {mode === 'total' && <section className={`trend-total-details${careBreakdownOpen ? ' expanded' : ''}`} aria-label="累计分类数据"><div title={`${activeSummary.breast} mL`}><span>母乳</span><b>{breastDisplay.amount}</b><small>{breastDisplay.unit}</small></div><div title={`${activeSummary.formula} mL`}><span>奶粉</span><b>{formulaDisplay.amount}</b><small>{formulaDisplay.unit}</small></div><div><span>排便</span><b>{activeSummary.bowel}</b><small>次</small></div><button type="button" className="trend-care-total" aria-expanded={careBreakdownOpen} aria-controls="trend-care-breakdown" onClick={() => setCareBreakdownOpen(value => !value)}><span className="trend-care-label">护理<ChevronDown aria-hidden="true" /></span><b>{activeSummary.supplements}</b><small>次</small></button>{careBreakdownOpen && <div className="trend-care-breakdown" id="trend-care-breakdown"><div className="trend-care-breakdown-head"><b>项目明细</b><small>合计 {activeSummary.supplements} 次</small></div>{careBreakdown.length ? <ul>{careBreakdown.map(item => <li key={item.name}><span>{item.name}</span><b>{item.count}<small>次</small></b></li>)}</ul> : <p>暂无护理项目</p>}</div>}</section>}
     <section className="chart-card"><div className="section-title"><h2>{chartTitle}</h2><div className="legend"><i className="formula" />奶粉<i className="breast" />母乳</div></div><div className="bar-chart" style={{ gridTemplateColumns: `repeat(${Math.max(1, chartData.length)}, minmax(30px, 1fr))` }}>{chartData.map(item => { const hasFeedingRecord = item.feeds > 0; const bucketMilk = item.breast + item.formula; const bucketDisplay = formatMilkVolume(bucketMilk); const bucketLabel = bucketDisplay.unit === 'L' ? `${bucketDisplay.amount} L` : `${bucketDisplay.amount}`; return <div className={`bar-day ${hasFeedingRecord ? '' : 'no-data'}`} key={item.key} aria-label={hasFeedingRecord ? `${item.label}，母乳${item.breast} mL，奶粉${item.formula} mL` : `${item.label}，无喂奶记录`}><div className="bar-value" title={hasFeedingRecord ? `${bucketMilk} mL` : undefined}>{hasFeedingRecord ? bucketLabel : '—'}</div><div className="bar-track"><i className="formula" style={{ height: `${item.formula / maxMilk * 100}%` }} /><i className="breast" style={{ height: `${item.breast / maxMilk * 100}%` }} /></div><span>{item.axis}</span></div>; })}</div><details className="chart-details"><summary>{detailLabel}</summary><div className="chart-values">{detailData.map(item => { const breast = formatMilkVolume(item.breast); const formula = formatMilkVolume(item.formula); return <div key={item.key}><time>{item.label}</time><span title={`${item.formula} mL`}>奶粉 {formula.amount} {formula.unit}</span><span title={`${item.breast} mL`}>母乳 {breast.amount} {breast.unit}</span></div>; })}</div></details></section>
     <FeedingRhythmChart records={records} mode={mode} weekStarts={weekStarts} />
