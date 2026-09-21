@@ -34,7 +34,7 @@ const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
 };
 
 function DinoMuseumMotion({ period }: { period: DiaryPeriod }) {
-  return <svg className={`dino-museum-motion dino-museum-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+  return <svg className={`dino-museum-motion dino-museum-motion-${period}`} viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     {period === 'morning' && <>
       <path className="dino-museum-motion-primary" d="M745 -20 L1015 -20 L900 340 L690 340 Z" />
       <g className="dino-museum-motion-secondary"><circle cx="785" cy="105" r="5" /><circle cx="845" cy="164" r="3" /><circle cx="914" cy="91" r="4" /></g>
@@ -55,7 +55,7 @@ function DinoMuseumMotion({ period }: { period: DiaryPeriod }) {
 }
 
 function DesertOasisMotion({ period }: { period: DiaryPeriod }) {
-  return <svg className={`desert-oasis-motion desert-oasis-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+  return <svg className={`desert-oasis-motion desert-oasis-motion-${period}`} viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     {period === 'morning' && <>
       <path className="desert-oasis-motion-primary" d="M720 333 C790 318 866 350 944 329 C986 318 1022 321 1060 333" />
       <g className="desert-oasis-motion-secondary"><path d="M899 116 C916 99 930 88 943 67" /><path d="M958 149 C978 133 991 117 998 94" /></g>
@@ -76,7 +76,7 @@ function DesertOasisMotion({ period }: { period: DiaryPeriod }) {
 }
 
 function JiangnanMarketMotion({ period }: { period: DiaryPeriod }) {
-  return <svg className={`jiangnan-market-motion jiangnan-market-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+  return <svg className={`jiangnan-market-motion jiangnan-market-motion-${period}`} viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     {period === 'morning' && <>
       <path className="jiangnan-market-motion-primary" d="M706 351 C782 333 852 361 926 341 C977 327 1021 333 1064 347" />
       <g className="jiangnan-market-motion-secondary"><path d="M914 77 L916 137" /><path d="M978 61 L980 128" /></g>
@@ -97,7 +97,7 @@ function JiangnanMarketMotion({ period }: { period: DiaryPeriod }) {
 }
 
 function PixelFarmMotion({ period }: { period: DiaryPeriod }) {
-  return <svg className={`pixel-farm-motion pixel-farm-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice" shapeRendering="crispEdges">
+  return <svg className={`pixel-farm-motion pixel-farm-motion-${period}`} viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice" shapeRendering="crispEdges">
     {period === 'morning' && <>
       <rect className="pixel-farm-motion-primary" x="705" y="348" width="4" height="4" />
       <rect className="pixel-farm-motion-secondary" x="854" y="369" width="4" height="4" />
@@ -119,14 +119,14 @@ function PixelFarmMotion({ period }: { period: DiaryPeriod }) {
 
 function GlassParkMotion({ period }: { period: DiaryPeriod }) {
   // 环境反光而非活动部件；与背景使用相同 cover 坐标，避免跨端漂移。
-  return <svg className={`glass-park-motion glass-park-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+  return <svg className={`glass-park-motion glass-park-motion-${period}`} viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     <path className="glass-park-motion-primary" d="M748 32 L805 32 L937 368 L851 368 Z" />
     <ellipse className="glass-park-motion-secondary" cx="847" cy="281" rx="128" ry="87" />
   </svg>;
 }
 
 function MoonCampMotion({ period }: { period: DiaryPeriod }) {
-  return <svg className={`moon-camp-motion moon-camp-motion-${period}`} viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+  return <svg className={`moon-camp-motion moon-camp-motion-${period}`} viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     {period === 'morning' && <>
       <path className="moon-camp-motion-primary" d="M590 174 L590 258 M590 185 L632 199 L590 213 Z" />
       <circle className="moon-camp-motion-secondary" cx="758" cy="391" r="11" />
@@ -151,7 +151,7 @@ function YarnCornerWindowWeather({ period, weather }: { period: DiaryPeriod; wea
   const kind = weather?.kind;
   const overlay = kind === 'rain' || kind === 'thunder' ? 'rain-glass' : kind === 'snow' ? 'snow-depth' : kind === 'fog' ? 'fog-veil' : kind === 'cloudy' || kind === 'overcast' ? 'cloud-wisp' : null;
   if (!overlay) return null;
-  return <svg className="yarn-corner-window-weather" viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+  return <svg className="yarn-corner-window-weather" viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     <defs><clipPath id={clipId}>
       {period === 'daytime' ? <path d="M675 0h270v88H675z M961 0h95v115h-95z" /> : <path d="M843 0h91v14h-91z M947 0h92v14h-92z M843 24h91v70h-91z M947 24h92v73h-92z" />}
     </clipPath></defs>
@@ -160,7 +160,7 @@ function YarnCornerWindowWeather({ period, weather }: { period: DiaryPeriod; wea
 }
 
 function WestLakeNightMotion() {
-  return <svg className="west-lake-night-motion" viewBox="0 0 1080 432" preserveAspectRatio="xMidYMid slice">
+  return <svg className="west-lake-night-motion" viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     <g className="west-lake-night-lamps"><circle cx="775" cy="313" r="8" /><circle cx="869" cy="289" r="4" /><circle cx="943" cy="274" r="3" /></g>
     <path className="west-lake-night-water" d="M632 377h31 M640 382h19 M768 408h18" />
   </svg>;
