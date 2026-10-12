@@ -11,6 +11,7 @@ export function DiaryWeatherBadge({ weather }: { weather: WeatherSnapshot | null
 }
 
 const MOTION_THEME_BY_BACKGROUND: Record<string, string> = {
+  'hero-seaside-park': 'seaside-park',
   'hero-yarn-corner': 'yarn-corner',
   'hero-west-lake': 'west-lake',
   'hero-nutshell-village': 'nutshell-village',
@@ -146,6 +147,26 @@ function MoonCampMotion({ period }: { period: DiaryPeriod }) {
   </svg>;
 }
 
+function SeasideParkMotion({ period }: { period: DiaryPeriod }) {
+  return <svg className="seaside-park-motion" viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+    {period === 'morning' && <><ellipse className="seaside-park-light" cx="965" cy="244" rx="32" ry="42" /><path className="seaside-park-water" d="M158 335h29 M171 342h17 M218 311h25" /></>}
+    {period === 'daytime' && <><ellipse className="seaside-park-light" cx="619" cy="325" rx="50" ry="9" /><path className="seaside-park-water" d="M270 239h23 M282 244h16 M355 224h24" /></>}
+    {period === 'evening' && <><g className="seaside-park-light"><circle cx="933" cy="153" r="12" /><circle cx="934" cy="230" r="8" /></g><path className="seaside-park-water" d="M173 304h36 M185 311h20 M153 325h26" /></>}
+    {period === 'night' && <><ellipse className="seaside-park-light seaside-park-rim" cx="784" cy="150" rx="123" ry="128" /><path className="seaside-park-water" d="M629 402h28 M642 409h17 M729 424h27" /></>}
+  </svg>;
+}
+
+function SeasideParkDayWeather({ weather }: { weather: WeatherSnapshot | null }) {
+  const clipId = useId();
+  const kind = weather?.kind;
+  const overlay = kind === 'rain' || kind === 'thunder' ? 'rain-glass' : kind === 'snow' ? 'snow-depth' : null;
+  if (!overlay) return null;
+  return <svg className="seaside-park-weather" viewBox="0 0 1080 432" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+    <defs><clipPath id={clipId}><path d="M0 0H450V216L380 432H0Z" /></clipPath></defs>
+    <g clipPath={`url(#${clipId})`}><image href={`/hero/weather/shared/overlays/${overlay}.webp`} x="0" y="-6" width="1080" height="448" preserveAspectRatio="none" /></g>
+  </svg>;
+}
+
 function YarnCornerWindowWeather({ period, weather }: { period: DiaryPeriod; weather: WeatherSnapshot | null }) {
   const clipId = useId();
   const kind = weather?.kind;
@@ -184,6 +205,8 @@ export function DiaryHeroLayer({ period, weather, background }: { period: DiaryP
       <i className="diary-snow diary-snow-one" />
       <i className="diary-snow diary-snow-two" />
       {motionTheme === 'pixel-farm' && <PixelFarmMotion period={period} />}
+      {motionTheme === 'seaside-park' && <SeasideParkMotion period={period} />}
+      {motionTheme === 'seaside-park' && period === 'daytime' && <SeasideParkDayWeather weather={weather} />}
       {motionTheme === 'yarn-corner' && (period === 'daytime' || period === 'night') && <YarnCornerWindowWeather period={period} weather={weather} />}
       {motionTheme === 'west-lake' && period === 'night' && <WestLakeNightMotion />}
       {motionTheme === 'glass-park' && <GlassParkMotion period={period} />}
@@ -191,7 +214,7 @@ export function DiaryHeroLayer({ period, weather, background }: { period: DiaryP
       {motionTheme === 'dino-museum' && <DinoMuseumMotion period={period} />}
       {motionTheme === 'desert-oasis' && <DesertOasisMotion period={period} />}
       {motionTheme === 'jiangnan-market' && <JiangnanMarketMotion period={period} />}
-      {motionTheme && !(motionTheme === 'west-lake' && period === 'night') && !['pixel-farm', 'glass-park', 'moon-camp', 'dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
+      {motionTheme && !(motionTheme === 'west-lake' && period === 'night') && !['seaside-park', 'pixel-farm', 'glass-park', 'moon-camp', 'dino-museum', 'desert-oasis', 'jiangnan-market'].includes(motionTheme) && <div className={`${motionTheme}-motion ${motionTheme}-motion-${period}`}>
         <i className={`${motionTheme}-motion-primary`} />
         <i className={`${motionTheme}-motion-secondary`} />
         {motionTheme === 'shop' && <i className="shop-motion-accent" />}

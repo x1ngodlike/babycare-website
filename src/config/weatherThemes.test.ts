@@ -11,15 +11,15 @@ import {
 
 describe('theme hero assets', () => {
   it('registers the latest complete theme first across selectors', () => {
-    expect(THEMES[0].id).toBe('theme-yarn-corner');
-    expect(THEMES[0].recommendedBgs).toEqual(['hero-yarn-corner']);
+    expect(THEMES[0].id).toBe('theme-seaside-park');
+    expect(THEMES[0].recommendedBgs).toEqual(['hero-seaside-park']);
     expect(HERO_BACKGROUNDS[0].value).toBe(THEMES[0].defaults.bg);
     expect(ICON_PACKS[1].value).toBe(THEMES[0].defaults.iconPack);
-    expect(getVisualThemeForPreset(THEMES[0].id)).toBe('yarn-corner');
+    expect(getVisualThemeForPreset(THEMES[0].id)).toBe('seaside-park');
     const urls = getThemeHeroAssetUrls(resolveThemeConfig(THEMES[0].id));
     expect(urls).toHaveLength(20);
     expect(new Set(urls).size).toBe(20);
-    expect(urls.every(url => url.startsWith('/hero/weather/yarn-corner/'))).toBe(true);
+    expect(urls.every(url => url.startsWith('/hero/weather/seaside-park/'))).toBe(true);
   });
   it('preserves the complete independent Glass Park package', () => {
     expect(getVisualThemeForPreset('theme-glass-park')).toBe('glass-park');

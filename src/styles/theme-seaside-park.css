@@ -1,0 +1,47 @@
+/* 海风乐岛：沙白、海水青与陶橘红，组件语义色由共享层派生。 */
+html[data-visual-theme="seaside-park"][data-theme="light"] {
+  --theme-page: #f7f8f3;
+  --theme-card: #fffef9;
+  --theme-brand: #347f86;
+  --theme-ink: #2d3b3d;
+  --theme-muted: #69797b;
+  --theme-complement: #bc7053;
+}
+html[data-visual-theme="seaside-park"][data-theme="dark"] {
+  --theme-page: #192a30;
+  --theme-card: #243a41;
+  --theme-brand: #8dc9c8;
+  --theme-ink: #edf3ef;
+  --theme-muted: #afc2c5;
+  --theme-complement: #e4a383;
+}
+html[data-visual-theme="seaside-park"][data-theme="light"] body {
+  background: linear-gradient(155deg, #fffef9, #f7f8f3 64%, #eef4ef);
+  background-attachment: fixed;
+}
+html[data-visual-theme="seaside-park"][data-theme="dark"] body {
+  background: linear-gradient(180deg, #243a41, #192a30 64%, #15252b);
+  background-attachment: fixed;
+}
+html[data-visual-theme="seaside-park"] .app::before,
+html[data-visual-theme="seaside-park"] .app::after { background: rgba(52, 127, 134, .04); }
+.baby-hero.hero-seaside-park .hero-status::before { background: rgba(33, 57, 63, .58); }
+.baby-hero.hero-seaside-park.weather-overcast::before { background: rgba(42, 64, 66, .13); }
+.baby-hero.hero-seaside-park.weather-rain::before { background: linear-gradient(90deg, transparent 38%, rgba(38, 75, 82, .14)); }
+.baby-hero.hero-seaside-park.weather-fog::before { background: linear-gradient(90deg, transparent 32%, rgba(235, 241, 230, .18)); }
+.baby-hero.hero-seaside-park.weather-thunder::before { background: linear-gradient(90deg, transparent 36%, rgba(25, 43, 50, .23)); }
+.seaside-park-motion { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.seaside-park-light { fill: #ffe2a5; animation: seaside-park-glow 8s ease-in-out infinite alternate; }
+.seaside-park-rim { fill: none; stroke: #ffe2a5; stroke-width: 2; }
+.seaside-park-water { fill: none; stroke: #f6e6bc; stroke-width: 1.5; animation: seaside-park-glow 10s ease-in-out infinite alternate-reverse; }
+.baby-hero.hero-seaside-park:is(.weather-rain, .weather-snow, .weather-fog, .weather-thunder) .seaside-park-motion { opacity: .3; }
+.baby-hero.hero-seaside-park .diary-daytime :is(.diary-rain, .diary-snow) { display: none; }
+.seaside-park-weather { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+.seaside-park-weather image { opacity: .25; animation: seaside-park-weather-drift 7s ease-in-out infinite alternate; }
+@keyframes seaside-park-glow { from { opacity: .04; } to { opacity: .16; } }
+@keyframes seaside-park-weather-drift { from { transform: translateY(-2px); } to { transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .seaside-park-light,
+  .seaside-park-water,
+  .seaside-park-weather image { animation: none; }
+}
