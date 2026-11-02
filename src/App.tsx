@@ -4,6 +4,7 @@ import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { Plus, X } from 'lucide-react';
 import { api, ApiError, setBaseUrl } from './api';
 import { addDays, isoDay } from './date';
+import { feedingLabel, latestFeeding } from './quickFeeding';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
 import { blankDraft, canManage, emptyCapabilities, familyMembers, optimisticRecord, roleNames, summary, weekContains, type ThemeMode, auditNames } from './shared';
@@ -462,6 +463,48 @@ export default function App() {
     }
   }
 
+  const quickFeedingLock = useRef(false);
+  const [quickFeedingBusy, setQuickFeedingBusy] = useState(false);
+  const [quickFeedingRetry, setQuickFeedingRetry] = useState<DraftRecord | null>(null);
+  useEffect(() => { setQuickFeedingRetry(null); }, [currentUser?.id]);
+
+  function openTodayRecord(type: DraftRecord['type']) {
+    const last = type === 'feeding' ? latestFeeding(records) : null;
+    setEditor({ ...blankDraft(type), ...(last ? { breastMilkMl: last.breastMilkMl, formulaMl: last.formulaMl } : {}) });
+  }
+
+  async function recordQuickFeeding(last: CareRecord) {
+    if (!currentUser || quickFeedingLock.current) return;
+    if (!online) { openTodayRecord('feeding'); return; }
+    quickFeedingLock.current = true;
+    setQuickFeedingBusy(true);
+    const draft = quickFeedingRetry || { ...blankDraft('feeding'), breastMilkMl: last.breastMilkMl, formulaMl: last.formulaMl };
+    setQuickFeedingRetry(draft);
+    try {
+      const saved = await api.createRecord(draft);
+      setQuickFeedingRetry(null);
+      updateLocalRecords(currentUser.id, items => [saved, ...items.filter(item => item.id !== saved.id)]);
+      let undoBusy = false;
+      setToast({ message: `已记录${feedingLabel(saved)}`, actionLabel: '撤销', onAction: async () => {
+        if (undoBusy) return;
+        undoBusy = true;
+        try {
+          await api.undoFeeding(saved.id);
+          updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== saved.id));
+          setToast({ message: '已撤销本次喂奶记录' });
+        } catch (error) {
+          setToast({ message: error instanceof Error ? error.message : '撤销失败，请在记录中查看' });
+        } finally { undoBusy = false; }
+      } });
+    } catch (error) {
+      if (error instanceof ApiError) setQuickFeedingRetry(null);
+      setToast({ message: error instanceof ApiError ? error.message : '未确认保存结果，请再次点击重试（不会重复记录）' });
+    } finally {
+      quickFeedingLock.current = false;
+      setQuickFeedingBusy(false);
+    }
+  }
+
   async function recordSupplement(supplement: Supplement) {
     try { await saveOne({ ...blankDraft('supplement'), supplement }); }
     catch (error) {
@@ -547,7 +590,7 @@ export default function App() {
     <main className={`main-content${isChatPage ? ' chat-page-fullscreen' : ''}`}>
       <Suspense fallback={null}>
       <div className={`tab-page${isChatPage ? ' chat-tab-page' : ''}`} key={tab}>
-      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} weeklyGrowth={weeklyGrowth} feedPrepEnabled={pushStatus?.feedPrepEnabled ?? true} feedPrepMinutes={pushStatus?.feedPrepMinutes ?? 30} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} heroBg={themeBg} iconPack={themeIconPack} layout={themeLayout} weatherEffectsEnabled={themeWeatherEffects} onOpenSettings={() => goToTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
+      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} weeklyGrowth={weeklyGrowth} feedPrepEnabled={pushStatus?.feedPrepEnabled ?? true} feedPrepMinutes={pushStatus?.feedPrepMinutes ?? 30} onAddGrowth={() => setGrowthEditor('new')} onAdd={openTodayRecord} onQuickFeeding={recordQuickFeeding} quickFeedingBusy={quickFeedingBusy} quickFeedingRetry={quickFeedingRetry} online={online} heroBg={themeBg} iconPack={themeIconPack} layout={themeLayout} weatherEffectsEnabled={themeWeatherEffects} onOpenSettings={() => goToTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
       {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} profile={profile} iconPack={themeIconPack} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} />}
       {tab === 'chat' && <ChatView user={currentUser} capabilities={capabilities} online={online} onBack={() => goToTab('today')} />}
       {tab === 'trends' && <TrendsView records={records} careItems={careItems} />}

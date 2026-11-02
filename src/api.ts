@@ -163,6 +163,7 @@ export const api = {
   deletedRecords: () => request<CareRecord[]>('/api/records/deleted'),
   createRecord: (record: DraftRecord & { id?: string }) => request<CareRecord>('/api/records', { method: 'POST', body: JSON.stringify(record) }),
   updateRecord: (id: string, record: DraftRecord) => request<CareRecord>(`/api/records/${id}`, { method: 'PUT', body: JSON.stringify(record) }),
+  undoFeeding: (id: string) => request(`/api/records/${id}/undo-feeding`, { method: 'POST' }),
   deleteRecord: (id: string) => request<{ deleted: boolean; record: CareRecord | null }>(`/api/records/${id}`, { method: 'DELETE' }),
   restoreRecord: (id: string) => request<CareRecord>(`/api/records/${id}/restore`, { method: 'POST' }),
   purgeRecord: (id: string) => request<{ deleted: boolean }>(`/api/records/${id}/permanent`, { method: 'DELETE' }),

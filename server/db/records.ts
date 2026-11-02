@@ -12,7 +12,7 @@ const columns = `
   deleted_at AS deletedAt, deleted_by AS deletedBy
 `;
 
-function getRecord(id: string): CareRecord | null {
+export function getRecord(id: string): CareRecord | null {
   return db.prepare(`SELECT ${columns} FROM care_records WHERE id = ?`).get(id) as CareRecord | undefined || null;
 }
 

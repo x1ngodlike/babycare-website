@@ -1,3 +1,4 @@
+import { getRecord } from '../db/records.js';
 import { randomUUID } from 'node:crypto';
 import type { Express } from 'express';
 import { z } from 'zod';
@@ -165,10 +166,30 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
     return res.json({ items });
   });
 
+  app.post('/api/records/:id/undo-feeding', (req, res) => {
+    const id = z.string().uuid().safeParse(req.params.id);
+    if (!id.success) return res.status(400).json({ error: '记录编号不正确' });
+    const record = getRecord(id.data);
+    const actor = getSessionUser(req)!.id;
+    if (!record || record.type !== 'feeding' || record.createdBy !== actor ||
+      Date.now() - Date.parse(record.createdAt) > 120_000 ||
+      (!record.deletedAt && record.updatedAt !== record.createdAt)) {
+      return res.status(403).json({ error: '只能在两分钟内撤销本人新建且未修改的喂奶记录，请联系管理员处理' });
+    }
+    if (!record.deletedAt) removeRecord(record.id, actor);
+    ctx.changeHub.broadcast('records');
+    return res.json({ deleted: true });
+  });
+
   app.post('/api/records', (req, res) => {
     const parsed = recordSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '记录格式不正确' });
     if (new Date(parsed.data.occurredAt).getTime() > Date.now() + 10 * 60 * 1000) return res.status(400).json({ error: '记录时间不能晚于当前时间' });
+    const existing = parsed.data.id ? getRecord(parsed.data.id) : null;
+    if (existing) {
+      if (!existing.deletedAt && existing.createdBy === getSessionUser(req)!.id && existing.type === 'feeding' && parsed.data.type === 'feeding' && existing.occurredAt === new Date(parsed.data.occurredAt).toISOString() && existing.breastMilkMl === (parsed.data.breastMilkMl ?? null) && existing.formulaMl === (parsed.data.formulaMl ?? null)) return res.json(existing);
+      return res.status(409).json({ error: '记录已存在，请刷新查看，勿重复提交' });
+    }
     const record = saveRecord(normalizeRecord(parsed.data, getSessionUser(req)!.id));
     ctx.changeHub.broadcast('records');
     return res.status(201).json(record);
