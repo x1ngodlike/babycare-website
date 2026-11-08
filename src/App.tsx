@@ -3,8 +3,8 @@
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { api, ApiError, setBaseUrl } from './api';
+import { canDeleteCareRecord } from '../shared/record-permissions';
 import { addDays, isoDay } from './date';
-import { feedingLabel, latestFeeding } from './quickFeeding';
 import { createUuid } from './id';
 import { cacheProfile, cacheRecords, clearRememberedUser, getCachedProfile, getCachedRecords, getOutbox, getRememberedUser, queueAction, rememberUser, setOutbox } from './offline';
 import { blankDraft, canManage, emptyCapabilities, familyMembers, optimisticRecord, roleNames, summary, weekContains, type ThemeMode, auditNames } from './shared';
@@ -463,48 +463,6 @@ export default function App() {
     }
   }
 
-  const quickFeedingLock = useRef(false);
-  const [quickFeedingBusy, setQuickFeedingBusy] = useState(false);
-  const [quickFeedingRetry, setQuickFeedingRetry] = useState<DraftRecord | null>(null);
-  useEffect(() => { setQuickFeedingRetry(null); }, [currentUser?.id]);
-
-  function openTodayRecord(type: DraftRecord['type']) {
-    const last = type === 'feeding' ? latestFeeding(records) : null;
-    setEditor({ ...blankDraft(type), ...(last ? { breastMilkMl: last.breastMilkMl, formulaMl: last.formulaMl } : {}) });
-  }
-
-  async function recordQuickFeeding(last: CareRecord) {
-    if (!currentUser || quickFeedingLock.current) return;
-    if (!online) { openTodayRecord('feeding'); return; }
-    quickFeedingLock.current = true;
-    setQuickFeedingBusy(true);
-    const draft = quickFeedingRetry || { ...blankDraft('feeding'), breastMilkMl: last.breastMilkMl, formulaMl: last.formulaMl };
-    setQuickFeedingRetry(draft);
-    try {
-      const saved = await api.createRecord(draft);
-      setQuickFeedingRetry(null);
-      updateLocalRecords(currentUser.id, items => [saved, ...items.filter(item => item.id !== saved.id)]);
-      let undoBusy = false;
-      setToast({ message: `已记录${feedingLabel(saved)}`, actionLabel: '撤销', onAction: async () => {
-        if (undoBusy) return;
-        undoBusy = true;
-        try {
-          await api.undoFeeding(saved.id);
-          updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== saved.id));
-          setToast({ message: '已撤销本次喂奶记录' });
-        } catch (error) {
-          setToast({ message: error instanceof Error ? error.message : '撤销失败，请在记录中查看' });
-        } finally { undoBusy = false; }
-      } });
-    } catch (error) {
-      if (error instanceof ApiError) setQuickFeedingRetry(null);
-      setToast({ message: error instanceof ApiError ? error.message : '未确认保存结果，请再次点击重试（不会重复记录）' });
-    } finally {
-      quickFeedingLock.current = false;
-      setQuickFeedingBusy(false);
-    }
-  }
-
   async function recordSupplement(supplement: Supplement) {
     try { await saveOne({ ...blankDraft('supplement'), supplement }); }
     catch (error) {
@@ -519,14 +477,29 @@ export default function App() {
   }
 
   async function remove(record: CareRecord) {
-    if (!currentUser || !canManage(currentUser) || !await confirmAction({ title: `删除“${summary(record)}”？`, description: '记录会移到已删除列表，可以随后恢复。', confirmLabel: '删除记录', danger: true })) return;
-    try { await api.deleteRecord(record.id); updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== record.id)); await loadDeletedRecords(); setToast({ message: '记录已移到已删除', actionLabel: '撤销', onAction: () => undoDelete(record) }); }
-    catch (error) {
+    if (!currentUser || !canDeleteCareRecord(currentUser)) return;
+    const manager = canManage(currentUser);
+    const confirmed = await confirmAction({
+      title: `删除“${summary(record)}”？`,
+      description: manager ? '记录会移到已删除列表，可以随后恢复。' : '记录会移到已删除列表，管理员可以恢复。',
+      confirmLabel: '删除记录',
+      danger: true
+    });
+    if (!confirmed) return;
+    const undo = manager ? { actionLabel: '撤销', onAction: () => undoDelete(record) } : {};
+    const hideRecord = () => updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== record.id));
+    try {
+      await api.deleteRecord(record.id);
+      hideRecord();
+      await loadDeletedRecords();
+      setToast({ message: '记录已移到已删除', ...undo });
+    } catch (error) {
       if (error instanceof ApiError) { setToast({ message: error.message }); return; }
       queueAction(currentUser.id, { action: 'delete', recordId: record.id });
-      updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== record.id));
-      setPendingCount(getOutbox(currentUser.id).length); setOnline(false);
-      setToast({ message: '删除已暂存，联网后自动同步', actionLabel: '撤销', onAction: () => undoDelete(record) });
+      hideRecord();
+      setPendingCount(getOutbox(currentUser.id).length);
+      setOnline(false);
+      setToast({ message: '删除已暂存，联网后自动同步', ...undo });
     }
   }
 
@@ -578,6 +551,7 @@ export default function App() {
 
   if (authenticated === null) return <main className="loading-page"><i className="loading-indicator" aria-hidden="true" /><p>正在打开照护记录…</p></main>;
   if (!authenticated || !currentUser) return <Login onSuccess={user => { rememberUser(user); setCurrentUser(user); setRecords(getCachedRecords(user.id)); setAuthenticated(true); setOfflineSession(false); }} />;
+  const onDeleteCareRecord = canDeleteCareRecord(currentUser) ? remove : undefined;
   const currentMember = familyMembers.find(member => member.id === currentUser.id)!;
   const isConnectionFailed = connection.status === 'failed';
   const connectionLabel = isConnectionFailed ? '连接失败' : offlineSession ? '离线身份' : !online ? '离线' : pendingCount ? `待同步 ${pendingCount} 条` : refreshing ? '正在更新' : '已连接';
@@ -590,8 +564,8 @@ export default function App() {
     <main className={`main-content${isChatPage ? ' chat-page-fullscreen' : ''}`}>
       <Suspense fallback={null}>
       <div className={`tab-page${isChatPage ? ' chat-tab-page' : ''}`} key={tab}>
-      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} weeklyGrowth={weeklyGrowth} feedPrepEnabled={pushStatus?.feedPrepEnabled ?? true} feedPrepMinutes={pushStatus?.feedPrepMinutes ?? 30} onAddGrowth={() => setGrowthEditor('new')} onAdd={openTodayRecord} onQuickFeeding={recordQuickFeeding} quickFeedingBusy={quickFeedingBusy} quickFeedingRetry={quickFeedingRetry} online={online} heroBg={themeBg} iconPack={themeIconPack} layout={themeLayout} weatherEffectsEnabled={themeWeatherEffects} onOpenSettings={() => goToTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} />}
-      {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} profile={profile} iconPack={themeIconPack} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={remove} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} />}
+      {tab === 'today' && <TodayView profile={profile} records={todayRecords} recentRecords={records} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} careItems={careItems} todayPlanStatus={todayPlanStatus} capabilities={capabilities} manager={canManage(currentUser)} superadmin={currentUser?.role === 'superadmin'} userId={currentUser.id} weeklyGrowth={weeklyGrowth} feedPrepEnabled={pushStatus?.feedPrepEnabled ?? true} feedPrepMinutes={pushStatus?.feedPrepMinutes ?? 30} onAddGrowth={() => setGrowthEditor('new')} onAdd={type => setEditor(blankDraft(type))} online={online} heroBg={themeBg} iconPack={themeIconPack} layout={themeLayout} weatherEffectsEnabled={themeWeatherEffects} onOpenSettings={() => goToTab('settings')} onCompleteVaccine={item => setVaccineEditor({ mode: 'complete', item })} onAppointmentVaccine={item => setVaccineEditor({ mode: 'appointment', item })} onSupplement={recordSupplement} onEdit={setEditor} onDelete={onDeleteCareRecord} onAudit={setAuditRecord} />}
+      {tab === 'history' && <HistoryView records={records} deletedRecords={deletedRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} profile={profile} iconPack={themeIconPack} historyMode={historyMode} setHistoryMode={setHistoryMode} careItems={careItems} manager={canManage(currentUser)} selected={selectedDate} setSelected={setSelectedDate} onEdit={setEditor} onDelete={onDeleteCareRecord} onAudit={setAuditRecord} onLoadDeleted={loadDeletedRecords} onRestore={restoreDeleted} onPurge={purgeDeleted} onOpenVaccineEditor={setVaccineEditor} onCancelVaccineAppointment={item => void cancelVaccineAppointment(item)} onDeleteVaccine={record => void removeVaccine(record)} />}
       {tab === 'chat' && <ChatView user={currentUser} capabilities={capabilities} online={online} onBack={() => goToTab('today')} />}
       {tab === 'trends' && <TrendsView records={records} careItems={careItems} />}
       {tab === 'archive' && <ArchiveView profile={profile} growthRecords={growthRecords} deletedGrowthRecords={deletedGrowthRecords} vaccineRecords={vaccineRecords} vaccineCatalog={vaccineCatalog} user={currentUser} archiveMode={archiveMode} setArchiveMode={setArchiveMode} onOpenVaccines={openVaccines} onEditGrowth={setGrowthEditor} onAddGrowth={() => setGrowthEditor('new')} onDeleteGrowth={removeGrowth} onRestoreGrowth={restoreGrowth} onPurgeGrowth={purgeGrowth} onProfileSaved={value => { setProfile(value); setToast({ message: '宝宝资料已保存' }); }} />}

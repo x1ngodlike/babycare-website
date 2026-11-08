@@ -783,9 +783,3 @@ html[data-theme="light"] .history-timeline .record-mark {
   .today-layout .baby-hero,
   .hero-preview-list .baby-hero:not(.hero-diary) { min-height: 132px; padding: 18px; }
 }
-
-/* 喂奶快捷入口与其他按钮等高，保留主题图标尺寸。 */
-.quick-grid .quick-feeding { min-width: 0; }
-.quick-grid .quick-feeding > button { width: 100%; }
-.quick-grid button:disabled { opacity: .6; cursor: wait; }
-.quick-grid { align-items: start; }

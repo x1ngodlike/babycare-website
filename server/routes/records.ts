@@ -17,6 +17,7 @@ import { backupPayloadSchema, careItemInputSchema, recordSchema } from '../schem
 import { shanghaiDateString, shanghaiDayUtcRange } from '../shanghai-date.js';
 import { predictFeeding, type FeedingPrediction } from '../../shared/feeding-prediction.js';
 import type { AuditEntry, CareItem, CareRecord, FamilyMemberPermission, VaccineCatalogItem } from '../types.js';
+import { canDeleteCareRecord } from '../../shared/record-permissions.js';
 import type { RouteContext } from './context.js';
 
 export function registerRecordRoutes(app: Express, ctx: RouteContext) {
@@ -166,21 +167,6 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
     return res.json({ items });
   });
 
-  app.post('/api/records/:id/undo-feeding', (req, res) => {
-    const id = z.string().uuid().safeParse(req.params.id);
-    if (!id.success) return res.status(400).json({ error: '记录编号不正确' });
-    const record = getRecord(id.data);
-    const actor = getSessionUser(req)!.id;
-    if (!record || record.type !== 'feeding' || record.createdBy !== actor ||
-      Date.now() - Date.parse(record.createdAt) > 120_000 ||
-      (!record.deletedAt && record.updatedAt !== record.createdAt)) {
-      return res.status(403).json({ error: '只能在两分钟内撤销本人新建且未修改的喂奶记录，请联系管理员处理' });
-    }
-    if (!record.deletedAt) removeRecord(record.id, actor);
-    ctx.changeHub.broadcast('records');
-    return res.json({ deleted: true });
-  });
-
   app.post('/api/records', (req, res) => {
     const parsed = recordSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || '记录格式不正确' });
@@ -206,10 +192,12 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
 
   app.get('/api/records/deleted', requireAdmin, (_req, res) => res.json(listDeletedRecords()));
 
-  app.delete('/api/records/:id', requireAdmin, (req, res) => {
+  app.delete('/api/records/:id', requireAuth, (req, res) => {
+    const user = getSessionUser(req)!;
+    if (!canDeleteCareRecord(user)) return res.status(403).json({ error: '当前身份不能删除照护记录' });
     const parsed = z.string().uuid().safeParse(req.params.id);
     if (!parsed.success) return res.status(400).json({ error: '记录编号不正确' });
-    const record = removeRecord(parsed.data, getSessionUser(req)!.id);
+    const record = removeRecord(parsed.data, user.id);
     if (record) ctx.changeHub.broadcast('records');
     return res.json({ deleted: Boolean(record), record });
   });
