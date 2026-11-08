@@ -58,6 +58,7 @@ for (const path of allPublicFiles) {
 
 await checkImage(join(publicRoot, 'app-icons/icon-192.png'), { width: 192, height: 192, format: 'png' });
 await checkImage(join(publicRoot, 'app-icons/icon-512.png'), { width: 512, height: 512, format: 'png' });
+await checkImage(join(publicRoot, 'app-icons/icon-maskable-512.png'), { width: 512, height: 512, format: 'png', alpha: false });
 
 const classicRoot = join(publicRoot, 'hero/classic');
 const classicPeriods = ['morning', 'midday', 'afternoon', 'evening', 'night'];
