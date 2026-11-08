@@ -6,6 +6,9 @@ declare global {
   interface Window {
     BabyCareNative?: {
       openServerSettings(): void;
+      takeWidgetFeedingRequest?(): boolean;
+      setFeedingWidgetSignedIn?(signedIn: boolean): void;
+      refreshFeedingWidget?(): void;
       getEnvironmentLabel(): string;
       getNotificationPermissionStatus?(): 'granted' | 'required';
       requestNotificationPermission?(): void;

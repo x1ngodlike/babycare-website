@@ -57,6 +57,7 @@ import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 41;
@@ -70,6 +71,7 @@ public final class MainActivity extends Activity {
     private TextView errorMessage;
     private ValueCallback<Uri[]> fileChooserCallback;
     private String pendingNotificationTarget;
+    private final AtomicBoolean pendingWidgetFeeding = new AtomicBoolean();
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean wasUsingLan = false;
@@ -85,6 +87,10 @@ public final class MainActivity extends Activity {
         NotificationScheduler.createChannel(this);
         AppNotificationPoller.start(this);
         captureNotificationTarget(getIntent());
+        captureWidgetAction(getIntent());
+        if (savedInstanceState != null && savedInstanceState.getBoolean("widgetFeeding")) {
+            pendingWidgetFeeding.set(true);
+        }
         configureWebView();
         registerNetworkCallback();
 
@@ -384,6 +390,7 @@ public final class MainActivity extends Activity {
                 CookieManager.getInstance().flush();
                 dispatchNotificationTarget();
                 AppNotificationPoller.pollNow(MainActivity.this);
+                FeedingWidget.refresh(MainActivity.this);
             }
 
             @Override
@@ -487,6 +494,7 @@ public final class MainActivity extends Activity {
         errorView.setVisibility(View.GONE);
         webView.setVisibility(View.VISIBLE);
         if (!hasVisiblePage) launchView.setVisibility(View.VISIBLE);
+        FeedingWidget.refresh(this);
         webView.loadUrl(server + "/");
     }
 
@@ -652,6 +660,21 @@ public final class MainActivity extends Activity {
 
     private final class NativeBridge {
         @JavascriptInterface
+        public boolean takeWidgetFeedingRequest() {
+            return pendingWidgetFeeding.getAndSet(false);
+        }
+
+        @JavascriptInterface
+        public void setFeedingWidgetSignedIn(boolean signedIn) {
+            runOnUiThread(() -> FeedingWidget.setSignedIn(MainActivity.this, signedIn));
+        }
+
+        @JavascriptInterface
+        public void refreshFeedingWidget() {
+            FeedingWidget.refresh(MainActivity.this);
+        }
+
+        @JavascriptInterface
         public void openServerSettings() {
             runOnUiThread(() -> showServerDialog(false));
         }
@@ -777,12 +800,22 @@ public final class MainActivity extends Activity {
         );
     }
 
+    private void captureWidgetAction(Intent intent) {
+        if (intent == null || !FeedingWidget.ACTION_RECORD.equals(intent.getAction())) return;
+        pendingWidgetFeeding.set(true);
+        intent.setAction(null);
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         captureNotificationTarget(intent);
         dispatchNotificationTarget();
+        captureWidgetAction(intent);
+        if (pendingWidgetFeeding.get() && webView != null) {
+            webView.evaluateJavascript("window.dispatchEvent(new Event('babycare:widget-feeding'))", null);
+        }
     }
 
     @Override
@@ -833,11 +866,18 @@ public final class MainActivity extends Activity {
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean("widgetFeeding", pendingWidgetFeeding.get());
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (webView != null) {
             webView.onResume();
             notifyWebPermissionChanged();
+            FeedingWidget.refresh(this);
         }
     }
 

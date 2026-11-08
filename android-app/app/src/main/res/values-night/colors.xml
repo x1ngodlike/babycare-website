@@ -4,4 +4,9 @@
     <color name="brand_text">#E7E4DF</color>
     <color name="brand_text_secondary">#AAA59E</color>
     <color name="icon_background">#EAD8C4</color>
+    <color name="feeding_widget_surface">#342A24</color>
+    <color name="feeding_widget_text">#FFF1E1</color>
+    <color name="feeding_widget_muted">#DAC0AC</color>
+    <color name="feeding_widget_action">#F0C39D</color>
+    <color name="feeding_widget_action_text">#2C1A10</color>
 </resources>

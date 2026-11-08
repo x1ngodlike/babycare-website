@@ -1,4 +1,16 @@
 <resources>
     <string name="app_name">宝宝照护</string>
     <string name="server_health_hint">会先测试 /api/health，成功后再进入应用。</string>
+    <string name="feeding_widget_name">喂奶速记</string>
+    <string name="feeding_widget_description">查看喂奶间隔和预计下次时间，快捷打开喂奶记录。</string>
+    <string name="feeding_widget_since">距上次喂奶</string>
+    <string name="feeding_widget_next">预计下次喂奶</string>
+    <string name="feeding_widget_record">＋ 记喂奶</string>
+    <string name="feeding_widget_placeholder">—</string>
+    <string name="feeding_widget_login">请先登录</string>
+    <string name="feeding_widget_connection_error">连接失败</string>
+    <string name="feeding_widget_server_error">服务异常</string>
+    <string name="feeding_widget_empty">暂无记录</string>
+    <string name="feeding_widget_no_prediction">暂无预测</string>
+    <string name="feeding_widget_setup">请打开 APP</string>
 </resources>

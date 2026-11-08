@@ -53,6 +53,15 @@ function ensureCareItemAvailable(record: CareRecord, existing: CareRecord | null
   if (!item?.active) throw new CareItemInactiveError('这个项目已停用，请选择其他项目');
 }
 
+export function latestFeedingTime(before: string): string | null {
+  const row = db.prepare(`
+    SELECT occurred_at AS occurredAt FROM care_records
+    WHERE type = 'feeding' AND deleted_at IS NULL AND occurred_at <= ?
+    ORDER BY occurred_at DESC LIMIT 1
+  `).get(before) as { occurredAt: string } | undefined;
+  return row?.occurredAt ?? null;
+}
+
 export function listRecords(from: string, to: string): CareRecord[] {
   return db.prepare(`SELECT ${columns} FROM care_records WHERE deleted_at IS NULL AND occurred_at >= ? AND occurred_at < ? ORDER BY occurred_at DESC`).all(from, to) as CareRecord[];
 }

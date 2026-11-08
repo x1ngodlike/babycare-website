@@ -134,6 +134,24 @@ export default function App() {
   const [growthEditor, setGrowthEditor] = useState<GrowthRecord | 'new' | null>(null);
   const [vaccineEditor, setVaccineEditor] = useState<VaccineEditorState | null>(null);
   const [capabilities, setCapabilities] = useState<Capabilities>(emptyCapabilities); const [online, setOnline] = useState(navigator.onLine); const [offlineSession, setOfflineSession] = useState(Boolean(startupUser)); const [pendingCount, setPendingCount] = useState(() => startupUser ? getOutbox(startupUser.id).length : 0); const [refreshing, setRefreshing] = useState(false); const [toast, setToast] = useState<ToastState | null>(null);
+  useEffect(() => {
+    if (!window.BabyCareNative?.takeWidgetFeedingRequest) return;
+    const openWidgetFeeding = () => {
+      if (!authenticated || !currentUser || editor || growthEditor || vaccineEditor || auditRecord) return;
+      if (!window.BabyCareNative?.takeWidgetFeedingRequest?.()) return;
+      goToTab('today', false);
+      setEditor(blankDraft('feeding'));
+    };
+    window.addEventListener('babycare:widget-feeding', openWidgetFeeding);
+    openWidgetFeeding();
+    return () => window.removeEventListener('babycare:widget-feeding', openWidgetFeeding);
+  }, [authenticated, currentUser, editor, growthEditor, vaccineEditor, auditRecord, goToTab]);
+
+  useEffect(() => {
+    if (authenticated === false) window.BabyCareNative?.setFeedingWidgetSignedIn?.(false);
+    if (authenticated && currentUser && !offlineSession) window.BabyCareNative?.setFeedingWidgetSignedIn?.(true);
+  }, [authenticated, currentUser?.id, offlineSession]);
+
   const [theme, setTheme] = useState<ThemeMode>(() => { try { return (localStorage.getItem('babycare-theme') as ThemeMode) || 'system'; } catch { return 'system'; } });
   const [randomThemeEnabled, setRandomThemeEnabled] = useState(readRandomThemeEnabled);
   const [randomThemeSelection, setRandomThemeSelection] = useState(() => readRandomThemeEnabled() ? getDailyRandomTheme() : null);
@@ -285,7 +303,7 @@ export default function App() {
         break;
       }
     }
-    if (queue.length && !remaining.length) { setToast({ message: discarded ? `${discarded} 条离线操作因冲突未同步` : '离线记录已同步' }); await Promise.all([reloadRecords(), loadDeletedRecords()]); }
+    if (queue.length && !remaining.length) { window.BabyCareNative?.refreshFeedingWidget?.(); setToast({ message: discarded ? `${discarded} 条离线操作因冲突未同步` : '离线记录已同步' }); await Promise.all([reloadRecords(), loadDeletedRecords()]); }
   }, [currentUser, reloadRecords]);
 
   useEffect(() => {
@@ -454,10 +472,18 @@ export default function App() {
   async function saveOne(input: DraftRecord) {
     if (!currentUser) throw new Error('请先登录');
     const value = { ...input, id: input.id || createUuid() };
-    try { value.id && records.some(item => item.id === value.id) ? await api.updateRecord(value.id, value) : await api.createRecord(value); await reloadRecords(); setToast({ message: '记录已保存' }); }
-    catch (error) {
+    const previous = records.find(item => item.id === value.id);
+    try {
+      if (previous) await api.updateRecord(value.id, value);
+      else await api.createRecord(value);
+      if (value.type === 'feeding' || previous?.type === 'feeding') {
+        window.BabyCareNative?.refreshFeedingWidget?.();
+      }
+      await reloadRecords();
+      setToast({ message: '记录已保存' });
+    } catch (error) {
       if (error instanceof ApiError) throw error;
-      const previous = records.find(item => item.id === value.id); const optimistic = optimisticRecord(value, currentUser, previous);
+      const optimistic = optimisticRecord(value, currentUser, previous);
       queueAction(currentUser.id, { action: previous ? 'update' : 'create', recordId: previous?.id, payload: value });
       setPendingCount(getOutbox(currentUser.id).length); updateLocalRecords(currentUser.id, items => [optimistic, ...items.filter(item => item.id !== optimistic.id)]); setOnline(false); setToast({ message: '已暂存，恢复连接后自动同步' });
     }
@@ -490,6 +516,7 @@ export default function App() {
     const hideRecord = () => updateLocalRecords(currentUser.id, items => items.filter(item => item.id !== record.id));
     try {
       await api.deleteRecord(record.id);
+      if (record.type === 'feeding') window.BabyCareNative?.refreshFeedingWidget?.();
       hideRecord();
       await loadDeletedRecords();
       setToast({ message: '记录已移到已删除', ...undo });
@@ -505,7 +532,7 @@ export default function App() {
 
   async function restoreDeleted(record: CareRecord) {
     if (!currentUser) return;
-    try { await api.restoreRecord(record.id); await Promise.all([reloadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); }
+    try { await api.restoreRecord(record.id); if (record.type === 'feeding') window.BabyCareNative?.refreshFeedingWidget?.(); await Promise.all([reloadRecords(), loadDeletedRecords()]); setToast({ message: '记录已恢复' }); }
     catch (error) {
       if (error instanceof ApiError) { setToast({ message: error.message }); return; }
       queueAction(currentUser.id, { action: 'restore', recordId: record.id });

@@ -32,6 +32,17 @@
             android:name=".NotificationScheduler$VaccineReminderReceiver"
             android:exported="false" />
         <receiver
+            android:name=".FeedingWidget"
+            android:exported="false"
+            android:label="@string/feeding_widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/feeding_widget_info" />
+        </receiver>
+        <receiver
             android:name=".AppNotificationPoller"
             android:exported="false" />
         <receiver

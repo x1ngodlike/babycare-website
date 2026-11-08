@@ -1,4 +1,4 @@
-import { getRecord } from '../db/records.js';
+import { getRecord, latestFeedingTime } from '../db/records.js';
 import { randomUUID } from 'node:crypto';
 import type { Express } from 'express';
 import { z } from 'zod';
@@ -25,6 +25,18 @@ export function registerRecordRoutes(app: Express, ctx: RouteContext) {
     const parsed = z.object({ from: z.string().datetime({ offset: true }), to: z.string().datetime({ offset: true }) }).safeParse(req.query);
     if (!parsed.success) return res.status(400).json({ error: '日期范围格式不正确' });
     return res.json(listRecords(parsed.data.from, parsed.data.to));
+  });
+
+  app.get('/api/widget/feeding', requireAuth, (_req, res) => {
+    const now = new Date();
+    const from = new Date(now.getTime() - 7 * 86400_000);
+    const records = listRecords(from.toISOString(), now.toISOString()).filter(record => record.type === 'feeding');
+    const prediction = predictFeeding(records, now, 7, 1);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.json({
+      lastFeedAt: latestFeedingTime(now.toISOString()),
+      nextFeedAt: prediction.nextFeedAt
+    });
   });
 
   app.get('/api/feeding-prediction', async (_req, res) => {
